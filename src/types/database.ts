@@ -42,6 +42,43 @@ export type CategoryType = "income" | "expense" | "both";
 
 export type TransactionSource = "manual" | "seed" | "import" | "recurring";
 
+export type AssetType =
+  | "cash"
+  | "bank"
+  | "savings"
+  | "investment"
+  | "gold"
+  | "crypto"
+  | "property"
+  | "vehicle"
+  | "business"
+  | "other";
+
+export type LiabilityType =
+  | "credit_card"
+  | "personal_loan"
+  | "car_loan"
+  | "mortgage"
+  | "student_loan"
+  | "informal_debt"
+  | "other";
+
+export type GoalType =
+  | "emergency_fund"
+  | "travel"
+  | "gadget"
+  | "car"
+  | "home"
+  | "education"
+  | "wedding"
+  | "business_capital"
+  | "million"
+  | "retirement"
+  | "custom";
+
+export type GoalPriority = "critical" | "high" | "medium" | "low";
+export type GoalStatus = "active" | "completed" | "archived";
+
 export interface Database {
   public: {
     Tables: {
@@ -160,6 +197,154 @@ export interface Database {
         Insert: Database["public"]["Tables"]["transaction_tags"]["Row"];
         Update: Partial<Database["public"]["Tables"]["transaction_tags"]["Row"]>;
       };
+      budgets: {
+        Row: {
+          id: string;
+          user_id: string;
+          month: string;
+          total_budget: string;
+          planned_savings: string;
+          planned_investment: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["budgets"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; month: string };
+        Update: Partial<Database["public"]["Tables"]["budgets"]["Row"]>;
+      };
+      budget_categories: {
+        Row: {
+          id: string;
+          budget_id: string;
+          category_id: string;
+          amount: string;
+          is_fixed: boolean;
+          is_essential: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["budget_categories"]["Row"], "id" | "created_at" | "updated_at">
+        > & { budget_id: string; category_id: string };
+        Update: Partial<Database["public"]["Tables"]["budget_categories"]["Row"]>;
+      };
+      assets: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          asset_type: AssetType;
+          value: string;
+          currency_code: string;
+          include_in_net_worth: boolean;
+          linked_account_id: string | null;
+          notes: string | null;
+          last_updated_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["assets"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; name: string; asset_type: AssetType };
+        Update: Partial<Database["public"]["Tables"]["assets"]["Row"]>;
+      };
+      liabilities: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          liability_type: LiabilityType;
+          balance: string;
+          interest_rate: string | null;
+          minimum_payment: string | null;
+          due_date: string | null;
+          include_in_net_worth: boolean;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["liabilities"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; name: string; liability_type: LiabilityType };
+        Update: Partial<Database["public"]["Tables"]["liabilities"]["Row"]>;
+      };
+      net_worth_snapshots: {
+        Row: {
+          id: string;
+          user_id: string;
+          snapshot_date: string;
+          total_assets: string;
+          total_liabilities: string;
+          net_worth: string;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["net_worth_snapshots"]["Row"], "id" | "created_at">> & {
+          user_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["net_worth_snapshots"]["Row"]>;
+      };
+      financial_goals: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          goal_type: GoalType;
+          target_amount: string;
+          current_amount: string;
+          target_date: string | null;
+          priority: GoalPriority;
+          monthly_contribution: string;
+          linked_account_id: string | null;
+          status: GoalStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["financial_goals"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; name: string; goal_type: GoalType; target_amount: string | number };
+        Update: Partial<Database["public"]["Tables"]["financial_goals"]["Row"]>;
+      };
+      emergency_funds: {
+        Row: {
+          id: string;
+          user_id: string;
+          target_months: string | null;
+          custom_target_amount: string | null;
+          current_amount: string;
+          monthly_contribution: string;
+          linked_account_id: string | null;
+          linked_goal_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["emergency_funds"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string };
+        Update: Partial<Database["public"]["Tables"]["emergency_funds"]["Row"]>;
+      };
+      wealth_scores: {
+        Row: {
+          id: string;
+          user_id: string;
+          total_score: string;
+          cash_flow_score: string;
+          savings_score: string;
+          emergency_fund_score: string;
+          debt_health_score: string;
+          net_worth_growth_score: string;
+          income_growth_score: string;
+          goal_progress_score: string;
+          calculation_version: number;
+          calculated_at: string;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["wealth_scores"]["Row"], "id" | "created_at">> & {
+          user_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["wealth_scores"]["Row"]>;
+      };
     };
     Functions: {
       create_transfer: {
@@ -182,3 +367,11 @@ export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
 export type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 export type Tag = Database["public"]["Tables"]["tags"]["Row"];
+export type Budget = Database["public"]["Tables"]["budgets"]["Row"];
+export type BudgetCategory = Database["public"]["Tables"]["budget_categories"]["Row"];
+export type Asset = Database["public"]["Tables"]["assets"]["Row"];
+export type Liability = Database["public"]["Tables"]["liabilities"]["Row"];
+export type NetWorthSnapshot = Database["public"]["Tables"]["net_worth_snapshots"]["Row"];
+export type FinancialGoal = Database["public"]["Tables"]["financial_goals"]["Row"];
+export type EmergencyFund = Database["public"]["Tables"]["emergency_funds"]["Row"];
+export type WealthScore = Database["public"]["Tables"]["wealth_scores"]["Row"];

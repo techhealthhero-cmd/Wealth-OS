@@ -6,6 +6,7 @@ import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { SummaryCards } from "@/features/dashboard/components/summary-cards";
+import { WealthOverview } from "@/features/dashboard/components/wealth-overview";
 import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { QuickAdd } from "@/features/transactions/components/quick-add";
@@ -48,6 +49,8 @@ export default async function DashboardPage() {
           {new Date().toLocaleDateString(locale === "th" ? "th-TH" : "en-US", { month: "long", year: "numeric" })}
         </p>
       </div>
+
+      <WealthOverview />
 
       <SummaryCards
         incomeCents={data.incomeCents}

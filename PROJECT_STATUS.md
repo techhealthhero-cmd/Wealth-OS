@@ -1,10 +1,12 @@
 # WEALTH OS — PROJECT STATUS
 
-Last updated: 2026-09-11
+Last updated: 2026-09-12
 
 ## Current Phase
 
-Day 1 / Foundation + Money Core — **complete and fully verified**, including the previously-outstanding live browser QA and i18n gaps (see "Day 1 Final Closeout" below). Day 2 / Wealth Engine is now underway — see "Day 2" sections further down once added.
+Day 1 / Foundation + Money Core — **complete and fully verified** (see "Day 1 Final Closeout" below).
+
+Day 2 / Wealth Engine — **code complete, unit-tested, and building clean, but NOT yet live-verified.** Every system (Smart Budget, Assets, Liabilities, Net Worth, Financial Goals, Emergency Fund, Safe-to-Spend, Wealth Score) is fully implemented — database migration written, RLS policies written, deterministic financial logic written and unit-tested (388 total dictionary keys in sync, 116/116 tests passing), UI built, dashboard integrated, navigation updated. **What's blocking full sign-off:** this session has no working Supabase credential capable of running DDL — `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` is empty, there's no `DATABASE_URL`, and the Supabase CLI isn't linked (no `supabase/config.toml`, no CLI installed). Migration `0003_wealth_engine.sql` has **not been applied to the live project**, so: (1) RLS cannot be verified against a real database with two real users, (2) the new pages cannot be exercised end-to-end in a real browser. See "Day 2 — Wealth Engine" below for the full breakdown and exactly what to run once credentials are available. **Ready for Day 3: NO** until this is closed out.
 
 ## Repository Note
 
@@ -390,14 +392,90 @@ Closed every item the previous session's "Next Task" list had left open, verifyi
 
 **QA (re-run after all of the above)**: lint ✅ (zero errors/warnings), typecheck ✅ (`tsc --noEmit`, zero errors), tests ✅ (28/28, unchanged — confirms no financial calculation logic was touched), production build ✅ (clean `next build --webpack`, all 17 routes compiled). Browser QA used a disposable Supabase test account (Playwright, temporarily installed and removed afterward, same pattern as prior sessions).
 
+## Day 2 — Wealth Engine (this session)
+
+Transforms the app from a transaction tracker toward a financial progress system: Smart Budget, Assets, Liabilities, Net Worth, Financial Goals, Emergency Fund, Safe-to-Spend, and Wealth Score. **Code complete and unit-tested; live-DB verification blocked on Supabase credentials** — see "Current Phase" above and "Known Limitations" below for exactly what's outstanding and why.
+
+### Database migration
+
+`supabase/migrations/0003_wealth_engine.sql` — written, reviewed, **not yet applied to the live project**. Adds 8 tables: `budgets`, `budget_categories`, `assets`, `liabilities`, `net_worth_snapshots`, `financial_goals`, `emergency_funds`, `wealth_scores`. Follows every convention from `0001_init.sql`: UUID PKs (`gen_random_uuid()`), `NUMERIC(18,2)` for all money, TEXT+CHECK instead of native enums, `user_id` ownership + RLS on every table, `updated_at` via the existing `set_updated_at()` trigger, indexes on every foreign key and common filter column. Notable constraints: `budgets` has `unique(user_id, month)` (prevents duplicate/conflicting monthly budgets); `net_worth_snapshots` has `unique(user_id, snapshot_date)` (idempotent daily snapshots); `emergency_funds` has `unique(user_id)` (one tracker per user) plus a CHECK requiring either `target_months` or `custom_target_amount`. **To apply:** `node _migrate.mjs <management-api-token>` (temporary script, reads the migration file and POSTs it to the Supabase Management API — same mechanism used earlier this project) — or run it through the Supabase SQL editor / `supabase db push` directly. This script and `_rls_test.mjs` (see RLS below) will be deleted before this task is considered fully closed; if you're reading this and they still exist, that's the tell that migration/RLS verification is still pending.
+
+### Double-counting rule (Assets ↔ Accounts, and Net Worth)
+
+Documented in the migration header and enforced in `calculateNetWorth()` (`src/lib/financial/net-worth.ts`): an `accounts` row already contributes its balance to Net Worth when `include_in_net_worth = true` (existing Day 1 column). A manual `assets` row is for wealth *not* already represented by an account. `assets.linked_account_id` is a bookkeeping-only link — when set, that asset is **excluded** from the assets total (the linked account is the one that counts), so the same money is never counted twice. Unit-tested explicitly in `tests/net-worth.test.ts`.
+
+### Budget
+
+`src/lib/financial/budget.ts` — `calculateBudgetStatus()` (spent/remaining/%used/projected-end-of-month via linear projection/status: `no_budget`/`healthy`/`near_limit`/`over_budget`) and `calculateCategoryBudgetStatuses()` (joins per-category allocations against actual category spend, reusing Day 1's `calculateSpendingByCategory`). CRUD: `src/features/budget/{queries,actions}.ts` + `src/app/(app)/money/budget/page.tsx`. One budget per calendar month (`unique(user_id, month)`, friendly "a budget for this month already exists" error on conflict), category allocations flagged `is_fixed`/`is_essential` (feed directly into Emergency Fund and Safe-to-Spend below — no separate essential-expense input anywhere). Month selector (prev/next arrows, `?month=YYYY-MM-01` query param) — required by the task spec, easy to miss.
+
+### Assets
+
+Types: cash, bank, savings, investment, gold, crypto, property, vehicle, business, other. `src/features/assets/{queries,actions,components}` + `/money/assets`. Optional `linked_account_id` per the double-counting rule above.
+
+### Liabilities
+
+Types: credit card, personal loan, car loan, mortgage, student loan, informal debt, other. Fields include optional `interest_rate`, `minimum_payment`, `due_date` — `minimum_payment` feeds Debt Health (Wealth Score) and Safe-to-Spend. `src/features/liabilities/{queries,actions,components}` + `/money/liabilities`. Deliberately **no Debt Planner** (payoff strategies, snowball/avalanche) — out of scope per the task spec, reserved for a later phase.
+
+### Net Worth
+
+`calculateNetWorth()` (assets + included accounts − included liabilities, double-counting-safe) and `calculateNetWorthChange()` in `src/lib/financial/net-worth.ts`. `/money/net-worth` shows current net worth, total assets/liabilities, month-over-month change, a history line chart (Recharts, matching the existing dashboard chart style), and asset/liability breakdowns. Snapshots are recorded automatically on every page visit via `recordTodaysNetWorthSnapshot()` — an upsert keyed on `(user_id, snapshot_date)`, so repeat visits the same day update rather than duplicate. With fewer than 2 snapshots, shows a clear "not enough history yet" state instead of an empty/broken chart.
+
+### Financial Goals
+
+Types: Emergency Fund, Travel, Gadget, Car, Home, Education, Wedding, Business Capital, 1 Million (`million`), Retirement, Custom. Priorities: Critical/High/Medium/Low (sorted in application code — `priority` is a TEXT column, so an `ORDER BY` on it would sort alphabetically rather than by real importance; see `getGoals()`). `src/lib/financial/goals.ts` — `calculateGoalProgress()`, `calculateAmountRemaining()`, `calculateRequiredMonthlyContribution()`, `calculateProjectedCompletionDate()`, `calculateGoalScheduleStatus()` (achieved/ahead/on_track/behind/unknown — "unknown" is a neutral state, not a penalty, for goals with no target date or no contribution to project from yet). Reuses `GoalTypeIcon`/`GoalIllustration` from the existing illustration system — **extended** (not duplicated) `GoalTypeIcon`'s type union, which was pre-built but had `business`/no `million` instead of the schema's `business_capital`/`million`; it was "not imported anywhere yet" per its own code comment, so this was a safe in-place fix rather than a fork. `/plan/goals`.
+
+### Emergency Fund
+
+One tracker per user (`unique(user_id)`). Target is either a multiple of essential monthly expenses (3/6/9/12 preset chips or a custom number of months) or a flat custom amount — `calculateEmergencyFundTarget()` in `src/lib/financial/emergency-fund.ts`. **Essential monthly expenses are not stored** — `getEssentialMonthlyExpenses()` derives them live from the current month's `budget_categories` flagged `is_essential`, so they can never drift from the budget the user actually set. If no budget exists yet, the page shows a clear message asking the user to set one up first rather than inventing a number. `calculateMonthsProtected()`, `calculateEmergencyFundProgress()`, `calculateEmergencyFundCompletion()` round out the math. Can optionally link an account and/or a goal. `/plan/emergency-fund`.
+
+### Safe-to-Spend
+
+`calculateSafeToSpend()` in `src/lib/financial/safe-to-spend.ts` — pure function of 7 inputs (available liquid cash, upcoming bills, minimum debt payments, planned savings, planned investment, protected emergency fund, mandatory commitments), never invents a number. `src/features/safe-to-spend/queries.ts` sources those inputs from real data (liquid-type account balances; fixed-essential vs. variable-essential budget categories split into "upcoming bills" vs. "mandatory commitments"; liabilities' minimum payments; the emergency fund's current amount) and returns `hasCompleteData: false` — an explicit incomplete-data state — when there isn't even one account to source liquid cash from, rather than fabricating a figure. Surfaced on the dashboard as an expandable card (Today/This Week/This Month + a line-by-line "how this was calculated" breakdown with an explicit "this is an estimate, not a guarantee" disclaimer) — no standalone route, since the task's navigation spec doesn't list one and the dashboard card already exposes the same information without an extra "functional but pointless" page.
+
+### Wealth Score
+
+`src/lib/financial/wealth-score.ts` — 7 deterministic component functions (Cash Flow Health 20%, Savings Rate 15%, Emergency Fund 15%, Debt Health 15%, Net Worth Growth 15%, Income Growth 10%, Goal Progress 10%), no LLM anywhere. Every mapping is documented inline with its exact assumption (e.g. cash-flow-to-income ratio of 0 = neutral score 50, +100% = 100, -100% = 0; a 20%+ savings rate is full marks). **Missing-history fairness** (explicit task requirement): Net Worth Growth and Income Growth return a neutral 50 with `hasHistory: false` when there's no prior snapshot/month to compare against, instead of penalizing a brand-new user — surfaced in the UI as "some scores are neutral placeholders until there's enough history." `getWealthScoreImprovementActions()` returns structured, measurable actions (increase emergency fund by ฿X, reduce discretionary spending by ฿X, improve savings rate to 20%, contribute ฿X/month to the most-behind goal, reduce debt payments) rather than generic advice — each one only fires when its component scores below 90 and the underlying gap is actually real and non-zero (e.g. no "reduce spending" suggestion when cash flow is already positive). `calculation_version` is stored (currently `1`) per the task's schema requirement. Computed fresh on every dashboard load (so the number is always current) but persisted to the `wealth_scores` history table **at most once per calendar day** (`ensureTodaysWealthScore()`) — otherwise every dashboard reload would insert a duplicate row into an append-only history table. Surfaced as an expandable dashboard card (component breakdown + improvement actions) — same "no pointless standalone route" reasoning as Safe-to-Spend.
+
+### Dashboard
+
+New `WealthOverview` section (`src/features/dashboard/components/wealth-overview.tsx`) between the page header and the existing income/expense/cash-flow/savings-rate cards: Wealth Score, Net Worth, Safe-to-Spend, Budget status, Emergency Fund, Top Goal — 6 compact linked cards in a `grid-cols-2 lg:grid-cols-3` layout (Wealth Score and Safe-to-Spend span the full width on mobile since they're expandable; the other four pair up). Monthly Cash Flow was already on the dashboard from Day 1 (`SummaryCards`) — reused rather than duplicated. Deliberately **not** a wall of charts: every card is a number + one line of context, with detail one tap away on its own page (except Safe-to-Spend/Wealth Score, which expand in place — see above). Illustrations (`IllustrationFrame`, `BudgetIllustration`, `GoalIllustration`, `FinancialStageProgress`) were considered but not forced into these compact tiles — they're sized for full empty-state moments, not dense stat grids; each new page's own empty state does use the matching illustration (`BudgetIllustration` on `/money/budget`, `GoalIllustration` on `/plan/goals`, etc).
+
+**Resilience fix found and applied during this session's own QA** (not a hypothetical): the very first thing `WealthOverview` did was query all 8 new tables directly. Verified live (test account, real browser) that — because migration 0003 isn't applied yet — this made the **existing, previously-working Day 1 dashboard return a hard 500** for any user with at least one account (a zero-data user never hit the code path, which is why this wasn't obvious from a quick glance). No `error.tsx` exists anywhere in the app, so an uncaught Server Component error takes down the whole page. Fixed by wrapping `WealthOverview`'s data loading in a try/catch (`loadWealthOverviewData()`) that logs the real error server-side and renders nothing if it fails, rather than crashing the page — re-verified live afterward: the dashboard now renders fully and correctly (all Day 1 content intact) even with none of the Day 2 tables present. This is a **deployment-order safeguard, not a permanent design choice** — once migration 0003 is applied, `WealthOverview` renders normally with no code changes needed. The dedicated new pages (`/money/budget`, `/money/assets`, etc.) were *not* given the same defensive wrapping — a brand-new page erroring because its own required table doesn't exist yet is expected and acceptable (the same would be true of `/money/accounts` without the `accounts` table); the fix only mattered for a *shared, previously-working* page.
+
+### Navigation
+
+`src/config/features.ts`: `plan: true` (was `false`) — Plan is a real, working surface now (Goals, Emergency Fund), so it's no longer hidden. `MoneyTabs` (`src/components/layout/money-tabs.tsx`) extended from 2 tabs to 6 (Transactions, Accounts, Budget, Assets, Liabilities, Net Worth), wrapped in a horizontal-scroll container (`overflow-x-auto`) so it doesn't overflow at 375px. New `PlanTabs` (`src/components/layout/plan-tabs.tsx`) + `src/app/(app)/plan/layout.tsx`, mirroring the existing Money layout pattern exactly (localized header via `getDictionary`, tabs, children). `/plan` redirects to `/plan/goals` (same pattern as `/money` → `/money/transactions`).
+
+### Tests
+
+6 new test files, 88 new tests (116 total, up from 28 at the end of Day 1), all passing: `tests/budget.test.ts`, `tests/net-worth.test.ts`, `tests/goals.test.ts`, `tests/emergency-fund.test.ts`, `tests/safe-to-spend.test.ts`, `tests/wealth-score.test.ts`. Every domain function in `src/lib/financial/{budget,net-worth,goals,emergency-fund,safe-to-spend,wealth-score}.ts` is covered, including every edge case the task spec named: zero income, zero expenses, negative cash flow, no assets, no liabilities, liabilities > assets, no net worth history, goal date passed, target already achieved, no emergency fund, debt-heavy user, monthly budget = 0, overspent category, missing optional fields (nullable target_months/target_date/etc handled via `null`-safe function signatures throughout, not just at the DB layer). These are pure-function tests with zero database dependency, so they're the one part of Day 2 that's **genuinely, fully verified** regardless of the migration/credentials situation.
+
+### RLS Verification — NOT YET RUN (blocked)
+
+`_rls_test.mjs` (temporary script, repo root) is written and ready: creates two disposable real users via the Auth REST API, then for every new table has User A create a row and verifies User B cannot SELECT it, UPDATE it, DELETE it, or INSERT a row claiming User A's `user_id`. Covers all 8 new tables including the `budget_categories` join-table pattern (ownership via the parent `budgets` row, same approach as Day 1's `transaction_tags`). **Cannot run until migration 0003 is applied** (the tables don't exist yet). Run with: `node _rls_test.mjs <supabase-url> <anon-key>` once that's done.
+
+### Browser QA — NOT YET RUN (blocked)
+
+Confirmed live (see "Resilience fix" above) that the dashboard itself is safe today. The 6 new dedicated pages have **not** been visually QA'd at 375/390/430/desktop, because every one of them queries a table that doesn't exist yet and will show Next.js's default error page until migration 0003 is applied — attempting screenshots now would only demonstrate the expected "table doesn't exist" failure, not real UI/UX issues. Once the migration is live, re-run the same Playwright pattern used for Day 1 (temporary install, disposable test account, screenshots at 4 widths, visual inspection for raw IDs/enum values, Thai/English mismatches, overflow, broken empty states) across all 6 new pages plus the dashboard's new `WealthOverview` cards.
+
+### Known Limitations
+
+1. **Migration 0003 not applied to the live project** — no usable Supabase credential this session (`SUPABASE_SERVICE_ROLE_KEY` empty, no `DATABASE_URL`, no linked CLI). This is the root cause of every item below. Apply via `node _migrate.mjs <token>` (Supabase Management API personal access token) or through the SQL editor / `supabase db push`.
+2. **RLS not verified live** — script ready (`_rls_test.mjs`), blocked on #1.
+3. **New pages not browser-QA'd** — blocked on #1; the shared dashboard *was* verified live and is confirmed safe either way (see "Resilience fix" above).
+4. **`_migrate.mjs` and `_rls_test.mjs` are still in the repo root** — temporary, to be deleted the moment migration + RLS verification are done. Their presence is itself a signal that this work isn't finished.
+5. Safe-to-Spend and Wealth Score have no standalone route — by design (see their sections above), but revisit if product feedback wants a dedicated deep-dive page later.
+6. Budget's "upcoming bills" vs. "mandatory commitments" split (fixed-essential vs. variable-essential categories) is a reasonable but opinionated modeling choice for Safe-to-Spend, not something the task spec dictated precisely — documented in `src/features/safe-to-spend/queries.ts`.
+7. Net worth history chart needs at least 2 daily snapshots to render (by design — shows an explicit "not enough history yet" state below that) — will naturally fill in over the following days once live.
+
 ## Next Task
 
-Day 1 is fully closed. Day 2 (Smart Budget, Assets, Liabilities, Net Worth, Goals, Emergency Fund, Safe-to-Spend, Wealth Score) is next — see the Day 2 sections below once implemented in this same session, or start there if picking this up fresh.
+**Apply `supabase/migrations/0003_wealth_engine.sql` to the live project**, then run `node _rls_test.mjs <url> <anon-key>` and a full Day 2 browser QA pass (375/390/430/desktop across all 6 new pages + dashboard), fix anything real either surfaces, delete `_migrate.mjs`/`_rls_test.mjs`, and re-confirm lint/typecheck/tests/build one more time. Only after that is Day 2 genuinely, fully done and Day 3 can start.
 
-Carried-forward, non-blocking items:
+Carried-forward, non-blocking items from Day 1:
 1. Re-check `package.json`'s `vite` override occasionally — it's pinned to unblock this sandbox's native-binding restriction, not a permanent design decision; drop it if a future vitest/vite release fixes the underlying WASM fallback.
 2. **When adding any new `<Select>`, always give `SelectValue` an explicit label-resolving `children` function** — don't rely on automatic value→label matching; see the bug fixed two sessions ago.
-3. `onboarding-form.tsx` and a few other secondary forms (e.g. `profile-form.tsx` labels beyond what was already fixed) may still carry hardcoded English strings outside the `/money/accounts` and `/money/transactions` scope this pass targeted — worth a follow-up i18n sweep if a fully bilingual app is the goal, but out of scope for what was asked this session.
+3. `onboarding-form.tsx` and a few other secondary forms (e.g. `profile-form.tsx` labels beyond what was already fixed) may still carry hardcoded English strings outside the `/money/accounts` and `/money/transactions` scope the Day 1 closeout pass targeted.
 
 ## Update Rule
 

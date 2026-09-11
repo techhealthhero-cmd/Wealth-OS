@@ -6,7 +6,8 @@ export type GoalType =
   | "home"
   | "education"
   | "wedding"
-  | "business"
+  | "business_capital"
+  | "million"
   | "retirement"
   | "custom";
 
@@ -26,7 +27,8 @@ export const GOAL_TYPE_EMOJI: Record<GoalType, string> = {
   home: "🏡",
   education: "🎓",
   wedding: "💍",
-  business: "💼",
+  business_capital: "💼",
+  million: "💰",
   retirement: "🌴",
   custom: "🎯",
 };

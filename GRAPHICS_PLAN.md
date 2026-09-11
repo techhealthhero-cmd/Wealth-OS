@@ -260,8 +260,8 @@ wired to a page.
 
 | Item | Status |
 |---|---|
-| Generic goal illustration | 🟡 `GoalIllustration` (flag-on-a-path motif) |
-| Per-goal-type icons (Emergency Fund, Travel, Gadget, Car, Home, Education, Wedding, Business, Retirement, Custom) | 🟡 `GoalTypeIcon` + `GOAL_TYPE_EMOJI` map — one component covering all 10 types, matching the existing category-icon pattern, rather than 10 separate files |
+| Generic goal illustration | ✅ `GoalIllustration` (flag-on-a-path motif), integrated on `/plan/goals` empty state (Day 2) |
+| Per-goal-type icons (Emergency Fund, Travel, Gadget, Car, Home, Education, Wedding, Business Capital, 1 Million, Retirement, Custom) | ✅ `GoalTypeIcon` + `GOAL_TYPE_EMOJI` map — one component covering all 10 types, matching the existing category-icon pattern, rather than 10 separate files. Integrated on `/plan/goals` (Day 2). Type union adjusted from a pre-Day-2 placeholder (`business`, no `million`) to match the real `financial_goals.goal_type` schema (`business_capital`, `million`) — safe in-place edit since it wasn't imported anywhere yet. |
 | States: In progress, Completed, Behind target, Ahead of target | ⬜ — deferred; state visuals depend on the goal data model, which doesn't exist yet |
 
 ## Net Worth / Wealth graphics
@@ -278,7 +278,7 @@ wealth (matches CLAUDE.md's "never promise users will become rich").
 
 | Item | Status |
 |---|---|
-| Generic budget/safe-to-spend illustration (half-gauge motif) | 🟡 `BudgetIllustration` |
+| Generic budget/safe-to-spend illustration (half-gauge motif) | ✅ `BudgetIllustration`, integrated on `/money/budget` empty state (Day 2) |
 | Category budget progress, overspending warning, under-budget success, Upcoming Bills, Monthly Plan progress | ⬜ not built |
 
 ## AI Coach visuals
@@ -358,14 +358,14 @@ Standing rule: tasteful celebration only — no confetti, no modal takeover
 | `EmptyTransactionsIllustration` | `empty-transactions-illustration.tsx` | `src/features/transactions/components/transaction-list.tsx` |
 | `SuccessBadge` | `success-badge.tsx` | `src/features/transactions/components/transaction-form.tsx`, `transfer-form.tsx` (toast icon) |
 | `LockedBadge` | `locked-badge.tsx` | nowhere yet — 🟡, no billing system exists |
-| `GoalIllustration` | `goal-illustration.tsx` | nowhere yet — 🟡, no `/plan` route exists |
-| `GoalTypeIcon` | `goal-type-icon.tsx` | nowhere yet — 🟡, no `/plan` route exists |
+| `GoalIllustration` | `goal-illustration.tsx` | ✅ `/plan/goals` empty state (Day 2) |
+| `GoalTypeIcon` | `goal-type-icon.tsx` | ✅ `/plan/goals` goal cards (Day 2) |
 | `EarnIllustration` | `earn-illustration.tsx` | nowhere yet — 🟡, no `/earn` route exists |
 | `AICoachIllustration` | `ai-coach-illustration.tsx` | nowhere yet — 🟡, no `/ai` route exists |
 | `MissionBadge` | `mission-badge.tsx` | nowhere yet — 🟡, no missions feature exists |
 | `StreakBadge` | `streak-badge.tsx` | nowhere yet — 🟡, no missions feature exists |
 | `CelebrationBadge` | `celebration-badge.tsx` | nowhere yet — 🟡, no goals/milestones feature exists |
-| `BudgetIllustration` | `budget-illustration.tsx` | nowhere yet — 🟡, no Budget feature exists |
+| `BudgetIllustration` | `budget-illustration.tsx` | ✅ `/money/budget` empty state (Day 2) |
 | `FinancialStageProgress` | `financial-stage-progress.tsx` | nowhere yet — 🟡, no Net Worth feature exists |
 
 ---
@@ -380,12 +380,12 @@ Standing rule: tasteful celebration only — no confetti, no modal takeover
 - ~~Account icons, category icons, transaction type icons, core empty states~~ — **already done**, kept here only for traceability against the originally-requested sprint shape
 
 ## Sprint 2 — Product Polish (P2)
-- Dashboard visuals (Wealth Score, Net Worth, Safe-to-Spend, Goal progress, Income Gap, Financial alerts) — blocked on those features existing first
+- ~~Dashboard visuals (Wealth Score, Net Worth, Safe-to-Spend, Goal progress)~~ — **done** (Day 2): deliberately data-first compact cards, not new illustration assets — see PROJECT_STATUS.md "Day 2 — Dashboard" for why illustrations were judged too large for a dense stat grid. Income Gap / Financial alerts still blocked (Earn/Phase 4 features don't exist yet)
 - Status visuals: Syncing / Offline / Security-privacy states (Locked-premium done, see below)
 - Full multi-step onboarding illustrations (Track/Plan/Earn/Grow pillars, AI guidance, Money Year) — still open; the landing page got its Track→Plan→Earn→Grow treatment (Sprint 4), but onboarding itself is still the single-step Day-1 flow
-- ~~Goals: per-goal-type icons~~ — **done**: `GoalTypeIcon`; state variants (in progress/completed/behind/ahead) still open, deferred until the goal data model exists
+- ~~Goals: per-goal-type icons~~ — **done**: `GoalTypeIcon`, integrated on `/plan/goals` (Day 2). Schedule state (achieved/ahead/on_track/behind/unknown) is now functionally shown via a color-coded badge on each goal card — a dedicated per-state *illustration* variant is still open if that's wanted beyond a badge
 - ~~Net Worth: financial-stage progression~~ — **done**: `FinancialStageProgress`; hero/assets/liabilities visuals still open
-- ~~Budget: generic illustration~~ — **done**: `BudgetIllustration`; detail visuals (category progress, overspending warning) still open
+- ~~Budget: generic illustration~~ — **done**: `BudgetIllustration`, now integrated into `/money/budget`'s empty state (Day 2); detail visuals (category progress, overspending warning) still open — category budgets use plain progress bars, not new illustration assets
 
 ## Sprint 3 — Product Differentiators (P3)
 - AI Coach: insight/suggestion cards, Ask-AI empty state, Next Best Action visual
