@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { createTransaction, updateTransaction } from "@/features/transactions/actions";
 import { asTrigger } from "@/lib/as-trigger";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
+import { toLocalDateString } from "@/lib/date";
 import { transactionTypeVisual } from "@/lib/transaction-ui";
 import { useTranslation } from "@/i18n/client";
 import type { Account, Category, Transaction, TransactionType } from "@/types/database";
@@ -39,7 +40,7 @@ const EDITABLE_TYPES: TransactionType[] = [
 ];
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateString(new Date());
 }
 
 /** Best-effort parse for the live "Save ฿250" button label — never throws on a half-typed amount. */

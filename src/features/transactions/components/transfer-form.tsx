@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { createTransfer } from "@/features/transactions/actions";
 import { asTrigger } from "@/lib/as-trigger";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
+import { toLocalDateString } from "@/lib/date";
 import { transactionTypeVisual } from "@/lib/transaction-ui";
 import { useTranslation } from "@/i18n/client";
 import type { Account } from "@/types/database";
@@ -21,7 +22,7 @@ import { DateField } from "./date-field";
 import { CollapsibleNotes } from "./collapsible-notes";
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateString(new Date());
 }
 
 function safeAmountCents(raw: string): number {

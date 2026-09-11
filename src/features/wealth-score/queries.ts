@@ -13,6 +13,7 @@ import {
 } from "@/lib/financial/calculations";
 import { calculateMonthsProtected } from "@/lib/financial/emergency-fund";
 import { calculateGoalProgress, calculateRequiredMonthlyContribution } from "@/lib/financial/goals";
+import { toLocalDateString } from "@/lib/date";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import {
   calculateCashFlowScore,
@@ -34,8 +35,7 @@ function previousMonthRange(): { from: string; to: string } {
   const now = new Date();
   const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const to = new Date(now.getFullYear(), now.getMonth(), 0);
-  const toISODate = (d: Date) => d.toISOString().slice(0, 10);
-  return { from: toISODate(from), to: toISODate(to) };
+  return { from: toLocalDateString(from), to: toLocalDateString(to) };
 }
 
 export async function getLatestStoredWealthScore(): Promise<WealthScore | null> {
@@ -149,8 +149,8 @@ export async function computeWealthScore(): Promise<WealthScoreComputation> {
 export async function ensureTodaysWealthScore(): Promise<WealthScoreComputation> {
   const [computation, latestStored] = await Promise.all([computeWealthScore(), getLatestStoredWealthScore()]);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const latestStoredDate = latestStored?.calculated_at.slice(0, 10);
+  const today = toLocalDateString(new Date());
+  const latestStoredDate = latestStored ? toLocalDateString(new Date(latestStored.calculated_at)) : undefined;
   if (latestStoredDate !== today) {
     await storeWealthScore(computation.result);
   }

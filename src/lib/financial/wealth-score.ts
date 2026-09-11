@@ -169,7 +169,18 @@ export function getWealthScoreImprovementActions(ctx: WealthScoreActionContext):
   }
 
   if (ctx.components.debtHealthScore < ACTION_SCORE_THRESHOLD && ctx.minimumDebtPaymentsCents > 0) {
-    actions.push({ type: "reduce_debt_payments", amountCents: ctx.minimumDebtPaymentsCents, priority: 2 });
+    // Inverse of calculateDebtHealthScore's formula (score = 100 - ratio*200):
+    // the minimum-payment level at which the score would just reach the
+    // threshold is income * (100 - threshold) / 200. The gap between that
+    // and the current payments is the amount actually worth suggesting —
+    // never the full payment (that would mean "eliminate this debt
+    // entirely", not a measurable improvement step).
+    const targetPaymentsCents =
+      ctx.incomeCents > 0 ? ctx.incomeCents * ((100 - ACTION_SCORE_THRESHOLD) / 200) : 0;
+    const reductionCents = Math.max(0, ctx.minimumDebtPaymentsCents - targetPaymentsCents);
+    if (reductionCents > 0) {
+      actions.push({ type: "reduce_debt_payments", amountCents: Math.round(reductionCents), priority: 2 });
+    }
   }
 
   if (ctx.components.savingsScore < ACTION_SCORE_THRESHOLD) {

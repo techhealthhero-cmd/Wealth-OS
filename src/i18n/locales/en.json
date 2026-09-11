@@ -279,6 +279,7 @@
     "balance": "Outstanding balance",
     "interestRate": "Interest rate (% per year, optional)",
     "minimumPayment": "Minimum payment (optional)",
+    "minimumPaymentShort": "Min. payment",
     "dueDate": "Due date (optional)",
     "includeInNetWorth": "Include in net worth",
     "notes": "Notes",

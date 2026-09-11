@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { toLocalDateString } from "@/lib/date";
 import type { Transaction, TransactionType } from "@/types/database";
 
 export interface TransactionWithRelations extends Transaction {
@@ -140,6 +141,5 @@ export function getCurrentMonthRange(): { from: string; to: string } {
   const now = new Date();
   const from = new Date(now.getFullYear(), now.getMonth(), 1);
   const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const toISODate = (d: Date) => d.toISOString().slice(0, 10);
-  return { from: toISODate(from), to: toISODate(to) };
+  return { from: toLocalDateString(from), to: toLocalDateString(to) };
 }

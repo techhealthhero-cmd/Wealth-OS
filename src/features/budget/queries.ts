@@ -5,6 +5,7 @@ import { getTransactions } from "@/features/transactions/queries";
 import { calculateExpenses, calculateSpendingByCategory } from "@/lib/financial/calculations";
 import { calculateBudgetStatus, calculateCategoryBudgetStatuses, daysInMonth } from "@/lib/financial/budget";
 import { parseMoneyToCents } from "@/lib/financial/money";
+import { toLocalDateString } from "@/lib/date";
 import type { Budget, BudgetCategory, Category } from "@/types/database";
 
 export interface BudgetCategoryWithCategory extends BudgetCategory {
@@ -20,7 +21,7 @@ export interface BudgetSummary {
 
 /** Normalizes any date to the first of its month, as an ISO date string (matches the `budgets.month` column shape). */
 export function toMonthKey(date: Date): string {
-  return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().slice(0, 10);
+  return toLocalDateString(new Date(date.getFullYear(), date.getMonth(), 1));
 }
 
 export async function getBudgetForMonth(monthKey: string): Promise<Budget | null> {
@@ -57,7 +58,7 @@ export async function getBudgetSummary(monthDate: Date = new Date()): Promise<Bu
   const categories = await getBudgetCategories(budget.id);
 
   const from = monthKey;
-  const to = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const to = toLocalDateString(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0));
   const transactions = await getTransactions({ from, to });
 
   const spentCents = calculateExpenses(transactions);

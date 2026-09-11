@@ -6,6 +6,7 @@ import { getAssets } from "@/features/assets/queries";
 import { getLiabilities } from "@/features/liabilities/queries";
 import { calculateNetWorth, type NetWorthResult } from "@/lib/financial/net-worth";
 import { parseMoneyToCents, centsToDecimalString } from "@/lib/financial/money";
+import { toLocalDateString } from "@/lib/date";
 import type { Asset, Liability, NetWorthSnapshot } from "@/types/database";
 
 export interface NetWorthBreakdown extends NetWorthResult {
@@ -65,7 +66,7 @@ export async function recordTodaysNetWorthSnapshot(breakdown: NetWorthResult): P
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalDateString(new Date());
   await supabase.from("net_worth_snapshots").upsert(
     {
       user_id: user.id,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
+import { toLocalDateString } from "@/lib/date";
 
 interface MonthSelectorProps {
   /** YYYY-MM-01 */
@@ -16,7 +17,7 @@ export function MonthSelector({ month }: MonthSelectorProps) {
 
   const prev = new Date(current.getFullYear(), current.getMonth() - 1, 1);
   const next = new Date(current.getFullYear(), current.getMonth() + 1, 1);
-  const toKey = (d: Date) => d.toISOString().slice(0, 10);
+  const toKey = toLocalDateString;
 
   const label = new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", {
     month: "long",

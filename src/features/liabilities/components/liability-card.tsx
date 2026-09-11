@@ -46,7 +46,7 @@ export function LiabilityCard({ liability }: { liability: Liability }) {
             <p className="mt-1 text-sm text-muted-foreground">
               {t(`liabilities.types.${liability.liability_type}`)}
               {liability.minimum_payment
-                ? ` · ${t("liabilities.minimumPayment")}: ${formatMoneyFromDecimal(liability.minimum_payment)}`
+                ? ` · ${t("liabilities.minimumPaymentShort")}: ${formatMoneyFromDecimal(liability.minimum_payment)}`
                 : ""}
             </p>
           </div>

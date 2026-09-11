@@ -277,6 +277,26 @@ describe("getWealthScoreImprovementActions", () => {
     expect(goalAction!.amountCents).toBe(300000);
   });
 
+  it("suggests reducing debt payments by the gap to a healthy threshold, never the full payment amount", () => {
+    const actions = getWealthScoreImprovementActions({
+      components: lowComponents,
+      essentialMonthlyExpensesCents: 0,
+      emergencyFundCurrentCents: 9000000,
+      emergencyFundTargetMonths: 6,
+      incomeCents: 4000000,
+      cashFlowCents: 500000,
+      savingsRatePercent: 5,
+      minimumDebtPaymentsCents: 1000000,
+      goals: [],
+    });
+    const debtAction = actions.find((a) => a.type === "reduce_debt_payments");
+    expect(debtAction).toBeDefined();
+    // income*0.05 = 200000 is the payment level that reaches the threshold;
+    // the suggested reduction is the gap to it, not the full 1,000,000 payment.
+    expect(debtAction!.amountCents).toBe(800000);
+    expect(debtAction!.amountCents).toBeLessThan(1000000);
+  });
+
   it("edge case: returns no actions when every component already scores at/above the threshold", () => {
     const greatComponents: WealthScoreComponents = {
       cashFlowScore: 100,
