@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateAccountBalance,
+  calculateDebtReductionContributions,
   calculateExpenses,
   calculateIncome,
+  calculateInvestmentContributions,
   calculateMonthlyCashFlow,
+  calculateSavingsContributions,
   calculateSavingsRate,
   calculateSpendingByCategory,
   type FinancialTransaction,
@@ -137,5 +140,24 @@ describe("calculateSpendingByCategory", () => {
 
   it("returns an empty array for no expenses", () => {
     expect(calculateSpendingByCategory([salary, transferOut])).toEqual([]);
+  });
+});
+
+describe("calculateSavingsContributions / calculateInvestmentContributions / calculateDebtReductionContributions", () => {
+  const savingsTransfer: FinancialTransaction = { type: "savings_transfer", amount: "3000.00" };
+  const investmentAllocation: FinancialTransaction = { type: "investment_allocation", amount: "2000.00" };
+  const debtPayment: FinancialTransaction = { type: "debt_payment", amount: "1500.00" };
+
+  it("each sums only its own transaction type", () => {
+    const all = [salary, rent, savingsTransfer, investmentAllocation, debtPayment];
+    expect(calculateSavingsContributions(all)).toBe(300000);
+    expect(calculateInvestmentContributions(all)).toBe(200000);
+    expect(calculateDebtReductionContributions(all)).toBe(150000);
+  });
+
+  it("returns 0 for no matching transactions", () => {
+    expect(calculateSavingsContributions([salary, rent])).toBe(0);
+    expect(calculateInvestmentContributions([])).toBe(0);
+    expect(calculateDebtReductionContributions([refund])).toBe(0);
   });
 });

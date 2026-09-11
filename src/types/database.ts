@@ -79,6 +79,9 @@ export type GoalType =
 export type GoalPriority = "critical" | "high" | "medium" | "low";
 export type GoalStatus = "active" | "completed" | "archived";
 
+export type DebtStrategy = "snowball" | "avalanche" | "custom";
+export type ForecastScenarioType = "base" | "conservative" | "optimistic" | "custom";
+
 export interface Database {
   public: {
     Tables: {
@@ -206,6 +209,10 @@ export interface Database {
           planned_savings: string;
           planned_investment: string;
           notes: string | null;
+          expected_income: string;
+          debt_reduction_target: string;
+          goal_contribution_target: string;
+          quarterly_plan_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -345,6 +352,119 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["wealth_scores"]["Row"]>;
       };
+      money_years: {
+        Row: {
+          id: string;
+          user_id: string;
+          year: number;
+          annual_income_target: string;
+          annual_savings_target: string;
+          annual_investment_target: string;
+          annual_debt_reduction_target: string;
+          annual_emergency_fund_target: string;
+          expected_irregular_income: string;
+          expected_irregular_expenses: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["money_years"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; year: number };
+        Update: Partial<Database["public"]["Tables"]["money_years"]["Row"]>;
+      };
+      quarterly_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          money_year_id: string;
+          quarter: number;
+          income_target: string;
+          savings_target: string;
+          investment_target: string;
+          debt_reduction_target: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["quarterly_plans"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; money_year_id: string; quarter: number };
+        Update: Partial<Database["public"]["Tables"]["quarterly_plans"]["Row"]>;
+      };
+      money_year_major_expenses: {
+        Row: {
+          id: string;
+          user_id: string;
+          money_year_id: string;
+          name: string;
+          amount: string;
+          planned_month: string | null;
+          is_paid: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<
+            Database["public"]["Tables"]["money_year_major_expenses"]["Row"],
+            "id" | "created_at" | "updated_at"
+          >
+        > & { user_id: string; money_year_id: string; name: string; amount: string | number };
+        Update: Partial<Database["public"]["Tables"]["money_year_major_expenses"]["Row"]>;
+      };
+      debt_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          strategy: DebtStrategy;
+          extra_monthly_payment: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["debt_plans"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string };
+        Update: Partial<Database["public"]["Tables"]["debt_plans"]["Row"]>;
+      };
+      debt_plan_priorities: {
+        Row: {
+          id: string;
+          debt_plan_id: string;
+          liability_id: string;
+          priority_order: number;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["debt_plan_priorities"]["Row"], "id" | "created_at">> & {
+          debt_plan_id: string;
+          liability_id: string;
+          priority_order: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["debt_plan_priorities"]["Row"]>;
+      };
+      forecast_scenarios: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          scenario_type: ForecastScenarioType;
+          horizon_months: number;
+          income_growth_rate: string;
+          expense_growth_rate: string;
+          monthly_savings: string;
+          monthly_investment: string;
+          monthly_debt_payment: string;
+          one_time_income: string;
+          one_time_income_month: string | null;
+          one_time_expense: string;
+          one_time_expense_month: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["forecast_scenarios"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; name: string };
+        Update: Partial<Database["public"]["Tables"]["forecast_scenarios"]["Row"]>;
+      };
     };
     Functions: {
       create_transfer: {
@@ -375,3 +495,9 @@ export type NetWorthSnapshot = Database["public"]["Tables"]["net_worth_snapshots
 export type FinancialGoal = Database["public"]["Tables"]["financial_goals"]["Row"];
 export type EmergencyFund = Database["public"]["Tables"]["emergency_funds"]["Row"];
 export type WealthScore = Database["public"]["Tables"]["wealth_scores"]["Row"];
+export type MoneyYear = Database["public"]["Tables"]["money_years"]["Row"];
+export type QuarterlyPlan = Database["public"]["Tables"]["quarterly_plans"]["Row"];
+export type MoneyYearMajorExpense = Database["public"]["Tables"]["money_year_major_expenses"]["Row"];
+export type DebtPlan = Database["public"]["Tables"]["debt_plans"]["Row"];
+export type DebtPlanPriority = Database["public"]["Tables"]["debt_plan_priorities"]["Row"];
+export type ForecastScenario = Database["public"]["Tables"]["forecast_scenarios"]["Row"];

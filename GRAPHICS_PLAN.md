@@ -268,7 +268,7 @@ wired to a page.
 
 | Item | Status |
 |---|---|
-| 7-stage Financial Life Stage progression (Survival → Stable → Protected → Debt Controlled → Investor → Wealth Builder → Financial Freedom) | 🟡 `FinancialStageProgress` — a plain stepper, not a game-like level bar, per the "never imply guaranteed wealth" rule below |
+| 7-stage Financial Life Stage progression (Survival → Stable → Protected → Debt Controlled → Investor → Wealth Builder → Financial Freedom) | ✅ `FinancialStageProgress` — a plain stepper, not a game-like level bar, per the "never imply guaranteed wealth" rule below. Integrated on the dashboard's Life Stage card (Day 3), driven by `calculateFinancialLifeStage()` |
 | Net Worth hero, Assets, Liabilities, Net Worth growth, Wealth milestone | ⬜ not built (feature not built) |
 
 **Standing rule for when this is built**: never visually imply guaranteed
@@ -366,7 +366,7 @@ Standing rule: tasteful celebration only — no confetti, no modal takeover
 | `StreakBadge` | `streak-badge.tsx` | nowhere yet — 🟡, no missions feature exists |
 | `CelebrationBadge` | `celebration-badge.tsx` | nowhere yet — 🟡, no goals/milestones feature exists |
 | `BudgetIllustration` | `budget-illustration.tsx` | ✅ `/money/budget` empty state (Day 2) |
-| `FinancialStageProgress` | `financial-stage-progress.tsx` | nowhere yet — 🟡, no Net Worth feature exists |
+| `FinancialStageProgress` | `financial-stage-progress.tsx` | ✅ dashboard Life Stage card (Day 3) |
 
 ---
 
@@ -384,7 +384,7 @@ Standing rule: tasteful celebration only — no confetti, no modal takeover
 - Status visuals: Syncing / Offline / Security-privacy states (Locked-premium done, see below)
 - Full multi-step onboarding illustrations (Track/Plan/Earn/Grow pillars, AI guidance, Money Year) — still open; the landing page got its Track→Plan→Earn→Grow treatment (Sprint 4), but onboarding itself is still the single-step Day-1 flow
 - ~~Goals: per-goal-type icons~~ — **done**: `GoalTypeIcon`, integrated on `/plan/goals` (Day 2). Schedule state (achieved/ahead/on_track/behind/unknown) is now functionally shown via a color-coded badge on each goal card — a dedicated per-state *illustration* variant is still open if that's wanted beyond a badge
-- ~~Net Worth: financial-stage progression~~ — **done**: `FinancialStageProgress`; hero/assets/liabilities visuals still open
+- ~~Net Worth: financial-stage progression~~ — **done**: `FinancialStageProgress`, integrated on the dashboard's Life Stage card (Day 3) rather than the Net Worth page itself — the 7-stage classification is a whole-financial-picture concept (cash flow, emergency fund, debt, savings, net worth all combined), not specific to Net Worth alone; hero/assets/liabilities visuals on the Net Worth page itself still open
 - ~~Budget: generic illustration~~ — **done**: `BudgetIllustration`, now integrated into `/money/budget`'s empty state (Day 2); detail visuals (category progress, overspending warning) still open — category budgets use plain progress bars, not new illustration assets
 
 ## Sprint 3 — Product Differentiators (P3)
@@ -412,7 +412,7 @@ dropped to 9 after recent transaction quick-repeat cards shipped):
 2. **AI Coach insight/suggestion card visuals** — needed the moment Phase 4 (AI Money Coach) starts; `AICoachIllustration` covers the empty/marketing state but not the actual card UI
 3. **Earn feature detail visuals** (Income Gap card, Side Hustle Finder, Skills profile) — `EarnIllustration` covers the generic case; the actual Earn UI will need more
 4. **Goal state variants** (in progress/completed/behind/ahead target) — blocked on the Goals data model existing; per-type icons are already done (`GoalTypeIcon`)
-5. **Net Worth hero + Assets/Liabilities visuals** — `FinancialStageProgress` covers the 7-stage stepper; the rest of the Net Worth page still needs visual treatment
+5. **Net Worth hero + Assets/Liabilities visuals** — the 7-stage stepper (`FinancialStageProgress`) is now live on the dashboard; the Net Worth page itself still needs its own visual treatment
 6. **Mission card / XP / level / progress-ring system** — `MissionBadge` and `StreakBadge` cover two individual badges; a full gamification UI needs more
 7. **Budget detail visuals** (category progress, overspending warning, under-budget success) — `BudgetIllustration` covers the generic empty/hero case
 8. **Premium/billing visuals** (Free/Plus/Pro badges, upgrade illustration, billing success/failure) — `LockedBadge` covers the generic locked state; a real upgrade flow needs more

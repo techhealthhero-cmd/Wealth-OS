@@ -6,6 +6,7 @@ import { getEmergencyFund, getEssentialMonthlyExpenses } from "@/features/emerge
 import { getGoals } from "@/features/goals/queries";
 import { ensureTodaysWealthScore } from "@/features/wealth-score/queries";
 import { getSafeToSpend } from "@/features/safe-to-spend/queries";
+import { getLifeStageAndPriorities } from "@/features/life-stage/queries";
 import { calculateMonthsProtected } from "@/lib/financial/emergency-fund";
 import { calculateGoalProgress } from "@/lib/financial/goals";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
@@ -15,6 +16,7 @@ import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { SafeToSpendCard } from "./safe-to-spend-card";
 import { WealthScoreCard } from "./wealth-score-card";
+import { LifeStageCard } from "./life-stage-card";
 
 const STATUS_TONE: Record<string, string> = {
   no_budget: "text-muted-foreground",
@@ -32,6 +34,7 @@ interface WealthOverviewData {
   essential: Awaited<ReturnType<typeof getEssentialMonthlyExpenses>>;
   topGoal: Awaited<ReturnType<typeof getGoals>>[number] | null;
   safeToSpend: Awaited<ReturnType<typeof getSafeToSpend>>;
+  lifeStageAndPriorities: Awaited<ReturnType<typeof getLifeStageAndPriorities>>;
 }
 
 /**
@@ -49,7 +52,7 @@ async function loadWealthOverviewData(): Promise<WealthOverviewData | null> {
     const locale = await getLocale(profile?.preferred_language);
     const dict = getDictionary(locale);
 
-    const [wealthScoreComputation, netWorth, budgetSummary, emergencyFund, essential, goals, safeToSpend] =
+    const [wealthScoreComputation, netWorth, budgetSummary, emergencyFund, essential, goals, safeToSpend, lifeStageAndPriorities] =
       await Promise.all([
         ensureTodaysWealthScore(),
         getNetWorthBreakdown(),
@@ -58,9 +61,20 @@ async function loadWealthOverviewData(): Promise<WealthOverviewData | null> {
         getEssentialMonthlyExpenses(),
         getGoals(),
         getSafeToSpend(),
+        getLifeStageAndPriorities(),
       ]);
 
-    return { dict, wealthScoreComputation, netWorth, budgetSummary, emergencyFund, essential, topGoal: goals[0] ?? null, safeToSpend };
+    return {
+      dict,
+      wealthScoreComputation,
+      netWorth,
+      budgetSummary,
+      emergencyFund,
+      essential,
+      topGoal: goals[0] ?? null,
+      safeToSpend,
+      lifeStageAndPriorities,
+    };
   } catch (error) {
     console.error("[WealthOverview] Failed to load Day 2 wealth engine data — has migration 0003 been applied?", error);
     return null;
@@ -71,12 +85,14 @@ export async function WealthOverview() {
   const data = await loadWealthOverviewData();
   if (!data) return null;
 
-  const { dict, wealthScoreComputation, netWorth, budgetSummary, emergencyFund, essential, topGoal, safeToSpend } = data;
+  const { dict, wealthScoreComputation, netWorth, budgetSummary, emergencyFund, essential, topGoal, safeToSpend, lifeStageAndPriorities } = data;
   const emergencyFundCurrentCents = emergencyFund ? parseMoneyToCents(emergencyFund.current_amount) : 0;
   const monthsProtected = calculateMonthsProtected(emergencyFundCurrentCents, essential.cents);
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <LifeStageCard data={lifeStageAndPriorities} />
+
       <WealthScoreCard computation={wealthScoreComputation} />
 
       <Link href="/money/net-worth">

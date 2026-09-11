@@ -25,6 +25,21 @@ export function calculateIncome(transactions: FinancialTransaction[]): number {
   return sumByTypes(transactions, ["income"]);
 }
 
+/** Total moved into savings via savings_transfer transactions, in integer cents — used by Money Year's "actual savings" progress. */
+export function calculateSavingsContributions(transactions: FinancialTransaction[]): number {
+  return sumByTypes(transactions, ["savings_transfer"]);
+}
+
+/** Total moved into investments via investment_allocation transactions, in integer cents. */
+export function calculateInvestmentContributions(transactions: FinancialTransaction[]): number {
+  return sumByTypes(transactions, ["investment_allocation"]);
+}
+
+/** Total paid toward debt via debt_payment transactions, in integer cents — used as the deterministic proxy for "actual debt reduction" (liabilities don't keep a balance history to diff against). */
+export function calculateDebtReductionContributions(transactions: FinancialTransaction[]): number {
+  return sumByTypes(transactions, ["debt_payment"]);
+}
+
 /**
  * Total expenses, in integer cents, NET of refunds: a refund is treated as
  * an expense reversal (money that was spent coming back), not as income.
