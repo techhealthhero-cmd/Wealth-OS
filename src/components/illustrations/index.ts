@@ -1,0 +1,18 @@
+export { BrandMark } from "./brand-mark";
+export { DecorativeBlob } from "./decorative-blob";
+export { IllustrationFrame } from "./illustration-frame";
+export { WelcomeIllustration } from "./welcome-illustration";
+export { EmptyAccountsIllustration } from "./empty-accounts-illustration";
+export { EmptyTransactionsIllustration } from "./empty-transactions-illustration";
+export { SuccessBadge } from "./success-badge";
+export { LockedBadge } from "./locked-badge";
+export { GoalIllustration } from "./goal-illustration";
+export { GoalTypeIcon, GOAL_TYPE_EMOJI, type GoalType } from "./goal-type-icon";
+export { EarnIllustration } from "./earn-illustration";
+export { AICoachIllustration } from "./ai-coach-illustration";
+export { MissionBadge } from "./mission-badge";
+export { StreakBadge } from "./streak-badge";
+export { CelebrationBadge } from "./celebration-badge";
+export { BudgetIllustration } from "./budget-illustration";
+export { FinancialStageProgress, FINANCIAL_STAGES } from "./financial-stage-progress";
+export type { IllustrationProps } from "./types";
