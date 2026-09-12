@@ -603,5 +603,106 @@
       "weak_income_growth": "Income isn't growing"
     },
     "noPriorities": "Your finances look healthy across the board."
+  },
+  "nextBestAction": {
+    "title": "What to do next",
+    "why": "Why this matters",
+    "viewDetails": "View details",
+    "actions": {
+      "negative_cash_flow": "Reduce spending by about",
+      "no_emergency_fund": "Increase your emergency fund by",
+      "high_interest_debt": "Pay down this high-interest debt before others:",
+      "missed_goal": "Contribute more to this goal:",
+      "low_savings_rate": "Increase your savings rate to",
+      "weak_income_growth": "Review your income sources — income has been declining",
+      "no_investment_contribution": "Start allocating to investments regularly, even a small amount helps"
+    },
+    "reasons": {
+      "negative_cash_flow": "You're spending more than you earn this month — left unaddressed, this eats into savings and other goals.",
+      "no_emergency_fund": "An emergency fund keeps an unexpected expense from turning into new debt.",
+      "high_interest_debt": "High interest makes the balance grow fast — the longer it waits, the more it costs.",
+      "missed_goal": "Without a higher contribution, you may not reach this goal by its target date.",
+      "low_savings_rate": "A higher savings rate builds wealth faster over the long run.",
+      "weak_income_growth": "Sustained income decline can affect your longer-term financial plans.",
+      "no_investment_contribution": "Investing regularly tends to grow money faster than leaving it idle."
+    },
+    "perMonth": "per month",
+    "forGoalTarget": "to stay on target",
+    "atInterestRate": "interest rate"
+  },
+  "monthlyHealthCheck": {
+    "title": "Monthly Financial Health Check",
+    "status": {
+      "good": "Good",
+      "mixed": "Mixed",
+      "needs_attention": "Needs attention"
+    },
+    "positives": "What's improving",
+    "risks": "What to watch",
+    "changes": "What changed from last month",
+    "priorityAction": "What to do next",
+    "noPositives": "No clear improvements to highlight this month.",
+    "noRisks": "No particular risks found.",
+    "noChanges": "No prior month to compare against yet.",
+    "emptyTitle": "Not enough data yet",
+    "emptyState": "Keep adding transactions and using the app a bit longer so we can summarize your monthly financial health.",
+    "items": {
+      "income_up": "Income increased",
+      "income_down": "Income decreased",
+      "expenses_up": "Expenses increased",
+      "expenses_down": "Expenses decreased",
+      "savings_rate_up": "Savings rate improved",
+      "savings_rate_down": "Savings rate dropped",
+      "cash_flow_negative": "Cash flow is negative this month",
+      "cash_flow_recovered": "Cash flow turned positive again",
+      "budget_over": "Spending went over budget",
+      "debt_paid_down": "Debt payments made this month",
+      "net_worth_up": "Net worth increased",
+      "net_worth_down": "Net worth decreased"
+    },
+    "changeItems": {
+      "income_change": "Income",
+      "expenses_change": "Expenses",
+      "savings_rate_change": "Savings rate",
+      "cash_flow_change": "Cash flow",
+      "net_worth_change": "Net worth"
+    }
+  },
+  "aiCoach": {
+    "title": "AI Money Coach",
+    "subtitle": "Your personal financial assistant",
+    "emptyTitle": "Start chatting with the AI Money Coach",
+    "emptyState": "Ask anything about your finances, like the examples below.",
+    "inputPlaceholder": "Type a question about your finances...",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "suggestedPrompts": {
+      "monthSummary": "How's my money doing this month?",
+      "topFocus": "What should I focus on financially right now?",
+      "overspending": "Which category am I overspending in?",
+      "reachGoalFaster": "What should I do to reach my goal faster?",
+      "debtAdvice": "How should I handle my debt?",
+      "safeToSpendExplain": "How is my Safe-to-Spend calculated?",
+      "wealthScoreExplain": "Why is my Wealth Score this number?"
+    },
+    "notConfigured": "The AI Money Coach isn't configured yet. Please contact the site administrator.",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "errorTooLong": "That message is too long — please shorten it.",
+    "errorEmpty": "Please type a message before sending.",
+    "newConversation": "Start a new conversation",
+    "distressNotice": "If you're feeling unsafe or having thoughts of harming yourself, please contact a crisis line (in Thailand: 1323, free, 24/7) or reach out to someone you trust right away.",
+    "disclaimer": "The AI Money Coach gives general guidance based on your financial data. It is not a licensed financial adviser and does not guarantee any return or outcome."
+  },
+  "aiInsight": {
+    "title": "Insight from your data",
+    "types": {
+      "spending_increase": "Spending in",
+      "savings_rate_drop": "Savings rate dropped",
+      "debt_progress": "Paid toward debt:",
+      "goal_ahead": "is ahead of schedule",
+      "net_worth_growth": "Net worth is growing"
+    },
+    "increasedBy": "up",
+    "noInsight": "No notable insight right now."
   }
 }

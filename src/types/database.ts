@@ -465,6 +465,51 @@ export interface Database {
         > & { user_id: string; name: string };
         Update: Partial<Database["public"]["Tables"]["forecast_scenarios"]["Row"]>;
       };
+      ai_conversations: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["ai_conversations"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string };
+        Update: Partial<Database["public"]["Tables"]["ai_conversations"]["Row"]>;
+      };
+      ai_messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          user_id: string;
+          role: "user" | "assistant";
+          content: string;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["ai_messages"]["Row"], "id" | "created_at">> & {
+          conversation_id: string;
+          user_id: string;
+          role: "user" | "assistant";
+          content: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_messages"]["Row"]>;
+      };
+      ai_usage_log: {
+        Row: {
+          id: string;
+          user_id: string;
+          model: string;
+          input_tokens: number;
+          output_tokens: number;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["ai_usage_log"]["Row"], "id" | "created_at">> & {
+          user_id: string;
+          model: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_usage_log"]["Row"]>;
+      };
     };
     Functions: {
       create_transfer: {
@@ -501,3 +546,6 @@ export type MoneyYearMajorExpense = Database["public"]["Tables"]["money_year_maj
 export type DebtPlan = Database["public"]["Tables"]["debt_plans"]["Row"];
 export type DebtPlanPriority = Database["public"]["Tables"]["debt_plan_priorities"]["Row"];
 export type ForecastScenario = Database["public"]["Tables"]["forecast_scenarios"]["Row"];
+export type AIConversation = Database["public"]["Tables"]["ai_conversations"]["Row"];
+export type AIMessageRow = Database["public"]["Tables"]["ai_messages"]["Row"];
+export type AIUsageLog = Database["public"]["Tables"]["ai_usage_log"]["Row"];

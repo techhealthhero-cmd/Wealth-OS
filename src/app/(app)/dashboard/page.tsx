@@ -15,11 +15,22 @@ import { WelcomeIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
 import { formatMoneyFromDecimal } from "@/lib/financial/money";
 import { Card, CardContent } from "@/components/ui/card";
+import { FEATURES } from "@/config/features";
+import { getFinancialPriority } from "@/features/ai/tools";
+import { getTopInsight } from "@/features/ai/lib/insights";
+import { NextBestActionCard } from "@/features/ai/components/next-best-action-card";
+import { InsightCards } from "@/features/ai/components/insight-card";
+import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = { title: "Dashboard — Wealth OS" };
 
 export default async function DashboardPage() {
-  const [data, profile] = await Promise.all([getDashboardData(), getProfile()]);
+  const [data, profile, priority, topInsight] = await Promise.all([
+    getDashboardData(),
+    getProfile(),
+    FEATURES.ai ? getFinancialPriority() : Promise.resolve(null),
+    FEATURES.ai ? getTopInsight() : Promise.resolve(null),
+  ]);
   const currencyCode = profile?.currency_code ?? "THB";
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
@@ -65,6 +76,20 @@ export default async function DashboardPage() {
           savingsRate: dict.dashboard.savingsRate,
         }}
       />
+
+      {FEATURES.ai ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-medium">{dict.aiCoach.title}</h2>
+            <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/ai" />}>
+              {dict.dashboard.viewAll}
+              <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
+          </div>
+          <NextBestActionCard priority={priority} />
+          {topInsight ? <InsightCards insights={[topInsight]} /> : null}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <IncomeVsExpenseChart

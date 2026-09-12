@@ -285,8 +285,9 @@ wealth (matches CLAUDE.md's "never promise users will become rich").
 
 | Item | Status |
 |---|---|
-| Generic AI Coach illustration (speech bubble + spark — deliberately not a robot/mascot) | 🟡 `AICoachIllustration`, not wired to any page |
-| AI insight card, AI suggestion card, Ask AI empty state, Next Best Action visual, financial explanation motif | ⬜ |
+| Generic AI Coach illustration (speech bubble + spark — deliberately not a robot/mascot) | ✅ `AICoachIllustration`, integrated on `/ai`'s empty chat state (Day 4) |
+| AI insight card, Next Best Action card, Monthly Health Check card | ✅ built as plain Card-based layouts (status badges, labeled rows) rather than new illustration assets — matches the existing budget/goal card visual language (Day 4) |
+| AI suggestion card, financial explanation motif | ⬜ not built |
 
 Tone requirement for future work here: intelligent, calm, trustworthy —
 never robotic, never childish.
@@ -361,7 +362,7 @@ Standing rule: tasteful celebration only — no confetti, no modal takeover
 | `GoalIllustration` | `goal-illustration.tsx` | ✅ `/plan/goals` empty state (Day 2) |
 | `GoalTypeIcon` | `goal-type-icon.tsx` | ✅ `/plan/goals` goal cards (Day 2) |
 | `EarnIllustration` | `earn-illustration.tsx` | nowhere yet — 🟡, no `/earn` route exists |
-| `AICoachIllustration` | `ai-coach-illustration.tsx` | nowhere yet — 🟡, no `/ai` route exists |
+| `AICoachIllustration` | `ai-coach-illustration.tsx` | ✅ `/ai` empty chat state (Day 4) |
 | `MissionBadge` | `mission-badge.tsx` | nowhere yet — 🟡, no missions feature exists |
 | `StreakBadge` | `streak-badge.tsx` | nowhere yet — 🟡, no missions feature exists |
 | `CelebrationBadge` | `celebration-badge.tsx` | nowhere yet — 🟡, no goals/milestones feature exists |
@@ -409,7 +410,7 @@ Reflects actual repository state today (all previous top-10 items are now
 dropped to 9 after recent transaction quick-repeat cards shipped):
 
 1. **Full multi-step onboarding illustrations** (Track/Plan/Earn/Grow pillars, AI guidance, Money Year) — the current onboarding is still the simplified Day-1 single-step flow; these need that flow to grow first
-2. **AI Coach insight/suggestion card visuals** — needed the moment Phase 4 (AI Money Coach) starts; `AICoachIllustration` covers the empty/marketing state but not the actual card UI
+2. ~~AI Coach insight/suggestion card visuals~~ — **done**: `AICoachIllustration` is now integrated on `/ai`'s empty chat state (Day 4), and Next Best Action/Monthly Health Check/Insight cards ship as plain Card-based layouts (status badges, labeled rows — same visual language as Budget/Goal cards) rather than new bespoke illustrations; a dedicated AI suggestion-card illustration motif is still open if product feedback wants one
 3. **Earn feature detail visuals** (Income Gap card, Side Hustle Finder, Skills profile) — `EarnIllustration` covers the generic case; the actual Earn UI will need more
 4. **Goal state variants** (in progress/completed/behind/ahead target) — blocked on the Goals data model existing; per-type icons are already done (`GoalTypeIcon`)
 5. **Net Worth hero + Assets/Liabilities visuals** — the 7-stage stepper (`FinancialStageProgress`) is now live on the dashboard; the Net Worth page itself still needs its own visual treatment
