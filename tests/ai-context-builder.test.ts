@@ -2,17 +2,22 @@ import { describe, expect, it, vi } from "vitest";
 
 import { buildFinancialContext } from "@/features/ai/lib/context-builder";
 import type {
+  ActiveIncomeMissionTool,
   BudgetStatusTool,
   DebtSummaryTool,
   EmergencyFundTool,
   FinancialSnapshotTool,
   GoalProgressTool,
+  IncomeGapTool,
+  IncomeProfileTool,
   IncomeSummaryTool,
   LifeStageTool,
   NetWorthTool,
   PriorityTool,
   RecentTransactionsSummaryTool,
   SafeToSpendTool,
+  SkillProfileTool,
+  TopIncomeOpportunityTool,
   WealthScoreTool,
 } from "@/features/ai/types";
 
@@ -37,6 +42,23 @@ const lifeStage: LifeStageTool = { stage: "building_stability", nextStage: "grow
 const currentPriority: PriorityTool = { priorityType: "no_emergency_fund", severity: "high", amountCents: 800000 };
 const recentSpending: RecentTransactionsSummaryTool = { count: 12, topCategories: [{ name: "Food", totalCents: 500000 }] };
 const income: IncomeSummaryTool = { currentMonthIncomeCents: 3500000, previousMonthIncomeCents: 3400000, growthPercent: 2.9 };
+const incomeProfile: IncomeProfileTool = {
+  currentMonthlyIncomeCents: 3500000,
+  averageMonthlyIncomeCents: 3450000,
+  stableIncomeCents: 3000000,
+  variableIncomeCents: 450000,
+  activeSourceCount: 2,
+  primarySource: "Salary",
+  concentrationPercent: 87,
+  momGrowthPercent: 1.4,
+  stability: "mixed",
+};
+const incomeGap: IncomeGapTool = { hasTarget: true, targetMonthlyIncomeCents: 5000000, gapCents: 1550000, achieved: false };
+const skills: SkillProfileTool = { totalSkills: 3, topCategories: ["web_development", "design"] };
+const topOpportunities: TopIncomeOpportunityTool[] = [
+  { name: "Freelance web development", score: 78, matchedSkillCategories: ["web_development"], missingRequirements: [] },
+];
+const activeMissions: ActiveIncomeMissionTool[] = [{ missionType: "define_offer", status: "in_progress" }];
 
 vi.mock("@/features/ai/tools", () => ({
   getFinancialSummary: vi.fn(async () => snapshot),
@@ -52,6 +74,11 @@ vi.mock("@/features/ai/tools", () => ({
   getFinancialPriority: vi.fn(async () => currentPriority),
   getRecentTransactionsSummary: vi.fn(async () => recentSpending),
   getIncomeSummary: vi.fn(async () => income),
+  getIncomeProfile: vi.fn(async () => incomeProfile),
+  getIncomeGap: vi.fn(async () => incomeGap),
+  getSkillProfile: vi.fn(async () => skills),
+  getTopIncomeOpportunities: vi.fn(async () => topOpportunities),
+  getActiveIncomeMissions: vi.fn(async () => activeMissions),
 }));
 
 vi.mock("@/features/profile/queries", () => ({
@@ -81,6 +108,11 @@ describe("buildFinancialContext — Financial Context Builder", () => {
     expect(context.currentPriority).toEqual(currentPriority);
     expect(context.recentSpending).toEqual(recentSpending);
     expect(context.income).toEqual(income);
+    expect(context.incomeProfile).toEqual(incomeProfile);
+    expect(context.incomeGap).toEqual(incomeGap);
+    expect(context.skills).toEqual(skills);
+    expect(context.topOpportunities).toEqual(topOpportunities);
+    expect(context.activeMissions).toEqual(activeMissions);
   });
 
   it("does not include full transaction history — only the pre-computed summaries", async () => {

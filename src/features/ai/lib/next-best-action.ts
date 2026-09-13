@@ -9,6 +9,7 @@ const CTA_ROUTE: Record<string, string> = {
   low_savings_rate: "/money/budget",
   weak_income_growth: "/money/transactions",
   no_investment_contribution: "/money/transactions",
+  income_gap: "/earn",
 };
 
 export interface NextBestActionText {
@@ -57,6 +58,12 @@ export function buildNextBestActionText(priority: PriorityTool, t: (key: string)
       actionText = priority.goalName
         ? `${actionPrefix} ${priority.goalName}${priority.targetValue !== undefined ? ` (${t("nextBestAction.atInterestRate")} ${priority.targetValue}%)` : ""}`
         : actionPrefix;
+      break;
+    case "income_gap":
+      actionText =
+        priority.amountCents !== undefined
+          ? `${actionPrefix} ${formatMoney(priority.amountCents)} ${t("nextBestAction.perMonth")}`
+          : actionPrefix;
       break;
     default:
       actionText = actionPrefix;

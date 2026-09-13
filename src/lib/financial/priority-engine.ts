@@ -17,7 +17,8 @@ export type PriorityType =
   | "low_savings_rate"
   | "missed_goal"
   | "no_investment_contribution"
-  | "weak_income_growth";
+  | "weak_income_growth"
+  | "income_gap";
 
 export type PrioritySeverity = "critical" | "high" | "medium" | "low";
 
@@ -42,6 +43,15 @@ export interface PriorityEngineInputs {
   hasInvestmentActivity: boolean;
   behindGoals: { name: string; requiredMonthlyContributionCents: number | null }[];
   incomeGrowthPercent: number | null; // null when there's no prior month to compare (handled as "no data", not penalized)
+  /**
+   * Day 5 Income Engine inputs — all optional/nullable so this function
+   * still works for callers that predate Income Targets (e.g. existing
+   * tests). `incomeGapCents` is the deterministic Income Gap output (null =
+   * no target set, 0 = already achieved); `incomeConcentrationPercent` is
+   * the Income Profile's concentration figure (null = unknown/no sources).
+   */
+  incomeGapCents?: number | null;
+  incomeConcentrationPercent?: number | null;
 }
 
 const RANK: Record<PriorityType, number> = {
@@ -49,10 +59,13 @@ const RANK: Record<PriorityType, number> = {
   no_emergency_fund: 1,
   high_interest_debt: 2,
   missed_goal: 3,
-  low_savings_rate: 4,
-  weak_income_growth: 5,
-  no_investment_contribution: 6,
+  income_gap: 4,
+  low_savings_rate: 5,
+  weak_income_growth: 6,
+  no_investment_contribution: 7,
 };
+
+const INCOME_CONCENTRATION_RISK_THRESHOLD_PERCENT = 90;
 
 /** Returns every real issue found, ranked most-urgent first. Empty when nothing is actionable. */
 export function getFinancialPriorities(inputs: PriorityEngineInputs): FinancialPriority[] {
@@ -110,6 +123,27 @@ export function getFinancialPriorities(inputs: PriorityEngineInputs): FinancialP
       severity: "medium",
       targetPercent: 10,
       targetValue: 10,
+    });
+  }
+
+  // Income growth can become a priority once the user has explicitly set a
+  // target (an unset target never triggers this — CLAUDE.md's EARN system
+  // is opt-in, not a nag), and only ranks below urgent safety issues
+  // (negative cash flow / emergency fund / high-interest debt / a goal
+  // falling behind) per this task's explicit ordering requirement.
+  if (inputs.incomeGapCents !== null && inputs.incomeGapCents !== undefined && inputs.incomeGapCents > 0) {
+    const gapRatio = inputs.incomeGapCents / Math.max(1, inputs.essentialMonthlyExpensesCents || inputs.incomeGapCents);
+    const hasConcentrationRisk =
+      inputs.incomeConcentrationPercent !== null &&
+      inputs.incomeConcentrationPercent !== undefined &&
+      inputs.incomeConcentrationPercent >= INCOME_CONCENTRATION_RISK_THRESHOLD_PERCENT;
+    let severity: PrioritySeverity = gapRatio >= 1 ? "high" : gapRatio >= 0.3 ? "medium" : "low";
+    if (hasConcentrationRisk && severity === "low") severity = "medium";
+    priorities.push({
+      priorityType: "income_gap",
+      severity,
+      amountCents: inputs.incomeGapCents,
+      targetValue: 0,
     });
   }
 

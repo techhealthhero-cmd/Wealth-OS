@@ -29,6 +29,12 @@ import { getDebtPlannerSummary } from "@/features/debt-planner/queries";
 import { getForecastScenarios, getForecastStartingState, scenarioRowToAssumptions } from "@/features/forecast/queries";
 import { getMoneyYearSummary } from "@/features/money-year/queries";
 import { getLifeStageAndPriorities } from "@/features/life-stage/queries";
+import { getIncomeProfileSummary } from "@/features/income-profile/queries";
+import { getIncomeTarget } from "@/features/income-target/queries";
+import { getUserSkills } from "@/features/skills/queries";
+import { getTopOpportunities } from "@/features/opportunities/queries";
+import { getIncomeMissions } from "@/features/income-missions/queries";
+import { calculateIncomeGap } from "@/lib/financial/income-gap";
 import { calculateExpenses, calculateIncome, calculateMonthlyCashFlow } from "@/lib/financial/calculations";
 import { calculateMonthsProtected, calculateEmergencyFundTarget } from "@/lib/financial/emergency-fund";
 import {
@@ -41,6 +47,7 @@ import { calculateForecast } from "@/lib/financial/forecast";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import type {
+  ActiveIncomeMissionTool,
   BudgetStatusTool,
   CashFlowTool,
   DebtPlanTool,
@@ -49,6 +56,8 @@ import type {
   FinancialSnapshotTool,
   ForecastSummaryTool,
   GoalProgressTool,
+  IncomeGapTool,
+  IncomeProfileTool,
   IncomeSummaryTool,
   LifeStageTool,
   MoneyYearProgressTool,
@@ -56,6 +65,8 @@ import type {
   PriorityTool,
   RecentTransactionsSummaryTool,
   SafeToSpendTool,
+  SkillProfileTool,
+  TopIncomeOpportunityTool,
   WealthScoreTool,
 } from "@/features/ai/types";
 
@@ -312,6 +323,64 @@ export async function getIncomeSummary(): Promise<IncomeSummaryTool> {
       : null;
 
   return { currentMonthIncomeCents, previousMonthIncomeCents, growthPercent };
+}
+
+export async function getIncomeProfile(): Promise<IncomeProfileTool> {
+  const { profile } = await getIncomeProfileSummary();
+  return {
+    currentMonthlyIncomeCents: profile.currentMonthlyIncomeCents,
+    averageMonthlyIncomeCents: profile.averageMonthlyIncomeCents,
+    stableIncomeCents: profile.stableIncomeCents,
+    variableIncomeCents: profile.variableIncomeCents,
+    activeSourceCount: profile.activeSourceCount,
+    primarySource: profile.primarySource,
+    concentrationPercent: profile.concentrationPercent,
+    momGrowthPercent: profile.momGrowthPercent,
+    stability: profile.stability,
+  };
+}
+
+export async function getIncomeGap(): Promise<IncomeGapTool> {
+  const [{ profile }, target] = await Promise.all([getIncomeProfileSummary(), getIncomeTarget()]);
+  const gap = calculateIncomeGap({
+    targetMonthlyIncomeCents:
+      target?.target_monthly_income !== null && target?.target_monthly_income !== undefined
+        ? parseMoneyToCents(target.target_monthly_income)
+        : null,
+    averageMonthlyIncomeCents: profile.averageMonthlyIncomeCents,
+  });
+  return {
+    hasTarget: gap.hasTarget,
+    targetMonthlyIncomeCents: gap.targetMonthlyIncomeCents,
+    gapCents: gap.gapCents,
+    achieved: gap.achieved,
+  };
+}
+
+/** Category counts only — never every skill's full name/notes/experience, per "minimize token usage" and "do not send the full catalog" rules. */
+export async function getSkillProfile(): Promise<SkillProfileTool> {
+  const skills = await getUserSkills();
+  const categories = Array.from(new Set(skills.map((s) => s.category)));
+  return { totalSkills: skills.length, topCategories: categories.slice(0, 5) };
+}
+
+/** Top 3 ranked opportunities only — the ranking itself is fully deterministic (src/lib/financial/opportunity-scoring.ts); the AI may only explain it. */
+export async function getTopIncomeOpportunities(): Promise<TopIncomeOpportunityTool[]> {
+  const ranked = await getTopOpportunities(3);
+  return ranked.map((r) => ({
+    name: r.opportunity.name_th,
+    score: r.score.totalScore,
+    matchedSkillCategories: r.score.matchedSkillCategories,
+    missingRequirements: r.score.missingRequirements,
+  }));
+}
+
+export async function getActiveIncomeMissions(): Promise<ActiveIncomeMissionTool[]> {
+  const missions = await getIncomeMissions();
+  return missions
+    .filter((m) => m.status === "not_started" || m.status === "in_progress")
+    .slice(0, 5)
+    .map((m) => ({ missionType: m.mission_type, status: m.status }));
 }
 
 // Re-exported for the Monthly Health Check builder, which needs a couple of

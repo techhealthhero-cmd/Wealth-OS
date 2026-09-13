@@ -22,6 +22,9 @@ import {
 import { getFinancialPriorities, type FinancialPriority } from "@/lib/financial/priority-engine";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
+import { getIncomeProfileSummary } from "@/features/income-profile/queries";
+import { getIncomeTarget } from "@/features/income-target/queries";
+import { calculateIncomeGap } from "@/lib/financial/income-gap";
 
 function previousMonthRange(): { from: string; to: string } {
   const now = new Date();
@@ -46,15 +49,18 @@ export async function getLifeStageAndPriorities(): Promise<LifeStageAndPrioritie
   const { from: currentFrom, to: currentTo } = getCurrentMonthRange();
   const { from: prevFrom, to: prevTo } = previousMonthRange();
 
-  const [currentMonthTx, prevMonthTx, liabilities, goals, emergencyFund, essential, netWorth] = await Promise.all([
-    getTransactions({ from: currentFrom, to: currentTo }),
-    getTransactions({ from: prevFrom, to: prevTo }),
-    getLiabilities(),
-    getGoals(),
-    getEmergencyFund(),
-    getEssentialMonthlyExpenses(),
-    getNetWorthBreakdown(),
-  ]);
+  const [currentMonthTx, prevMonthTx, liabilities, goals, emergencyFund, essential, netWorth, incomeProfileSummary, incomeTarget] =
+    await Promise.all([
+      getTransactions({ from: currentFrom, to: currentTo }),
+      getTransactions({ from: prevFrom, to: prevTo }),
+      getLiabilities(),
+      getGoals(),
+      getEmergencyFund(),
+      getEssentialMonthlyExpenses(),
+      getNetWorthBreakdown(),
+      getIncomeProfileSummary(),
+      getIncomeTarget(),
+    ]);
 
   const cashFlowCents = calculateMonthlyCashFlow(currentMonthTx);
   const incomeCents = calculateIncome(currentMonthTx);
@@ -92,6 +98,16 @@ export async function getLifeStageAndPriorities(): Promise<LifeStageAndPrioritie
 
   const incomeGrowthPercent = prevIncomeCents !== null && prevIncomeCents > 0 ? ((incomeCents - prevIncomeCents) / prevIncomeCents) * 100 : null;
 
+  // Day 5 Income Engine — only affects priority ranking once the user has
+  // explicitly set a target (see priority-engine.ts's income_gap branch).
+  const incomeGap = calculateIncomeGap({
+    targetMonthlyIncomeCents:
+      incomeTarget?.target_monthly_income !== null && incomeTarget?.target_monthly_income !== undefined
+        ? parseMoneyToCents(incomeTarget.target_monthly_income)
+        : null,
+    averageMonthlyIncomeCents: incomeProfileSummary.profile.averageMonthlyIncomeCents,
+  });
+
   const lifeStage = calculateFinancialLifeStage({
     cashFlowCents,
     emergencyFundMonthsProtected,
@@ -113,6 +129,8 @@ export async function getLifeStageAndPriorities(): Promise<LifeStageAndPrioritie
     hasInvestmentActivity,
     behindGoals,
     incomeGrowthPercent,
+    incomeGapCents: incomeGap.hasTarget ? incomeGap.gapCents : null,
+    incomeConcentrationPercent: incomeProfileSummary.profile.concentrationPercent,
   })[0] ?? null;
 
   return { lifeStage, topPriority };

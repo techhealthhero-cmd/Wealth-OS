@@ -600,7 +600,8 @@
       "low_savings_rate": "Low savings rate",
       "missed_goal": "A goal is falling behind",
       "no_investment_contribution": "Not investing yet",
-      "weak_income_growth": "Income isn't growing"
+      "weak_income_growth": "Income isn't growing",
+      "income_gap": "Income below target"
     },
     "noPriorities": "Your finances look healthy across the board."
   },
@@ -615,7 +616,8 @@
       "missed_goal": "Contribute more to this goal:",
       "low_savings_rate": "Increase your savings rate to",
       "weak_income_growth": "Review your income sources — income has been declining",
-      "no_investment_contribution": "Start allocating to investments regularly, even a small amount helps"
+      "no_investment_contribution": "Start allocating to investments regularly, even a small amount helps",
+      "income_gap": "Grow your income by"
     },
     "reasons": {
       "negative_cash_flow": "You're spending more than you earn this month — left unaddressed, this eats into savings and other goals.",
@@ -624,7 +626,8 @@
       "missed_goal": "Without a higher contribution, you may not reach this goal by its target date.",
       "low_savings_rate": "A higher savings rate builds wealth faster over the long run.",
       "weak_income_growth": "Sustained income decline can affect your longer-term financial plans.",
-      "no_investment_contribution": "Investing regularly tends to grow money faster than leaving it idle."
+      "no_investment_contribution": "Investing regularly tends to grow money faster than leaving it idle.",
+      "income_gap": "Your current income is still below the target you set — check the income opportunities available to you"
     },
     "perMonth": "per month",
     "forGoalTarget": "to stay on target",
@@ -683,7 +686,12 @@
       "reachGoalFaster": "What should I do to reach my goal faster?",
       "debtAdvice": "How should I handle my debt?",
       "safeToSpendExplain": "How is my Safe-to-Spend calculated?",
-      "wealthScoreExplain": "Why is my Wealth Score this number?"
+      "wealthScoreExplain": "Why is my Wealth Score this number?",
+      "incomeSourceIdeas": "Where should I focus on growing my income?",
+      "fastestSkill": "Which of my skills could earn money fastest?",
+      "reachExtraIncome": "If I want ฿10,000 more per month, where should I start?",
+      "sideHustleForMyTime": "Which side hustle fits the time I have?",
+      "todayIncomeMission": "What income mission should I do today?"
     },
     "notConfigured": "The AI Money Coach isn't configured yet. Please contact the site administrator.",
     "errorGeneric": "Something went wrong. Please try again.",
@@ -704,5 +712,303 @@
     },
     "increasedBy": "up",
     "noInsight": "No notable insight right now."
+  },
+  "earn": {
+    "title": "Earn",
+    "subtitle": "Grow your income in a practical, measurable way",
+    "tabs": {
+      "overview": "Overview",
+      "income": "Income",
+      "skills": "Skills",
+      "opportunities": "Opportunities",
+      "missions": "Missions"
+    },
+    "dashboard": {
+      "currentIncome": "Average monthly income",
+      "targetIncome": "Target monthly income",
+      "incomeGap": "Income gap to close",
+      "gapAchieved": "You've reached your income target",
+      "noTarget": "No income target set yet",
+      "setTarget": "Set an income target",
+      "topOpportunity": "Top recommended opportunity",
+      "todayMission": "Today's mission",
+      "incomeSources": "Income sources",
+      "incomeTrend": "Income trend",
+      "noMissionActive": "No mission in progress right now",
+      "noOpportunityYet": "Not enough information yet to recommend an opportunity",
+      "viewAll": "View all",
+      "startFirstOpportunity": "Add skills and set a target to see opportunities that fit you",
+      "activeSourceCount": "Active income sources"
+    },
+    "income": {
+      "title": "Income Sources",
+      "subtitle": "Manage your income sources and see your income overview",
+      "addSource": "Add income source",
+      "editSource": "Edit income source",
+      "name": "Source name",
+      "type": "Type",
+      "expectedMonthlyIncome": "Expected monthly income",
+      "stability": "Stability",
+      "frequency": "Frequency",
+      "active": "Active",
+      "notes": "Notes",
+      "saveFailed": "Failed to save the income source. Please try again.",
+      "deleteFailed": "Failed to delete the income source. Please try again.",
+      "deleteConfirm": "Delete this income source?",
+      "emptyTitle": "No income sources yet",
+      "emptyState": "Add your income sources to see your full income picture",
+      "types": {
+        "salary": "Salary",
+        "freelance": "Freelance",
+        "business": "Business",
+        "commission": "Commission",
+        "bonus": "Bonus",
+        "investment": "Investment income",
+        "rental": "Rental income",
+        "side_hustle": "Side hustle",
+        "other": "Other"
+      },
+      "stabilities": {
+        "stable": "Stable",
+        "variable": "Variable"
+      },
+      "frequencies": {
+        "monthly": "Monthly",
+        "biweekly": "Biweekly",
+        "weekly": "Weekly",
+        "irregular": "Irregular",
+        "one_time": "One-time"
+      },
+      "profile": {
+        "title": "Income Profile",
+        "currentMonthly": "This month's income",
+        "averageMonthly": "Average monthly income",
+        "stableIncome": "Stable income",
+        "variableIncome": "Variable income",
+        "activeSources": "Active sources",
+        "primarySource": "Primary source",
+        "concentration": "Primary source share",
+        "concentrationRisk": "Your income is heavily concentrated in one source — consider diversifying",
+        "momGrowth": "Change vs. average",
+        "stabilityLabel": "Income stability",
+        "noHistory": "Not enough income history yet for analysis"
+      },
+      "stabilityRatings": {
+        "stable": "Stable",
+        "mixed": "Mixed",
+        "variable": "Variable",
+        "unknown": "Not enough data"
+      },
+      "inactive": "Inactive"
+    },
+    "skills": {
+      "title": "My Skills",
+      "subtitle": "Add your skills to get income opportunities that fit you",
+      "addSkill": "Add skill",
+      "editSkill": "Edit skill",
+      "skillName": "Skill name",
+      "category": "Category",
+      "proficiency": "Proficiency level",
+      "experience": "Experience (months)",
+      "monetizedBefore": "Have monetized this skill before",
+      "notes": "Notes",
+      "interestLevel": "Interest level",
+      "availableHours": "Available hours per week",
+      "saveFailed": "Failed to save the skill. Please try again.",
+      "deleteFailed": "Failed to delete the skill. Please try again.",
+      "deleteConfirm": "Delete this skill?",
+      "emptyTitle": "No skills yet",
+      "emptyState": "Add your skills to see income opportunities that fit you",
+      "categories": {
+        "web_development": "Web development",
+        "design": "Design",
+        "sales": "Sales",
+        "marketing": "Marketing",
+        "fitness": "Fitness",
+        "teaching": "Teaching",
+        "translation": "Translation",
+        "video_editing": "Video editing",
+        "photography": "Photography",
+        "accounting": "Accounting",
+        "writing": "Writing",
+        "customer_service": "Customer service",
+        "other": "Other"
+      },
+      "proficiencyLevels": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced",
+        "expert": "Expert"
+      },
+      "interestLevels": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "hoursPerWeekUnit": "hrs/wk"
+    },
+    "target": {
+      "title": "Income Target",
+      "subtitle": "Set your income target and the conditions that fit you",
+      "targetMonthlyIncome": "Target monthly income",
+      "desiredExtraIncome": "Desired extra income",
+      "targetDate": "Target date",
+      "preferredIncomeType": "Preferred income type",
+      "maxHoursPerWeek": "Maximum available hours per week",
+      "maxStartupCost": "Maximum startup cost you'd accept",
+      "workModePreference": "Preferred work mode",
+      "saveFailed": "Failed to save the income target. Please try again.",
+      "preferredTypes": {
+        "active": "Active income",
+        "passive": "Passive income",
+        "any": "No preference"
+      },
+      "workModes": {
+        "online": "Online",
+        "offline": "Offline",
+        "both": "Both",
+        "any": "No preference"
+      }
+    },
+    "gap": {
+      "title": "Income Gap",
+      "achieved": "You've reached your income target",
+      "remaining": "Still need",
+      "perMonth": "per month"
+    },
+    "opportunities": {
+      "title": "Income Opportunities",
+      "subtitle": "Ranked by your skills, available time, and income target",
+      "score": "Match score",
+      "matchedSkills": "Matched skills",
+      "missingRequirements": "What's missing",
+      "estimatedIncome": "Estimated income",
+      "estimatedIncomeDisclaimer": "A rough example only, not a guaranteed income",
+      "startupCost": "Estimated startup cost",
+      "timeRequired": "Time required per week",
+      "difficulty": "Difficulty",
+      "workMode": "Work mode",
+      "scalability": "Scalability",
+      "timeToFirstIncome": "Time to first income",
+      "incomeModel": "Income model",
+      "viewDetails": "View details",
+      "startMissions": "Start missions for this opportunity",
+      "alreadyStarted": "Missions started",
+      "emptyTitle": "No opportunities to recommend yet",
+      "emptyState": "Add your skills to get income opportunities that fit you",
+      "missingLabels": {
+        "skill": "No matching skill yet",
+        "time": "May not have enough available time",
+        "budget": "Startup cost may exceed your budget"
+      },
+      "difficulties": {
+        "easy": "Easy",
+        "medium": "Medium",
+        "hard": "Hard"
+      },
+      "workModes": {
+        "online": "Online",
+        "offline": "Offline",
+        "both": "Both"
+      },
+      "scalabilities": {
+        "low": "Limited",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "speeds": {
+        "fast": "Fast",
+        "medium": "Medium",
+        "slow": "Slow"
+      },
+      "incomeModels": {
+        "hourly": "Hourly",
+        "project": "Project-based",
+        "recurring": "Recurring",
+        "product": "Product sales",
+        "commission": "Commission"
+      }
+    },
+    "missions": {
+      "title": "Income Missions",
+      "subtitle": "Concrete steps to start earning more",
+      "generate": "Start missions",
+      "sequenceFor": "Missions for",
+      "progress": "Progress",
+      "target": "Target",
+      "markInProgress": "Start",
+      "markCompleted": "Mark completed",
+      "markSkipped": "Skip this mission",
+      "addProgress": "Log progress",
+      "status": "Status",
+      "dueDate": "Due date",
+      "estimatedTime": "Estimated time",
+      "estimatedMinutes": "minutes",
+      "impact": "Impact",
+      "saveFailed": "Failed to save the mission. Please try again.",
+      "emptyTitle": "No missions yet",
+      "emptyState": "Choose an income opportunity to start building your missions",
+      "statuses": {
+        "not_started": "Not started",
+        "in_progress": "In progress",
+        "completed": "Completed",
+        "skipped": "Skipped"
+      },
+      "impactLevels": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "templates": {
+        "define_offer": {
+          "title": "Define your service or offer",
+          "description": "Write clearly what you'll offer and what problem it solves for clients"
+        },
+        "build_portfolio": {
+          "title": "Build one portfolio example",
+          "description": "Create a sample so clients can see what you can do"
+        },
+        "create_profile": {
+          "title": "Create a profile on a relevant platform",
+          "description": "E.g. Fastwork, Fiverr, or the social platform your target clients use"
+        },
+        "set_price": {
+          "title": "Set your price",
+          "description": "Decide on a price that fits the market and the value you offer"
+        },
+        "publish_offer": {
+          "title": "Publish your offer",
+          "description": "Post your service where potential clients will see it"
+        },
+        "outreach": {
+          "title": "Contact 5 potential clients",
+          "description": "Send an introduction message to prospects who are likely interested"
+        },
+        "follow_up": {
+          "title": "Follow up with 5 leads",
+          "description": "Check back in with people you've already contacted to close the sale"
+        },
+        "close_client": {
+          "title": "Close your first client",
+          "description": "Confirm the work or payment with your first client"
+        },
+        "list_product": {
+          "title": "List one digital product",
+          "description": "Publish your digital product so it's ready to sell"
+        },
+        "raise_price": {
+          "title": "Consider raising your price",
+          "description": "Once you have repeat clients, consider a price that better reflects your value"
+        },
+        "ask_referral": {
+          "title": "Ask an existing client for a referral",
+          "description": "Happy clients are often glad to recommend you to others"
+        },
+        "other": {
+          "title": "Other mission",
+          "description": "A custom mission"
+        }
+      }
+    }
   }
 }

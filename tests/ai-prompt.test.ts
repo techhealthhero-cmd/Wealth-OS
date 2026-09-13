@@ -28,6 +28,21 @@ function baseContext(overrides: Partial<FinancialContext> = {}): FinancialContex
     currentPriority: null,
     recentSpending: { count: 0, topCategories: [] },
     income: { currentMonthIncomeCents: 3500000, previousMonthIncomeCents: 3400000, growthPercent: 2.9 },
+    incomeProfile: {
+      currentMonthlyIncomeCents: 3500000,
+      averageMonthlyIncomeCents: 3450000,
+      stableIncomeCents: 3000000,
+      variableIncomeCents: 450000,
+      activeSourceCount: 2,
+      primarySource: "Salary",
+      concentrationPercent: 87,
+      momGrowthPercent: 1.4,
+      stability: "mixed",
+    },
+    incomeGap: { hasTarget: false, targetMonthlyIncomeCents: null, gapCents: null, achieved: false },
+    skills: { totalSkills: 0, topCategories: [] },
+    topOpportunities: [],
+    activeMissions: [],
     ...overrides,
   };
 }

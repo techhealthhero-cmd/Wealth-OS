@@ -23,6 +23,11 @@ const SUGGESTED_PROMPT_KEYS = [
   "debtAdvice",
   "safeToSpendExplain",
   "wealthScoreExplain",
+  "incomeSourceIdeas",
+  "fastestSkill",
+  "reachExtraIncome",
+  "sideHustleForMyTime",
+  "todayIncomeMission",
 ] as const;
 
 /**

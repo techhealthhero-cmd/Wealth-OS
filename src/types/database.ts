@@ -40,6 +40,62 @@ export type TransactionType =
 
 export type CategoryType = "income" | "expense" | "both";
 
+export type IncomeSourceType =
+  | "salary"
+  | "freelance"
+  | "business"
+  | "commission"
+  | "bonus"
+  | "investment"
+  | "rental"
+  | "side_hustle"
+  | "other";
+
+export type IncomeStability = "stable" | "variable";
+export type IncomeFrequency = "monthly" | "biweekly" | "weekly" | "irregular" | "one_time";
+
+export type SkillCategory =
+  | "web_development"
+  | "design"
+  | "sales"
+  | "marketing"
+  | "fitness"
+  | "teaching"
+  | "translation"
+  | "video_editing"
+  | "photography"
+  | "accounting"
+  | "writing"
+  | "customer_service"
+  | "other";
+
+export type ProficiencyLevel = "beginner" | "intermediate" | "advanced" | "expert";
+export type InterestLevel = "low" | "medium" | "high";
+export type PreferredIncomeType = "active" | "passive" | "any";
+
+export type IncomeModel = "hourly" | "project" | "recurring" | "product" | "commission";
+export type OpportunityDifficulty = "easy" | "medium" | "hard";
+export type WorkMode = "online" | "offline" | "both";
+export type Scalability = "low" | "medium" | "high";
+export type TimeToFirstIncome = "fast" | "medium" | "slow";
+
+export type MissionType =
+  | "define_offer"
+  | "build_portfolio"
+  | "set_price"
+  | "create_profile"
+  | "outreach"
+  | "follow_up"
+  | "publish_offer"
+  | "close_client"
+  | "list_product"
+  | "raise_price"
+  | "ask_referral"
+  | "other";
+
+export type MissionStatus = "not_started" | "in_progress" | "completed" | "skipped";
+export type ImpactLevel = "low" | "medium" | "high";
+
 export type TransactionSource = "manual" | "seed" | "import" | "recurring";
 
 export type AssetType =
@@ -510,6 +566,114 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["ai_usage_log"]["Row"]>;
       };
+      income_sources: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          source_type: IncomeSourceType;
+          expected_monthly_income: string;
+          stability: IncomeStability;
+          frequency: IncomeFrequency;
+          is_active: boolean;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["income_sources"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; name: string; source_type: IncomeSourceType };
+        Update: Partial<Database["public"]["Tables"]["income_sources"]["Row"]>;
+      };
+      user_skills: {
+        Row: {
+          id: string;
+          user_id: string;
+          skill_name: string;
+          category: SkillCategory;
+          proficiency_level: ProficiencyLevel;
+          experience_months: number | null;
+          monetized_before: boolean;
+          notes: string | null;
+          interest_level: InterestLevel;
+          available_hours_per_week: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["user_skills"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; skill_name: string; category: SkillCategory };
+        Update: Partial<Database["public"]["Tables"]["user_skills"]["Row"]>;
+      };
+      income_targets: {
+        Row: {
+          id: string;
+          user_id: string;
+          target_monthly_income: string | null;
+          desired_extra_income: string | null;
+          target_date: string | null;
+          preferred_income_type: PreferredIncomeType;
+          max_hours_per_week: string | null;
+          max_startup_cost: string | null;
+          work_mode_preference: WorkMode | "any";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["income_targets"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string };
+        Update: Partial<Database["public"]["Tables"]["income_targets"]["Row"]>;
+      };
+      income_opportunities: {
+        Row: {
+          id: string;
+          slug: string;
+          name_th: string;
+          name_en: string;
+          description_th: string;
+          description_en: string;
+          required_skill_categories: SkillCategory[];
+          recommended_proficiency: ProficiencyLevel;
+          estimated_startup_cost_min: string;
+          estimated_startup_cost_max: string;
+          estimated_hours_per_week_min: string;
+          estimated_hours_per_week_max: string;
+          income_model: IncomeModel;
+          difficulty: OpportunityDifficulty;
+          work_mode: WorkMode;
+          scalability: Scalability;
+          time_to_first_income: TimeToFirstIncome;
+          estimated_monthly_income_min: string;
+          estimated_monthly_income_max: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+      };
+      income_missions: {
+        Row: {
+          id: string;
+          user_id: string;
+          related_opportunity_id: string | null;
+          title: string;
+          description: string | null;
+          mission_type: MissionType;
+          target_quantity: string | null;
+          progress_quantity: string;
+          status: MissionStatus;
+          sequence_order: number;
+          due_date: string | null;
+          estimated_minutes: number | null;
+          impact_level: ImpactLevel;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["income_missions"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; title: string; mission_type: MissionType };
+        Update: Partial<Database["public"]["Tables"]["income_missions"]["Row"]>;
+      };
     };
     Functions: {
       create_transfer: {
@@ -549,3 +713,8 @@ export type ForecastScenario = Database["public"]["Tables"]["forecast_scenarios"
 export type AIConversation = Database["public"]["Tables"]["ai_conversations"]["Row"];
 export type AIMessageRow = Database["public"]["Tables"]["ai_messages"]["Row"];
 export type AIUsageLog = Database["public"]["Tables"]["ai_usage_log"]["Row"];
+export type IncomeSource = Database["public"]["Tables"]["income_sources"]["Row"];
+export type UserSkill = Database["public"]["Tables"]["user_skills"]["Row"];
+export type IncomeTarget = Database["public"]["Tables"]["income_targets"]["Row"];
+export type IncomeOpportunity = Database["public"]["Tables"]["income_opportunities"]["Row"];
+export type IncomeMission = Database["public"]["Tables"]["income_missions"]["Row"];

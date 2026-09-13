@@ -136,6 +136,46 @@ export interface IncomeSummaryTool {
   growthPercent: number | null;
 }
 
+/** Day 5 Income Engine tools — kept compact per the task's "do not send the full opportunity catalog on every chat turn" rule. */
+export interface IncomeProfileTool {
+  currentMonthlyIncomeCents: number;
+  averageMonthlyIncomeCents: number;
+  stableIncomeCents: number;
+  variableIncomeCents: number;
+  activeSourceCount: number;
+  primarySource: string | null;
+  concentrationPercent: number | null;
+  momGrowthPercent: number | null;
+  stability: "stable" | "mixed" | "variable" | "unknown";
+}
+
+export interface IncomeGapTool {
+  hasTarget: boolean;
+  targetMonthlyIncomeCents: number | null;
+  gapCents: number | null;
+  achieved: boolean;
+}
+
+/** Category counts only — never every skill's full notes/experience detail. */
+export interface SkillProfileTool {
+  totalSkills: number;
+  topCategories: string[];
+}
+
+/** Top 3 at most — never the full ~17-row catalog. */
+export interface TopIncomeOpportunityTool {
+  name: string;
+  score: number;
+  matchedSkillCategories: string[];
+  missingRequirements: string[];
+}
+
+/** A short status list — never the full mission template catalog. */
+export interface ActiveIncomeMissionTool {
+  missionType: string;
+  status: "not_started" | "in_progress" | "completed" | "skipped";
+}
+
 /**
  * The compact snapshot sent with every chat turn. Deliberately NOT the
  * user's raw transaction history — every field here is already a summary.
@@ -156,4 +196,9 @@ export interface FinancialContext {
   currentPriority: PriorityTool | null;
   recentSpending: RecentTransactionsSummaryTool;
   income: IncomeSummaryTool;
+  incomeProfile: IncomeProfileTool;
+  incomeGap: IncomeGapTool;
+  skills: SkillProfileTool;
+  topOpportunities: TopIncomeOpportunityTool[];
+  activeMissions: ActiveIncomeMissionTool[];
 }

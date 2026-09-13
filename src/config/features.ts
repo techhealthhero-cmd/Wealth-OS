@@ -1,12 +1,11 @@
 /**
- * Feature flags. Earn is a real product surface on the roadmap but has no
- * working implementation yet — per the execution spec, unfinished features
- * are hidden from navigation entirely rather than shown as dead/fake
- * buttons. Plan shipped in Day 2 (Goals, Emergency Fund); AI shipped in Day 4
- * (Money Coach chat, Next Best Action, Monthly Health Check, Insights).
+ * Feature flags. Plan shipped in Day 2 (Goals, Emergency Fund); AI shipped
+ * in Day 4 (Money Coach chat, Next Best Action, Monthly Health Check,
+ * Insights); Earn shipped in Day 5 (Income Sources, Skills, Income Target,
+ * Side Hustle Finder, Income Missions).
  */
 export const FEATURES = {
   plan: true,
-  earn: false,
+  earn: true,
   ai: true,
 } as const;

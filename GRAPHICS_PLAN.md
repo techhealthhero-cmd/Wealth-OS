@@ -296,8 +296,9 @@ never robotic, never childish.
 
 | Item | Status |
 |---|---|
-| Generic Earn illustration (ascending bars + growth arrow) | 🟡 `EarnIllustration`, not wired to any page |
-| Income Dashboard hero, Income Gap card, Side Hustle Finder, Skills profile, Opportunity ranking, Income Mission, first-income milestone, freelance/client work, extra-income achievement | ⬜ |
+| Generic Earn illustration (ascending bars + growth arrow) | ✅ `EarnIllustration`, integrated on `/earn`, `/earn/income`, `/earn/skills`, `/earn/missions` empty states (Day 5) |
+| Income Gap card, Side Hustle Finder, Skills profile, Opportunity ranking, Income Mission | ✅ built as plain Card-based layouts (status badges, labeled rows, progress counters) — same visual language as the rest of the app (Day 5) |
+| Income Dashboard hero visual, first-income milestone, freelance/client work, extra-income achievement | ⬜ not built |
 
 Standing rule: motivating, never "get rich quick."
 
@@ -361,10 +362,10 @@ Standing rule: tasteful celebration only — no confetti, no modal takeover
 | `LockedBadge` | `locked-badge.tsx` | nowhere yet — 🟡, no billing system exists |
 | `GoalIllustration` | `goal-illustration.tsx` | ✅ `/plan/goals` empty state (Day 2) |
 | `GoalTypeIcon` | `goal-type-icon.tsx` | ✅ `/plan/goals` goal cards (Day 2) |
-| `EarnIllustration` | `earn-illustration.tsx` | nowhere yet — 🟡, no `/earn` route exists |
+| `EarnIllustration` | `earn-illustration.tsx` | ✅ `/earn`, `/earn/income`, `/earn/skills`, `/earn/missions` empty states (Day 5) |
 | `AICoachIllustration` | `ai-coach-illustration.tsx` | ✅ `/ai` empty chat state (Day 4) |
-| `MissionBadge` | `mission-badge.tsx` | nowhere yet — 🟡, no missions feature exists |
-| `StreakBadge` | `streak-badge.tsx` | nowhere yet — 🟡, no missions feature exists |
+| `MissionBadge` | `mission-badge.tsx` | nowhere yet — 🟡, still reserved for gamification (XP/streaks); Day 5's Income Missions deliberately reuse `EarnIllustration` + plain status badges instead, to stay consistent with the rest of the Earn section rather than introduce a gamification visual ahead of Phase 6 |
+| `StreakBadge` | `streak-badge.tsx` | nowhere yet — 🟡, no missions/streak gamification feature exists (Phase 6) |
 | `CelebrationBadge` | `celebration-badge.tsx` | nowhere yet — 🟡, no goals/milestones feature exists |
 | `BudgetIllustration` | `budget-illustration.tsx` | ✅ `/money/budget` empty state (Day 2) |
 | `FinancialStageProgress` | `financial-stage-progress.tsx` | ✅ dashboard Life Stage card (Day 3) |
@@ -411,7 +412,7 @@ dropped to 9 after recent transaction quick-repeat cards shipped):
 
 1. **Full multi-step onboarding illustrations** (Track/Plan/Earn/Grow pillars, AI guidance, Money Year) — the current onboarding is still the simplified Day-1 single-step flow; these need that flow to grow first
 2. ~~AI Coach insight/suggestion card visuals~~ — **done**: `AICoachIllustration` is now integrated on `/ai`'s empty chat state (Day 4), and Next Best Action/Monthly Health Check/Insight cards ship as plain Card-based layouts (status badges, labeled rows — same visual language as Budget/Goal cards) rather than new bespoke illustrations; a dedicated AI suggestion-card illustration motif is still open if product feedback wants one
-3. **Earn feature detail visuals** (Income Gap card, Side Hustle Finder, Skills profile) — `EarnIllustration` covers the generic case; the actual Earn UI will need more
+3. ~~Earn feature detail visuals~~ — **done**: `EarnIllustration` is now integrated across all 4 Earn empty states (Day 5), and Income Gap/Side Hustle Finder/Skills Profile/Income Missions ship as plain Card-based layouts (score badges, labeled rows, progress counters — same visual language as the rest of the app) rather than new bespoke illustrations; a dedicated Income Dashboard hero visual and first-income/milestone motifs are still open if product feedback wants them
 4. **Goal state variants** (in progress/completed/behind/ahead target) — blocked on the Goals data model existing; per-type icons are already done (`GoalTypeIcon`)
 5. **Net Worth hero + Assets/Liabilities visuals** — the 7-stage stepper (`FinancialStageProgress`) is now live on the dashboard; the Net Worth page itself still needs its own visual treatment
 6. **Mission card / XP / level / progress-ring system** — `MissionBadge` and `StreakBadge` cover two individual badges; a full gamification UI needs more

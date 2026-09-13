@@ -108,6 +108,62 @@ describe("getFinancialPriorities — edge cases", () => {
   });
 });
 
+describe("getFinancialPriorities — income_gap (Day 5)", () => {
+  it("does not fire when no income target is set (incomeGapCents omitted/null)", () => {
+    const priorities = getFinancialPriorities(healthy);
+    expect(priorities.some((p) => p.priorityType === "income_gap")).toBe(false);
+  });
+
+  it("does not fire when the income target is already achieved (gap is 0)", () => {
+    const priorities = getFinancialPriorities({ ...healthy, incomeGapCents: 0 });
+    expect(priorities.some((p) => p.priorityType === "income_gap")).toBe(false);
+  });
+
+  it("fires once a real income gap exists, ranked below missed goals but above savings rate", () => {
+    const priorities = getFinancialPriorities({
+      ...healthy,
+      savingsRatePercent: 5, // also triggers low_savings_rate
+      incomeGapCents: 500000,
+    });
+    const gapIndex = priorities.findIndex((p) => p.priorityType === "income_gap");
+    const savingsIndex = priorities.findIndex((p) => p.priorityType === "low_savings_rate");
+    expect(gapIndex).toBeGreaterThanOrEqual(0);
+    expect(gapIndex).toBeLessThan(savingsIndex);
+  });
+
+  it("never outranks urgent safety issues like negative cash flow or emergency fund", () => {
+    const priorities = getFinancialPriorities({
+      ...healthy,
+      cashFlowCents: -100000,
+      emergencyFundMonthsProtected: 0,
+      emergencyFundCurrentCents: 0,
+      incomeGapCents: 5000000, // a very large gap — should still not jump the queue
+    });
+    expect(priorities[0].priorityType).toBe("negative_cash_flow");
+    expect(priorities.some((p) => p.priorityType === "income_gap")).toBe(true);
+    const gapIndex = priorities.findIndex((p) => p.priorityType === "income_gap");
+    expect(gapIndex).toBeGreaterThan(priorities.findIndex((p) => p.priorityType === "negative_cash_flow"));
+    expect(gapIndex).toBeGreaterThan(priorities.findIndex((p) => p.priorityType === "no_emergency_fund"));
+  });
+
+  it("raises severity when income is also heavily concentrated in one source", () => {
+    const withoutConcentration = getFinancialPriorities({
+      ...healthy,
+      incomeGapCents: 100000, // small gap -> low severity on its own
+      incomeConcentrationPercent: 50,
+    });
+    const withConcentration = getFinancialPriorities({
+      ...healthy,
+      incomeGapCents: 100000,
+      incomeConcentrationPercent: 95,
+    });
+    const before = withoutConcentration.find((p) => p.priorityType === "income_gap");
+    const after = withConcentration.find((p) => p.priorityType === "income_gap");
+    expect(before?.severity).toBe("low");
+    expect(after?.severity).toBe("medium");
+  });
+});
+
 describe("getTopFinancialPriority", () => {
   it("returns the single highest-priority issue", () => {
     const top = getTopFinancialPriority({ ...healthy, cashFlowCents: -100000, savingsRatePercent: 2 });
