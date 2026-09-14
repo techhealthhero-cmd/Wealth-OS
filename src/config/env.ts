@@ -95,8 +95,50 @@ export function getServerEnv() {
     );
   }
 
+  if (process.env.NODE_ENV === "production") {
+    assertProductionConsistency(parsed.data);
+  }
+
   cachedServerEnv = parsed.data;
   return cachedServerEnv;
+}
+
+/**
+ * Day 8 STEP 2: catches half-configured production integrations that would
+ * otherwise fail confusingly deep inside a request (e.g. checkout builds a
+ * session against a price ID env var that was never set, or a webhook can
+ * never verify because only the secret key was configured). Never logs or
+ * includes any secret's actual value — only which names are present.
+ */
+export function assertProductionConsistency(env: z.infer<typeof serverEnvSchema>): void {
+  const stripeVars = {
+    STRIPE_SECRET_KEY: env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET: env.STRIPE_WEBHOOK_SECRET,
+    STRIPE_PRICE_ID_PLUS: env.STRIPE_PRICE_ID_PLUS,
+    STRIPE_PRICE_ID_PRO: env.STRIPE_PRICE_ID_PRO,
+  };
+  const stripeConfigured = Object.values(stripeVars).filter(Boolean).length;
+  if (stripeConfigured > 0 && stripeConfigured < 4) {
+    const missing = Object.entries(stripeVars)
+      .filter(([, v]) => !v)
+      .map(([k]) => k);
+    throw new Error(
+      `Billing is partially configured in production: missing ${missing.join(", ")}. ` +
+        "Either set all four STRIPE_* variables or none of them — a partial " +
+        "configuration lets checkout appear to work while the webhook can never " +
+        "verify (or vice versa), silently leaving paid users on the Free plan."
+    );
+  }
+
+  // Billing writes (checkout customer bootstrap, webhook state changes) go
+  // through the service-role admin client — see src/lib/supabase/admin.ts —
+  // which RLS deliberately gives the authenticated role no path around.
+  if (stripeConfigured === 4 && !env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "STRIPE_* is configured but SUPABASE_SERVICE_ROLE_KEY is not. Billing writes " +
+        "require the service-role client and will throw at request time without it."
+    );
+  }
 }
 
 /**

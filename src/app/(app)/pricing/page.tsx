@@ -5,6 +5,8 @@ import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { PricingTable } from "@/features/billing/components/pricing-table";
+import { createClient } from "@/lib/supabase/server";
+import { trackEvent } from "@/lib/analytics";
 
 export const metadata: Metadata = { title: "Pricing — Wealth OS" };
 
@@ -12,6 +14,12 @@ export default async function PricingPage() {
   const [entitlements, profile] = await Promise.all([getEntitlements(), getProfile()]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) trackEvent("pricing_viewed", user.id, { currentPlan: entitlements.plan });
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-24">

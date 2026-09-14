@@ -170,7 +170,7 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3" role="log" aria-live="polite" aria-label={t("aiCoach.title")}>
           {messages.map((m, i) => (
             <div key={i} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
               <div
@@ -198,6 +198,7 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={t("aiCoach.inputPlaceholder")}
+          aria-label={t("aiCoach.inputPlaceholder")}
           disabled={isSending}
           className="min-h-11 resize-none"
           onKeyDown={(e) => {

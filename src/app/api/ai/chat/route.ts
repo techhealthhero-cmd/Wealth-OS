@@ -11,6 +11,9 @@ import { containsDistressSignal, requestsGuaranteedReturns, validateUserMessage 
 import { getMessages } from "@/features/ai/queries";
 import { appendMessage, createConversation, deriveConversationTitle, logUsage, touchConversation } from "@/features/ai/actions";
 import { getAIUsageStatus } from "@/lib/billing/ai-usage";
+import { captureError } from "@/lib/observability";
+import { trackEvent } from "@/lib/analytics";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { AIMessage } from "@/features/ai/types";
 
 const MAX_HISTORY_MESSAGES = 20;
@@ -53,6 +56,14 @@ export async function POST(request: Request) {
     await appendMessage(user.id, finalConversationId, "assistant", reply);
     await touchConversation(finalConversationId);
     return Response.json({ conversationId: finalConversationId, reply });
+  }
+
+  // Day 8 STEP 12: burst/abuse protection, distinct from the Day 7 monthly
+  // plan quota below — this catches a rapid-fire script hammering the
+  // endpoint well before it would ever hit its monthly message limit.
+  const burstLimit = await checkRateLimit(`ai-chat:user:${user.id}`, { windowSeconds: 60, maxRequests: 15 });
+  if (!burstLimit.allowed) {
+    return Response.json({ error: dict.aiCoach.errorGeneric }, { status: 429 });
   }
 
   // STEP 6 (Day 7): authenticate (done above) -> resolve plan + check usage
@@ -116,8 +127,15 @@ export async function POST(request: Request) {
         await appendMessage(user.id, finalConversationId, "assistant", final.content);
         await touchConversation(finalConversationId);
         await logUsage(user.id, final.model, final.usage.inputTokens, final.usage.outputTokens);
+        // `usage` was resolved before this request's own reply was logged,
+        // so 0 here means this is genuinely the first logged message of the
+        // user's current billing period — a reasonable, free proxy for
+        // "first AI message ever" for the overwhelming majority of users
+        // (their signup month), without a second lifetime-count query.
+        if (usage.used === 0) trackEvent("first_ai_message_sent", user.id);
         send(controller, { type: "done" });
-      } catch {
+      } catch (error) {
+        captureError(error, { route: "api/ai/chat", provider: provider.name, operation: "stream", userId: user.id });
         send(controller, { type: "error", message: dict.aiCoach.errorGeneric });
       } finally {
         controller.close();

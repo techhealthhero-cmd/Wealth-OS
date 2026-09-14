@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/database";
@@ -15,8 +16,18 @@ import type { Profile } from "@/types/database";
  * defaults, rather than leaving the user stuck in an unrecoverable redirect
  * loop back to /login (a real Day-1 incident: an account created before
  * migrations were applied had no profile and could never reach the app).
+ *
+ * Wrapped in React's `cache()` (Day 8 STEP 7 performance audit finding): the
+ * app layout, several nested layouts (`money`, `plan`, `earn`), and nearly
+ * every page all independently call this for locale resolution — a request
+ * to a doubly-nested route like `/money/budget` was issuing 3 identical
+ * profile queries before this. `cache()` deduplicates calls with the same
+ * arguments (none, here) within a single request's render pass — every
+ * caller's code is unchanged, they just now share one query per request
+ * instead of one each. Automatically reset between requests, so this can
+ * never leak one user's profile into another's request.
  */
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -78,7 +89,7 @@ export async function getProfile(): Promise<Profile | null> {
     throw new Error(`[dev] Failed to create missing profile (${createError.code ?? "?"}): ${createError.message}`);
   }
   throw new Error("Failed to load profile");
-}
+});
 
 export async function getCurrentUser() {
   const supabase = await createClient();

@@ -9,6 +9,7 @@ import { getLocale } from "@/i18n/server";
 import { friendlyDbError } from "@/lib/db-error";
 import { buildMonthlyReviewSnapshot } from "@/features/monthly-review/queries";
 import { awardXpOnce } from "@/features/engagement/actions";
+import { trackEvent } from "@/lib/analytics";
 
 export interface ActionResult {
   error?: string;
@@ -102,6 +103,7 @@ export async function completeMonthlyReview(
   if (error || !review) return { error: friendlyDbError(error ?? { message: "upsert failed" }, "completeMonthlyReview", dict.monthlyReview.saveFailed) };
 
   await awardXpOnce(user.id, "monthly_review_completed", review.id);
+  trackEvent("monthly_review_completed", user.id, { year, month });
 
   revalidatePath("/review");
   revalidatePath("/dashboard");

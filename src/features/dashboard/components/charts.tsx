@@ -80,32 +80,41 @@ export function IncomeVsExpenseChart({
         {!hasData ? (
           <ChartEmptyState message={t("dashboard.noIncomeExpenseData")} />
         ) : (
-          <ResponsiveContainer width="100%" height={224}>
-            <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke="var(--border)" />
-              <XAxis
-                dataKey="label"
-                tickLine={false}
-                axisLine={{ stroke: "var(--border)" }}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-                width={40}
-              />
-              <Tooltip
-                content={<CurrencyTooltip currencyCode={currencyCode} />}
-                cursor={{ fill: "var(--muted)" }}
-              />
-              <Bar dataKey="raw" radius={[4, 4, 0, 0]} maxBarSize={64}>
-                {data.map((entry) => (
-                  <Cell key={entry.label} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <>
+            {/* Day 8 accessibility audit: a bar chart conveys these two
+                numbers visually only — a screen-reader-only text summary
+                gives an equivalent alternative without changing the visual
+                design. */}
+            <p className="sr-only">
+              {data.map((d) => `${d.label}: ${formatMoney(d.raw, currencyCode)}`).join(". ")}
+            </p>
+            <ResponsiveContainer width="100%" height={224}>
+              <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="var(--border)" />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={{ stroke: "var(--border)" }}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                  width={40}
+                />
+                <Tooltip
+                  content={<CurrencyTooltip currencyCode={currencyCode} />}
+                  cursor={{ fill: "var(--muted)" }}
+                />
+                <Bar dataKey="raw" radius={[4, 4, 0, 0]} maxBarSize={64}>
+                  {data.map((entry) => (
+                    <Cell key={entry.label} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </>
         )}
       </CardContent>
     </Card>
@@ -142,33 +151,38 @@ export function SpendingByCategoryChart({ data, currencyCode }: SpendingByCatego
         {chartData.length === 0 ? (
           <ChartEmptyState message={t("dashboard.noExpenseData")} />
         ) : (
-          <ResponsiveContainer width="100%" height={Math.max(160, chartData.length * 40)}>
-            <BarChart
-              data={chartData}
-              layout="vertical"
-              margin={{ top: 8, right: 24, left: 8, bottom: 0 }}
-            >
-              <CartesianGrid horizontal={false} stroke="var(--border)" />
-              <XAxis type="number" hide />
-              <YAxis
-                type="category"
-                dataKey="label"
-                tickLine={false}
-                axisLine={false}
-                width={110}
-                tick={{ fill: "var(--foreground)", fontSize: 12 }}
-              />
-              <Tooltip
-                content={<CurrencyTooltip currencyCode={currencyCode} />}
-                cursor={{ fill: "var(--muted)" }}
-              />
-              <Bar dataKey="raw" radius={[0, 4, 4, 0]} maxBarSize={24}>
-                {chartData.map((entry) => (
-                  <Cell key={entry.label} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <>
+            <p className="sr-only">
+              {chartData.map((d) => `${d.label}: ${formatMoney(d.raw, currencyCode)}`).join(". ")}
+            </p>
+            <ResponsiveContainer width="100%" height={Math.max(160, chartData.length * 40)}>
+              <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 8, right: 24, left: 8, bottom: 0 }}
+              >
+                <CartesianGrid horizontal={false} stroke="var(--border)" />
+                <XAxis type="number" hide />
+                <YAxis
+                  type="category"
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  width={110}
+                  tick={{ fill: "var(--foreground)", fontSize: 12 }}
+                />
+                <Tooltip
+                  content={<CurrencyTooltip currencyCode={currencyCode} />}
+                  cursor={{ fill: "var(--muted)" }}
+                />
+                <Bar dataKey="raw" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                  {chartData.map((entry) => (
+                    <Cell key={entry.label} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </>
         )}
       </CardContent>
     </Card>

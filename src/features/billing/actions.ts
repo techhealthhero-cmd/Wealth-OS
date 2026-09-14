@@ -7,6 +7,9 @@ import { getClientEnv } from "@/config/env";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { getProfile } from "@/features/profile/queries";
+import { trackEvent } from "@/lib/analytics";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { captureError } from "@/lib/observability";
 import type { PlanId } from "@/lib/billing/plans";
 import type { Subscription } from "@/types/database";
 
@@ -67,6 +70,9 @@ export async function createCheckoutSessionAction(planId: PlanId): Promise<Check
   } = await supabase.auth.getUser();
   if (!user?.email) return { error: dict.common.pleaseLogin };
 
+  const rateLimit = await checkRateLimit(`billing-checkout:user:${user.id}`, { windowSeconds: 600, maxRequests: 10 });
+  if (!rateLimit.allowed) return { error: dict.billing.errors.checkoutFailed };
+
   const provider = getBillingProvider();
   if (!provider) return { error: dict.billing.errors.providerUnavailable };
 
@@ -91,8 +97,10 @@ export async function createCheckoutSessionAction(planId: PlanId): Promise<Check
       cancelUrl: `${appUrl}/billing?checkout=canceled`,
     });
 
+    trackEvent("checkout_started", user.id, { plan: planId });
     return { url: session.url };
-  } catch {
+  } catch (error) {
+    captureError(error, { route: "billing.createCheckoutSessionAction", provider: "stripe", userId: user.id });
     return { error: dict.billing.errors.checkoutFailed };
   }
 }
@@ -107,6 +115,9 @@ export async function createPortalSessionAction(): Promise<CheckoutActionResult>
   } = await supabase.auth.getUser();
   if (!user) return { error: dict.common.pleaseLogin };
 
+  const rateLimit = await checkRateLimit(`billing-portal:user:${user.id}`, { windowSeconds: 600, maxRequests: 10 });
+  if (!rateLimit.allowed) return { error: dict.billing.errors.portalFailed };
+
   const provider = getBillingProvider();
   if (!provider) return { error: dict.billing.errors.providerUnavailable };
 
@@ -120,7 +131,8 @@ export async function createPortalSessionAction(): Promise<CheckoutActionResult>
       returnUrl: `${appUrl}/billing`,
     });
     return { url: session.url };
-  } catch {
+  } catch (error) {
+    captureError(error, { route: "billing.createPortalSessionAction", provider: "stripe", userId: user.id });
     return { error: dict.billing.errors.portalFailed };
   }
 }
@@ -161,7 +173,8 @@ export async function cancelSubscriptionAction(): Promise<ActionResult> {
     const admin = createAdminClient();
     await admin.from("subscriptions").update({ cancel_at_period_end: true }).eq("user_id", user.id);
     return { success: true };
-  } catch {
+  } catch (error) {
+    captureError(error, { route: "billing.cancelSubscriptionAction", provider: "stripe", userId: user.id });
     return { error: dict.billing.errors.cancelFailed };
   }
 }
@@ -188,7 +201,8 @@ export async function resumeSubscriptionAction(): Promise<ActionResult> {
     const admin = createAdminClient();
     await admin.from("subscriptions").update({ cancel_at_period_end: false }).eq("user_id", user.id);
     return { success: true };
-  } catch {
+  } catch (error) {
+    captureError(error, { route: "billing.resumeSubscriptionAction", provider: "stripe", userId: user.id });
     return { error: dict.billing.errors.cancelFailed };
   }
 }

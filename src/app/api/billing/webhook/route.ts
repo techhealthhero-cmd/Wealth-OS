@@ -7,6 +7,8 @@ import {
   buildPastDuePatch,
   buildRecoveredPatch,
 } from "@/lib/billing/webhook-logic";
+import { captureError, captureMessage } from "@/lib/observability";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * STEP 15 webhook handler — the only place `subscriptions` state is ever
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
     // was already processed — treat as success, not an error, so Stripe
     // stops retrying it.
     if (isDuplicateEventError(dedupeError)) return new Response("Already processed", { status: 200 });
+    captureError(dedupeError, { route: "api/billing/webhook", provider: "stripe", operation: "record_event" });
     return new Response("Failed to record event", { status: 500 });
   }
 
@@ -73,7 +76,14 @@ export async function POST(request: Request) {
       case "customer.subscription.updated": {
         const normalized = provider.normalizeSubscription(event.data);
         const patch = buildSubscriptionUpsertPatch(normalized);
-        if (!patch) break; // Unknown price id — never guess a plan from unverified data.
+        if (!patch) {
+          captureMessage("Webhook subscription event with unrecognized price id — ignored, never guessed a plan", {
+            route: "api/billing/webhook",
+            provider: "stripe",
+            operation: event.type,
+          });
+          break;
+        }
 
         const metadataUserId = (event.data.metadata as Record<string, string> | undefined)?.user_id;
         if (metadataUserId) {
@@ -84,15 +94,21 @@ export async function POST(request: Request) {
           // rather than inventing a user_id.
           await admin.from("subscriptions").update(patch).eq("provider_customer_id", normalized.customerId);
         }
+
+        if (metadataUserId && (patch.status === "active" || patch.status === "trialing")) {
+          trackEvent("subscription_activated", metadataUserId, { plan: patch.plan, status: patch.status });
+        }
         break;
       }
 
       case "customer.subscription.deleted": {
         const normalized = provider.normalizeSubscription(event.data);
+        const metadataUserId = (event.data.metadata as Record<string, string> | undefined)?.user_id;
         await admin
           .from("subscriptions")
           .update(buildSubscriptionCancelPatch())
           .eq("provider_subscription_id", normalized.subscriptionId);
+        if (metadataUserId) trackEvent("subscription_canceled", metadataUserId);
         break;
       }
 
@@ -125,7 +141,8 @@ export async function POST(request: Request) {
         // handler for.
         break;
     }
-  } catch {
+  } catch (error) {
+    captureError(error, { route: "api/billing/webhook", provider: "stripe", operation: event.type });
     return new Response("Processing error", { status: 500 });
   }
 

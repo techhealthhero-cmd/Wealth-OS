@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
@@ -8,6 +9,20 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Header } from "@/components/layout/header";
 import { Toaster } from "@/components/ui/sonner";
+
+/**
+ * Day 8 STEP 11 — every page behind auth (dashboard, money, plan, earn, ai,
+ * profile/billing, pricing) is noindexed: each requires a session, so a
+ * search engine could never render or usefully index one anyway, and a
+ * financial dashboard has no reason to appear in search results even if it
+ * somehow could. `/pricing` lives in this same route group (it reuses this
+ * layout's nav/auth), so it's noindexed too — a known, accepted tradeoff of
+ * keeping it in the authenticated app shell rather than building a separate
+ * public marketing surface for it (see PROJECT_STATUS.md Known Limitations).
+ */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await getProfile();

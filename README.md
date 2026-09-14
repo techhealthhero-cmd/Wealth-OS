@@ -51,8 +51,9 @@ Copy `.env.example` to `.env.local` and fill in:
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project → Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase project → Settings → API |
 | `NEXT_PUBLIC_APP_URL` | Yes | `http://localhost:3000` in development |
-| `SUPABASE_SERVICE_ROLE_KEY` | **No — server only** | Supabase project → Settings → API |
-| `AI_API_KEY` / `AI_MODEL` | **No — server only** | Reserved for a future AI Coach feature (not implemented in Day 1) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **No — server only** | Supabase project → Settings → API. Required for billing (checkout customer bootstrap, webhook writes) — see below |
+| `AI_API_KEY` / `AI_MODEL` | **No — server only** | AI Money Coach (Anthropic). Optional — the chat UI shows a clean "not configured" state without it |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_ID_PLUS` / `STRIPE_PRICE_ID_PRO` | **No — server only** | Billing (Stripe). Optional in development; if any one is set in production, all four must be, and `SUPABASE_SERVICE_ROLE_KEY` becomes required too — `src/config/env.ts` throws a clear error otherwise |
 
 `src/config/env.ts` validates these with Zod at startup and fails with a
 clear error message (naming the missing variable) rather than an obscure
@@ -60,6 +61,10 @@ runtime crash. Server-only variables are never prefixed with `NEXT_PUBLIC_`,
 and `src/lib/supabase/admin.ts` additionally guards itself with the
 `server-only` package so an accidental client-side import fails at build
 time, not silently at runtime.
+
+Run `npm run check:env` against a loaded environment (e.g. after
+`vercel env pull`) to see which variables are present by name only — it
+never prints a value.
 
 ## Supabase setup
 
@@ -153,14 +158,28 @@ All four currently pass cleanly against this codebase.
 1. Push this repository to your Git provider.
 2. Deploy to Vercel (or any Next.js-compatible host).
 3. Set the environment variables from `.env.example` in the host's project
-   settings — `SUPABASE_SERVICE_ROLE_KEY` and `AI_*` as server-only secrets,
-   the `NEXT_PUBLIC_*` ones as build-and-runtime variables.
+   settings — `SUPABASE_SERVICE_ROLE_KEY`, `AI_*`, and `STRIPE_*` as
+   server-only secrets, the `NEXT_PUBLIC_*` ones as build-and-runtime
+   variables. Run `npm run check:env` against the pulled environment first.
 4. Point `NEXT_PUBLIC_APP_URL` at your production URL, and add
    `<production-url>/auth/callback` as a redirect URL in Supabase
    Authentication → URL Configuration.
 5. Run the migrations against your production Supabase project
    (`supabase db push`) — **do not** run `supabase/seed.sql` against
    production.
+6. If enabling billing: create the Plus/Pro products and prices in the
+   Stripe Dashboard (test mode first), set `STRIPE_PRICE_ID_PLUS`/
+   `STRIPE_PRICE_ID_PRO` to those price ids, add a webhook endpoint at
+   `<production-url>/api/billing/webhook` subscribed to at least
+   `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted`,
+   `invoice.payment_failed`, and `invoice.payment_succeeded`, and set
+   `STRIPE_WEBHOOK_SECRET` to that endpoint's signing secret. Switching from
+   Stripe test mode to live mode later is just swapping all four `STRIPE_*`
+   values for their live-mode equivalents and updating the webhook endpoint
+   to point at the live-mode secret — no code change.
+7. Smoke-test the deployed URL with a disposable account before directing
+   real users at it — see PROJECT_STATUS.md's "Launch Readiness" checklist.
 
 ## Folder structure
 

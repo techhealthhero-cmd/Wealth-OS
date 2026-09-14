@@ -135,3 +135,23 @@
     @apply font-sans;
   }
 }
+
+/*
+ * Day 8 accessibility audit (STEP 8): honors prefers-reduced-motion
+ * app-wide in one place, rather than adding a reduced-motion variant to
+ * every individual `animate-*`/`transition-*` utility class across the
+ * codebase. Effectively disables all CSS animation/transition duration for
+ * users who've asked their OS for reduced motion (celebratory badges,
+ * streak animations, hover/focus transitions, etc.) without needing any
+ * per-component change.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

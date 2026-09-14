@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 /**
  * Handles both email-confirmation links and OAuth (e.g. Google) redirects.
@@ -10,7 +11,9 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  // Validated against an open-redirect (see safe-redirect.ts) — this value
+  // is attacker-controllable via a crafted link's query string.
+  const next = safeRedirectPath(searchParams.get("next"), "/dashboard");
   // Supabase sometimes redirects with an error instead of a code (e.g. an
   // expired or already-used link) — surface that instead of a bare "code
   // missing" message.

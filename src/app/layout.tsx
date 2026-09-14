@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai } from "next/font/google";
 import "./globals.css";
 
@@ -13,10 +13,39 @@ const bodyFont = IBM_Plex_Sans_Thai({
   weight: ["400", "500", "600", "700"],
 });
 
+const DESCRIPTION =
+  "ระบบการเงินส่วนบุคคลที่ช่วยให้ผู้ใช้รู้สถานะทางการเงิน ควบคุมเงิน วางแผน เพิ่มรายได้ และสร้างความมั่งคั่ง — Know your money. Grow your income. Build your wealth.";
+
+/**
+ * Day 8 STEP 11 (SEO/metadata). This is the DEFAULT for every route —
+ * public pages (`/`, `/pricing`, `/login`, `/signup`) inherit it as-is and
+ * are indexable. The authenticated `(app)` route group overrides `robots`
+ * to noindex (see `src/app/(app)/layout.tsx`) — financial dashboards have
+ * no business appearing in search results, and there is nothing there a
+ * search engine could usefully index anyway (every page requires a session).
+ */
 export const metadata: Metadata = {
   metadataBase: new URL(getClientEnv().NEXT_PUBLIC_APP_URL),
-  title: "Wealth OS",
-  description: "Your personal finance operating system.",
+  title: { default: "Wealth OS", template: "%s — Wealth OS" },
+  description: DESCRIPTION,
+  openGraph: {
+    title: "Wealth OS",
+    description: DESCRIPTION,
+    siteName: "Wealth OS",
+    locale: "th_TH",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Wealth OS",
+    description: DESCRIPTION,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#2a78d6",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

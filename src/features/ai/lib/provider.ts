@@ -37,6 +37,16 @@ const DEFAULT_MODEL = "claude-sonnet-5";
 // finances and what should I do first" routinely needs more than 1024 output
 // tokens once it covers income/expenses/net worth/debt/priority in Thai.
 const DEFAULT_MAX_TOKENS = 2048;
+// Day 8 STEP 14: a hung upstream request must not hang this app's request
+// indefinitely (and on a serverless host, would otherwise run until the
+// platform's own execution-time limit kills it uncleanly). No retry is
+// added alongside this — retrying a request that already reached Anthropic
+// risks generating and billing a second response for one user message.
+const REQUEST_TIMEOUT_MS = 30_000;
+// Streaming needs more headroom than a single non-streaming call: the
+// timeout covers the entire response, and a full DEFAULT_MAX_TOKENS reply
+// can legitimately take longer than 30s to finish streaming.
+const STREAM_TIMEOUT_MS = 60_000;
 
 /**
  * Direct `fetch` against the Anthropic Messages API — no SDK dependency,
@@ -76,6 +86,7 @@ class AnthropicProvider implements AIProvider {
         "content-type": "application/json",
       },
       body: JSON.stringify(this.buildBody(params, false)),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -108,6 +119,7 @@ class AnthropicProvider implements AIProvider {
         "content-type": "application/json",
       },
       body: JSON.stringify(this.buildBody(params, true)),
+      signal: AbortSignal.timeout(STREAM_TIMEOUT_MS),
     });
 
     if (!res.ok || !res.body) {

@@ -7,7 +7,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { SummaryCards } from "@/features/dashboard/components/summary-cards";
 import { WealthOverview } from "@/features/dashboard/components/wealth-overview";
-import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts";
+import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { QuickAdd } from "@/features/transactions/components/quick-add";
 import { EmptyState } from "@/components/shared/empty-state";

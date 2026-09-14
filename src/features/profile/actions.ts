@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { onboardingSchema, profileSchema } from "@/lib/validation/profile";
 import { LOCALE_COOKIE } from "@/i18n/config";
 import { cookies } from "next/headers";
+import { trackEvent } from "@/lib/analytics";
 
 export interface ActionResult {
   error?: string;
@@ -107,6 +108,8 @@ export async function completeOnboarding(
       opening_balance: parsed.data.starting_balance,
     });
   }
+
+  trackEvent("onboarding_completed", user.id, { providedStartingBalance: parsed.data.starting_balance !== undefined });
 
   redirect("/dashboard");
 }

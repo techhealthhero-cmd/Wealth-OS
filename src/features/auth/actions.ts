@@ -10,6 +10,10 @@ import {
   resetPasswordSchema,
   signupSchema,
 } from "@/lib/validation/auth";
+import { trackEvent } from "@/lib/analytics";
+import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
+
+const RATE_LIMIT_MESSAGE = "Too many attempts. Please wait a few minutes and try again.";
 
 export interface ActionResult {
   error?: string;
@@ -59,6 +63,13 @@ export async function login(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
+  // Day 8 STEP 12: app-level defense-in-depth against credential-stuffing/
+  // brute-force login attempts, on top of whatever limits Supabase Auth
+  // itself already enforces at the platform level.
+  const ip = await getClientIdentifier();
+  const rateLimit = await checkRateLimit(`login:ip:${ip}`, { windowSeconds: 300, maxRequests: 10 });
+  if (!rateLimit.allowed) return { error: RATE_LIMIT_MESSAGE };
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
@@ -84,10 +95,14 @@ export async function signup(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
+  const ip = await getClientIdentifier();
+  const rateLimit = await checkRateLimit(`signup:ip:${ip}`, { windowSeconds: 3600, maxRequests: 5 });
+  if (!rateLimit.allowed) return { error: RATE_LIMIT_MESSAGE };
+
   const supabase = await createClient();
   const env = getClientEnv();
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
@@ -99,6 +114,8 @@ export async function signup(
   if (error) {
     return { error: safeAuthError(error) };
   }
+
+  if (data.user) trackEvent("signup_completed", data.user.id);
 
   redirect("/onboarding");
 }
@@ -120,6 +137,10 @@ export async function forgotPassword(
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
+
+  const ip = await getClientIdentifier();
+  const rateLimit = await checkRateLimit(`forgot-password:ip:${ip}`, { windowSeconds: 3600, maxRequests: 3 });
+  if (!rateLimit.allowed) return { error: RATE_LIMIT_MESSAGE };
 
   const supabase = await createClient();
   const env = getClientEnv();
