@@ -10,6 +10,7 @@ import { getAIProvider } from "@/features/ai/lib/provider";
 import { containsDistressSignal, requestsGuaranteedReturns, validateUserMessage } from "@/features/ai/lib/guardrails";
 import { getMessages } from "@/features/ai/queries";
 import { appendMessage, createConversation, deriveConversationTitle, logUsage, touchConversation } from "@/features/ai/actions";
+import { getAIUsageStatus } from "@/lib/billing/ai-usage";
 import type { AIMessage } from "@/features/ai/types";
 
 const MAX_HISTORY_MESSAGES = 20;
@@ -52,6 +53,24 @@ export async function POST(request: Request) {
     await appendMessage(user.id, finalConversationId, "assistant", reply);
     await touchConversation(finalConversationId);
     return Response.json({ conversationId: finalConversationId, reply });
+  }
+
+  // STEP 6 (Day 7): authenticate (done above) -> resolve plan + check usage
+  // -> reject cleanly if the limit is reached -> otherwise call the
+  // provider -> write the usage log (below, after a successful reply). The
+  // distress short-circuit above is exempt: it never calls the provider and
+  // costs no tokens, so it must never be blocked by a message quota.
+  const usage = await getAIUsageStatus(user.id);
+  if (usage.limitReached) {
+    return Response.json(
+      {
+        error: `${dict.aiCoach.limitReachedMessage} ${dict.aiCoach.limitReachedReset} ${usage.resetDate}`,
+        limitReached: true,
+        resetDate: usage.resetDate,
+        upgradeUrl: "/pricing",
+      },
+      { status: 403 }
+    );
   }
 
   const provider = getAIProvider();

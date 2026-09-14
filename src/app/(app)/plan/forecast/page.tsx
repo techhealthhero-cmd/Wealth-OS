@@ -13,18 +13,34 @@ import { ForecastView } from "@/features/forecast/components/forecast-view";
 import { ForecastScenarioForm } from "@/features/forecast/components/forecast-scenario-form";
 import { EmptyState } from "@/components/shared/empty-state";
 import { WelcomeIllustration } from "@/components/illustrations";
+import { requireFeature, FEATURES } from "@/lib/billing/entitlements";
+import { LockedFeatureCard } from "@/features/billing/components/locked-feature-card";
 
 export const metadata: Metadata = { title: "Forecast — Wealth OS" };
 
 export default async function ForecastPage() {
-  const [scenarios, startingState, defaultAssumptions, profile] = await Promise.all([
+  const profile = await getProfile();
+  const locale = await getLocale(profile?.preferred_language);
+  const dict = getDictionary(locale);
+
+  const gate = await requireFeature(FEATURES.FORECAST);
+  if (!gate.allowed) {
+    return (
+      <div className="mx-auto max-w-lg py-8">
+        <LockedFeatureCard
+          title={dict.billing.locked.forecastTitle}
+          description={dict.billing.locked.forecastDescription}
+          ctaLabel={dict.billing.upgradeCta}
+        />
+      </div>
+    );
+  }
+
+  const [scenarios, startingState, defaultAssumptions] = await Promise.all([
     getForecastScenarios(),
     getForecastStartingState(),
     getDefaultBaseAssumptions(),
-    getProfile(),
   ]);
-  const locale = await getLocale(profile?.preferred_language);
-  const dict = getDictionary(locale);
 
   if (scenarios.length === 0) {
     return (

@@ -240,7 +240,7 @@ and numbers first; illustration only appears in the zero-data empty state).
 | Info, Warning, Error, Loading | ✅ already wired at the toast level — `src/components/ui/sonner.tsx` configures Lucide `InfoIcon`/`TriangleAlertIcon`/`OctagonXIcon`/`Loader2Icon` per toast type (pre-existing, confirmed still in place) |
 | Syncing | ⬜ not built (no offline/sync model exists) |
 | Offline | ⬜ not built |
-| Locked premium | 🟡 `LockedBadge` built (neutral lock mark, not a marketing gem/crown — no billing system exists to attach it to yet), not wired to any page |
+| Locked premium | ✅ `LockedBadge` (neutral lock mark, not a marketing gem/crown) now integrated — Day 7's `LockedFeatureCard` (`src/features/billing/components/locked-feature-card.tsx`) renders it on every paywalled surface (Forecast, Debt Planner, Subscription Detector, Monthly Review) |
 | Security/privacy state | ⬜ not built |
 
 ## Onboarding illustrations
@@ -360,7 +360,7 @@ Standing rule: tasteful celebration only — no confetti, no modal takeover
 | `EmptyAccountsIllustration` | `empty-accounts-illustration.tsx` | `src/features/accounts/components/account-list.tsx` |
 | `EmptyTransactionsIllustration` | `empty-transactions-illustration.tsx` | `src/features/transactions/components/transaction-list.tsx` |
 | `SuccessBadge` | `success-badge.tsx` | `src/features/transactions/components/transaction-form.tsx`, `transfer-form.tsx` (toast icon) |
-| `LockedBadge` | `locked-badge.tsx` | nowhere yet — 🟡, no billing system exists |
+| `LockedBadge` | `locked-badge.tsx` | ✅ `LockedFeatureCard` on `/plan/forecast`, `/plan/debt`, `/money/subscriptions`, `/review` (Day 7) |
 | `GoalIllustration` | `goal-illustration.tsx` | ✅ `/plan/goals` empty state (Day 2) |
 | `GoalTypeIcon` | `goal-type-icon.tsx` | ✅ `/plan/goals` goal cards (Day 2) |
 | `EarnIllustration` | `earn-illustration.tsx` | ✅ `/earn`, `/earn/income`, `/earn/skills`, `/earn/missions` empty states (Day 5) |
@@ -397,8 +397,8 @@ Standing rule: tasteful celebration only — no confetti, no modal takeover
 - Wealth Score, Safe-to-Spend detail visuals
 
 ## Sprint 4 — SaaS / Brand (P3)
-- Premium/subscription visuals (Free/Plus/Pro, upgrade illustration, billing states) — locked-feature status mark done (`LockedBadge`), the rest still open
-- Pricing page visuals
+- Premium/subscription visuals (Free/Plus/Pro, upgrade illustration, billing states) — locked-feature status mark done and now integrated (`LockedBadge`, via `LockedFeatureCard` — Day 7); Free/Plus/Pro ship as plain Card/Badge layouts (same visual language as the rest of the app) rather than bespoke plan-tier illustrations; a dedicated upgrade-success/celebration illustration is still open
+- ~~Pricing page visuals~~ — **done** as a plain Card-grid layout (`/pricing`, Day 7); a more distinctive pricing-page hero treatment is still open if product feedback wants one
 - ~~Landing page: Track→Plan→Earn→Grow~~ — **done** (icon strip on the real landing page); per-feature illustrations and a footer section still open
 - ~~Celebration/milestone: generic mark~~ — **done** (`CelebrationBadge`); specific celebration moments still open
 - ~~Social/promotional: Open Graph image~~ — **done**; announcement/preview templates still open
@@ -418,7 +418,7 @@ dropped to 9 after recent transaction quick-repeat cards shipped):
 5. **Net Worth hero + Assets/Liabilities visuals** — the 7-stage stepper (`FinancialStageProgress`) is now live on the dashboard; the Net Worth page itself still needs its own visual treatment
 6. ~~Mission card / XP / level / progress-ring system~~ — **done**: `StreakBadge` is now integrated (Day 6), and Wealth Missions/Progress ship as plain Card-based layouts (progress bar, status badges) rather than a bespoke gamification UI; `MissionBadge`, a dedicated XP/level badge, and a progress-ring visual are still open if product feedback wants a more game-like treatment
 7. **Budget detail visuals** (category progress, overspending warning, under-budget success) — `BudgetIllustration` covers the generic empty/hero case
-8. **Premium/billing visuals** (Free/Plus/Pro badges, upgrade illustration, billing success/failure) — `LockedBadge` covers the generic locked state; a real upgrade flow needs more
+8. ~~Premium/billing visuals~~ — **done** as far as function requires: `LockedBadge` is integrated (Day 7) and the full checkout/portal/cancel flow ships as plain Card/Badge/Button layouts; a bespoke upgrade-success illustration and dedicated Free/Plus/Pro badge iconography are still open if product feedback wants a more distinctive look
 9. **Landing page feature sections + footer** — the hero, brand mark, and Track→Plan→Earn→Grow strip are done; per-feature marketing sections and a footer are still a single unbuilt block
 
 ---

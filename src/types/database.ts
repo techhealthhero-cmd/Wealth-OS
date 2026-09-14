@@ -20,6 +20,8 @@
  * query/action return types.
  */
 
+import type { PlanId, SubscriptionStatus as BillingSubscriptionStatus } from "@/lib/billing/plans";
+
 export type AccountType =
   | "cash"
   | "bank"
@@ -857,6 +859,46 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["financial_notifications"]["Row"]>;
       };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          plan: PlanId;
+          status: BillingSubscriptionStatus;
+          provider: "stripe" | null;
+          provider_customer_id: string | null;
+          provider_subscription_id: string | null;
+          provider_price_id: string | null;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          trial_end: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["subscriptions"]["Row"], "id" | "created_at" | "updated_at">> & {
+          user_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["subscriptions"]["Row"]>;
+      };
+      billing_events: {
+        Row: {
+          id: string;
+          provider: "stripe";
+          provider_event_id: string;
+          event_type: string;
+          payload: Record<string, unknown>;
+          processed_at: string;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["billing_events"]["Row"], "id" | "processed_at" | "created_at">> & {
+          provider: "stripe";
+          provider_event_id: string;
+          event_type: string;
+          payload: Record<string, unknown>;
+        };
+        Update: Partial<Database["public"]["Tables"]["billing_events"]["Row"]>;
+      };
       monthly_reviews: {
         Row: {
           id: string;
@@ -938,3 +980,5 @@ export type DetectedSubscription = Database["public"]["Tables"]["detected_subscr
 export type NotificationPreferences = Database["public"]["Tables"]["notification_preferences"]["Row"];
 export type FinancialNotification = Database["public"]["Tables"]["financial_notifications"]["Row"];
 export type MonthlyReview = Database["public"]["Tables"]["monthly_reviews"]["Row"];
+export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
+export type BillingEvent = Database["public"]["Tables"]["billing_events"]["Row"];

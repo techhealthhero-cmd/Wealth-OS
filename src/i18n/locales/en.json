@@ -703,7 +703,12 @@
     "errorEmpty": "Please type a message before sending.",
     "newConversation": "Start a new conversation",
     "distressNotice": "If you're feeling unsafe or having thoughts of harming yourself, please contact a crisis line (in Thailand: 1323, free, 24/7) or reach out to someone you trust right away.",
-    "disclaimer": "The AI Money Coach gives general guidance based on your financial data. It is not a licensed financial adviser and does not guarantee any return or outcome."
+    "disclaimer": "The AI Money Coach gives general guidance based on your financial data. It is not a licensed financial adviser and does not guarantee any return or outcome.",
+    "usageLabel": "AI messages this month",
+    "limitReachedMessage": "You've used all the AI messages included in your plan this month.",
+    "limitReachedReset": "Your quota resets on",
+    "limitReachedShort": "Limit reached",
+    "upgradeCta": "Upgrade plan"
   },
   "aiInsight": {
     "title": "Insight from your data",
@@ -1226,6 +1231,90 @@
     "source": {
       "recurring": "Recurring item",
       "liability": "Debt"
+    }
+  },
+  "billing": {
+    "title": "Plan & Billing",
+    "subtitle": "Manage your plan and billing.",
+    "currentPlan": "Current plan",
+    "manageBilling": "Manage billing",
+    "cancelSubscription": "Cancel plan",
+    "resumeSubscription": "Resume plan",
+    "upgradeCta": "Upgrade",
+    "upgradeShort": "Upgrade",
+    "renewsOn": "Renews on",
+    "endsOn": "Ends on",
+    "resetsOn": "Resets on",
+    "checkoutPending": "Confirming your payment with the provider — your plan will update within a few minutes.",
+    "checkoutCanceled": "Checkout was canceled — your plan is unchanged.",
+    "status": {
+      "label": "Status",
+      "free": "Free",
+      "trialing": "Trial",
+      "active": "Active",
+      "past_due": "Past due",
+      "canceled": "Canceled",
+      "incomplete": "Incomplete"
+    },
+    "pricing": {
+      "title": "Choose the plan that's right for you",
+      "subtitle": "Start free, upgrade whenever you're ready to unlock full financial planning tools.",
+      "free": "Free",
+      "perMonth": "month",
+      "recommended": "Recommended",
+      "currentPlan": "Current plan",
+      "upgradeTo": "Upgrade to {plan}",
+      "disclaimer": "Prices in Thai Baht, billed monthly. Cancel anytime. No financial return is ever guaranteed.",
+      "featureList": {
+        "free": [
+          "Unlimited accounts and transactions",
+          "Basic dashboard and budget",
+          "Up to 3 financial goals",
+          "AI Money Coach — 15 messages/month",
+          "Basic Income Engine (top 3 opportunities)",
+          "Basic Wealth Missions"
+        ],
+        "plus": [
+          "Everything in Free",
+          "Financial Forecast",
+          "Debt Planner",
+          "Unlimited financial goals",
+          "Full Monthly Financial Review",
+          "Automatic Subscription Detector",
+          "All Income Opportunities and Missions",
+          "AI Money Coach — 150 messages/month"
+        ],
+        "pro": [
+          "Everything in Plus",
+          "AI Money Coach — 500 messages/month",
+          "Early access to new features"
+        ]
+      }
+    },
+    "locked": {
+      "forecastTitle": "Available in Plus",
+      "forecastDescription": "Upgrade to see your financial Forecast and plan ahead.",
+      "debtPlannerTitle": "Available in Plus",
+      "debtPlannerDescription": "Upgrade to use the Debt Planner and pay off debt systematically.",
+      "monthlyReviewTitle": "Available in Plus",
+      "monthlyReviewDescription": "Upgrade for the full Monthly Financial Review.",
+      "subscriptionDetectorTitle": "Available in Plus",
+      "subscriptionDetectorDescription": "Upgrade to let Wealth OS detect subscriptions you may have forgotten to cancel.",
+      "moreOpportunitiesTitle": "More income opportunities in Plus",
+      "moreOpportunitiesDescription": "{count} more waiting — upgrade to see all of them.",
+      "moreMissionsTitle": "More missions in Plus",
+      "moreMissionsDescription": "{count} more waiting — upgrade to see all of them.",
+      "goalsLimitReached": "Free plans can have up to 3 goals. Upgrade to Plus for unlimited goals."
+    },
+    "errors": {
+      "invalidPlan": "That plan isn't valid.",
+      "providerUnavailable": "Billing isn't available right now. Please try again later.",
+      "alreadySubscribed": "You're already subscribed to this plan.",
+      "checkoutFailed": "Couldn't start checkout. Please try again.",
+      "portalFailed": "Couldn't open the billing portal. Please try again.",
+      "noBillingAccount": "No billing account yet — subscribe to a plan first.",
+      "noActiveSubscription": "No active subscription found.",
+      "cancelFailed": "Couldn't complete that action. Please try again."
     }
   }
 }

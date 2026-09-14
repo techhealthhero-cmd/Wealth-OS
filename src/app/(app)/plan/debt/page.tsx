@@ -9,13 +9,30 @@ import { DebtPlannerView } from "@/features/debt-planner/components/debt-planner
 import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyAccountsIllustration } from "@/components/illustrations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { requireFeature, FEATURES } from "@/lib/billing/entitlements";
+import { LockedFeatureCard } from "@/features/billing/components/locked-feature-card";
 
 export const metadata: Metadata = { title: "Debt Planner — Wealth OS" };
 
 export default async function DebtPlannerPage() {
-  const [summary, profile] = await Promise.all([getDebtPlannerSummary(), getProfile()]);
+  const profile = await getProfile();
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
+
+  const gate = await requireFeature(FEATURES.DEBT_PLANNER);
+  if (!gate.allowed) {
+    return (
+      <div className="mx-auto max-w-lg py-8">
+        <LockedFeatureCard
+          title={dict.billing.locked.debtPlannerTitle}
+          description={dict.billing.locked.debtPlannerDescription}
+          ctaLabel={dict.billing.upgradeCta}
+        />
+      </div>
+    );
+  }
+
+  const summary = await getDebtPlannerSummary();
 
   if (summary.liabilities.length === 0) {
     return (

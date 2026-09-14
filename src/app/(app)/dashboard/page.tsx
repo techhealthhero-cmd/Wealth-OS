@@ -21,6 +21,7 @@ import { getTopInsight } from "@/features/ai/lib/insights";
 import { NextBestActionCard } from "@/features/ai/components/next-best-action-card";
 import { InsightCards } from "@/features/ai/components/insight-card";
 import { EngagementSummaryCard } from "@/features/engagement/components/engagement-summary-card";
+import { PlanBadge } from "@/features/billing/components/plan-badge";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = { title: "Dashboard — Wealth OS" };
@@ -55,11 +56,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-24">
-      <div>
-        <h1 className="text-2xl font-semibold">{dict.dashboard.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString(locale === "th" ? "th-TH" : "en-US", { month: "long", year: "numeric" })}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">{dict.dashboard.title}</h1>
+          <p className="text-sm text-muted-foreground">
+            {new Date().toLocaleDateString(locale === "th" ? "th-TH" : "en-US", { month: "long", year: "numeric" })}
+          </p>
+        </div>
+        <PlanBadge />
       </div>
 
       <WealthOverview />

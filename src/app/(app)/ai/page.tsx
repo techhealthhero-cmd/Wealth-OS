@@ -11,6 +11,7 @@ import { MonthlyHealthCheckCard } from "@/features/ai/components/monthly-health-
 import { InsightCards } from "@/features/ai/components/insight-card";
 import { FinancialSnapshotStrip } from "@/features/ai/components/financial-snapshot-strip";
 import { AICoachChat } from "@/features/ai/components/ai-coach-chat";
+import { AIUsageIndicator } from "@/features/billing/components/ai-usage-indicator";
 
 export const metadata: Metadata = { title: "AI Money Coach — Wealth OS" };
 
@@ -39,6 +40,8 @@ export default async function AICoachPage() {
       {topInsight ? <InsightCards insights={[topInsight]} /> : null}
 
       <MonthlyHealthCheckCard health={healthCheck} showPriorityAction={false} />
+
+      <AIUsageIndicator />
 
       <AICoachChat />
 

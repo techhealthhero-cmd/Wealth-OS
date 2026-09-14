@@ -24,6 +24,13 @@ const serverEnvSchema = clientEnvSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   AI_API_KEY: z.string().optional(),
   AI_MODEL: z.string().optional(),
+  // Day 7 billing (Stripe). All optional — getBillingProvider() returns null
+  // when unset, the same "not configured is a real, expected state" pattern
+  // as AI_API_KEY/getAIProvider(). Never read client-side.
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRICE_ID_PLUS: z.string().optional(),
+  STRIPE_PRICE_ID_PRO: z.string().optional(),
 });
 
 function formatIssues(error: z.ZodError) {
@@ -74,6 +81,10 @@ export function getServerEnv() {
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     AI_API_KEY: process.env.AI_API_KEY,
     AI_MODEL: process.env.AI_MODEL,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    STRIPE_PRICE_ID_PLUS: process.env.STRIPE_PRICE_ID_PLUS,
+    STRIPE_PRICE_ID_PRO: process.env.STRIPE_PRICE_ID_PRO,
   });
 
   if (!parsed.success) {

@@ -8,6 +8,7 @@ import { buildGoalSchema, buildUpdateGoalSchema } from "@/lib/validation/goal";
 import { friendlyDbError } from "@/lib/db-error";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
+import { getFeatureLimit } from "@/lib/billing/entitlements";
 
 export interface ActionResult {
   error?: string;
@@ -45,6 +46,21 @@ export async function createGoal(_prev: ActionResult | undefined, formData: Form
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: dict.common.pleaseLogin };
+
+  // Server-side plan enforcement (Day 7 STEP 5) — client-side hiding of the
+  // "add goal" button alone is not security; the limit must also be checked
+  // here, where the actual row gets created.
+  const activeGoalsMax = await getFeatureLimit("activeGoalsMax");
+  if (activeGoalsMax !== null) {
+    const { count } = await supabase
+      .from("financial_goals")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("status", "active");
+    if ((count ?? 0) >= activeGoalsMax) {
+      return { error: dict.billing.locked.goalsLimitReached };
+    }
+  }
 
   const { error } = await supabase.from("financial_goals").insert({
     ...parsed.data,
