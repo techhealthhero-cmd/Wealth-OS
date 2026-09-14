@@ -691,7 +691,11 @@
       "fastestSkill": "Which of my skills could earn money fastest?",
       "reachExtraIncome": "If I want ฿10,000 more per month, where should I start?",
       "sideHustleForMyTime": "Which side hustle fits the time I have?",
-      "todayIncomeMission": "What income mission should I do today?"
+      "todayIncomeMission": "What income mission should I do today?",
+      "whatMissionToday": "What mission should I do this month?",
+      "upcomingBillsQuestion": "What bills are coming up?",
+      "unusedSubscriptionQuestion": "Which subscription am I probably not using?",
+      "financialProgressQuestion": "Have I improved financially this month?"
     },
     "notConfigured": "The AI Money Coach isn't configured yet. Please contact the site administrator.",
     "errorGeneric": "Something went wrong. Please try again.",
@@ -1009,6 +1013,219 @@
           "description": "A custom mission"
         }
       }
+    }
+  },
+  "recurring": {
+    "title": "Recurring Transactions",
+    "subtitle": "Manage recurring income, expenses, and transfers",
+    "addRecurring": "Add recurring item",
+    "editRecurring": "Edit recurring item",
+    "type": "Type",
+    "amount": "Amount",
+    "account": "Account",
+    "fromAccount": "From account",
+    "toAccount": "To account",
+    "category": "Category",
+    "merchant": "Merchant / source",
+    "description": "Description",
+    "frequency": "Frequency",
+    "startDate": "Start date",
+    "endDate": "End date (optional)",
+    "active": "Active",
+    "saveFailed": "Failed to save the recurring item. Please try again.",
+    "deleteFailed": "Failed to delete the recurring item. Please try again.",
+    "deleteConfirm": "Delete this recurring item?",
+    "confirmFailed": "Failed to confirm the item. Please try again.",
+    "notYetDue": "This item isn't due yet.",
+    "confirmButton": "Confirm and record",
+    "nextDue": "Next due",
+    "emptyTitle": "No recurring items yet",
+    "emptyState": "Add income or expenses that repeat so you never miss one",
+    "types": {
+      "income": "Income",
+      "expense": "Expense",
+      "transfer": "Transfer"
+    },
+    "frequencies": {
+      "weekly": "Weekly",
+      "biweekly": "Biweekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    }
+  },
+  "subscriptions": {
+    "title": "Detected Subscriptions",
+    "subtitle": "Recurring charges the system has detected in your spending",
+    "merchant": "Merchant",
+    "estimatedAmount": "Estimated amount",
+    "frequency": "Frequency",
+    "confidence": "Confidence",
+    "nextExpected": "Next expected charge",
+    "annualizedCost": "Estimated annual cost",
+    "annualizedCostDisclaimer": "An estimate based on the detected pattern, not a confirmed amount",
+    "confirm": "Confirm as subscription",
+    "dismiss": "Not a subscription",
+    "markCancelled": "Mark as cancelled",
+    "saveFailed": "Failed to save. Please try again.",
+    "emptyTitle": "No subscriptions detected yet",
+    "emptyState": "The system will analyze your spending history to find recurring charges",
+    "occurrences": "Seen",
+    "occurrencesUnit": "times",
+    "statuses": {
+      "pending": "Needs review",
+      "confirmed": "Confirmed",
+      "dismissed": "Not a subscription",
+      "cancelled": "Cancelled"
+    },
+    "confidences": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    }
+  },
+  "monthlyReview": {
+    "title": "Monthly Financial Review",
+    "subtitle": "Reflect on last month and plan the next one",
+    "income": "Income",
+    "expenses": "Expenses",
+    "cashFlow": "Cash flow",
+    "savingsRate": "Savings rate",
+    "netWorthChange": "Net worth change",
+    "budgetPerformance": "Budget performance",
+    "debtProgress": "Debt payoff progress",
+    "emergencyFundProgress": "Emergency fund",
+    "goalsProgress": "Goal progress",
+    "incomeGapProgress": "Income gap",
+    "missionsCompleted": "Missions completed",
+    "reflectionTitle": "Reflect",
+    "whatWentWell": "What went well this month?",
+    "whatToReduce": "What spending would you like to reduce next month?",
+    "nextMonthFocus": "What's your key focus for next month?",
+    "notesLabel": "Where could you grow your income / additional notes",
+    "saveDraft": "Save draft",
+    "complete": "Complete review",
+    "saveFailed": "Failed to save. Please try again.",
+    "alreadyCompleted": "This month's review is complete",
+    "completedOn": "Completed on",
+    "history": "Review history",
+    "noHistory": "No review history yet",
+    "startReview": "Start this month's review",
+    "noData": "Not enough data yet"
+  },
+  "missions": {
+    "title": "Wealth Missions",
+    "subtitle": "Measurable steps to improve your financial health",
+    "progress": "Progress",
+    "target": "Target",
+    "markInProgress": "Start",
+    "markCompleted": "Mark completed",
+    "markSkipped": "Skip this mission",
+    "emptyTitle": "No missions yet",
+    "emptyState": "The system will suggest missions automatically based on your financial status",
+    "statuses": {
+      "not_started": "Not started",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "skipped": "Skipped"
+    },
+    "impactLevels": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "templates": {
+      "create_first_budget": {
+        "title": "Create your first budget",
+        "description": "Set a monthly budget to control spending"
+      },
+      "log_expenses_7_days": {
+        "title": "Log expenses for 7 days straight",
+        "description": "Build the habit of tracking spending every day"
+      },
+      "build_one_month_emergency_fund": {
+        "title": "Build a 1-month emergency fund",
+        "description": "Start with a small target before building a full emergency fund"
+      },
+      "save_1000_this_month": {
+        "title": "Save an extra ฿1,000 this month",
+        "description": "Set a tangible savings target for this month"
+      },
+      "extra_debt_payment": {
+        "title": "Pay an extra ฿500 toward debt",
+        "description": "Pay more than the minimum to cut down on interest"
+      },
+      "review_subscriptions": {
+        "title": "Review detected subscriptions",
+        "description": "Check whether any recurring charges are no longer needed"
+      },
+      "complete_monthly_review": {
+        "title": "Complete your monthly financial review",
+        "description": "Reflect on last month and plan the next one"
+      },
+      "add_financial_goals": {
+        "title": "Add your financial goals",
+        "description": "Set goals to give your money clear direction"
+      },
+      "add_second_income_source": {
+        "title": "Add a second income source",
+        "description": "Spread your risk across more than one income source"
+      },
+      "increase_savings_rate": {
+        "title": "Increase your savings rate to 10%",
+        "description": "Adjust spending so you can save more"
+      },
+      "complete_income_mission": {
+        "title": "Finish your pending Income Mission",
+        "description": "Continue the income-building mission you already started"
+      }
+    },
+    "impact": "Impact"
+  },
+  "progress": {
+    "title": "Your Progress",
+    "level": "Level",
+    "xp": "XP",
+    "xpToNextLevel": "XP to next level",
+    "maxLevelReached": "Max level reached",
+    "weeklyStreak": "Weekly consistency",
+    "monthlyReviewStreak": "Review streak",
+    "trackingStreak": "Tracking streak",
+    "weeksConsistent": "weeks consistent",
+    "daysConsistent": "days consistent",
+    "monthsConsistent": "months consistent"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Keep track of what matters in your finances",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications yet",
+    "preferences": "Notification preferences",
+    "preferencesSaved": "Preferences saved",
+    "saveFailed": "Failed to save. Please try again.",
+    "categories": {
+      "upcoming_bill": "Upcoming bills",
+      "budget_near_limit": "Budget near limit",
+      "budget_exceeded": "Budget exceeded",
+      "recurring_payment_due": "Recurring payment due",
+      "subscription_detected": "New subscription detected",
+      "goal_milestone": "Goal milestones",
+      "emergency_fund_milestone": "Emergency fund milestones",
+      "debt_milestone": "Debt payoff milestones",
+      "monthly_review_due": "Monthly review due",
+      "mission_reminder": "Mission reminders"
+    }
+  },
+  "upcomingBills": {
+    "title": "Upcoming Bills",
+    "overdue": "Overdue",
+    "next7Days": "Next 7 days",
+    "next30Days": "Next 30 days",
+    "noUpcoming": "No upcoming bills",
+    "totalDue": "Total due",
+    "source": {
+      "recurring": "Recurring item",
+      "liability": "Debt"
     }
   }
 }

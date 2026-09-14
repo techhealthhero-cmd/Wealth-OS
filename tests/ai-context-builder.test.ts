@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import { buildFinancialContext } from "@/features/ai/lib/context-builder";
 import type {
   ActiveIncomeMissionTool,
+  ActiveWealthMissionTool,
   BudgetStatusTool,
   DebtSummaryTool,
+  DetectedSubscriptionsTool,
   EmergencyFundTool,
   FinancialSnapshotTool,
   GoalProgressTool,
@@ -12,12 +14,15 @@ import type {
   IncomeProfileTool,
   IncomeSummaryTool,
   LifeStageTool,
+  MonthlyReviewStatusTool,
   NetWorthTool,
   PriorityTool,
   RecentTransactionsSummaryTool,
   SafeToSpendTool,
   SkillProfileTool,
   TopIncomeOpportunityTool,
+  UpcomingBillsTool,
+  UserProgressTool,
   WealthScoreTool,
 } from "@/features/ai/types";
 
@@ -59,6 +64,19 @@ const topOpportunities: TopIncomeOpportunityTool[] = [
   { name: "Freelance web development", score: 78, matchedSkillCategories: ["web_development"], missingRequirements: [] },
 ];
 const activeMissions: ActiveIncomeMissionTool[] = [{ missionType: "define_offer", status: "in_progress" }];
+const activeWealthMissions: ActiveWealthMissionTool[] = [{ templateKey: "create_first_budget", status: "not_started", impactLevel: "high" }];
+const upcomingBills: UpcomingBillsTool = {
+  overdueCount: 0,
+  next7DaysCount: 1,
+  totalDueCents: 50000,
+  nextItem: { label: "Internet", amountCents: 50000, dueDate: "2026-09-20" },
+};
+const detectedSubscriptions: DetectedSubscriptionsTool = {
+  pendingCount: 1,
+  topCandidate: { merchant: "Netflix", estimatedAmountCents: 35000, frequency: "monthly" },
+};
+const monthlyReviewStatus: MonthlyReviewStatusTool = { completedThisMonth: false, lastCompletedYearMonth: "2026-08" };
+const userProgress: UserProgressTool = { level: 2, totalXp: 120, weeklyStreak: 3, monthlyReviewStreak: 1, trackingDaysStreak: 5 };
 
 vi.mock("@/features/ai/tools", () => ({
   getFinancialSummary: vi.fn(async () => snapshot),
@@ -79,6 +97,11 @@ vi.mock("@/features/ai/tools", () => ({
   getSkillProfile: vi.fn(async () => skills),
   getTopIncomeOpportunities: vi.fn(async () => topOpportunities),
   getActiveIncomeMissions: vi.fn(async () => activeMissions),
+  getActiveWealthMissionsTool: vi.fn(async () => activeWealthMissions),
+  getUpcomingBillsTool: vi.fn(async () => upcomingBills),
+  getDetectedSubscriptionsTool: vi.fn(async () => detectedSubscriptions),
+  getMonthlyReviewStatusTool: vi.fn(async () => monthlyReviewStatus),
+  getUserProgressTool: vi.fn(async () => userProgress),
 }));
 
 vi.mock("@/features/profile/queries", () => ({
@@ -113,6 +136,11 @@ describe("buildFinancialContext — Financial Context Builder", () => {
     expect(context.skills).toEqual(skills);
     expect(context.topOpportunities).toEqual(topOpportunities);
     expect(context.activeMissions).toEqual(activeMissions);
+    expect(context.activeWealthMissions).toEqual(activeWealthMissions);
+    expect(context.upcomingBills).toEqual(upcomingBills);
+    expect(context.detectedSubscriptions).toEqual(detectedSubscriptions);
+    expect(context.monthlyReviewStatus).toEqual(monthlyReviewStatus);
+    expect(context.userProgress).toEqual(userProgress);
   });
 
   it("does not include full transaction history — only the pre-computed summaries", async () => {

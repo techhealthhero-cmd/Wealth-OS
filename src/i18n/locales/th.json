@@ -691,7 +691,11 @@
       "fastestSkill": "ทักษะไหนของฉันหาเงินได้เร็วที่สุด",
       "reachExtraIncome": "ถ้าอยากเพิ่มรายได้อีก ฿10,000 ต่อเดือนควรเริ่มยังไง",
       "sideHustleForMyTime": "Side Hustle ไหนเหมาะกับเวลาที่ฉันมี",
-      "todayIncomeMission": "วันนี้ฉันควรทำ Income Mission อะไร"
+      "todayIncomeMission": "วันนี้ฉันควรทำ Income Mission อะไร",
+      "whatMissionToday": "เดือนนี้ฉันควรทำ Mission อะไร",
+      "upcomingBillsQuestion": "มีบิลอะไรใกล้ถึงกำหนด",
+      "unusedSubscriptionQuestion": "มี Subscription ไหนที่น่าจะไม่ได้ใช้",
+      "financialProgressQuestion": "เดือนนี้ฉันพัฒนาการเงินขึ้นไหม"
     },
     "notConfigured": "ยังไม่ได้ตั้งค่า AI Money Coach กรุณาติดต่อผู้ดูแลระบบ",
     "errorGeneric": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
@@ -1009,6 +1013,219 @@
           "description": "ภารกิจที่กำหนดเอง"
         }
       }
+    }
+  },
+  "recurring": {
+    "title": "รายการที่เกิดขึ้นประจำ",
+    "subtitle": "จัดการรายรับ รายจ่าย และการโอนที่เกิดขึ้นซ้ำ",
+    "addRecurring": "เพิ่มรายการประจำ",
+    "editRecurring": "แก้ไขรายการประจำ",
+    "type": "ประเภท",
+    "amount": "จำนวนเงิน",
+    "account": "บัญชี",
+    "fromAccount": "จากบัญชี",
+    "toAccount": "ไปยังบัญชี",
+    "category": "หมวดหมู่",
+    "merchant": "ร้านค้า/แหล่งที่มา",
+    "description": "รายละเอียด",
+    "frequency": "ความถี่",
+    "startDate": "วันที่เริ่ม",
+    "endDate": "วันที่สิ้นสุด (ถ้ามี)",
+    "active": "กำลังใช้งาน",
+    "saveFailed": "บันทึกรายการประจำไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+    "deleteFailed": "ลบรายการประจำไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+    "deleteConfirm": "ต้องการลบรายการประจำนี้ใช่หรือไม่?",
+    "confirmFailed": "ยืนยันรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+    "notYetDue": "รายการนี้ยังไม่ถึงกำหนด",
+    "confirmButton": "ยืนยันและบันทึกรายการ",
+    "nextDue": "กำหนดครั้งถัดไป",
+    "emptyTitle": "ยังไม่มีรายการประจำ",
+    "emptyState": "เพิ่มรายรับหรือรายจ่ายที่เกิดขึ้นประจำเพื่อไม่ให้พลาดกำหนด",
+    "types": {
+      "income": "รายรับ",
+      "expense": "รายจ่าย",
+      "transfer": "โอนเงิน"
+    },
+    "frequencies": {
+      "weekly": "รายสัปดาห์",
+      "biweekly": "ทุกสองสัปดาห์",
+      "monthly": "รายเดือน",
+      "quarterly": "รายไตรมาส",
+      "yearly": "รายปี"
+    }
+  },
+  "subscriptions": {
+    "title": "Subscription ที่ตรวจพบ",
+    "subtitle": "รายการที่ระบบตรวจพบว่าอาจเป็นค่าใช้จ่ายประจำ",
+    "merchant": "ร้านค้า",
+    "estimatedAmount": "จำนวนเงินโดยประมาณ",
+    "frequency": "ความถี่",
+    "confidence": "ความมั่นใจ",
+    "nextExpected": "คาดว่าจะตัดครั้งถัดไป",
+    "annualizedCost": "ค่าใช้จ่ายต่อปีโดยประมาณ",
+    "annualizedCostDisclaimer": "เป็นตัวเลขประมาณการจากรูปแบบที่ตรวจพบ ไม่ใช่ยอดที่ยืนยันแน่นอน",
+    "confirm": "ยืนยันว่าเป็น Subscription",
+    "dismiss": "ไม่ใช่ Subscription",
+    "markCancelled": "ทำเครื่องหมายว่ายกเลิกแล้ว",
+    "saveFailed": "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+    "emptyTitle": "ยังไม่พบ Subscription",
+    "emptyState": "ระบบจะวิเคราะห์ประวัติรายจ่ายของคุณเพื่อตรวจหารายการที่จ่ายซ้ำเป็นประจำ",
+    "occurrences": "พบ",
+    "occurrencesUnit": "ครั้ง",
+    "statuses": {
+      "pending": "รอตรวจสอบ",
+      "confirmed": "ยืนยันแล้ว",
+      "dismissed": "ไม่ใช่ Subscription",
+      "cancelled": "ยกเลิกแล้ว"
+    },
+    "confidences": {
+      "high": "สูง",
+      "medium": "ปานกลาง",
+      "low": "ต่ำ"
+    }
+  },
+  "monthlyReview": {
+    "title": "ทบทวนการเงินประจำเดือน",
+    "subtitle": "สรุปเดือนที่ผ่านมาและวางแผนเดือนถัดไป",
+    "income": "รายรับ",
+    "expenses": "รายจ่าย",
+    "cashFlow": "กระแสเงินสด",
+    "savingsRate": "อัตราการออม",
+    "netWorthChange": "การเปลี่ยนแปลงมูลค่าสุทธิ",
+    "budgetPerformance": "ผลการใช้งบประมาณ",
+    "debtProgress": "ความคืบหน้าการปลดหนี้",
+    "emergencyFundProgress": "เงินสำรองฉุกเฉิน",
+    "goalsProgress": "ความคืบหน้าเป้าหมาย",
+    "incomeGapProgress": "ช่องว่างรายได้",
+    "missionsCompleted": "ภารกิจที่ทำสำเร็จ",
+    "reflectionTitle": "ทบทวนตัวเอง",
+    "whatWentWell": "อะไรทำได้ดีในเดือนนี้",
+    "whatToReduce": "รายจ่ายอะไรอยากลดเดือนหน้า",
+    "nextMonthFocus": "เป้าหมายสำคัญเดือนหน้าคืออะไร",
+    "notesLabel": "อยากเพิ่มรายได้จากทางไหน / บันทึกเพิ่มเติม",
+    "saveDraft": "บันทึกร่าง",
+    "complete": "เสร็จสิ้นการทบทวน",
+    "saveFailed": "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+    "alreadyCompleted": "ทบทวนเดือนนี้เสร็จแล้ว",
+    "completedOn": "ทำรายการเมื่อ",
+    "history": "ประวัติการทบทวน",
+    "noHistory": "ยังไม่มีประวัติการทบทวน",
+    "startReview": "เริ่มทบทวนเดือนนี้",
+    "noData": "ยังไม่มีข้อมูล"
+  },
+  "missions": {
+    "title": "ภารกิจสร้างความมั่งคั่ง",
+    "subtitle": "ขั้นตอนที่วัดผลได้เพื่อพัฒนาสุขภาพการเงินของคุณ",
+    "progress": "ความคืบหน้า",
+    "target": "เป้าหมาย",
+    "markInProgress": "เริ่มทำ",
+    "markCompleted": "ทำเสร็จแล้ว",
+    "markSkipped": "ข้ามภารกิจนี้",
+    "emptyTitle": "ยังไม่มีภารกิจ",
+    "emptyState": "ระบบจะแนะนำภารกิจให้อัตโนมัติตามสถานะการเงินของคุณ",
+    "statuses": {
+      "not_started": "ยังไม่เริ่ม",
+      "in_progress": "กำลังทำ",
+      "completed": "เสร็จแล้ว",
+      "skipped": "ข้าม"
+    },
+    "impactLevels": {
+      "low": "น้อย",
+      "medium": "ปานกลาง",
+      "high": "สูง"
+    },
+    "templates": {
+      "create_first_budget": {
+        "title": "สร้างงบประมาณครั้งแรก",
+        "description": "ตั้งงบประมาณรายเดือนเพื่อควบคุมการใช้จ่าย"
+      },
+      "log_expenses_7_days": {
+        "title": "บันทึกรายจ่ายต่อเนื่อง 7 วัน",
+        "description": "สร้างนิสัยติดตามการใช้เงินทุกวัน"
+      },
+      "build_one_month_emergency_fund": {
+        "title": "สร้างเงินสำรองฉุกเฉินให้ครบ 1 เดือน",
+        "description": "เริ่มจากเป้าหมายเล็กๆ ก่อนสร้างเงินสำรองเต็มจำนวน"
+      },
+      "save_1000_this_month": {
+        "title": "ออมเงินอีก ฿1,000 เดือนนี้",
+        "description": "ตั้งเป้าออมจำนวนที่จับต้องได้ในเดือนนี้"
+      },
+      "extra_debt_payment": {
+        "title": "จ่ายหนี้เพิ่มอีก ฿500",
+        "description": "จ่ายมากกว่าขั้นต่ำเพื่อลดภาระดอกเบี้ย"
+      },
+      "review_subscriptions": {
+        "title": "ตรวจสอบ Subscription ที่ตรวจพบ",
+        "description": "ดูว่ามีค่าใช้จ่ายประจำที่ไม่ได้ใช้แล้วหรือไม่"
+      },
+      "complete_monthly_review": {
+        "title": "ทำการทบทวนการเงินประจำเดือน",
+        "description": "สรุปเดือนที่ผ่านมาและวางแผนเดือนถัดไป"
+      },
+      "add_financial_goals": {
+        "title": "เพิ่มเป้าหมายทางการเงิน",
+        "description": "ตั้งเป้าหมายเพื่อให้มีทิศทางชัดเจน"
+      },
+      "add_second_income_source": {
+        "title": "เพิ่มแหล่งรายได้ที่สอง",
+        "description": "กระจายความเสี่ยงด้วยแหล่งรายได้มากกว่าหนึ่งทาง"
+      },
+      "increase_savings_rate": {
+        "title": "เพิ่มอัตราการออมให้ถึง 10%",
+        "description": "ปรับรายจ่ายเพื่อออมได้มากขึ้น"
+      },
+      "complete_income_mission": {
+        "title": "ทำ Income Mission ที่ค้างอยู่ให้เสร็จ",
+        "description": "ต่อยอดภารกิจสร้างรายได้ที่เริ่มไว้แล้ว"
+      }
+    },
+    "impact": "ผลกระทบ"
+  },
+  "progress": {
+    "title": "ความก้าวหน้าของคุณ",
+    "level": "เลเวล",
+    "xp": "XP",
+    "xpToNextLevel": "XP อีกเท่าไหร่ถึงเลเวลถัดไป",
+    "maxLevelReached": "ถึงเลเวลสูงสุดแล้ว",
+    "weeklyStreak": "ต่อเนื่องรายสัปดาห์",
+    "monthlyReviewStreak": "ทบทวนต่อเนื่อง",
+    "trackingStreak": "บันทึกรายการต่อเนื่อง",
+    "weeksConsistent": "สัปดาห์ติดต่อกัน",
+    "daysConsistent": "วันติดต่อกัน",
+    "monthsConsistent": "เดือนติดต่อกัน"
+  },
+  "notifications": {
+    "title": "การแจ้งเตือน",
+    "subtitle": "ติดตามเรื่องสำคัญทางการเงินของคุณ",
+    "markAllRead": "อ่านทั้งหมดแล้ว",
+    "noNotifications": "ยังไม่มีการแจ้งเตือน",
+    "preferences": "ตั้งค่าการแจ้งเตือน",
+    "preferencesSaved": "บันทึกการตั้งค่าแล้ว",
+    "saveFailed": "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+    "categories": {
+      "upcoming_bill": "บิลที่ใกล้ถึงกำหนด",
+      "budget_near_limit": "งบประมาณใกล้เต็ม",
+      "budget_exceeded": "ใช้งบประมาณเกิน",
+      "recurring_payment_due": "รายการประจำถึงกำหนด",
+      "subscription_detected": "ตรวจพบ Subscription ใหม่",
+      "goal_milestone": "ความคืบหน้าเป้าหมาย",
+      "emergency_fund_milestone": "ความคืบหน้าเงินสำรองฉุกเฉิน",
+      "debt_milestone": "ความคืบหน้าการปลดหนี้",
+      "monthly_review_due": "ถึงเวลาทบทวนประจำเดือน",
+      "mission_reminder": "แจ้งเตือนภารกิจ"
+    }
+  },
+  "upcomingBills": {
+    "title": "บิลที่ใกล้ถึงกำหนด",
+    "overdue": "เลยกำหนดแล้ว",
+    "next7Days": "ภายใน 7 วัน",
+    "next30Days": "ภายใน 30 วัน",
+    "noUpcoming": "ไม่มีบิลที่ใกล้ถึงกำหนด",
+    "totalDue": "ยอดรวมที่ต้องจ่าย",
+    "source": {
+      "recurring": "รายการประจำ",
+      "liability": "หนี้สิน"
     }
   }
 }

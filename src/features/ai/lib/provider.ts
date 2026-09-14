@@ -32,7 +32,11 @@ export interface AIProvider {
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 const DEFAULT_MODEL = "claude-sonnet-5";
-const DEFAULT_MAX_TOKENS = 1024;
+// 1024 was found live (Day 6 pre-flight AI verification) to truncate normal
+// coaching answers mid-sentence/mid-word — a broad question like "how are my
+// finances and what should I do first" routinely needs more than 1024 output
+// tokens once it covers income/expenses/net worth/debt/priority in Thai.
+const DEFAULT_MAX_TOKENS = 2048;
 
 /**
  * Direct `fetch` against the Anthropic Messages API — no SDK dependency,

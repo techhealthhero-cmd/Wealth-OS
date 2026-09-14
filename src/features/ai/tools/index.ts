@@ -34,6 +34,10 @@ import { getIncomeTarget } from "@/features/income-target/queries";
 import { getUserSkills } from "@/features/skills/queries";
 import { getTopOpportunities } from "@/features/opportunities/queries";
 import { getIncomeMissions } from "@/features/income-missions/queries";
+import { getActiveWealthMissions, getUserProgress as getEngagementUserProgress } from "@/features/engagement/queries";
+import { getUpcomingBills } from "@/features/recurring/queries";
+import { getDetectedSubscriptions } from "@/features/subscriptions/queries";
+import { getMonthlyReview, getReviewHistory } from "@/features/monthly-review/queries";
 import { calculateIncomeGap } from "@/lib/financial/income-gap";
 import { calculateExpenses, calculateIncome, calculateMonthlyCashFlow } from "@/lib/financial/calculations";
 import { calculateMonthsProtected, calculateEmergencyFundTarget } from "@/lib/financial/emergency-fund";
@@ -48,10 +52,12 @@ import { parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import type {
   ActiveIncomeMissionTool,
+  ActiveWealthMissionTool,
   BudgetStatusTool,
   CashFlowTool,
   DebtPlanTool,
   DebtSummaryTool,
+  DetectedSubscriptionsTool,
   EmergencyFundTool,
   FinancialSnapshotTool,
   ForecastSummaryTool,
@@ -60,6 +66,7 @@ import type {
   IncomeProfileTool,
   IncomeSummaryTool,
   LifeStageTool,
+  MonthlyReviewStatusTool,
   MoneyYearProgressTool,
   NetWorthTool,
   PriorityTool,
@@ -67,6 +74,8 @@ import type {
   SafeToSpendTool,
   SkillProfileTool,
   TopIncomeOpportunityTool,
+  UpcomingBillsTool,
+  UserProgressTool,
   WealthScoreTool,
 } from "@/features/ai/types";
 
@@ -381,6 +390,57 @@ export async function getActiveIncomeMissions(): Promise<ActiveIncomeMissionTool
     .filter((m) => m.status === "not_started" || m.status === "in_progress")
     .slice(0, 5)
     .map((m) => ({ missionType: m.mission_type, status: m.status }));
+}
+
+export async function getActiveWealthMissionsTool(): Promise<ActiveWealthMissionTool[]> {
+  const missions = await getActiveWealthMissions();
+  return missions.slice(0, 5).map((m) => ({ templateKey: m.title, status: m.status, impactLevel: m.impact_level }));
+}
+
+export async function getUpcomingBillsTool(): Promise<UpcomingBillsTool> {
+  const bills = await getUpcomingBills();
+  const next = [...bills.overdue, ...bills.next7Days, ...bills.next30Days][0];
+  return {
+    overdueCount: bills.overdue.length,
+    next7DaysCount: bills.next7Days.length,
+    totalDueCents: bills.totalDueCents,
+    nextItem: next ? { label: next.label, amountCents: next.amountCents, dueDate: next.dueDate } : null,
+  };
+}
+
+export async function getDetectedSubscriptionsTool(): Promise<DetectedSubscriptionsTool> {
+  const subscriptions = await getDetectedSubscriptions();
+  const pending = subscriptions.filter((s) => s.status === "pending");
+  const top = pending[0];
+  return {
+    pendingCount: pending.length,
+    topCandidate: top
+      ? { merchant: top.merchant, estimatedAmountCents: parseMoneyToCents(top.estimated_amount), frequency: top.frequency }
+      : null,
+  };
+}
+
+export async function getMonthlyReviewStatusTool(): Promise<MonthlyReviewStatusTool> {
+  const now = new Date();
+  const [currentReview, history] = await Promise.all([
+    getMonthlyReview(now.getFullYear(), now.getMonth() + 1),
+    getReviewHistory(1),
+  ]);
+  return {
+    completedThisMonth: currentReview?.completed_at != null,
+    lastCompletedYearMonth: history.length > 0 ? `${history[0].year}-${String(history[0].month).padStart(2, "0")}` : null,
+  };
+}
+
+export async function getUserProgressTool(): Promise<UserProgressTool> {
+  const progress = await getEngagementUserProgress();
+  return {
+    level: progress.level.level,
+    totalXp: progress.level.totalXp,
+    weeklyStreak: progress.weeklyStreak,
+    monthlyReviewStreak: progress.monthlyReviewStreak,
+    trackingDaysStreak: progress.trackingDaysStreak,
+  };
 }
 
 // Re-exported for the Monthly Health Check builder, which needs a couple of

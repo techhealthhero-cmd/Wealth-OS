@@ -28,6 +28,10 @@ const SUGGESTED_PROMPT_KEYS = [
   "reachExtraIncome",
   "sideHustleForMyTime",
   "todayIncomeMission",
+  "whatMissionToday",
+  "upcomingBillsQuestion",
+  "unusedSubscriptionQuestion",
+  "financialProgressQuestion",
 ] as const;
 
 /**

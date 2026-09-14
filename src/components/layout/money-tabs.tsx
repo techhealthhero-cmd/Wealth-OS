@@ -13,6 +13,8 @@ const TABS = [
   { href: "/money/assets", key: "assets.title" },
   { href: "/money/liabilities", key: "liabilities.title" },
   { href: "/money/net-worth", key: "netWorth.title" },
+  { href: "/money/recurring", key: "recurring.title" },
+  { href: "/money/subscriptions", key: "subscriptions.title" },
 ] as const;
 
 export function MoneyTabs() {

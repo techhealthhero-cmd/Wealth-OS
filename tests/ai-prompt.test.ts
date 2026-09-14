@@ -43,6 +43,11 @@ function baseContext(overrides: Partial<FinancialContext> = {}): FinancialContex
     skills: { totalSkills: 0, topCategories: [] },
     topOpportunities: [],
     activeMissions: [],
+    activeWealthMissions: [],
+    upcomingBills: { overdueCount: 0, next7DaysCount: 0, totalDueCents: 0, nextItem: null },
+    detectedSubscriptions: { pendingCount: 0, topCandidate: null },
+    monthlyReviewStatus: { completedThisMonth: false, lastCompletedYearMonth: null },
+    userProgress: { level: 1, totalXp: 0, weeklyStreak: 0, monthlyReviewStreak: 0, trackingDaysStreak: 0 },
     ...overrides,
   };
 }

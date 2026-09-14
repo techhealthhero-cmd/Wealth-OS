@@ -4,8 +4,10 @@ import { getProfile } from "@/features/profile/queries";
 import { getLocale } from "@/i18n/server";
 import {
   getActiveIncomeMissions,
+  getActiveWealthMissionsTool,
   getBudgetStatus,
   getDebtSummary,
+  getDetectedSubscriptionsTool,
   getEmergencyFundStatus,
   getFinancialLifeStage,
   getFinancialPriority,
@@ -15,11 +17,14 @@ import {
   getIncomeProfile,
   getIncomeSummary,
   getMonthlyCashFlow,
+  getMonthlyReviewStatusTool,
   getNetWorthSummary,
   getRecentTransactionsSummary,
   getSafeToSpendSummary,
   getSkillProfile,
   getTopIncomeOpportunities,
+  getUpcomingBillsTool,
+  getUserProgressTool,
   getWealthScoreSummary,
 } from "@/features/ai/tools";
 import type { FinancialContext } from "@/features/ai/types";
@@ -54,6 +59,11 @@ export async function buildFinancialContext(): Promise<FinancialContext> {
     skills,
     topOpportunities,
     activeMissions,
+    activeWealthMissions,
+    upcomingBills,
+    detectedSubscriptions,
+    monthlyReviewStatus,
+    userProgress,
   ] = await Promise.all([
     getFinancialSummary(),
     getMonthlyCashFlow(),
@@ -73,6 +83,11 @@ export async function buildFinancialContext(): Promise<FinancialContext> {
     getSkillProfile(),
     getTopIncomeOpportunities(),
     getActiveIncomeMissions(),
+    getActiveWealthMissionsTool(),
+    getUpcomingBillsTool(),
+    getDetectedSubscriptionsTool(),
+    getMonthlyReviewStatusTool(),
+    getUserProgressTool(),
   ]);
 
   return {
@@ -96,5 +111,10 @@ export async function buildFinancialContext(): Promise<FinancialContext> {
     skills,
     topOpportunities,
     activeMissions,
+    activeWealthMissions,
+    upcomingBills,
+    detectedSubscriptions,
+    monthlyReviewStatus,
+    userProgress,
   };
 }

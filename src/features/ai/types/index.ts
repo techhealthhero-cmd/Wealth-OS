@@ -176,6 +176,38 @@ export interface ActiveIncomeMissionTool {
   status: "not_started" | "in_progress" | "completed" | "skipped";
 }
 
+/** Day 6 Engagement tools — same "compact summary, never the full list" rule as Day 5's. */
+export interface ActiveWealthMissionTool {
+  templateKey: string;
+  status: "not_started" | "in_progress" | "completed" | "skipped";
+  impactLevel: "low" | "medium" | "high";
+}
+
+export interface UpcomingBillsTool {
+  overdueCount: number;
+  next7DaysCount: number;
+  totalDueCents: number;
+  nextItem: { label: string; amountCents: number; dueDate: string } | null;
+}
+
+export interface DetectedSubscriptionsTool {
+  pendingCount: number;
+  topCandidate: { merchant: string; estimatedAmountCents: number; frequency: string } | null;
+}
+
+export interface MonthlyReviewStatusTool {
+  completedThisMonth: boolean;
+  lastCompletedYearMonth: string | null;
+}
+
+export interface UserProgressTool {
+  level: number;
+  totalXp: number;
+  weeklyStreak: number;
+  monthlyReviewStreak: number;
+  trackingDaysStreak: number;
+}
+
 /**
  * The compact snapshot sent with every chat turn. Deliberately NOT the
  * user's raw transaction history — every field here is already a summary.
@@ -201,4 +233,9 @@ export interface FinancialContext {
   skills: SkillProfileTool;
   topOpportunities: TopIncomeOpportunityTool[];
   activeMissions: ActiveIncomeMissionTool[];
+  activeWealthMissions: ActiveWealthMissionTool[];
+  upcomingBills: UpcomingBillsTool;
+  detectedSubscriptions: DetectedSubscriptionsTool;
+  monthlyReviewStatus: MonthlyReviewStatusTool;
+  userProgress: UserProgressTool;
 }

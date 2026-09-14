@@ -96,6 +96,54 @@ export type MissionType =
 export type MissionStatus = "not_started" | "in_progress" | "completed" | "skipped";
 export type ImpactLevel = "low" | "medium" | "high";
 
+export type WealthMissionType =
+  | "tracking"
+  | "budgeting"
+  | "saving"
+  | "debt"
+  | "emergency_fund"
+  | "goals"
+  | "income"
+  | "review"
+  | "planning";
+
+export type MissionRelatedDomain =
+  | "priority_engine"
+  | "wealth_score"
+  | "income_engine"
+  | "goals"
+  | "emergency_fund"
+  | "debt_planner"
+  | "budget"
+  | "manual";
+
+export type XPEventType =
+  | "first_budget_created"
+  | "mission_completed"
+  | "income_mission_completed"
+  | "monthly_review_completed"
+  | "goal_milestone"
+  | "emergency_fund_milestone"
+  | "debt_milestone";
+
+export type RecurringFrequency = "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly";
+export type RecurringTransactionType = "income" | "expense" | "transfer";
+
+export type SubscriptionConfidence = "high" | "medium" | "low";
+export type SubscriptionStatus = "pending" | "confirmed" | "dismissed" | "cancelled";
+
+export type NotificationType =
+  | "upcoming_bill"
+  | "budget_near_limit"
+  | "budget_exceeded"
+  | "recurring_payment_due"
+  | "subscription_detected"
+  | "goal_milestone"
+  | "emergency_fund_milestone"
+  | "debt_milestone"
+  | "monthly_review_due"
+  | "mission_reminder";
+
 export type TransactionSource = "manual" | "seed" | "import" | "recurring";
 
 export type AssetType =
@@ -674,6 +722,171 @@ export interface Database {
         > & { user_id: string; title: string; mission_type: MissionType };
         Update: Partial<Database["public"]["Tables"]["income_missions"]["Row"]>;
       };
+      wealth_missions: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          description: string | null;
+          mission_type: WealthMissionType;
+          related_domain: MissionRelatedDomain | null;
+          target_quantity: string | null;
+          progress_quantity: string;
+          status: MissionStatus;
+          due_date: string | null;
+          impact_level: ImpactLevel;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["wealth_missions"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; title: string; mission_type: WealthMissionType };
+        Update: Partial<Database["public"]["Tables"]["wealth_missions"]["Row"]>;
+      };
+      xp_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          event_type: XPEventType;
+          xp_amount: number;
+          related_id: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["xp_events"]["Row"], "id" | "created_at">> & {
+          user_id: string;
+          event_type: XPEventType;
+          xp_amount: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["xp_events"]["Row"]>;
+      };
+      recurring_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: RecurringTransactionType;
+          amount: string;
+          account_id: string | null;
+          from_account_id: string | null;
+          to_account_id: string | null;
+          category_id: string | null;
+          merchant: string | null;
+          description: string | null;
+          frequency: RecurringFrequency;
+          start_date: string;
+          end_date: string | null;
+          next_due_date: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["recurring_transactions"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; type: RecurringTransactionType; amount: string; frequency: RecurringFrequency; start_date: string; next_due_date: string };
+        Update: Partial<Database["public"]["Tables"]["recurring_transactions"]["Row"]>;
+      };
+      detected_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          merchant: string;
+          estimated_amount: string;
+          frequency: RecurringFrequency;
+          confidence: SubscriptionConfidence;
+          status: SubscriptionStatus;
+          occurrence_count: number;
+          first_seen_date: string;
+          last_seen_date: string;
+          next_expected_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["detected_subscriptions"]["Row"], "id" | "created_at" | "updated_at">
+        > & {
+          user_id: string;
+          merchant: string;
+          estimated_amount: string;
+          frequency: RecurringFrequency;
+          confidence: SubscriptionConfidence;
+          first_seen_date: string;
+          last_seen_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["detected_subscriptions"]["Row"]>;
+      };
+      notification_preferences: {
+        Row: {
+          id: string;
+          user_id: string;
+          upcoming_bill: boolean;
+          budget_near_limit: boolean;
+          budget_exceeded: boolean;
+          recurring_payment_due: boolean;
+          subscription_detected: boolean;
+          goal_milestone: boolean;
+          emergency_fund_milestone: boolean;
+          debt_milestone: boolean;
+          monthly_review_due: boolean;
+          mission_reminder: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["notification_preferences"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string };
+        Update: Partial<Database["public"]["Tables"]["notification_preferences"]["Row"]>;
+      };
+      financial_notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: NotificationType;
+          title: string;
+          body: string;
+          related_id: string | null;
+          dedupe_key: string;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["financial_notifications"]["Row"], "id" | "created_at">> & {
+          user_id: string;
+          type: NotificationType;
+          title: string;
+          body: string;
+          dedupe_key: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["financial_notifications"]["Row"]>;
+      };
+      monthly_reviews: {
+        Row: {
+          id: string;
+          user_id: string;
+          year: number;
+          month: number;
+          income_cents: number;
+          expenses_cents: number;
+          cash_flow_cents: number;
+          savings_rate_percent: string;
+          net_worth_change_cents: number | null;
+          budget_percent_used: string | null;
+          debt_paid_cents: number;
+          emergency_fund_months_protected: string | null;
+          goals_progress_percent: string | null;
+          income_gap_cents: number | null;
+          missions_completed_count: number;
+          what_went_well: string | null;
+          what_to_reduce: string | null;
+          next_month_focus: string | null;
+          notes: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["monthly_reviews"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; year: number; month: number };
+        Update: Partial<Database["public"]["Tables"]["monthly_reviews"]["Row"]>;
+      };
     };
     Functions: {
       create_transfer: {
@@ -718,3 +931,10 @@ export type UserSkill = Database["public"]["Tables"]["user_skills"]["Row"];
 export type IncomeTarget = Database["public"]["Tables"]["income_targets"]["Row"];
 export type IncomeOpportunity = Database["public"]["Tables"]["income_opportunities"]["Row"];
 export type IncomeMission = Database["public"]["Tables"]["income_missions"]["Row"];
+export type WealthMission = Database["public"]["Tables"]["wealth_missions"]["Row"];
+export type XPEvent = Database["public"]["Tables"]["xp_events"]["Row"];
+export type RecurringTransaction = Database["public"]["Tables"]["recurring_transactions"]["Row"];
+export type DetectedSubscription = Database["public"]["Tables"]["detected_subscriptions"]["Row"];
+export type NotificationPreferences = Database["public"]["Tables"]["notification_preferences"]["Row"];
+export type FinancialNotification = Database["public"]["Tables"]["financial_notifications"]["Row"];
+export type MonthlyReview = Database["public"]["Tables"]["monthly_reviews"]["Row"];

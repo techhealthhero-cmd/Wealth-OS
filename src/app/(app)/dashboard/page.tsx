@@ -20,6 +20,7 @@ import { getFinancialPriority } from "@/features/ai/tools";
 import { getTopInsight } from "@/features/ai/lib/insights";
 import { NextBestActionCard } from "@/features/ai/components/next-best-action-card";
 import { InsightCards } from "@/features/ai/components/insight-card";
+import { EngagementSummaryCard } from "@/features/engagement/components/engagement-summary-card";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = { title: "Dashboard — Wealth OS" };
@@ -90,6 +91,8 @@ export default async function DashboardPage() {
           {topInsight ? <InsightCards insights={[topInsight]} /> : null}
         </div>
       ) : null}
+
+      <EngagementSummaryCard />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <IncomeVsExpenseChart
