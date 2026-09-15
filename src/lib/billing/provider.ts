@@ -3,6 +3,8 @@ import "server-only";
 import crypto from "node:crypto";
 
 import type { PlanId } from "@/lib/billing/plans";
+import { getAppEnv, isLiveStripeKey } from "@/config/env";
+import { captureError } from "@/lib/observability";
 
 /**
  * Provider-agnostic billing abstraction (Day 7 STEP 7) — the billing
@@ -47,7 +49,7 @@ export interface NormalizedSubscription {
   customerId: string;
   subscriptionId: string;
   priceId: string | null;
-  status: "trialing" | "active" | "past_due" | "canceled" | "incomplete";
+  status: "trialing" | "active" | "past_due" | "canceled" | "incomplete" | "unpaid";
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
@@ -58,6 +60,8 @@ export interface WebhookEvent {
   id: string;
   type: string;
   data: Record<string, unknown>;
+  /** The event envelope's own `created` (unix seconds), as ISO — used to detect and reject out-of-order/stale redelivery, see webhook-logic.ts's `isStaleWebhookEvent()`. */
+  createdAt: string;
 }
 
 export interface BillingProvider {
@@ -206,26 +210,64 @@ export class StripeProvider implements BillingProvider {
     }
 
     try {
-      const parsed = JSON.parse(rawBody) as { id: string; type: string; data: { object: Record<string, unknown> } };
-      return { id: parsed.id, type: parsed.type, data: parsed.data.object };
+      const parsed = JSON.parse(rawBody) as {
+        id: string;
+        type: string;
+        created: number;
+        data: { object: Record<string, unknown> };
+      };
+      return {
+        id: parsed.id,
+        type: parsed.type,
+        data: parsed.data.object,
+        createdAt: new Date(parsed.created * 1000).toISOString(),
+      };
     } catch {
       return null;
     }
   }
 
+  /**
+   * Billing-audit fix: Stripe's newer API versions no longer populate
+   * `current_period_start`/`current_period_end` on the Subscription object
+   * itself — that moved to each subscription item
+   * (`items.data[].current_period_start/end`), since a multi-item
+   * subscription can have items on different billing cycles. Confirmed live
+   * against this app's own production webhook payloads (API version
+   * 2026-07-29 and later): the top-level fields are absent, so reading only
+   * them silently produced `null` period dates on an otherwise-correct
+   * active subscription. Reads the first item's period as the
+   * subscription's overall period — correct for this app, which never
+   * creates a multi-item subscription (one price per checkout session) —
+   * and falls back to the top-level fields for forward/backward
+   * compatibility with any Stripe API version that still sets them.
+   */
   normalizeSubscription(raw: Record<string, unknown>): NormalizedSubscription {
     const status = raw.status as string;
-    const validStatuses: NormalizedSubscription["status"][] = ["trialing", "active", "past_due", "canceled", "incomplete"];
-    const items = raw.items as { data?: { price?: { id?: string } }[] } | undefined;
-    const priceId = items?.data?.[0]?.price?.id ?? null;
+    const validStatuses: NormalizedSubscription["status"][] = [
+      "trialing",
+      "active",
+      "past_due",
+      "canceled",
+      "incomplete",
+      "unpaid",
+    ];
+    const items = raw.items as
+      | { data?: { price?: { id?: string }; current_period_start?: number; current_period_end?: number }[] }
+      | undefined;
+    const firstItem = items?.data?.[0];
+    const priceId = firstItem?.price?.id ?? null;
+
+    const periodStart = firstItem?.current_period_start ?? (raw.current_period_start as number | undefined);
+    const periodEnd = firstItem?.current_period_end ?? (raw.current_period_end as number | undefined);
 
     return {
       customerId: raw.customer as string,
       subscriptionId: raw.id as string,
       priceId,
       status: validStatuses.includes(status as NormalizedSubscription["status"]) ? (status as NormalizedSubscription["status"]) : "incomplete",
-      currentPeriodStart: raw.current_period_start ? new Date((raw.current_period_start as number) * 1000).toISOString() : null,
-      currentPeriodEnd: raw.current_period_end ? new Date((raw.current_period_end as number) * 1000).toISOString() : null,
+      currentPeriodStart: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+      currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       cancelAtPeriodEnd: Boolean(raw.cancel_at_period_end),
       trialEnd: raw.trial_end ? new Date((raw.trial_end as number) * 1000).toISOString() : null,
     };
@@ -250,12 +292,33 @@ let cachedProvider: BillingProvider | null | undefined;
  * Stripe keys exist in this environment as of Day 7 (see PROJECT_STATUS.md
  * "Billing Test Mode"), so this returns null in local/dev/test today; every
  * checkout/portal/webhook route is written to degrade cleanly on that.
+ *
+ * Staging-isolation audit: defense-in-depth against the exact incident this
+ * audit found (a Preview/staging deployment holding a Stripe LIVE key,
+ * which let a "test" checkout place a real charge). `getServerEnv()`'s
+ * `assertProductionConsistency()` already refuses to let the app start at
+ * all in that state — this second, independent check means even if this
+ * function is ever reached without that startup check having run (e.g. a
+ * future refactor, a different entry point), a staging deployment still
+ * cannot obtain a working live-mode provider: it gets `null` — the same
+ * safe "not configured" state as no key at all — rather than a provider
+ * that would actually call Stripe.
  */
 export function getBillingProvider(): BillingProvider | null {
   if (cachedProvider !== undefined) return cachedProvider;
 
   const apiKey = process.env.STRIPE_SECRET_KEY;
   if (!apiKey) {
+    cachedProvider = null;
+    return null;
+  }
+
+  if (getAppEnv() !== "production" && isLiveStripeKey(apiKey)) {
+    captureError(new Error("Refused to initialize a live-mode Stripe provider outside production"), {
+      route: "billing.getBillingProvider",
+      provider: "stripe",
+      extra: { appEnv: getAppEnv() },
+    });
     cachedProvider = null;
     return null;
   }

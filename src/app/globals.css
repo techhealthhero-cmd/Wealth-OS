@@ -46,82 +46,105 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* 2026-09 reskin (v2.2 — "Coinest" light green fintech direction, replacing
+     the earlier dark/purple/gradient exploration; see GRAPHICS_PLAN.md). */
+  --color-accent-lime: var(--accent-lime);
+  --shadow-card: var(--shadow-card);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  /* Brand primary — same blue as chart slot 1, so UI chrome and data
-     visualization read as one identity instead of two unrelated palettes. */
-  --primary: #2a78d6;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* 2026-09 reskin (v2.4 — bright, muted "Apple-like" personal-finance
+     palette; user-supplied hex values, explicitly superseding the earlier
+     green/lime direction and GRAPHICS_PLAN.md's older rules). Mostly white/
+     near-white surfaces, one soft "card" tint step, a single restrained
+     brand green, no orange/neon/saturated accents anywhere. */
+  --background: #f7f8f6;
+  --foreground: #1c2521;
+  --card: #ffffff;
+  --card-foreground: #1c2521;
+  --popover: #ffffff;
+  --popover-foreground: #1c2521;
+  /* Brand primary — deep, muted forest green. Used for text/links, primary
+     buttons/badges, active states, and the rare highlighted "hero" card —
+     never as a large decorative surface. */
+  --primary: #1f4d3e;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f4f1;
+  --secondary-foreground: #1c2521;
+  --muted: #f2f4f1;
+  --muted-foreground: #6f7873;
+  --accent: #f2f4f1;
+  --accent-foreground: #1c2521;
+  /* Minor accent only (pricing "recommended" badge/checkmark) — the soft
+     income mint, not a separate saturated color. */
+  --accent-lime: #7fd6b2;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: #2a78d6;
-  /* Categorical palette (dataviz skill reference palette, light steps). */
-  --chart-1: #2a78d6;
-  --chart-2: #eb6834;
-  --chart-3: #1baf7a;
-  --chart-4: #eda100;
-  --chart-5: #e87ba4;
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #2a78d6;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  /* Active nav highlight: sequential-blue steps 100/600 (validated in the
-     dataviz reference palette) rather than a generic gray, so the selected
-     item reads as "brand", not just "pressed". */
-  --sidebar-accent: #cde2fb;
-  --sidebar-accent-foreground: #184f95;
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: #2a78d6;
+  --border: #e5e8e3;
+  --input: #e5e8e3;
+  --ring: #1f4d3e;
+  /* Categorical/financial chart palette — muted, no orange/neon. chart-1 is
+     the "primary metric" line color (net worth, forecast actuals); chart-2
+     is the muted secondary/projection tone; chart-3-5 extend the same
+     restrained family for any additional categorical series. */
+  --chart-1: #1f4d3e;
+  --chart-2: #8ea2b8;
+  --chart-3: #9cb6c8;
+  --chart-4: #b8b0cc;
+  --chart-5: #b8c2b0;
+  --radius: 0.75rem;
+  /* Almost no shadow — a hairline lift, not a heavy drop shadow. */
+  --shadow-card: 0 1px 2px rgba(28, 37, 33, 0.04), 0 4px 12px -8px rgba(28, 37, 33, 0.06);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1c2521;
+  --sidebar-primary: #1f4d3e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e4f5ec;
+  --sidebar-accent-foreground: #1f4d3e;
+  --sidebar-border: #e5e8e3;
+  --sidebar-ring: #1f4d3e;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: #3987e5;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* No dark variant exists in the reference; this is a reasonable dark
+     counterpart (same hues, inverted surface) kept as an opt-in secondary
+     theme via the theme toggle — the light "Coinest" look is the primary,
+     literally-matched design. */
+  --background: #0e1712;
+  --foreground: #f2f5ee;
+  --card: #16211b;
+  --card-foreground: #f2f5ee;
+  --popover: #16211b;
+  --popover-foreground: #f2f5ee;
+  --primary: #c6f24e;
+  --primary-foreground: #0e1712;
+  --secondary: #1e2a22;
+  --secondary-foreground: #f2f5ee;
+  --muted: #1e2a22;
+  --muted-foreground: #9baa9e;
+  --accent: #1e2a22;
+  --accent-foreground: #f2f5ee;
+  --accent-lime: #c6f24e;
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: #3987e5;
-  /* Categorical palette (dataviz skill reference palette, dark steps). */
-  --chart-1: #3987e5;
-  --chart-2: #d95926;
-  --chart-3: #199e70;
-  --chart-4: #c98500;
-  --chart-5: #d55181;
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: #3987e5;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: rgba(57, 135, 229, 0.16);
-  --sidebar-accent-foreground: #86b6ef;
+  --ring: #c6f24e;
+  /* Muted chart palette, dark-mode steps — kept in sync with :root's v2.4
+     "no orange/neon" rule even though dark mode is only an opt-in secondary
+     theme here. */
+  --chart-1: #4c9c82;
+  --chart-2: #7c93aa;
+  --chart-3: #8aa6b8;
+  --chart-4: #a89fbc;
+  --chart-5: #a4b29c;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  --sidebar: #16211b;
+  --sidebar-foreground: #f2f5ee;
+  --sidebar-primary: #c6f24e;
+  --sidebar-primary-foreground: #0e1712;
+  --sidebar-accent: rgba(198, 242, 78, 0.16);
+  --sidebar-accent-foreground: #c6f24e;
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #3987e5;
+  --sidebar-ring: #c6f24e;
 }
 
 @layer base {
@@ -134,6 +157,127 @@
   html {
     @apply font-sans;
   }
+}
+
+/*
+ * 2026-09 motion system — calm, restrained, "Apple-like." Reusable duration/
+ * easing tokens instead of one-off durations scattered across components.
+ * Named per the ranges this was designed against:
+ *   hover/press            120-180ms -> --motion-fast
+ *   tabs/small transitions  160-220ms -> --motion-normal
+ *   sheets/dialogs/sections 180-280ms -> --motion-normal / --motion-slow
+ *   financial values/progress 400-700ms -> --motion-value
+ *   charts                  500-800ms -> --motion-chart
+ * All of these are plain CSS custom properties (not @theme tokens) so they
+ * can be used directly as Tailwind v4 arbitrary values, e.g.
+ * `duration-(--motion-fast)` or `ease-(--ease-standard)`.
+ */
+:root {
+  --motion-fast: 140ms;
+  --motion-normal: 220ms;
+  --motion-slow: 420ms;
+  --motion-value: 600ms;
+  --motion-chart: 650ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/*
+ * Progressive dashboard reveal (opacity + small translateY, per section) —
+ * a one-shot entrance, never a looping effect. `animation-fill-mode:
+ * backwards` holds the 0%-frame state before the (staggered) delay elapses,
+ * so sections don't flash at full opacity before their turn.
+ */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.motion-reveal {
+  animation: reveal-up var(--motion-normal) var(--ease-standard) both;
+}
+
+/* 40-70ms stagger steps for "reveal key sections progressively" — small
+   enough that the dashboard is fully usable almost immediately. */
+.motion-reveal-1 { animation-delay: 0ms; }
+.motion-reveal-2 { animation-delay: 50ms; }
+.motion-reveal-3 { animation-delay: 100ms; }
+.motion-reveal-4 { animation-delay: 150ms; }
+.motion-reveal-5 { animation-delay: 200ms; }
+.motion-reveal-6 { animation-delay: 250ms; }
+
+/* One-shot, non-looping attention cue for a newly-appeared Next Best
+   Action — never repeats (a single animation run, not `infinite`). */
+@keyframes soft-pulse-once {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.motion-pulse-once {
+  animation: soft-pulse-once 900ms var(--ease-standard) 1;
+}
+
+/* Skeleton shimmer — a slow, low-contrast sweep rather than Tailwind's
+   default 2s opacity `animate-pulse`, which reads more like "blinking"
+   than "loading." Kept subtle: the moving highlight is only a few percent
+   lighter than the base --muted fill, never a bright flash. */
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in oklch, var(--foreground) 6%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Restrained success feedback: a one-shot checkmark draw-in (stroke
+   animating from hidden to fully drawn) rather than a static pop or any
+   confetti/bounce — see SuccessBadge. Runs once per mount. */
+@keyframes checkmark-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.success-checkmark-path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: checkmark-draw 420ms var(--ease-standard) 80ms both;
+}
+
+/* Card hover lift — max 1px translateY + a slightly deeper shadow, applied
+   to clickable/linked cards only (never a static, non-interactive card).
+   Deliberately tiny: "no dramatic floating effect." */
+.card-interactive {
+  transition: transform var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
+}
+.card-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px rgba(28, 37, 33, 0.04), 0 10px 20px -12px rgba(28, 37, 33, 0.14);
 }
 
 /*

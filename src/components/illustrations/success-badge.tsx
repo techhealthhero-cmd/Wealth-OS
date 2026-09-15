@@ -16,6 +16,7 @@ export function SuccessBadge({ size = 20, className }: SuccessBadgeProps) {
     >
       <circle cx="16" cy="16" r="16" fill="var(--chart-3)" />
       <path
+        className="success-checkmark-path"
         d="M10 16.5L14 20.5L22 11.5"
         stroke="white"
         strokeWidth="3"

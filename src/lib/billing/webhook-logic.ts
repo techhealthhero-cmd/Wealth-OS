@@ -14,6 +14,22 @@ export function isDuplicateEventError(error: { code?: string } | null | undefine
   return error?.code === "23505";
 }
 
+/**
+ * Billing-audit fix: Stripe does not guarantee webhook delivery order. If a
+ * stale event (e.g. an "active" `customer.subscription.updated` delayed by
+ * a retry) is processed AFTER a newer event already moved the row to
+ * "canceled", blindly applying the stale patch would silently resurrect a
+ * canceled user's entitlement. Compares the incoming event's own `created`
+ * timestamp against the last-applied one stored on the row
+ * (`last_webhook_event_at`); a `null` stored value (no prior event
+ * recorded — including every row that existed before this column was
+ * added) always allows the incoming event through.
+ */
+export function isStaleWebhookEvent(existingLastEventAt: string | null, incomingEventCreatedAt: string): boolean {
+  if (!existingLastEventAt) return false;
+  return new Date(incomingEventCreatedAt).getTime() < new Date(existingLastEventAt).getTime();
+}
+
 export type SubscriptionPatch = Partial<{
   provider: "stripe";
   provider_customer_id: string;
@@ -25,6 +41,7 @@ export type SubscriptionPatch = Partial<{
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   trial_end: string | null;
+  last_webhook_event_at: string;
 }>;
 
 /**
@@ -32,7 +49,7 @@ export type SubscriptionPatch = Partial<{
  * Returns null when the event's price id doesn't map to a known plan
  * (STEP 16: never guess a plan from unverified/unrecognized data).
  */
-export function buildSubscriptionUpsertPatch(normalized: NormalizedSubscription): SubscriptionPatch | null {
+export function buildSubscriptionUpsertPatch(normalized: NormalizedSubscription, eventCreatedAt: string): SubscriptionPatch | null {
   const plan = planIdForStripePriceId(normalized.priceId);
   if (!plan) return null;
 
@@ -47,18 +64,19 @@ export function buildSubscriptionUpsertPatch(normalized: NormalizedSubscription)
     current_period_end: normalized.currentPeriodEnd,
     cancel_at_period_end: normalized.cancelAtPeriodEnd,
     trial_end: normalized.trialEnd,
+    last_webhook_event_at: eventCreatedAt,
   };
 }
 
 /** `customer.subscription.deleted` -> the row patch. Plan is deliberately left as-is; `status: "canceled"` alone already drops entitlement (see `statusGrantsEntitlement`). */
-export function buildSubscriptionCancelPatch(): SubscriptionPatch {
-  return { status: "canceled", cancel_at_period_end: false };
+export function buildSubscriptionCancelPatch(eventCreatedAt: string): SubscriptionPatch {
+  return { status: "canceled", cancel_at_period_end: false, last_webhook_event_at: eventCreatedAt };
 }
 
-export function buildPastDuePatch(): SubscriptionPatch {
-  return { status: "past_due" };
+export function buildPastDuePatch(eventCreatedAt: string): SubscriptionPatch {
+  return { status: "past_due", last_webhook_event_at: eventCreatedAt };
 }
 
-export function buildRecoveredPatch(): SubscriptionPatch {
-  return { status: "active" };
+export function buildRecoveredPatch(eventCreatedAt: string): SubscriptionPatch {
+  return { status: "active", last_webhook_event_at: eventCreatedAt };
 }

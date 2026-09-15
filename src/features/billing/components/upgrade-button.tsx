@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/i18n/client";
+import { cn } from "@/lib/utils";
 import type { PlanId } from "@/lib/billing/plans";
 
 /**
@@ -14,7 +15,17 @@ import type { PlanId } from "@/lib/billing/plans";
  * environment — see PROJECT_STATUS.md "Billing Test Mode"), the API
  * returns a clear error instead of a broken redirect, shown as a toast.
  */
-export function UpgradeButton({ planId, label, variant = "default" }: { planId: PlanId; label: string; variant?: "default" | "outline" }) {
+export function UpgradeButton({
+  planId,
+  label,
+  variant = "default",
+  className,
+}: {
+  planId: PlanId;
+  label: string;
+  variant?: "default" | "outline";
+  className?: string;
+}) {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -42,7 +53,7 @@ export function UpgradeButton({ planId, label, variant = "default" }: { planId: 
   }
 
   return (
-    <Button type="button" variant={variant} className="w-full" onClick={handleClick} disabled={isLoading}>
+    <Button type="button" variant={variant} className={cn("w-full", className)} onClick={handleClick} disabled={isLoading}>
       {isLoading ? t("common.loading") : label}
     </Button>
   );

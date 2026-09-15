@@ -1,15 +1,12 @@
 import Link from "next/link";
 
-import { getNetWorthBreakdown } from "@/features/net-worth/queries";
 import { getBudgetSummary } from "@/features/budget/queries";
 import { getEmergencyFund, getEssentialMonthlyExpenses } from "@/features/emergency-fund/queries";
-import { getGoals } from "@/features/goals/queries";
 import { ensureTodaysWealthScore } from "@/features/wealth-score/queries";
 import { getSafeToSpend } from "@/features/safe-to-spend/queries";
 import { getLifeStageAndPriorities } from "@/features/life-stage/queries";
 import { calculateMonthsProtected } from "@/lib/financial/emergency-fund";
-import { calculateGoalProgress } from "@/lib/financial/goals";
-import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
+import { parseMoneyToCents } from "@/lib/financial/money";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { getProfile } from "@/features/profile/queries";
@@ -28,11 +25,9 @@ const STATUS_TONE: Record<string, string> = {
 interface WealthOverviewData {
   dict: ReturnType<typeof getDictionary>;
   wealthScoreComputation: Awaited<ReturnType<typeof ensureTodaysWealthScore>>;
-  netWorth: Awaited<ReturnType<typeof getNetWorthBreakdown>>;
   budgetSummary: Awaited<ReturnType<typeof getBudgetSummary>>;
   emergencyFund: Awaited<ReturnType<typeof getEmergencyFund>>;
   essential: Awaited<ReturnType<typeof getEssentialMonthlyExpenses>>;
-  topGoal: Awaited<ReturnType<typeof getGoals>>[number] | null;
   safeToSpend: Awaited<ReturnType<typeof getSafeToSpend>>;
   lifeStageAndPriorities: Awaited<ReturnType<typeof getLifeStageAndPriorities>>;
 }
@@ -52,14 +47,12 @@ async function loadWealthOverviewData(): Promise<WealthOverviewData | null> {
     const locale = await getLocale(profile?.preferred_language);
     const dict = getDictionary(locale);
 
-    const [wealthScoreComputation, netWorth, budgetSummary, emergencyFund, essential, goals, safeToSpend, lifeStageAndPriorities] =
+    const [wealthScoreComputation, budgetSummary, emergencyFund, essential, safeToSpend, lifeStageAndPriorities] =
       await Promise.all([
         ensureTodaysWealthScore(),
-        getNetWorthBreakdown(),
         getBudgetSummary(),
         getEmergencyFund(),
         getEssentialMonthlyExpenses(),
-        getGoals(),
         getSafeToSpend(),
         getLifeStageAndPriorities(),
       ]);
@@ -67,11 +60,9 @@ async function loadWealthOverviewData(): Promise<WealthOverviewData | null> {
     return {
       dict,
       wealthScoreComputation,
-      netWorth,
       budgetSummary,
       emergencyFund,
       essential,
-      topGoal: goals[0] ?? null,
       safeToSpend,
       lifeStageAndPriorities,
     };
@@ -85,7 +76,7 @@ export async function WealthOverview() {
   const data = await loadWealthOverviewData();
   if (!data) return null;
 
-  const { dict, wealthScoreComputation, netWorth, budgetSummary, emergencyFund, essential, topGoal, safeToSpend, lifeStageAndPriorities } = data;
+  const { dict, wealthScoreComputation, budgetSummary, emergencyFund, essential, safeToSpend, lifeStageAndPriorities } = data;
   const emergencyFundCurrentCents = emergencyFund ? parseMoneyToCents(emergencyFund.current_amount) : 0;
   const monthsProtected = calculateMonthsProtected(emergencyFundCurrentCents, essential.cents);
 
@@ -95,21 +86,10 @@ export async function WealthOverview() {
 
       <WealthScoreCard computation={wealthScoreComputation} />
 
-      <Link href="/money/net-worth">
-        <Card className="h-full transition-colors hover:bg-accent/50">
-          <CardContent className="space-y-1 pt-6">
-            <p className="text-sm text-muted-foreground">{dict.dashboard2.netWorth}</p>
-            <p className={`text-2xl font-bold ${netWorth.netWorthCents < 0 ? "text-destructive" : ""}`}>
-              {formatMoney(netWorth.netWorthCents)}
-            </p>
-          </CardContent>
-        </Card>
-      </Link>
-
       <SafeToSpendCard computation={safeToSpend} />
 
       <Link href="/money/budget">
-        <Card className="h-full transition-colors hover:bg-accent/50">
+        <Card className="card-interactive h-full transition-colors hover:bg-accent/50">
           <CardContent className="space-y-1 pt-6">
             <p className="text-sm text-muted-foreground">{dict.dashboard2.budgetStatus}</p>
             {budgetSummary ? (
@@ -127,7 +107,7 @@ export async function WealthOverview() {
       </Link>
 
       <Link href="/plan/emergency-fund">
-        <Card className="h-full transition-colors hover:bg-accent/50">
+        <Card className="card-interactive h-full transition-colors hover:bg-accent/50">
           <CardContent className="space-y-1 pt-6">
             <p className="text-sm text-muted-foreground">{dict.dashboard2.emergencyFund}</p>
             {emergencyFund ? (
@@ -137,28 +117,6 @@ export async function WealthOverview() {
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">{dict.emergencyFund.notSetUp}</p>
-            )}
-          </CardContent>
-        </Card>
-      </Link>
-
-      <Link href="/plan/goals">
-        <Card className="h-full transition-colors hover:bg-accent/50">
-          <CardContent className="space-y-1 pt-6">
-            <p className="text-sm text-muted-foreground">{dict.dashboard2.topGoal}</p>
-            {topGoal ? (
-              <>
-                <p className="truncate text-lg font-semibold">{topGoal.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {calculateGoalProgress(
-                    parseMoneyToCents(topGoal.current_amount),
-                    parseMoneyToCents(topGoal.target_amount)
-                  ).toFixed(0)}
-                  %
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">{dict.goals.emptyTitle}</p>
             )}
           </CardContent>
         </Card>

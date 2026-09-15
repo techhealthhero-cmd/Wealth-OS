@@ -58,6 +58,11 @@
     "accounts": "Accounts",
     "transactions": "Transactions"
   },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark"
+  },
   "auth": {
     "login": "Log in",
     "signup": "Sign up",
@@ -91,7 +96,8 @@
     "getStarted": "Get started",
     "noIncomeExpenseData": "No income or expenses recorded this month yet.",
     "noExpenseData": "No expenses recorded this month yet.",
-    "other": "Other"
+    "other": "Other",
+    "moreInsights": "More insights"
   },
   "accounts": {
     "title": "Accounts",
@@ -1254,7 +1260,8 @@
       "active": "Active",
       "past_due": "Past due",
       "canceled": "Canceled",
-      "incomplete": "Incomplete"
+      "incomplete": "Incomplete",
+      "unpaid": "Unpaid"
     },
     "pricing": {
       "title": "Choose the plan that's right for you",

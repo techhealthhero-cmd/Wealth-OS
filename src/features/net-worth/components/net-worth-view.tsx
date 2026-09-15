@@ -7,6 +7,7 @@ import type { NetWorthBreakdown } from "@/features/net-worth/queries";
 import { useTranslation } from "@/i18n/client";
 import { formatMoney, formatMoneyFromDecimal, parseMoneyToCents } from "@/lib/financial/money";
 import { calculateNetWorthChange } from "@/lib/financial/net-worth";
+import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface NetWorthViewProps {
@@ -16,6 +17,7 @@ interface NetWorthViewProps {
 
 export function NetWorthView({ breakdown, snapshots }: NetWorthViewProps) {
   const { t, locale } = useTranslation();
+  const reducedMotion = usePrefersReducedMotion();
 
   const previousSnapshot = snapshots.length >= 2 ? snapshots[snapshots.length - 2] : null;
   const change = calculateNetWorthChange(
@@ -82,7 +84,16 @@ export function NetWorthView({ breakdown, snapshots }: NetWorthViewProps) {
                 <XAxis dataKey="date" tickLine={false} axisLine={{ stroke: "var(--border)" }} tick={{ fontSize: 11 }} />
                 <YAxis hide />
                 <Tooltip formatter={(value) => formatMoney(Number(value))} />
-                <Line type="monotone" dataKey="netWorth" stroke="var(--color-chart-1)" strokeWidth={2} dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="netWorth"
+                  stroke="var(--color-chart-1)"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={650}
+                  animationEasing="ease-out"
+                />
               </LineChart>
             </ResponsiveContainer>
           )}

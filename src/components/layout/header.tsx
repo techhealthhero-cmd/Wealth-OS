@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 function initials(name: string | null | undefined) {
   if (!name) return "?";
@@ -30,7 +31,8 @@ export function Header({ displayName }: { displayName: string | null | undefined
   const { t } = useTranslation();
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-end border-b px-4">
+    <header className="flex h-14 shrink-0 items-center justify-end gap-1 border-b px-4">
+      <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger
           {...asTrigger(

@@ -175,7 +175,7 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
             <div key={i} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
               <div
                 className={cn(
-                  "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm break-words",
+                  "animate-in fade-in duration-(--motion-fast) max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm break-words",
                   m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                 )}
               >

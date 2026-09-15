@@ -1,19 +1,45 @@
 import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
+
+// 2026-09 reskin (v2.2, "Coinest" light green direction — three-tier card
+// hierarchy, not every card treated as equally important):
+// - "default": flat white surface, the vast majority of cards (~70-80% of
+//   surfaces app-wide). No class added here — comes entirely from tokens.
+// - "soft": very pale mint surface, for a secondary-emphasis moment (a
+//   gamification/engagement card, a highlighted-but-not-critical stat) —
+//   the "15-20% soft mint" tier. Never for dense data/list cards.
+// - "highlight": deep forest green, white text — reserved for the single
+//   most important figure on a page (e.g. Net Worth) or a deliberate focal
+//   moment (Pro-plan pricing card, footer CTA). The "5-10% deep accent"
+//   tier — used sparingly, never as a default.
+const cardVariants = cva(
+  "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground shadow-card ring-1 ring-foreground/5 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+  {
+    variants: {
+      variant: {
+        default: "",
+        soft: "bg-secondary ring-0 shadow-none",
+        highlight: "bg-primary text-primary-foreground ring-0 [&_[data-slot=card-description]]:text-primary-foreground/70",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
 
 function Card({
   className,
   size = "default",
+  variant,
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: React.ComponentProps<"div"> & { size?: "default" | "sm" } & VariantProps<typeof cardVariants>) {
   return (
     <div
       data-slot="card"
       data-size={size}
-      className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
-        className
-      )}
+      className={cn(cardVariants({ variant }), className)}
       {...props}
     />
   )

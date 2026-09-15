@@ -7,6 +7,7 @@ import type { WealthScoreComputation } from "@/features/wealth-score/queries";
 import { useTranslation } from "@/i18n/client";
 import { formatMoney } from "@/lib/financial/money";
 import { Card, CardContent } from "@/components/ui/card";
+import { AnimatedNumber } from "@/components/shared/animated-number";
 import { cn } from "@/lib/utils";
 
 const COMPONENT_KEYS = [
@@ -29,21 +30,24 @@ export function WealthScoreCard({ computation }: { computation: WealthScoreCompu
       <CardContent className="space-y-1 pt-6">
         <p className="text-sm text-muted-foreground">{t("dashboard2.wealthScore")}</p>
         <p className="text-2xl font-bold">
-          {result.totalScore.toFixed(0)}
+          <AnimatedNumber value={result.totalScore} formatAs="integer" className="inline" />
           <span className="text-sm font-normal text-muted-foreground"> {t("wealthScore.outOf100")}</span>
         </p>
 
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-1 pt-1 text-xs font-medium text-primary"
+          className="flex items-center gap-1 pt-1 text-xs font-medium text-primary transition-transform duration-(--motion-fast) active:scale-[0.98]"
         >
           {t("dashboard2.viewDetails")}
-          <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} aria-hidden="true" />
+          <ChevronDown
+            className={cn("h-3 w-3 transition-transform duration-(--motion-normal) ease-(--ease-standard)", expanded && "rotate-180")}
+            aria-hidden="true"
+          />
         </button>
 
         {expanded ? (
-          <div className="space-y-2 border-t pt-2 text-xs">
+          <div className="animate-in fade-in slide-in-from-top-1 duration-(--motion-normal) space-y-2 border-t pt-2 text-xs">
             {(!hasNetWorthHistory || !hasIncomeHistory) ? (
               <p className="text-muted-foreground">{t("wealthScore.newUserNote")}</p>
             ) : null}

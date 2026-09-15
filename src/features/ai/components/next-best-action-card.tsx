@@ -36,7 +36,12 @@ export function NextBestActionCard({ priority }: { priority: PriorityTool | null
   return (
     <Card>
       <CardContent className="space-y-2 pt-6">
-        <p className="text-sm font-medium text-muted-foreground">{t("nextBestAction.title")}</p>
+        <p className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+          {/* One-shot soft pulse (never looping) marking a freshly-rendered
+              Next Best Action — see `.motion-pulse-once` in globals.css. */}
+          <span className="motion-pulse-once size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+          {t("nextBestAction.title")}
+        </p>
         <p className="text-lg font-semibold">{actionText}</p>
         <p className="text-sm text-muted-foreground">{reason}</p>
         {cta ? (

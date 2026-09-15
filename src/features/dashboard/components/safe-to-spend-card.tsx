@@ -52,14 +52,14 @@ export function SafeToSpendCard({ computation }: { computation: SafeToSpendCompu
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-1 pt-1 text-xs font-medium text-primary"
+          className="flex items-center gap-1 pt-1 text-xs font-medium text-primary transition-transform duration-(--motion-fast) active:scale-[0.98]"
         >
           {t("safeToSpend.howCalculated")}
           <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} aria-hidden="true" />
         </button>
 
         {expanded ? (
-          <div className="space-y-1 border-t pt-2 text-xs">
+          <div className="animate-in fade-in slide-in-from-top-1 duration-(--motion-normal) space-y-1 border-t pt-2 text-xs">
             {rows.map(([label, cents]) => (
               <div key={label} className="flex justify-between">
                 <span className="text-muted-foreground">{label}</span>

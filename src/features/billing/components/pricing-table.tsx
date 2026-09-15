@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UpgradeButton } from "@/features/billing/components/upgrade-button";
 import { formatMoney } from "@/lib/financial/money";
+import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/i18n/dictionaries";
 
 interface PricingTableProps {
@@ -24,17 +25,27 @@ export function PricingTable({ currentPlan, dict }: PricingTableProps) {
       {PLAN_IDS.map((planId) => {
         const plan = PLANS[planId];
         const isCurrent = planId === currentPlan;
+        const isHighlighted = planId === "plus";
         const featureKeys = dict.billing.pricing.featureList[planId] as string[];
 
         return (
-          <Card key={planId} className={planId === "plus" ? "border-primary/40 shadow-sm" : undefined}>
+          // Reskin v2.2 ("Coinest" light green direction): the recommended
+          // tier gets the single "highlight" (deep green) card on this
+          // page — every other tier stays a plain white card, matching the
+          // 3-tier hierarchy used on the dashboard's Net Worth card.
+          <Card key={planId} variant={isHighlighted ? "highlight" : "default"}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">{plan.displayName}</CardTitle>
                 {isCurrent ? (
-                  <Badge variant="outline">{dict.billing.pricing.currentPlan}</Badge>
-                ) : planId === "plus" ? (
-                  <Badge variant="default">{dict.billing.pricing.recommended}</Badge>
+                  <Badge
+                    variant="outline"
+                    className={isHighlighted ? "border-primary-foreground/30 text-primary-foreground" : undefined}
+                  >
+                    {dict.billing.pricing.currentPlan}
+                  </Badge>
+                ) : isHighlighted ? (
+                  <Badge className="bg-accent-lime text-primary">{dict.billing.pricing.recommended}</Badge>
                 ) : null}
               </div>
               <p className="pt-1">
@@ -42,7 +53,9 @@ export function PricingTable({ currentPlan, dict }: PricingTableProps) {
                   {plan.priceThbPerMonth === 0 ? dict.billing.pricing.free : formatMoney(plan.priceThbPerMonth * 100)}
                 </span>
                 {plan.priceThbPerMonth > 0 ? (
-                  <span className="text-sm text-muted-foreground">/{dict.billing.pricing.perMonth}</span>
+                  <span className={cn("text-sm", isHighlighted ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                    /{dict.billing.pricing.perMonth}
+                  </span>
                 ) : null}
               </p>
             </CardHeader>
@@ -50,18 +63,29 @@ export function PricingTable({ currentPlan, dict }: PricingTableProps) {
               <ul className="space-y-2 text-sm">
                 {featureKeys.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    <Check
+                      className={cn("mt-0.5 h-4 w-4 shrink-0", isHighlighted ? "text-accent-lime" : "text-primary")}
+                      aria-hidden="true"
+                    />
                     <span>{feature}</span>
                   </li>
                 ))}
               </ul>
 
               {isCurrent ? (
-                <Badge variant="outline" className="w-full justify-center py-2">
+                <Badge
+                  variant="outline"
+                  className={cn("w-full justify-center py-2", isHighlighted && "border-primary-foreground/30 text-primary-foreground")}
+                >
                   {dict.billing.pricing.currentPlan}
                 </Badge>
               ) : planId === "free" ? null : (
-                <UpgradeButton planId={planId} label={dict.billing.pricing.upgradeTo.replace("{plan}", plan.displayName)} variant={planId === "plus" ? "default" : "outline"} />
+                <UpgradeButton
+                  planId={planId}
+                  label={dict.billing.pricing.upgradeTo.replace("{plan}", plan.displayName)}
+                  variant={isHighlighted ? "default" : "outline"}
+                  className={isHighlighted ? "bg-primary-foreground text-primary hover:brightness-95" : undefined}
+                />
               )}
             </CardContent>
           </Card>

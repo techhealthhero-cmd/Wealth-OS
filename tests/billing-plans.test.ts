@@ -25,6 +25,7 @@ function row(overrides: Partial<Subscription>): Subscription {
     current_period_end: "2026-10-01T00:00:00.000Z",
     cancel_at_period_end: false,
     trial_end: null,
+    last_webhook_event_at: null,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
     ...overrides,

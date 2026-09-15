@@ -5,6 +5,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -13,17 +14,16 @@ import {
 
 import { centsToNumber, formatMoney } from "@/lib/financial/money";
 import { useTranslation } from "@/i18n/client";
+import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Fixed categorical slot order (never cycled) — see globals.css --chart-1..5,
-// sourced from the dataviz skill's validated reference palette.
-const CATEGORY_COLORS = [
-  "var(--color-chart-1)",
-  "var(--color-chart-2)",
-  "var(--color-chart-3)",
-  "var(--color-chart-4)",
-  "var(--color-chart-5)",
-];
+// 2026-09 motion system: charts animate once on first appearance only
+// (Recharts' own animation triggers on mount/data-key change, never on
+// hover) — duration/easing pulled from the shared --motion-chart token
+// range (500-800ms). Disabled outright under prefers-reduced-motion, since
+// Recharts' animation is JS-driven (react-smooth), not a CSS
+// transition/animation the global reduced-motion kill switch can reach.
+const CHART_ANIMATION_DURATION_MS = 650;
 
 function ChartEmptyState({ message }: { message: string }) {
   return (
@@ -33,21 +33,31 @@ function ChartEmptyState({ message }: { message: string }) {
   );
 }
 
-function CurrencyTooltip({
+// Bright, muted "Apple-like" finance palette (2026-09 v2.4, user-supplied
+// hex values) — dedicated to this chart, not the shared --chart-* tokens.
+const INCOME_EXPENSE_COLORS = {
+  income: "#7FD6B2",
+  expense: "#8EA2B8",
+} as const;
+
+function IncomeExpenseTooltip({
   active,
   payload,
   currencyCode,
 }: {
   active?: boolean;
-  payload?: { value: number; payload: { label: string } }[];
+  payload?: { value: number; payload: { label: string; color: string } }[];
   currencyCode: string;
 }) {
   if (!active || !payload?.length) return null;
   const { value, payload: row } = payload[0];
   return (
-    <div className="rounded-md border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-sm">
-      <p className="font-medium">{row.label}</p>
-      <p className="text-muted-foreground">{formatMoney(value, currencyCode)}</p>
+    <div className="rounded-xl border bg-popover px-3.5 py-2.5 text-sm text-popover-foreground shadow-lg">
+      <div className="flex items-center gap-1.5">
+        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: row.color }} aria-hidden="true" />
+        <p className="font-medium">{row.label}</p>
+      </div>
+      <p className="pt-0.5 text-base font-semibold">{formatMoney(value, currencyCode)}</p>
     </div>
   );
 }
@@ -64,11 +74,24 @@ export function IncomeVsExpenseChart({
   currencyCode,
 }: IncomeVsExpenseChartProps) {
   const { t } = useTranslation();
+  const reducedMotion = usePrefersReducedMotion();
   const hasData = incomeCents > 0 || expensesCents > 0;
 
   const data = [
-    { label: t("transactions.types.income"), value: centsToNumber(incomeCents), raw: incomeCents, color: CATEGORY_COLORS[0] },
-    { label: t("transactions.types.expense"), value: centsToNumber(expensesCents), raw: expensesCents, color: CATEGORY_COLORS[1] },
+    {
+      label: t("transactions.types.income"),
+      value: centsToNumber(incomeCents),
+      raw: incomeCents,
+      color: INCOME_EXPENSE_COLORS.income,
+      gradientId: "incomeBarGradient",
+    },
+    {
+      label: t("transactions.types.expense"),
+      value: centsToNumber(expensesCents),
+      raw: expensesCents,
+      color: INCOME_EXPENSE_COLORS.expense,
+      gradientId: "expenseBarGradient",
+    },
   ];
 
   return (
@@ -89,13 +112,29 @@ export function IncomeVsExpenseChart({
               {data.map((d) => `${d.label}: ${formatMoney(d.raw, currencyCode)}`).join(". ")}
             </p>
             <ResponsiveContainer width="100%" height={224}>
-              <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="var(--border)" />
+              <BarChart
+                data={data}
+                margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
+                barCategoryGap="35%"
+              >
+                <defs>
+                  {/* Subtle top-to-bottom gradient in each bar's own tone —
+                      soft/premium, not a neon multi-color gradient. */}
+                  <linearGradient id="incomeBarGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={INCOME_EXPENSE_COLORS.income} stopOpacity={0.85} />
+                    <stop offset="100%" stopColor={INCOME_EXPENSE_COLORS.income} stopOpacity={1} />
+                  </linearGradient>
+                  <linearGradient id="expenseBarGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={INCOME_EXPENSE_COLORS.expense} stopOpacity={0.85} />
+                    <stop offset="100%" stopColor={INCOME_EXPENSE_COLORS.expense} stopOpacity={1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="4 4" strokeOpacity={0.6} />
                 <XAxis
                   dataKey="label"
                   tickLine={false}
                   axisLine={{ stroke: "var(--border)" }}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 12, fontWeight: 500 }}
                 />
                 <YAxis
                   tickLine={false}
@@ -104,12 +143,19 @@ export function IncomeVsExpenseChart({
                   width={40}
                 />
                 <Tooltip
-                  content={<CurrencyTooltip currencyCode={currencyCode} />}
-                  cursor={{ fill: "var(--muted)" }}
+                  content={<IncomeExpenseTooltip currencyCode={currencyCode} />}
+                  cursor={{ fill: "var(--muted)", opacity: 0.5 }}
                 />
-                <Bar dataKey="raw" radius={[4, 4, 0, 0]} maxBarSize={64}>
+                <Bar
+                  dataKey="raw"
+                  radius={[10, 10, 0, 0]}
+                  maxBarSize={56}
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={CHART_ANIMATION_DURATION_MS}
+                  animationEasing="ease-out"
+                >
                   {data.map((entry) => (
-                    <Cell key={entry.label} fill={entry.color} />
+                    <Cell key={entry.label} fill={`url(#${entry.gradientId})`} />
                   ))}
                 </Bar>
               </BarChart>
@@ -128,8 +174,38 @@ interface SpendingByCategoryChartProps {
 
 const MAX_SLICES = 5;
 
+// Bright, muted "Apple-like" expense-category palette (2026-09 v2.4,
+// user-supplied hex values) — no orange, no saturated/neon tones.
+const SPENDING_CATEGORY_COLORS = ["#7FAF9F", "#9CB6C8", "#B8B0CC", "#B8C2B0", "#C5C7CC"];
+
+function CategorySpendingTooltip({
+  active,
+  payload,
+  currencyCode,
+}: {
+  active?: boolean;
+  payload?: { value: number; payload: { label: string; color: string } }[];
+  currencyCode: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const { value, payload: row } = payload[0];
+  return (
+    <div className="rounded-xl border bg-popover px-3.5 py-2.5 text-sm text-popover-foreground shadow-lg">
+      <div className="flex items-center gap-1.5">
+        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: row.color }} aria-hidden="true" />
+        <p className="font-medium">{row.label}</p>
+      </div>
+      <p className="pt-0.5 text-base font-semibold">{formatMoney(value, currencyCode)}</p>
+    </div>
+  );
+}
+
 export function SpendingByCategoryChart({ data, currencyCode }: SpendingByCategoryChartProps) {
   const { t, locale } = useTranslation();
+  const reducedMotion = usePrefersReducedMotion();
+  // calculateSpendingByCategory() (src/lib/financial/calculations.ts) already
+  // sorts descending by totalCents before this data ever reaches the chart —
+  // untouched here, this component only ever renders in the order it's given.
   const top = data.slice(0, MAX_SLICES);
   const rest = data.slice(MAX_SLICES);
   const otherTotal = rest.reduce((sum, entry) => sum + entry.totalCents, 0);
@@ -140,9 +216,13 @@ export function SpendingByCategoryChart({ data, currencyCode }: SpendingByCatego
   const chartData = [
     ...top.map((entry) => ({ label: nameFor(entry), raw: entry.totalCents })),
     ...(otherTotal > 0 ? [{ label: t("dashboard.other"), raw: otherTotal }] : []),
-  ].map((entry, index) => ({ ...entry, color: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }));
+  ].map((entry, index) => ({ ...entry, color: SPENDING_CATEGORY_COLORS[index % SPENDING_CATEGORY_COLORS.length] }));
 
   return (
+    // 2026-09 v2.4: no bespoke card styling here anymore — the shared Card
+    // (white surface, subtle border/shadow) now matches this chart's
+    // requirements exactly via the global token update, so it stays
+    // consistent with every other financial card in the app.
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{t("dashboard.spendingByCategory")}</CardTitle>
@@ -155,30 +235,46 @@ export function SpendingByCategoryChart({ data, currencyCode }: SpendingByCatego
             <p className="sr-only">
               {chartData.map((d) => `${d.label}: ${formatMoney(d.raw, currencyCode)}`).join(". ")}
             </p>
-            <ResponsiveContainer width="100%" height={Math.max(160, chartData.length * 40)}>
+            <ResponsiveContainer width="100%" height={Math.max(180, chartData.length * 48)}>
               <BarChart
                 data={chartData}
                 layout="vertical"
-                margin={{ top: 8, right: 24, left: 8, bottom: 0 }}
+                margin={{ top: 8, right: 56, left: 8, bottom: 0 }}
+                barCategoryGap="30%"
               >
-                <CartesianGrid horizontal={false} stroke="var(--border)" />
+                <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="4 4" strokeOpacity={0.6} />
                 <XAxis type="number" hide />
                 <YAxis
                   type="category"
                   dataKey="label"
                   tickLine={false}
                   axisLine={false}
-                  width={110}
-                  tick={{ fill: "var(--foreground)", fontSize: 12 }}
+                  width={96}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 12.5, fontWeight: 500 }}
                 />
                 <Tooltip
-                  content={<CurrencyTooltip currencyCode={currencyCode} />}
-                  cursor={{ fill: "var(--muted)" }}
+                  content={<CategorySpendingTooltip currencyCode={currencyCode} />}
+                  cursor={{ fill: "var(--muted)", opacity: 0.5 }}
                 />
-                <Bar dataKey="raw" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                <Bar
+                  dataKey="raw"
+                  radius={[8, 8, 8, 8]}
+                  maxBarSize={28}
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={CHART_ANIMATION_DURATION_MS}
+                  animationEasing="ease-out"
+                >
                   {chartData.map((entry) => (
                     <Cell key={entry.label} fill={entry.color} />
                   ))}
+                  <LabelList
+                    dataKey="raw"
+                    position="right"
+                    formatter={(value: string | number | boolean | null | undefined) =>
+                      typeof value === "number" ? formatMoney(value, currencyCode) : ""
+                    }
+                    style={{ fill: "var(--foreground)", fontSize: 12, fontWeight: 600 }}
+                  />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

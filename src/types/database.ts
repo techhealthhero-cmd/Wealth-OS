@@ -873,6 +873,8 @@ export interface Database {
           current_period_end: string | null;
           cancel_at_period_end: boolean;
           trial_end: string | null;
+          /** The source webhook event's own timestamp, last applied to this row — guards against out-of-order/stale webhook redelivery. Null for rows that predate this column. */
+          last_webhook_event_at: string | null;
           created_at: string;
           updated_at: string;
         };

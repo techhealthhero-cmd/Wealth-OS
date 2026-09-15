@@ -17,6 +17,7 @@ import {
 } from "@/lib/financial/forecast";
 import { useTranslation } from "@/i18n/client";
 import { formatMoney } from "@/lib/financial/money";
+import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { ForecastScenarioForm } from "./forecast-scenario-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ type WhatIf = "saveMore" | "incomeUp" | "extraDebt" | "buyCar" | "rentUp" | "los
 
 export function ForecastView({ startingState, scenarios, defaultAssumptions }: ForecastViewProps) {
   const { t, locale } = useTranslation();
+  const reducedMotion = usePrefersReducedMotion();
   const [selectedId, setSelectedId] = useState(scenarios[0]?.row.id ?? null);
   const [whatIf, setWhatIf] = useState<WhatIf>(null);
   const [showAssumptions, setShowAssumptions] = useState(false);
@@ -148,7 +150,16 @@ export function ForecastView({ startingState, scenarios, defaultAssumptions }: F
               />
               <YAxis hide />
               <Tooltip labelFormatter={(m) => monthLabel(Number(m))} formatter={(value) => formatMoney(Number(value))} />
-              <Line type="monotone" dataKey="netWorth" stroke="var(--color-chart-1)" strokeWidth={2} dot={false} />
+              <Line
+                type="monotone"
+                dataKey="netWorth"
+                stroke="var(--color-chart-1)"
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive={!reducedMotion}
+                animationDuration={650}
+                animationEasing="ease-out"
+              />
               {whatIfResult ? (
                 <Line
                   type="monotone"
@@ -157,6 +168,9 @@ export function ForecastView({ startingState, scenarios, defaultAssumptions }: F
                   strokeWidth={2}
                   strokeDasharray="4 4"
                   dot={false}
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={650}
+                  animationEasing="ease-out"
                 />
               ) : null}
             </LineChart>

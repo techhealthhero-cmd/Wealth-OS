@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 
 import { getDashboardData } from "@/features/dashboard/queries";
@@ -7,6 +8,8 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { SummaryCards } from "@/features/dashboard/components/summary-cards";
 import { WealthOverview } from "@/features/dashboard/components/wealth-overview";
+import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
+import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
 import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { QuickAdd } from "@/features/transactions/components/quick-add";
@@ -15,6 +18,7 @@ import { WelcomeIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
 import { formatMoneyFromDecimal } from "@/lib/financial/money";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FEATURES } from "@/config/features";
 import { getFinancialPriority } from "@/features/ai/tools";
 import { getTopInsight } from "@/features/ai/lib/insights";
@@ -66,24 +70,33 @@ export default async function DashboardPage() {
         <PlanBadge />
       </div>
 
-      <WealthOverview />
+      {/* UX reorg (2026-09): information hierarchy follows the "5 core
+          questions" framework — Net Worth (am I wealthier?) first, Next
+          Best Action (what should I do?) second, then the monthly
+          income/expense/cash-flow picture, goal progress, spending
+          breakdown, and only then the deeper Wealth Score/Life Stage/
+          Safe-to-Spend detail grid and recent activity. Nothing here
+          changes what data is fetched or how it's calculated — this is a
+          presentation-order change only.
 
-      <SummaryCards
-        incomeCents={data.incomeCents}
-        expensesCents={data.expensesCents}
-        cashFlowCents={data.cashFlowCents}
-        savingsRatePercent={data.savingsRatePercent}
-        currencyCode={currencyCode}
-        labels={{
-          income: dict.dashboard.monthlyIncome,
-          expenses: dict.dashboard.monthlyExpenses,
-          cashFlow: dict.dashboard.cashFlow,
-          savingsRate: dict.dashboard.savingsRate,
-        }}
-      />
+          2026-09 motion pass: each section gets a small staggered
+          fade+translateY entrance (`.motion-reveal*`, see globals.css) —
+          a one-shot reveal, not a repeating effect, and automatically
+          disabled under prefers-reduced-motion by the existing global kill
+          switch. NetWorthHero/GoalProgressCard/WealthOverview are each
+          independent async Server Components already (their own data
+          fetches), so wrapping them in Suspense lets them stream in as
+          soon as they're ready instead of all waiting on each other —
+          real progressive loading, not just a CSS effect on already-
+          resolved content. */}
+      <div className="motion-reveal motion-reveal-1">
+        <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
+          <NetWorthHero />
+        </Suspense>
+      </div>
 
       {FEATURES.ai ? (
-        <div className="space-y-3">
+        <div className="motion-reveal motion-reveal-2 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-medium">{dict.aiCoach.title}</h2>
             <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/ai" />}>
@@ -96,9 +109,29 @@ export default async function DashboardPage() {
         </div>
       ) : null}
 
-      <EngagementSummaryCard />
+      <div className="motion-reveal motion-reveal-3">
+        <SummaryCards
+          incomeCents={data.incomeCents}
+          expensesCents={data.expensesCents}
+          cashFlowCents={data.cashFlowCents}
+          savingsRatePercent={data.savingsRatePercent}
+          currencyCode={currencyCode}
+          labels={{
+            income: dict.dashboard.monthlyIncome,
+            expenses: dict.dashboard.monthlyExpenses,
+            cashFlow: dict.dashboard.cashFlow,
+            savingsRate: dict.dashboard.savingsRate,
+          }}
+        />
+      </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="motion-reveal motion-reveal-4">
+        <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
+          <GoalProgressCard />
+        </Suspense>
+      </div>
+
+      <div className="motion-reveal motion-reveal-5 grid gap-4 lg:grid-cols-2">
         <IncomeVsExpenseChart
           incomeCents={data.incomeCents}
           expensesCents={data.expensesCents}
@@ -106,6 +139,23 @@ export default async function DashboardPage() {
         />
         <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} />
       </div>
+
+      <div className="motion-reveal motion-reveal-6 space-y-3">
+        <h2 className="text-sm font-medium text-muted-foreground">{dict.dashboard.moreInsights}</h2>
+        <Suspense
+          fallback={
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-xl" />
+              ))}
+            </div>
+          }
+        >
+          <WealthOverview />
+        </Suspense>
+      </div>
+
+      <EngagementSummaryCard />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

@@ -42,14 +42,14 @@ export function LifeStageCard({ data }: { data: LifeStageAndPriorities }) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-1 text-xs font-medium text-primary"
+          className="flex items-center gap-1 text-xs font-medium text-primary transition-transform duration-(--motion-fast) active:scale-[0.98]"
         >
           {t("lifeStage.whyThisStage")}
           <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} aria-hidden="true" />
         </button>
 
         {expanded ? (
-          <div className="space-y-2 border-t pt-2 text-xs">
+          <div className="animate-in fade-in slide-in-from-top-1 duration-(--motion-normal) space-y-2 border-t pt-2 text-xs">
             <p className="text-muted-foreground">{t(`lifeStage.criteria.${lifeStage.stage}`)}</p>
             {lifeStage.nextStage ? (
               <div>

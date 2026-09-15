@@ -23,7 +23,7 @@ export function BottomNav() {
             key={item.key}
             href={item.href}
             className={cn(
-              "flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium",
+              "flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium transition-colors duration-(--motion-normal) ease-(--ease-standard)",
               active ? "text-foreground" : "text-muted-foreground"
             )}
             aria-current={active ? "page" : undefined}

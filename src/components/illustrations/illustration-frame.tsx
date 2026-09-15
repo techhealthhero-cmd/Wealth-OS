@@ -15,6 +15,11 @@ interface IllustrationFrameProps {
  * two overlapping soft shapes). This is what actually puts `DecorativeBlob`
  * to use — see GRAPHICS_PLAN.md's note on it previously being built but
  * unused.
+ *
+ * 2026-09 reskin (v2, "Coinest" light green direction): flat, no glow — an
+ * earlier purple/dark exploration added an optional glow layer here, but
+ * that direction was superseded before any page adopted it, so it's removed
+ * rather than left as unused dead code.
  */
 export function IllustrationFrame({ size = 160, className, children }: IllustrationFrameProps) {
   return (

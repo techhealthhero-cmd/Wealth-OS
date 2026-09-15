@@ -99,7 +99,10 @@ export function GoalCard({ goal, accounts }: { goal: FinancialGoal; accounts: Ac
         </div>
 
         <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-(--motion-value) ease-(--ease-standard)"
+            style={{ width: `${progress}%` }}
+          />
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center text-xs">

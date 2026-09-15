@@ -161,16 +161,24 @@ export function getPlanLimit(planId: PlanId, limit: keyof PlanLimits): number | 
   return PLANS[planId].limits[limit];
 }
 
-/** Subscription lifecycle statuses this app models (Day 7 STEP 3). */
-export type SubscriptionStatus = "free" | "trialing" | "active" | "past_due" | "canceled" | "incomplete";
+/**
+ * Subscription lifecycle statuses this app models (Day 7 STEP 3).
+ * `unpaid` added post-launch billing audit: sent by Stripe when its
+ * automatic retry schedule for a past-due invoice is exhausted without the
+ * subscription being canceled outright. Previously fell through to
+ * `incomplete` in `normalizeSubscription()`'s fallback — safe (both are
+ * already non-entitling) but an inaccurate status label. Modeled as its own
+ * status now for accurate display; entitlement behavior is unchanged.
+ */
+export type SubscriptionStatus = "free" | "trialing" | "active" | "past_due" | "canceled" | "incomplete" | "unpaid";
 
 /**
  * Which statuses actually grant the subscription's paid plan. `past_due`
  * still counts as entitled for a grace period (standard SaaS practice —
  * Stripe itself keeps the subscription active through its retry schedule
- * before marking it `canceled` or `unpaid`); `incomplete` and `canceled` do
- * not, and a "free" row is free by definition. Never grants access on any
- * status not explicitly listed here.
+ * before marking it `canceled` or `unpaid`); `incomplete`, `unpaid`, and
+ * `canceled` do not, and a "free" row is free by definition. Never grants
+ * access on any status not explicitly listed here.
  */
 const ENTITLING_STATUSES: SubscriptionStatus[] = ["trialing", "active", "past_due"];
 

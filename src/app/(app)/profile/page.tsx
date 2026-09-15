@@ -10,6 +10,7 @@ import { getLocale } from "@/i18n/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ChevronRight } from "lucide-react";
 
 export const metadata: Metadata = { title: "Profile — Wealth OS" };
@@ -44,6 +45,18 @@ export default async function ProfilePage() {
             </span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{dict.theme.toggle}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            {dict.theme.dark} / {dict.theme.light}
+          </span>
+          <ThemeToggle />
         </CardContent>
       </Card>
 
