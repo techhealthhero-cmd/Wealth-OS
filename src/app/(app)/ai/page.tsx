@@ -4,7 +4,7 @@ import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { getFinancialSummary, getFinancialPriority } from "@/features/ai/tools";
-import { getTopInsight } from "@/features/ai/lib/insights";
+import { getVisibleInsights } from "@/features/ai/lib/insights";
 import { buildMonthlyHealthCheck } from "@/features/ai/lib/health-check";
 import { NextBestActionCard } from "@/features/ai/components/next-best-action-card";
 import { MonthlyHealthCheckCard } from "@/features/ai/components/monthly-health-check-card";
@@ -16,11 +16,11 @@ import { AIUsageIndicator } from "@/features/billing/components/ai-usage-indicat
 export const metadata: Metadata = { title: "AI Money Coach — Wealth OS" };
 
 export default async function AICoachPage() {
-  const [profile, snapshot, priority, topInsight, healthCheck] = await Promise.all([
+  const [profile, snapshot, priority, insights, healthCheck] = await Promise.all([
     getProfile(),
     getFinancialSummary(),
     getFinancialPriority(),
-    getTopInsight(),
+    getVisibleInsights(),
     buildMonthlyHealthCheck(),
   ]);
   const locale = await getLocale(profile?.preferred_language);
@@ -37,7 +37,7 @@ export default async function AICoachPage() {
 
       <NextBestActionCard priority={priority} />
 
-      {topInsight ? <InsightCards insights={[topInsight]} /> : null}
+      {insights.length > 0 ? <InsightCards insights={insights} /> : null}
 
       <MonthlyHealthCheckCard health={healthCheck} showPriorityAction={false} />
 

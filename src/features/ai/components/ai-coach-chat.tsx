@@ -87,9 +87,28 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  // "Stick to bottom" while streaming, but stop following the moment the
+  // user scrolls away — a reply can run to many paragraphs, and locking
+  // the page to the newest token means the user can never read up while
+  // it's still arriving. Re-armed whenever the user sends a new message
+  // (see sendMessage below), matching the usual chat-app convention.
+  const stickToBottomRef = React.useRef(true);
+  const NEAR_BOTTOM_PX = 120;
 
   React.useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    function handleScroll() {
+      const distanceFromBottom =
+        document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+      stickToBottomRef.current = distanceFromBottom < NEAR_BOTTOM_PX;
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  React.useEffect(() => {
+    if (stickToBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   async function sendMessage(text: string) {
@@ -99,6 +118,9 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
     setErrorMessage(null);
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+    // The user just acted — resume following the conversation even if they'd
+    // scrolled away reading an earlier reply.
+    stickToBottomRef.current = true;
     setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", content: trimmed }]);
     setIsSending(true);
 

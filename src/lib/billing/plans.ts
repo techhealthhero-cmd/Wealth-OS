@@ -33,6 +33,7 @@ export const FEATURES = {
   INCOME_MISSIONS: "INCOME_MISSIONS",
   WEALTH_MISSIONS: "WEALTH_MISSIONS",
   ADVANCED_INSIGHTS: "ADVANCED_INSIGHTS",
+  DATA_EXPORT: "DATA_EXPORT",
 } as const;
 
 export type FeatureId = (typeof FEATURES)[keyof typeof FEATURES];
@@ -66,13 +67,20 @@ export interface PlanDefinition {
  * Income Engine and basic Wealth Missions from Days 5-6 — none of those are
  * gated below) rather than being cut down to a stub. Plus unlocks the deeper
  * planning tools (Forecast, Debt Planner, full Monthly Review, Subscription
- * Detector) and removes the small Free ceilings. Pro currently differs from
- * Plus by higher numeric limits (AI allowance, no goal/opportunity/mission
- * ceiling difference — Plus is already unlimited there) rather than
- * additional feature flags, since Day 7 doesn't introduce new advanced
- * forecasting/scenario tooling beyond what Day 3's Forecast already builds;
- * see PROJECT_STATUS.md "Known Limitations" for this documented as a
- * deliberate scope decision, not an oversight.
+ * Detector) and removes the small Free ceilings.
+ *
+ * Pro genuinely differs from Plus (2026-09, closing the gap PROJECT_STATUS.md
+ * had flagged as a real "Known Limitation" — Pro used to be a strict Plus
+ * superset with only a higher AI allowance, and the pricing page's old
+ * "early access to new features" bullet had no mechanism behind it at all):
+ * `ADVANCED_INSIGHTS` (every currently-meaningful AI Insight, not just the
+ * single top one — reuses `buildInsights()`'s existing, already-deterministic
+ * output, see `getVisibleInsights()`) and `DATA_EXPORT` (CSV download of the
+ * user's own transaction history) are both Pro-exclusive — Plus does NOT get
+ * either, unlike before this pass when `ADVANCED_INSIGHTS` was set `true` for
+ * Plus despite nothing ever reading it. Both were picked specifically because
+ * they reuse data the app already computes/stores, rather than inventing a
+ * new gated system.
  */
 export const PLANS: Record<PlanId, PlanDefinition> = {
   free: {
@@ -97,6 +105,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       INCOME_MISSIONS: true,
       WEALTH_MISSIONS: true,
       ADVANCED_INSIGHTS: false,
+      DATA_EXPORT: false,
     },
   },
   plus: {
@@ -120,7 +129,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       INCOME_OPPORTUNITIES: true,
       INCOME_MISSIONS: true,
       WEALTH_MISSIONS: true,
-      ADVANCED_INSIGHTS: true,
+      ADVANCED_INSIGHTS: false,
+      DATA_EXPORT: false,
     },
   },
   pro: {
@@ -145,6 +155,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       INCOME_MISSIONS: true,
       WEALTH_MISSIONS: true,
       ADVANCED_INSIGHTS: true,
+      DATA_EXPORT: true,
     },
   },
 };

@@ -160,6 +160,21 @@
       "other": "อื่นๆ"
     }
   },
+  "export": {
+    "exportCsv": "Export CSV",
+    "exportingCsv": "กำลังเตรียมไฟล์...",
+    "lockedTitle": "ใช้ได้ใน Pro",
+    "lockedDescription": "อัปเกรดเป็น Pro เพื่อดาวน์โหลดประวัติธุรกรรมทั้งหมดเป็นไฟล์ CSV",
+    "columnDate": "วันที่",
+    "columnType": "ประเภท",
+    "columnAmount": "จำนวนเงิน",
+    "columnCurrency": "สกุลเงิน",
+    "columnAccount": "บัญชี",
+    "columnCategory": "หมวดหมู่",
+    "columnMerchant": "ร้าน/ผู้รับ",
+    "columnDescription": "รายละเอียด",
+    "columnNotes": "หมายเหตุ"
+  },
   "transactions": {
     "title": "รายการธุรกรรม",
     "addIncome": "เพิ่มรายรับ",
@@ -1350,7 +1365,8 @@
         "pro": [
           "ทุกอย่างในแผน Plus",
           "AI Money Coach 500 ข้อความ/เดือน",
-          "สิทธิ์ใช้ฟีเจอร์ใหม่ก่อนใคร"
+          "Insight เชิงลึกครบทุกรายการ ไม่ใช่แค่รายการเดียว",
+          "Export ประวัติธุรกรรมเป็นไฟล์ CSV"
         ]
       }
     },

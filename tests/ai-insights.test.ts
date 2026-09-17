@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { buildInsights, getTopInsight } from "@/features/ai/lib/insights";
+import { buildInsights, getTopInsight, getVisibleInsights } from "@/features/ai/lib/insights";
 import type { DebtSummaryTool, GoalProgressTool, NetWorthTool } from "@/features/ai/types";
+
+let mockCanUseAdvancedInsights = false;
+vi.mock("@/lib/billing/entitlements", () => ({
+  FEATURES: { ADVANCED_INSIGHTS: "ADVANCED_INSIGHTS" },
+  canUseFeature: vi.fn(async () => mockCanUseAdvancedInsights),
+}));
 
 interface FakeTx {
   type: "income" | "expense" | "debt_payment";
@@ -164,5 +170,46 @@ describe("getTopInsight", () => {
     previousAll = [tx("income", "30000.00")];
     netWorth = { netWorthCents: 110000, totalAssetsCents: 210000, totalLiabilitiesCents: 100000, changeVsPreviousCents: 10000 };
     expect((await getTopInsight())?.type).toBe("net_worth_growth");
+  });
+});
+
+describe("getVisibleInsights — plan-aware (Pro-exclusive ADVANCED_INSIGHTS)", () => {
+  beforeEach(() => {
+    currentAll = [tx("income", "30000.00"), tx("expense", "27000.00")]; // savings rate drop
+    previousAll = [tx("income", "30000.00"), tx("expense", "15000.00")];
+    currentDebtPayment = [tx("debt_payment", "1500.00")];
+    debtSummary = { hasDebt: true, totalDebtCents: 500000 }; // + debt progress = 2 insights total
+    goalProgress = { goals: [] };
+    netWorth = { netWorthCents: 0, totalAssetsCents: 0, totalLiabilitiesCents: 0, changeVsPreviousCents: null };
+    currentExpense = [];
+    previousExpense = [];
+  });
+
+  it("Free/Plus (no ADVANCED_INSIGHTS entitlement) see only the single top insight, same as getTopInsight()", async () => {
+    mockCanUseAdvancedInsights = false;
+    const all = await buildInsights();
+    expect(all.length).toBeGreaterThan(1); // sanity: more than one insight is actually available to be hidden
+
+    const visible = await getVisibleInsights();
+    expect(visible).toHaveLength(1);
+    expect(visible[0]).toEqual(all[0]);
+  });
+
+  it("Pro (has ADVANCED_INSIGHTS entitlement) sees every currently-meaningful insight", async () => {
+    mockCanUseAdvancedInsights = true;
+    const all = await buildInsights();
+    const visible = await getVisibleInsights();
+    expect(visible).toEqual(all);
+    expect(visible.length).toBeGreaterThan(1);
+  });
+
+  it("returns an empty array (not null/undefined) when nothing meaningful changed, regardless of plan", async () => {
+    currentAll = [tx("income", "30000.00")];
+    previousAll = [tx("income", "30000.00")];
+    currentDebtPayment = [];
+    debtSummary = { hasDebt: false };
+
+    mockCanUseAdvancedInsights = true;
+    expect(await getVisibleInsights()).toEqual([]);
   });
 });

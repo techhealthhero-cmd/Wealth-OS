@@ -14,6 +14,7 @@ import { TransactionRow } from "./transaction-row";
 import { TransactionFilters as TransactionFiltersBar } from "./transaction-filters";
 import { QuickAdd } from "./quick-add";
 import { QuickRepeat } from "./quick-repeat";
+import { ExportTransactionsButton } from "./export-button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export async function TransactionList({ filters }: { filters: TransactionFilters }) {
@@ -32,7 +33,8 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <TransactionFiltersBar accounts={accounts} categories={categories} />
-        <div className="shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
+          <ExportTransactionsButton />
           <QuickAdd accounts={accounts} categories={categories} variant="inline" />
         </div>
       </div>

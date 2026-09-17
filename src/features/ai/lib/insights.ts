@@ -15,6 +15,7 @@ import { calculateSavingsRate } from "@/lib/financial/calculations";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import { getDebtSummary, getGoalProgress, getNetWorthSummary } from "@/features/ai/tools";
 import { toLocalDateString } from "@/lib/date";
+import { canUseFeature, FEATURES } from "@/lib/billing/entitlements";
 
 export type InsightType =
   | "spending_increase"
@@ -146,4 +147,19 @@ async function findSpendingIncreaseGuarded(): Promise<Insight | null> {
 export async function getTopInsight(): Promise<Insight | null> {
   const insights = await buildInsights();
   return insights[0] ?? null;
+}
+
+/**
+ * Plan-aware insight list: Free/Plus see only the single top insight (same
+ * as `getTopInsight()`); Pro's `ADVANCED_INSIGHTS` entitlement unlocks every
+ * currently-meaningful insight, not just the highest-priority one. No new
+ * insight logic — same deterministic `buildInsights()` output either way,
+ * just how much of it a given plan is shown.
+ */
+export async function getVisibleInsights(): Promise<Insight[]> {
+  const [insights, hasAdvancedInsights] = await Promise.all([
+    buildInsights(),
+    canUseFeature(FEATURES.ADVANCED_INSIGHTS),
+  ]);
+  return hasAdvancedInsights ? insights : insights.slice(0, 1);
 }

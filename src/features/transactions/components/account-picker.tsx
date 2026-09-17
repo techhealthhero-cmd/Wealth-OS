@@ -23,15 +23,17 @@ interface AccountPickerProps {
 function AccountLabel({ account }: { account: Account }) {
   const { t } = useTranslation();
   return (
-    <span className="flex items-center gap-2">
-      <span aria-hidden="true">{ACCOUNT_TYPE_EMOJI[account.account_type]}</span>
-      <span>{account.name}</span>
+    <span className="flex min-w-0 items-center gap-2">
+      <span aria-hidden="true" className="shrink-0">
+        {ACCOUNT_TYPE_EMOJI[account.account_type]}
+      </span>
+      <span className="truncate">{account.name}</span>
       {/* This list includes archived accounts (so old transactions still
           render correctly), so picking one for a NEW transaction must be a
           visible, deliberate choice — never silent. See CLAUDE.md/
           UX_GUIDELINES.md "never silently select an archived account." */}
       {account.is_archived ? (
-        <span className="text-xs text-muted-foreground">({t("accounts.archived")})</span>
+        <span className="shrink-0 text-xs text-muted-foreground">({t("accounts.archived")})</span>
       ) : null}
     </span>
   );
@@ -62,14 +64,14 @@ export function AccountPicker({ name, accounts, value, onValueChange, id }: Acco
           }}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent alignItemWithTrigger={false}>
+      <SelectContent alignItemWithTrigger={false} className="min-w-64">
         {accounts.map((account) => (
           <SelectItem key={account.id} value={account.id}>
-            <span className="flex w-full items-center justify-between gap-3">
-              <span className="flex flex-col">
+            <span className="flex w-full min-w-0 items-center justify-between gap-3">
+              <span className="flex min-w-0 flex-col">
                 <AccountLabel account={account} />
                 {account.institution ? (
-                  <span className="pl-6 text-xs text-muted-foreground">{account.institution}</span>
+                  <span className="truncate pl-6 text-xs text-muted-foreground">{account.institution}</span>
                 ) : null}
               </span>
               <span className="shrink-0 text-xs text-muted-foreground">

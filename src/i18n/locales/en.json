@@ -160,6 +160,21 @@
       "other": "Other"
     }
   },
+  "export": {
+    "exportCsv": "Export CSV",
+    "exportingCsv": "Preparing file...",
+    "lockedTitle": "Available on Pro",
+    "lockedDescription": "Upgrade to Pro to download your full transaction history as a CSV file",
+    "columnDate": "Date",
+    "columnType": "Type",
+    "columnAmount": "Amount",
+    "columnCurrency": "Currency",
+    "columnAccount": "Account",
+    "columnCategory": "Category",
+    "columnMerchant": "Merchant / paid to",
+    "columnDescription": "Description",
+    "columnNotes": "Notes"
+  },
   "transactions": {
     "title": "Transactions",
     "addIncome": "Add income",
@@ -1350,7 +1365,8 @@
         "pro": [
           "Everything in Plus",
           "AI Money Coach — 500 messages/month",
-          "Early access to new features"
+          "Every AI Insight, not just the top one",
+          "Export your transaction history as a CSV file"
         ]
       }
     },
