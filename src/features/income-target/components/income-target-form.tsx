@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import { saveIncomeTarget } from "@/features/income-target/actions";
 import { PREFERRED_INCOME_TYPES, WORK_MODE_PREFERENCES } from "@/lib/validation/income-target";
@@ -10,10 +10,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TargetDateField } from "./target-date-field";
 
-export function IncomeTargetForm({ target }: { target: IncomeTarget | null }) {
+interface IncomeTargetFormProps {
+  target: IncomeTarget | null;
+  /** Called once the save actually succeeds (not on every render) — lets a
+      parent view collapse back to a summary instead of leaving the form
+      sitting open after saving, which is exactly what it looked like was
+      "not going away" from the user's real-device report. */
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export function IncomeTargetForm({ target, onSuccess, onCancel }: IncomeTargetFormProps) {
   const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(saveIncomeTarget, undefined);
+
+  useEffect(() => {
+    if (state?.success) onSuccess?.();
+    // Only ever fire on a fresh success — never on the initial `undefined`
+    // state, and never re-fire just because the parent re-rendered.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.success]);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -42,23 +60,19 @@ export function IncomeTargetForm({ target }: { target: IncomeTarget | null }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="target_date">{t("earn.target.targetDate")}</Label>
-          <Input id="target_date" name="target_date" type="date" defaultValue={target?.target_date ?? ""} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="max_hours_per_week">{t("earn.target.maxHoursPerWeek")}</Label>
-          <Input
-            id="max_hours_per_week"
-            name="max_hours_per_week"
-            type="number"
-            step="0.5"
-            min="0"
-            max="168"
-            defaultValue={target?.max_hours_per_week ?? ""}
-          />
-        </div>
+      <TargetDateField name="target_date" defaultValue={target?.target_date} />
+
+      <div className="space-y-2">
+        <Label htmlFor="max_hours_per_week">{t("earn.target.maxHoursPerWeek")}</Label>
+        <Input
+          id="max_hours_per_week"
+          name="max_hours_per_week"
+          type="number"
+          step="0.5"
+          min="0"
+          max="168"
+          defaultValue={target?.max_hours_per_week ?? ""}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -112,9 +126,16 @@ export function IncomeTargetForm({ target }: { target: IncomeTarget | null }) {
         </p>
       ) : null}
 
-      <Button type="submit" disabled={isPending}>
-        {isPending ? t("common.saving") : t("common.save")}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={isPending}>
+          {isPending ? t("common.saving") : t("common.save")}
+        </Button>
+        {onCancel ? (
+          <Button type="button" variant="ghost" disabled={isPending} onClick={onCancel}>
+            {t("common.cancel")}
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }

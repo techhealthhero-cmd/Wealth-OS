@@ -1,10 +1,18 @@
 import type { IllustrationProps } from "./types";
 
 /**
- * For the future "Plan → Goals" feature (CLAUDE.md Phase 3 — not built yet).
  * A flag reached via a dashed path — "a target you're moving toward," not a
- * generic trophy. Ready to use once a Goals page exists; not imported
- * anywhere yet, so it costs nothing to ship early.
+ * generic trophy. Used on the Goals empty state.
+ *
+ * A small dot travels the same path toward the flag on a slow, gentle loop
+ * (`.motion-goal-dot` in globals.css) — an abstract "always moving toward
+ * the goal" cue. Deliberately NOT a character/person walking: the user
+ * asked for exactly that ("a kid chasing their dream, walking toward the
+ * flag"), but GRAPHICS_PLAN.md explicitly rules out "detailed character art
+ * or realistic human figures" and "a mascot-first product" — a literal
+ * walking figure would read as childish, which the brand is deliberately
+ * avoiding even for the AI Coach illustration. This keeps the same
+ * emotional intent (progress toward a dream) within that constraint.
  */
 export function GoalIllustration({ size = 160, className }: IllustrationProps) {
   return (
@@ -26,6 +34,8 @@ export function GoalIllustration({ size = 160, className }: IllustrationProps) {
         strokeDasharray="1 10"
         fill="none"
       />
+
+      <circle r="5" fill="var(--primary)" className="motion-goal-dot" />
 
       <line x1="140" y1="50" x2="140" y2="150" stroke="var(--primary)" strokeWidth="4" strokeLinecap="round" />
       <path d="M140 52L168 64L140 76Z" fill="var(--chart-5)" />

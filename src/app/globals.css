@@ -290,6 +290,35 @@
   box-shadow: 0 1px 2px rgba(28, 37, 33, 0.04), 0 10px 20px -12px rgba(28, 37, 33, 0.14);
 }
 
+/* GoalIllustration's "always moving toward the goal" motion cue: a small
+   dot traveling the same dashed path toward the flag, on a slow, calm
+   loop — deliberately an abstract cue, never a character/mascot walking
+   (GRAPHICS_PLAN.md: "never detailed character art or realistic human
+   figures"). Fades in/out at each end of the path so the loop restarts
+   invisibly instead of visibly snapping back to the start. A real CSS
+   animation, so it's automatically reduced to one near-instant frame by
+   the prefers-reduced-motion rule below — no separate handling needed. */
+.motion-goal-dot {
+  offset-path: path("M40 150C60 150 55 130 75 130C95 130 90 110 110 108");
+  animation: goal-dot-travel 3.2s var(--ease-standard) infinite;
+}
+@keyframes goal-dot-travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
 /*
  * Day 8 accessibility audit (STEP 8): honors prefers-reduced-motion
  * app-wide in one place, rather than adding a reduced-motion variant to

@@ -2,21 +2,11 @@ import { getIncomeTarget } from "@/features/income-target/queries";
 import { getIncomeProfileSummary } from "@/features/income-profile/queries";
 import { calculateIncomeGap } from "@/lib/financial/income-gap";
 import { parseMoneyToCents } from "@/lib/financial/money";
-import { getDictionary } from "@/i18n/dictionaries";
-import { getLocale } from "@/i18n/server";
-import { getProfile } from "@/features/profile/queries";
-import { IncomeTargetForm } from "./income-target-form";
+import { IncomeTargetView } from "./income-target-view";
 import { IncomeGapCard } from "./income-gap-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export async function IncomeTargetSection() {
-  const [target, { profile }, appProfile] = await Promise.all([
-    getIncomeTarget(),
-    getIncomeProfileSummary(),
-    getProfile(),
-  ]);
-  const locale = await getLocale(appProfile?.preferred_language);
-  const dict = getDictionary(locale);
+  const [target, { profile }] = await Promise.all([getIncomeTarget(), getIncomeProfileSummary()]);
 
   const gap = calculateIncomeGap({
     targetMonthlyIncomeCents:
@@ -29,14 +19,7 @@ export async function IncomeTargetSection() {
   return (
     <div className="space-y-4">
       <IncomeGapCard gap={gap} averageMonthlyIncomeCents={profile.averageMonthlyIncomeCents} />
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{dict.earn.target.title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <IncomeTargetForm target={target} />
-        </CardContent>
-      </Card>
+      <IncomeTargetView target={target} />
     </div>
   );
 }

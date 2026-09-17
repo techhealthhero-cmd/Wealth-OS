@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toLocalDateString } from "@/lib/date";
+import { addMonthsClamped, toLocalDateString } from "@/lib/date";
 
 describe("toLocalDateString", () => {
   it("formats a date as YYYY-MM-DD using local calendar fields", () => {
@@ -23,5 +23,32 @@ describe("toLocalDateString", () => {
 
   it("handles the last day of a month correctly", () => {
     expect(toLocalDateString(new Date(2026, 8, 30))).toBe("2026-09-30");
+  });
+});
+
+describe("addMonthsClamped", () => {
+  it("adds whole months in the simple case", () => {
+    const result = addMonthsClamped(new Date(2026, 8, 17), 6); // Sep 17 + 6mo
+    expect(toLocalDateString(result)).toBe("2027-03-17");
+  });
+
+  it("adds multi-year spans correctly (e.g. the 5-year income-target preset)", () => {
+    const result = addMonthsClamped(new Date(2026, 8, 17), 60);
+    expect(toLocalDateString(result)).toBe("2031-09-17");
+  });
+
+  it("clamps to the last real day of the target month instead of overflowing (Jan 31 + 1 month)", () => {
+    const result = addMonthsClamped(new Date(2026, 0, 31), 1);
+    expect(toLocalDateString(result)).toBe("2026-02-28"); // 2026 is not a leap year
+  });
+
+  it("clamps correctly into a leap-year February", () => {
+    const result = addMonthsClamped(new Date(2027, 0, 31), 13); // Jan 31 2027 + 13mo -> Feb 2028 (leap)
+    expect(toLocalDateString(result)).toBe("2028-02-29");
+  });
+
+  it("adding 0 months returns the same calendar date", () => {
+    const result = addMonthsClamped(new Date(2026, 8, 17), 0);
+    expect(toLocalDateString(result)).toBe("2026-09-17");
   });
 });

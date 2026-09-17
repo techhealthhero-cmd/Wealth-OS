@@ -19,3 +19,20 @@ export function toLocalDateString(date: Date): string {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Adds `months` to `date`, clamping to the last real day of the resulting
+ * month when the original day doesn't exist there (e.g. Jan 31 + 1 month ->
+ * Feb 28/29, never a silent overflow into March). Mirrors the same
+ * month-end-clamping rule `calculateNextDueDate()` (src/lib/financial/
+ * recurring.ts) already uses for recurring transactions — kept as a
+ * separate small utility here since it's genuinely generic (goal/target
+ * date math), not recurring-transaction-specific.
+ */
+export function addMonthsClamped(date: Date, months: number): Date {
+  const day = date.getDate();
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  if (result.getDate() !== day) result.setDate(0);
+  return result;
+}
