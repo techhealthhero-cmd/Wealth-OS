@@ -25,6 +25,7 @@ export default async function TransactionsPage({ searchParams }: TransactionsPag
         categoryId: get("categoryId"),
         from: get("from"),
         to: get("to"),
+        hasNotes: get("notes") === "1",
       }}
     />
   );

@@ -73,9 +73,18 @@ export function IncomeVsExpenseChart({
   expensesCents,
   currencyCode,
 }: IncomeVsExpenseChartProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const reducedMotion = usePrefersReducedMotion();
   const hasData = incomeCents > 0 || expensesCents > 0;
+
+  // Full 6+ digit numbers (e.g. "600000") don't fit the axis's reserved
+  // width and get clipped at the SVG's left edge — compact notation
+  // ("600K") is both short enough to never clip and easier to read at a
+  // glance than a long uncomma'd number.
+  const compactNumberFormatter = new Intl.NumberFormat(locale === "th" ? "th-TH" : "en-US", {
+    notation: "compact",
+    compactDisplay: "short",
+  });
 
   const data = [
     {
@@ -140,7 +149,8 @@ export function IncomeVsExpenseChart({
                   tickLine={false}
                   axisLine={false}
                   tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-                  width={40}
+                  tickFormatter={(value: number) => compactNumberFormatter.format(centsToNumber(value))}
+                  width={44}
                 />
                 <Tooltip
                   content={<IncomeExpenseTooltip currencyCode={currencyCode} />}

@@ -44,13 +44,19 @@ interface TransactionRowProps {
   transaction: TransactionWithRelations;
   accounts: Account[];
   categories: Category[];
+  defaultDetailsOpen?: boolean;
 }
 
-export function TransactionRow({ transaction, accounts, categories }: TransactionRowProps) {
+export function TransactionRow({
+  transaction,
+  accounts,
+  categories,
+  defaultDetailsOpen = false,
+}: TransactionRowProps) {
   const { t, locale } = useTranslation();
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(defaultDetailsOpen);
   const Icon = TYPE_ICONS[transaction.type];
   const isCredit = CREDIT_TYPES.includes(transaction.type);
   const isTransfer = transaction.type === "transfer";

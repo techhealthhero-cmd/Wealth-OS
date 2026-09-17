@@ -18,6 +18,7 @@ export interface TransactionFilters {
   categoryId?: string;
   type?: TransactionType;
   search?: string;
+  hasNotes?: boolean;
   limit?: number;
 }
 
@@ -69,6 +70,7 @@ export async function getTransactions(
       query = query.or(`description.ilike.%${term}%,merchant.ilike.%${term}%`);
     }
   }
+  if (filters.hasNotes) query = query.not("notes", "is", null).neq("notes", "");
   if (filters.limit) query = query.limit(filters.limit);
 
   const { data, error } = await query;

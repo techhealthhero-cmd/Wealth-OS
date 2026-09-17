@@ -1,20 +1,30 @@
 import Link from "next/link";
 
-import { getNetWorthBreakdown, getNetWorthSnapshots } from "@/features/net-worth/queries";
+import {
+  ensureTodaysNetWorthSnapshot,
+  getNetWorthBreakdown,
+  getNetWorthSnapshotsSince,
+} from "@/features/net-worth/queries";
 import { calculateNetWorthChange, type NetWorthChange } from "@/lib/financial/net-worth";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
+import type { Locale } from "@/i18n/config";
 import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedNumber } from "@/components/shared/animated-number";
+import { NetWorthMiniChart } from "./net-worth-mini-chart";
 import type { NetWorthBreakdown } from "@/features/net-worth/queries";
+
+const CHART_HISTORY_MONTHS = 6;
 
 interface NetWorthHeroData {
   dict: ReturnType<typeof getDictionary>;
+  locale: Locale;
   breakdown: NetWorthBreakdown;
   change: NetWorthChange;
   hasHistory: boolean;
+  chartData: { date: string; netWorth: number }[];
 }
 
 /**
@@ -31,10 +41,12 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
     const locale = await getLocale(profile?.preferred_language);
     const dict = getDictionary(locale);
 
-    const [breakdown, snapshots] = await Promise.all([
-      getNetWorthBreakdown(),
-      getNetWorthSnapshots(2),
-    ]);
+    const breakdown = await getNetWorthBreakdown();
+    // Ensures at least today's row exists — previously only /money/net-worth
+    // ever wrote a snapshot, so a user who only ever opens the dashboard
+    // would never build up any history for this chart to show.
+    await ensureTodaysNetWorthSnapshot(breakdown);
+    const snapshots = await getNetWorthSnapshotsSince(CHART_HISTORY_MONTHS);
 
     const previousSnapshot = snapshots.length >= 2 ? snapshots[snapshots.length - 2] : null;
     const change = calculateNetWorthChange(
@@ -42,7 +54,14 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
       previousSnapshot ? parseMoneyToCents(previousSnapshot.net_worth) : 0
     );
 
-    return { dict, breakdown, change, hasHistory: previousSnapshot !== null };
+    const chartData = snapshots.map((s) => ({
+      date: new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "short", day: "numeric" }).format(
+        new Date(`${s.snapshot_date}T00:00:00`)
+      ),
+      netWorth: parseMoneyToCents(s.net_worth),
+    }));
+
+    return { dict, locale, breakdown, change, hasHistory: previousSnapshot !== null, chartData };
   } catch (error) {
     console.error("[NetWorthHero] Failed to load Day 2 wealth engine data — has migration 0003 been applied?", error);
     return null;
@@ -61,7 +80,7 @@ export async function NetWorthHero() {
   const data = await loadNetWorthHeroData();
   if (!data) return null;
 
-  const { dict, breakdown, change, hasHistory } = data;
+  const { dict, breakdown, change, hasHistory, chartData } = data;
   const isNegative = breakdown.netWorthCents < 0;
 
   return (
@@ -100,6 +119,15 @@ export async function NetWorthHero() {
               </p>
             )}
           </div>
+
+          {chartData.length >= 2 ? (
+            <div className="space-y-1">
+              <p className={isNegative ? "text-xs text-muted-foreground" : "text-xs text-primary-foreground/60"}>
+                {dict.netWorth.last6Months}
+              </p>
+              <NetWorthMiniChart data={chartData} tone={isNegative ? "default" : "highlight"} />
+            </div>
+          ) : null}
 
           <div
             className={`grid grid-cols-2 gap-3 border-t pt-3 text-sm ${isNegative ? "border-border" : "border-primary-foreground/15"}`}

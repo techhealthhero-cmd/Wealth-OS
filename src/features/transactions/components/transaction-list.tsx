@@ -18,7 +18,8 @@ import { ExportTransactionsButton } from "./export-button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export async function TransactionList({ filters }: { filters: TransactionFilters }) {
-  const isDefaultView = !filters.search && !filters.type && !filters.accountId && !filters.categoryId;
+  const isDefaultView =
+    !filters.search && !filters.type && !filters.accountId && !filters.categoryId && !filters.hasNotes;
   const [transactions, accounts, categories, profile, quickRepeatCandidates] = await Promise.all([
     getTransactions(filters),
     getAccounts({ includeArchived: true }),
@@ -74,6 +75,7 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
                 transaction={transaction}
                 accounts={accounts}
                 categories={categories}
+                defaultDetailsOpen={filters.hasNotes}
               />
             ))}
           </CardContent>

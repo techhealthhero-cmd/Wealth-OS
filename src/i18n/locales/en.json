@@ -239,6 +239,7 @@
     "filterByType": "Filter by type",
     "filterByAccount": "Filter by account",
     "filterByCategory": "Filter by category",
+    "filterHasNotes": "Has notes",
     "allTypes": "All types",
     "allAccounts": "All accounts",
     "allCategories": "All categories",
@@ -378,7 +379,8 @@
     "manualAssets": "Manually added assets",
     "emptyTitle": "No net worth data yet",
     "emptyState": "Add an account or asset to start calculating your net worth.",
-    "noHistoryYet": "Not enough history yet — check back after some time has passed."
+    "noHistoryYet": "Not enough history yet — check back after some time has passed.",
+  "last6Months": "Last 6 months"
   },
   "goals": {
     "title": "Financial Goals",

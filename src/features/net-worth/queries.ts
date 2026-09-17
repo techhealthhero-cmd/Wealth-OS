@@ -53,6 +53,22 @@ export async function getNetWorthSnapshots(limit = 12): Promise<NetWorthSnapshot
   return (data ?? []).reverse();
 }
 
+/** Snapshots from the last N calendar months, oldest first — for a trend chart, not a fixed row count. */
+export async function getNetWorthSnapshotsSince(monthsBack: number): Promise<NetWorthSnapshot[]> {
+  const supabase = await createClient();
+  const since = new Date();
+  since.setMonth(since.getMonth() - monthsBack);
+
+  const { data, error } = await supabase
+    .from("net_worth_snapshots")
+    .select("*")
+    .gte("snapshot_date", toLocalDateString(since))
+    .order("snapshot_date", { ascending: true });
+
+  if (error) throw new Error("Failed to load net worth history");
+  return data ?? [];
+}
+
 /**
  * Upserts today's snapshot from the current live breakdown. Called whenever
  * the Net Worth page is viewed — idempotent (unique(user_id, snapshot_date)),
@@ -78,4 +94,31 @@ export async function recordTodaysNetWorthSnapshot(breakdown: NetWorthResult): P
     },
     { onConflict: "user_id,snapshot_date" }
   );
+}
+
+/**
+ * Same upsert as `recordTodaysNetWorthSnapshot`, but skips the write when
+ * today's row already exists — mirrors `ensureTodaysWealthScore()`'s
+ * once-per-day pattern so a page that's viewed many times a day (the
+ * dashboard, unlike the Net Worth page which is visited far less often)
+ * doesn't issue a redundant write on every load.
+ */
+export async function ensureTodaysNetWorthSnapshot(breakdown: NetWorthResult): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const today = toLocalDateString(new Date());
+  const { data: latest } = await supabase
+    .from("net_worth_snapshots")
+    .select("snapshot_date")
+    .eq("user_id", user.id)
+    .order("snapshot_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latest?.snapshot_date === today) return;
+  await recordTodaysNetWorthSnapshot(breakdown);
 }

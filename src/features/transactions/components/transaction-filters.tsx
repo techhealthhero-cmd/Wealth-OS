@@ -2,9 +2,11 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { MessageSquareText } from "lucide-react";
 
 import type { Account, Category, TransactionType } from "@/types/database";
 import { useTranslation } from "@/i18n/client";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -62,8 +64,11 @@ export function TransactionFilters({ accounts, categories }: TransactionFiltersP
     return match ? categoryName(match) : t("transactions.allCategories");
   };
 
+  const hasNotesActive = searchParams.get("notes") === "1";
+
   return (
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="space-y-2">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
       <Input
         placeholder={t("transactions.searchPlaceholder")}
         defaultValue={searchParams.get("q") ?? ""}
@@ -121,6 +126,22 @@ export function TransactionFilters({ accounts, categories }: TransactionFiltersP
           ))}
         </SelectContent>
       </Select>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setParam("notes", hasNotesActive ? null : "1")}
+        aria-pressed={hasNotesActive}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+          hasNotesActive
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-border bg-transparent text-muted-foreground hover:bg-muted"
+        )}
+      >
+        <MessageSquareText className="h-3.5 w-3.5" aria-hidden="true" />
+        {t("transactions.filterHasNotes")}
+      </button>
     </div>
   );
 }
