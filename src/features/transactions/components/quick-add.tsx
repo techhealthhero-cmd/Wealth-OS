@@ -50,7 +50,7 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
             )
           )}
         />
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" side={variant === "floating" ? "top" : "bottom"}>
           <DropdownMenuItem onClick={() => setActiveDialog("expense")}>
             <TrendingDown className="mr-2 h-4 w-4" aria-hidden="true" />
             {t("transactions.types.expense")}

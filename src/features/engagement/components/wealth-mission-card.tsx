@@ -77,7 +77,18 @@ export function WealthMissionCard({ mission }: { mission: WealthMission }) {
               {t("missions.markSkipped")}
             </Button>
           </div>
-        ) : null}
+        ) : (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => startTransition(async () => { await updateWealthMissionStatus(mission.id, "not_started"); })}
+            >
+              {t("missions.undo")}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

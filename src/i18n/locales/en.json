@@ -1008,6 +1008,7 @@
       "markInProgress": "Start",
       "markCompleted": "Mark completed",
       "markSkipped": "Skip this mission",
+      "undo": "Undo (not done yet)",
       "addProgress": "Log progress",
       "status": "Status",
       "dueDate": "Due date",
@@ -1186,6 +1187,7 @@
     "markInProgress": "Start",
     "markCompleted": "Mark completed",
     "markSkipped": "Skip this mission",
+    "undo": "Undo (not done yet)",
     "emptyTitle": "No missions yet",
     "emptyState": "The system will suggest missions automatically based on your financial status",
     "statuses": {

@@ -1226,6 +1226,44 @@ Quality gate: lint ✅, typecheck ✅, tests ✅ (509/509, unchanged — pure CS
 
 Quality gate: lint ✅, typecheck ✅, tests ✅ (509/509, unchanged), build ✅ (49 routes — `/login`/`/signup` now correctly marked dynamic since `getLocale()` reads cookies, not a regression).
 
+## Bug fix — quick-add FAB menu opened downward, into the bottom nav (2026-09-17, real device report)
+
+**Trigger**: user screenshot from a real iPhone — tapping the floating "+" button (bottom-right, near the bottom nav) opened its rayจ่าย/รายรับ/โอนเงิน menu *downward*, so it appeared low and cramped right against/behind the bottom nav bar instead of opening into the open space above the button.
+
+**Root cause**: `QuickAdd`'s `DropdownMenuContent` (`src/features/transactions/components/quick-add.tsx`) didn't set a `side` prop, so it inherited the shared `dropdown-menu.tsx` component's default of `side="bottom"` — a sensible default for most menus in the app (triggered from buttons in the normal page flow), but wrong for this one specific trigger, which is `fixed bottom-20 right-4` (deliberately anchored near the bottom edge of the viewport). Opening downward from a button already near the bottom edge pushes the menu toward/under the nav bar.
+
+**Fix**: one line — `side={variant === "floating" ? "top" : "bottom"}` on this call site only. The FAB (`variant="floating"`, the one actually anchored near the bottom edge) now opens upward; the `inline` variant (a normal button in `transaction-list.tsx`'s page header, not near any screen edge) keeps the original downward default, since that one was never broken. Checked for any other `fixed bottom-*` trigger in the app that might share the same defect — `quick-add.tsx`'s FAB is the only one.
+
+**Verified visually**: same temporary-preview-page technique as the other fixes this session (a throwaway route rendering the real `QuickAdd` component with a mock bottom-nav bar, screenshotted at 390×844 after clicking the FAB) — confirmed the menu now renders fully above the button, clear of the nav bar, all three items reachable. Preview route and its Playwright spec were deleted afterward.
+
+Quality gate: lint ✅, typecheck ✅, tests ✅ (509/509, unchanged), build ✅ (49 routes).
+
+## AI Money Coach tone fix — raw internal status codes leaking into replies, too report-like (2026-09-17, real device — first live model test of the new chat restyle)
+
+**Trigger**: this session's first actual live confirmation of the AI chat restyle's streaming path (closing out the "Next Task" item that was blocked earlier by a rate limit) — the user tried it for real on production and the reply, while factually correct, read like a system report: raw internal codes quoted verbatim ("near_limit", `"no_investment_contribution" (severity: low)`), a numbered `**1. ... 2. ... 3.**` bold-header structure, and no emojis — not "a knowledgeable friend," which is the tone CLAUDE.md/the existing system prompt already intended.
+
+**Root cause**: `renderFinancialContext()` (`src/features/ai/prompts/money-coach.ts`) embeds several fields' raw enum/status values directly into the plain-text context block sent to the model — e.g. `status: ${ctx.budget.status}` (values like `near_limit`), `${ctx.currentPriority.priorityType}` (values like `no_investment_contribution`), `severity`. Nothing in the system prompt told the model these were internal codes it should translate rather than data it could safely echo — so a literal-minded reply is exactly what a model correctly following "use only the data you're given" would produce.
+
+**Fix**: added an explicit rule to `CORE_SYSTEM_PROMPT` — the context block may contain internal snake_case/English status codes, and the model must always translate them into plain human language, never quote one verbatim. Added a new "Tone and formatting" block: talk like a warm, knowledgeable friend (not a report or memo); use emojis naturally and sparingly (never one per line, never pure decoration); avoid stacking numbered bold headers for anything short — save that structure for when real detail is actually asked for; stay precise with numbers regardless of tone. Reinforced the same "no raw English/technical jargon mixed into Thai" point in the Thai locale instruction specifically, since that's the reported case. Removed the old standalone one-line "Tone: calm, intelligent..." sentence at the end of the prompt — folded into (and superseded by) the new block, so there's one tone instruction, not two overlapping ones.
+
+**Not verified against a live model reply** — confirming this actually changes the model's output would mean spending real Anthropic API usage against the user's own plan quota; the fix was verified via the existing prompt/injection-resistance unit tests (`tests/ai-prompt.test.ts`, unaffected — they don't assert on the removed tone sentence) and a full lint/typecheck/test/build pass, not a real conversational round trip. **Ask the AI Money Coach the same kind of question again on production** to confirm the tone actually reads better and no raw codes leak through — that's the real test this fix still needs.
+
+Quality gate: lint ✅, typecheck ✅, tests ✅ (509/509, unchanged), build ✅ (49 routes).
+
+## Feature gap fix — no way to undo a mission marked completed/skipped by mistake (2026-09-17, real device report)
+
+**Trigger**: user screenshot of `/earn/missions` — a mission marked "เสร็จแล้ว" (completed) had no action buttons at all, so a mis-tap had no way back.
+
+**Root cause**: both mission card components (`src/features/income-missions/components/mission-card.tsx` for Income Missions, `src/features/engagement/components/wealth-mission-card.tsx` for Wealth Missions — same author pattern, same gap in both) hide their entire action-button row once `isDone` (`status === "completed" || "skipped"`) — `{!isDone ? (...) : null}`. The backend was never the limiting factor: both `updateMissionStatus()`/`updateWealthMissionStatus()` already accept any `MissionStatus` value with no state-machine restriction, so reverting to `not_started` was always possible server-side — the UI just never exposed a way to trigger it.
+
+**Fix**: added a small "ยกเลิก (ยังไม่สำเร็จ)" / "Undo (not done yet)" ghost button, shown only when `isDone`, calling the same existing status-update action with `"not_started"`. New `undo` dictionary key added under both `earn.missions` and `missions` namespaces (both locales). Fixed identically in both mission-card components for consistency, since a user has no reason to expect one mission system to support undo and the other not to.
+
+**Known, deliberate scope limit**: undo resets `status` only — it does not reset `progress_quantity` back to 0 for a quantity-target mission (e.g. one that auto-completed at 5/5 outreach), and does not claw back any XP already awarded for a completed Wealth Mission (`awardXpOnce`'s existing dedup means re-completing the same mission later won't double-award, so there's no exploit — this is a "no punishing/no clawback" choice consistent with Day 6's existing streak philosophy, not an oversight). Revisit if a future report wants either of those.
+
+**Verified visually**: the same temporary-preview-page-plus-Playwright-screenshot technique used for this session's other fixes — a throwaway route rendering both real card components with fake `completed`/`skipped` mission data, confirming the undo button now renders on both card types and reads correctly in Thai. Preview route and spec deleted afterward.
+
+Quality gate: lint ✅, typecheck ✅, tests ✅ (509/509, unchanged), build ✅ (49 routes).
+
 ## Next Task
 
 1. ~~Migrate production~~ — **done 2026-09-17**, see "Production status — MIGRATED" above.
@@ -1234,7 +1272,7 @@ Quality gate: lint ✅, typecheck ✅, tests ✅ (509/509, unchanged), build ✅
 3. Real browser/mobile QA against staging, next time the user's own dev server isn't occupying the project directory (or from a second checked-out copy of the repo).
 4. Consider a small follow-up migration to drop `create_transfer`'s original 6-parameter overload now that every real caller passes `p_client_request_id` explicitly — not required for correctness today, purely a hygiene cleanup.
 5. `src/features/recurring/actions.ts`'s recurring-transfer confirmation still has no double-submit protection of its own (documented in its own code comment) — would need a deterministic key derived from `(recurring.id, next_due_date)`, a separate small task.
-6. The new AI Money Coach chat restyle's live streaming path (a real `/api/ai/chat` round trip rendering into the new bubble markup) still needs a genuine browser confirmation — blocked this session by Supabase Auth's email rate limit on staging (see "AI Money Coach chat — visual restyle" above). Retry once the rate limit window has reset, or with a pre-existing seeded staging account instead of a fresh signup.
+6. ~~The new AI Money Coach chat restyle's live streaming path needs a genuine browser confirmation~~ — **done 2026-09-17**: the user tried it live on production — streaming into the new bubble markup works correctly. Surfaced a real, separate issue instead (reply tone/raw-code leakage — see "AI Money Coach tone fix" above), which is fixed but not yet itself re-verified live.
 
 Day 8 is otherwise fully done. The one substantive remaining step before a paid-plan production launch is external and manual: real Stripe credentials + a real Supabase service-role key, exactly as documented in "Launch Readiness" above.
 
