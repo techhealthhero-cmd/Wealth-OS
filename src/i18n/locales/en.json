@@ -18,6 +18,7 @@
     "continue": "Continue",
     "skip": "Skip",
     "confirm": "Confirm",
+    "confirmDeleteTitle": "Confirm deletion",
     "somethingWentWrong": "Something went wrong. Please try again.",
     "noResults": "No results found",
     "moreActions": "More options",

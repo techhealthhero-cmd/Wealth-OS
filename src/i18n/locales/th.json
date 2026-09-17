@@ -18,6 +18,7 @@
     "continue": "ดำเนินการต่อ",
     "skip": "ข้าม",
     "confirm": "ยืนยัน",
+    "confirmDeleteTitle": "ยืนยันการลบ",
     "somethingWentWrong": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
     "noResults": "ไม่พบข้อมูล",
     "moreActions": "ตัวเลือกเพิ่มเติม",

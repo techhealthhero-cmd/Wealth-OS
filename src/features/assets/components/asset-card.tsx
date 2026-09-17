@@ -30,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 
 const ASSET_ICONS: Record<AssetType, React.ElementType> = {
   cash: Banknote,
@@ -48,6 +49,7 @@ export function AssetCard({ asset, accounts }: { asset: Asset; accounts: Account
   const { t } = useTranslation();
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const Icon = ASSET_ICONS[asset.asset_type];
   const linkedAccount = asset.linked_account_id ? accounts.find((a) => a.id === asset.linked_account_id) : null;
 
@@ -86,8 +88,8 @@ export function AssetCard({ asset, accounts }: { asset: Asset; accounts: Account
               <DropdownMenuItem
                 variant="destructive"
                 disabled={isPending}
-                onClick={() => {
-                  if (typeof window !== "undefined" && !window.confirm(t("assets.deleteConfirm"))) return;
+                onClick={async () => {
+                  if (!(await confirm(t("assets.deleteConfirm"), { destructive: true }))) return;
                   startTransition(async () => {
                     await deleteAsset(asset.id);
                   });
@@ -100,6 +102,7 @@ export function AssetCard({ asset, accounts }: { asset: Asset; accounts: Account
         </div>
       </CardContent>
       <AssetForm asset={asset} accounts={accounts} trigger={null} open={editOpen} onOpenChange={setEditOpen} />
+      {confirmDialog}
     </Card>
   );
 }

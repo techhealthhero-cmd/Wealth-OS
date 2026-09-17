@@ -1444,6 +1444,20 @@ Quality gate: lint ✅, typecheck ✅, tests ✅ (525/525, unchanged — a chart
 
 **Not yet committed** — pending the user's own check on their device.
 
+## Replace native window.confirm() with a styled Dialog everywhere (2026-09-17)
+
+**Trigger**: the user's screenshot showed the plain OS-native confirm popup that appears when deleting a transaction ("ต้องการลบรายการนี้ใช่ไหม...") and asked for it (and its Cancel/OK buttons) to be redesigned to match the app's UI. `window.confirm()` can't be restyled or have its buttons relabeled at all — it's rendered entirely by the browser/OS, not the page — so this required a real replacement, not a CSS tweak.
+
+**Scope widened deliberately**: `window.confirm()` for delete/archive confirmations wasn't only on the transaction row the user pointed at — the identical pattern existed in 8 places total (accounts, assets, goals, income sources, liabilities, recurring transactions, skills, transactions), one of which (`account-card.tsx`) even had a code comment explicitly justifying reusing `window.confirm` everywhere "rather than introducing a new dialog component just for this." Fixing only the reported one would have left 7 others looking exactly as plain — and CLAUDE.md's "never create duplicate modules" argues for one shared component over 8 one-off dialogs anyway. All 8 were updated together.
+
+**What shipped**: `useConfirmDialog()` (`src/components/shared/confirm-dialog.tsx`) — a hook that mirrors `window.confirm()`'s call shape almost exactly (`await confirm(message, { destructive?: boolean })` resolves to a boolean, same as the old `if (!window.confirm(message)) return;`) but renders the app's own `Dialog` primitives (`src/components/ui/dialog.tsx`, already used throughout the app for forms) instead of the browser's native popup. `destructive: true` (used for every delete) shows a red/tinted `Cancel`/`Delete` button pair with the title "ยืนยันการลบ" (Confirm deletion); the one non-destructive case (archiving an account) shows a normal green `Cancel`/`Confirm` pair titled "ยืนยัน" (Confirm) — both titles have sensible defaults so call sites only need to pass the existing description message, not repeat boilerplate at each of the 8 sites. Each card component's change was a small, mechanical 3-part diff: import the hook, swap `window.confirm(...)` for `await confirm(...)`, render `{confirmDialog}` once in the component's JSX (same pattern already used for the existing edit-form `Dialog`s in every one of these cards, so nothing new architecturally).
+
+**Verified visually**: a temporary preview rendering the hook directly (both a destructive and a non-destructive confirm, using the exact reported delete message) + Playwright — confirmed the styled dialog opens with the correct title/message/button colors for both variants, and that both the Confirm and Cancel paths correctly resolve the promise and close the dialog (checked via an on-screen "last result" indicator). Preview route and spec deleted afterward, `middleware.ts` confirmed reverted via `git status`.
+
+Quality gate: lint ✅, typecheck ✅, tests ✅ (525/525, unchanged — a UI/interaction-layer change with no new domain/financial logic), build ✅ (49 routes, `/qa-preview-temp` confirmed absent).
+
+**Not yet committed** — pending the user's own check on their device.
+
 ## Update Rule
 
 After every major implementation session:

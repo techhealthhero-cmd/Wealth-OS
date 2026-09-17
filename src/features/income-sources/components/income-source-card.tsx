@@ -13,11 +13,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 
 export function IncomeSourceCard({ source }: { source: IncomeSource }) {
   const { t } = useTranslation();
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   return (
     <Card>
@@ -50,8 +52,8 @@ export function IncomeSourceCard({ source }: { source: IncomeSource }) {
               <DropdownMenuItem
                 variant="destructive"
                 disabled={isPending}
-                onClick={() => {
-                  if (typeof window !== "undefined" && !window.confirm(t("earn.income.deleteConfirm"))) return;
+                onClick={async () => {
+                  if (!(await confirm(t("earn.income.deleteConfirm"), { destructive: true }))) return;
                   startTransition(async () => {
                     await deleteIncomeSource(source.id);
                   });
@@ -64,6 +66,7 @@ export function IncomeSourceCard({ source }: { source: IncomeSource }) {
         </div>
       </CardContent>
       <IncomeSourceForm source={source} trigger={null} open={editOpen} onOpenChange={setEditOpen} />
+      {confirmDialog}
     </Card>
   );
 }

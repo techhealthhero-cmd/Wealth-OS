@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 
 export function RecurringTransactionCard({
   recurring,
@@ -27,6 +28,7 @@ export function RecurringTransactionCard({
   const { t } = useTranslation();
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const due = isDue(new Date(recurring.next_due_date));
   const overdue = isOverdue(new Date(recurring.next_due_date));
@@ -68,8 +70,8 @@ export function RecurringTransactionCard({
                 <DropdownMenuItem
                   variant="destructive"
                   disabled={isPending}
-                  onClick={() => {
-                    if (typeof window !== "undefined" && !window.confirm(t("recurring.deleteConfirm"))) return;
+                  onClick={async () => {
+                    if (!(await confirm(t("recurring.deleteConfirm"), { destructive: true }))) return;
                     startTransition(async () => {
                       await deleteRecurringTransaction(recurring.id);
                     });
@@ -97,6 +99,7 @@ export function RecurringTransactionCard({
         ) : null}
       </CardContent>
       <RecurringTransactionForm recurring={recurring} accounts={accounts} categories={categories} trigger={null} open={editOpen} onOpenChange={setEditOpen} />
+      {confirmDialog}
     </Card>
   );
 }

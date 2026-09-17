@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 
 const LIABILITY_ICONS: Record<LiabilityType, React.ElementType> = {
   credit_card: CreditCard,
@@ -38,6 +39,7 @@ export function LiabilityCard({
   const { t } = useTranslation();
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const Icon = LIABILITY_ICONS[liability.liability_type];
 
   return (
@@ -78,8 +80,8 @@ export function LiabilityCard({
               <DropdownMenuItem
                 variant="destructive"
                 disabled={isPending}
-                onClick={() => {
-                  if (typeof window !== "undefined" && !window.confirm(t("liabilities.deleteConfirm"))) return;
+                onClick={async () => {
+                  if (!(await confirm(t("liabilities.deleteConfirm"), { destructive: true }))) return;
                   startTransition(async () => {
                     await deleteLiability(liability.id);
                   });
@@ -98,6 +100,7 @@ export function LiabilityCard({
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+      {confirmDialog}
     </Card>
   );
 }

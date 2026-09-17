@@ -27,6 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 
 const ACCOUNT_ICONS: Record<AccountType, React.ElementType> = {
   cash: Banknote,
@@ -42,6 +43,7 @@ export function AccountCard({ account }: { account: Account }) {
   const { t } = useTranslation();
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const Icon = ACCOUNT_ICONS[account.account_type];
   const balanceCents = Number(account.current_balance) * 100;
 
@@ -104,15 +106,12 @@ export function AccountCard({ account }: { account: Account }) {
               ) : (
                 <DropdownMenuItem
                   disabled={isPending}
-                  onClick={() => {
+                  onClick={async () => {
                     // Archiving hides the account from the main list with no
                     // way back except the confirmation's own promise — see
                     // UX_GUIDELINES.md #18 (destructive/high-impact actions
-                    // must explain consequences). This reuses the existing
-                    // window.confirm pattern already used for deletes
-                    // elsewhere (goal-card.tsx etc.) rather than introducing
-                    // a new dialog component just for this.
-                    if (typeof window !== "undefined" && !window.confirm(t("accounts.archiveConfirm"))) return;
+                    // must explain consequences).
+                    if (!(await confirm(t("accounts.archiveConfirm")))) return;
                     startTransition(async () => {
                       await archiveAccount(account.id);
                     });
@@ -131,6 +130,7 @@ export function AccountCard({ account }: { account: Account }) {
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+      {confirmDialog}
     </Card>
   );
 }

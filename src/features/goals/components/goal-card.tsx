@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 
 const SCHEDULE_BADGE_CLASS: Record<string, string> = {
   achieved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -39,6 +40,7 @@ export function GoalCard({ goal, accounts }: { goal: FinancialGoal; accounts: Ac
   const { t } = useTranslation();
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const currentCents = parseMoneyToCents(goal.current_amount);
   const targetCents = parseMoneyToCents(goal.target_amount);
@@ -92,8 +94,8 @@ export function GoalCard({ goal, accounts }: { goal: FinancialGoal; accounts: Ac
               <DropdownMenuItem
                 variant="destructive"
                 disabled={isPending}
-                onClick={() => {
-                  if (typeof window !== "undefined" && !window.confirm(t("goals.deleteConfirm"))) return;
+                onClick={async () => {
+                  if (!(await confirm(t("goals.deleteConfirm"), { destructive: true }))) return;
                   startTransition(async () => { await deleteGoal(goal.id); });
                 }}
               >
@@ -126,6 +128,7 @@ export function GoalCard({ goal, accounts }: { goal: FinancialGoal; accounts: Ac
         </div>
       </CardContent>
       <GoalForm goal={goal} accounts={accounts} trigger={null} open={editOpen} onOpenChange={setEditOpen} />
+      {confirmDialog}
     </Card>
   );
 }

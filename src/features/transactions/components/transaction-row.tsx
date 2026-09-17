@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 import { TransactionForm } from "./transaction-form";
 
 const TYPE_ICONS: Record<TransactionType, React.ElementType> = {
@@ -57,6 +58,7 @@ export function TransactionRow({
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(defaultDetailsOpen);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const Icon = TYPE_ICONS[transaction.type];
   const isCredit = CREDIT_TYPES.includes(transaction.type);
   const isTransfer = transaction.type === "transfer";
@@ -142,10 +144,8 @@ export function TransactionRow({
               <DropdownMenuItem
                 variant="destructive"
                 disabled={isPending}
-                onClick={() => {
-                  if (typeof window !== "undefined" && !window.confirm(t("transactions.deleteConfirm"))) {
-                    return;
-                  }
+                onClick={async () => {
+                  if (!(await confirm(t("transactions.deleteConfirm"), { destructive: true }))) return;
                   startTransition(async () => {
                     await deleteTransaction(transaction.id);
                   });
@@ -176,6 +176,7 @@ export function TransactionRow({
           onOpenChange={setEditOpen}
         />
       )}
+      {confirmDialog}
     </div>
   );
 }
