@@ -39,7 +39,7 @@ export function QuarterlyPlanForm({ moneyYearId, quarter, existing, trigger, ope
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -61,7 +61,7 @@ export function QuarterlyPlanForm({ moneyYearId, quarter, existing, trigger, ope
                 id="income_target"
                 name="income_target"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={existing?.income_target ?? "0"}
               />
@@ -72,7 +72,7 @@ export function QuarterlyPlanForm({ moneyYearId, quarter, existing, trigger, ope
                 id="savings_target"
                 name="savings_target"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={existing?.savings_target ?? "0"}
               />
@@ -86,7 +86,7 @@ export function QuarterlyPlanForm({ moneyYearId, quarter, existing, trigger, ope
                 id="investment_target"
                 name="investment_target"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={existing?.investment_target ?? "0"}
               />
@@ -97,7 +97,7 @@ export function QuarterlyPlanForm({ moneyYearId, quarter, existing, trigger, ope
                 id="debt_reduction_target"
                 name="debt_reduction_target"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={existing?.debt_reduction_target ?? "0"}
               />

@@ -53,7 +53,7 @@ export function AccountForm({ account, trigger, open, onOpenChange }: AccountFor
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -123,7 +123,7 @@ export function AccountForm({ account, trigger, open, onOpenChange }: AccountFor
                 id="opening_balance"
                 name="opening_balance"
                 type="number"
-                step="0.01"
+                step="any"
                 defaultValue={account?.opening_balance ?? "0"}
                 required
               />

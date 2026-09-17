@@ -45,7 +45,7 @@ export function RecurringTransactionForm({ recurring, accounts, categories, trig
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -94,7 +94,7 @@ export function RecurringTransactionForm({ recurring, accounts, categories, trig
 
           <div className="space-y-2">
             <Label htmlFor="amount">{t("recurring.amount")}</Label>
-            <Input id="amount" name="amount" type="number" step="0.01" min="0.01" defaultValue={recurring?.amount ?? ""} required />
+            <Input id="amount" name="amount" type="number" step="any" min="0.01" defaultValue={recurring?.amount ?? ""} required />
           </div>
 
           {type === "transfer" ? (
@@ -147,11 +147,19 @@ export function RecurringTransactionForm({ recurring, accounts, categories, trig
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+            {/* min-w-0: a native date input's rendered width isn't fully
+                CSS-controlled (iOS Safari renders it using the device's
+                locale — a Thai Buddhist-calendar date like "15 ต.ค. 2569" is
+                much wider than "15/10/2026") — without this, the grid track
+                won't shrink to fit `w-full`, and a wide filled value can
+                overflow into the neighboring end_date column. Same defect
+                class as the account-picker overlap fixed earlier this
+                session (see PROJECT_STATUS.md carried-forward lesson #14). */}
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="start_date">{t("recurring.startDate")}</Label>
               <Input id="start_date" name="start_date" type="date" defaultValue={recurring?.start_date ?? ""} required />
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="end_date">{t("recurring.endDate")}</Label>
               <Input id="end_date" name="end_date" type="date" defaultValue={recurring?.end_date ?? ""} />
             </div>

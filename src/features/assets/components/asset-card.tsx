@@ -6,13 +6,17 @@ import {
   Bitcoin,
   Briefcase,
   Building2,
+  Camera,
   Car,
   Coins,
   Home,
   Landmark,
+  Laptop,
   LineChart,
   MoreVertical,
   PiggyBank,
+  Smartphone,
+  Watch,
 } from "lucide-react";
 
 import type { Account, Asset, AssetType } from "@/types/database";
@@ -45,12 +49,50 @@ const ASSET_ICONS: Record<AssetType, React.ElementType> = {
   other: Building2,
 };
 
+// There's no dedicated AssetType for gadgets/electronics — they legitimately
+// fall under "other" (adding a whole new type + migration for icon choice
+// alone isn't worth it). This narrows the generic building icon to
+// something recognizable for the common cases, purely cosmetic — asset_type
+// itself, and every calculation that reads it, is unaffected.
+const OTHER_ASSET_ICONS = {
+  laptop: Laptop,
+  smartphone: Smartphone,
+  camera: Camera,
+  watch: Watch,
+} as const;
+
+const OTHER_ASSET_ICON_KEYWORDS: { key: keyof typeof OTHER_ASSET_ICONS; keywords: string[] }[] = [
+  { key: "laptop", keywords: ["โนตบุค", "notebook", "laptop", "macbook"] },
+  { key: "smartphone", keywords: ["โทรศัพท", "มือถือ", "iphone", "smartphone", "phone"] },
+  { key: "camera", keywords: ["กลอง", "camera"] },
+  { key: "watch", keywords: ["นาฬิกา", "watch"] },
+];
+
+// Thai loanwords like "notebook" have no single standardized spelling —
+// โน้ตบุ๊ค / โน๊ตบุ๊ค / โน้ตบุ้ค / โน๊ตบุ้ค all appear in casual use, differing
+// only by which tone mark sits on which syllable. Stripping tone marks
+// (Unicode combining marks U+0E48-U+0E4B) from both sides before matching
+// normalizes every variant to the same base spelling instead of trying to
+// enumerate all of them.
+function stripThaiToneMarks(s: string): string {
+  return s.replace(/[่-๋]/g, "");
+}
+
+function matchOtherAssetIconKey(name: string): keyof typeof OTHER_ASSET_ICONS | null {
+  const normalized = stripThaiToneMarks(name.toLowerCase());
+  const match = OTHER_ASSET_ICON_KEYWORDS.find((entry) =>
+    entry.keywords.some((keyword) => normalized.includes(stripThaiToneMarks(keyword.toLowerCase())))
+  );
+  return match?.key ?? null;
+}
+
 export function AssetCard({ asset, accounts }: { asset: Asset; accounts: Account[] }) {
   const { t } = useTranslation();
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
-  const Icon = ASSET_ICONS[asset.asset_type];
+  const otherIconKey = asset.asset_type === "other" ? matchOtherAssetIconKey(asset.name) : null;
+  const Icon = otherIconKey ? OTHER_ASSET_ICONS[otherIconKey] : ASSET_ICONS[asset.asset_type];
   const linkedAccount = asset.linked_account_id ? accounts.find((a) => a.id === asset.linked_account_id) : null;
 
   return (

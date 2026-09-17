@@ -39,7 +39,7 @@ export function MoneyYearForm({ moneyYear, year, trigger, open, onOpenChange }: 
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -69,7 +69,7 @@ export function MoneyYearForm({ moneyYear, year, trigger, open, onOpenChange }: 
                 id="annual_income_target"
                 name="annual_income_target"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={moneyYear?.annual_income_target ?? "0"}
               />
@@ -80,7 +80,7 @@ export function MoneyYearForm({ moneyYear, year, trigger, open, onOpenChange }: 
                 id="annual_savings_target"
                 name="annual_savings_target"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={moneyYear?.annual_savings_target ?? "0"}
               />
@@ -94,7 +94,7 @@ export function MoneyYearForm({ moneyYear, year, trigger, open, onOpenChange }: 
                 id="annual_investment_target"
                 name="annual_investment_target"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={moneyYear?.annual_investment_target ?? "0"}
               />
@@ -105,7 +105,7 @@ export function MoneyYearForm({ moneyYear, year, trigger, open, onOpenChange }: 
                 id="annual_debt_reduction_target"
                 name="annual_debt_reduction_target"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={moneyYear?.annual_debt_reduction_target ?? "0"}
               />
@@ -118,7 +118,7 @@ export function MoneyYearForm({ moneyYear, year, trigger, open, onOpenChange }: 
               id="annual_emergency_fund_target"
               name="annual_emergency_fund_target"
               type="number"
-              step="0.01"
+              step="any"
               min="0"
               defaultValue={moneyYear?.annual_emergency_fund_target ?? "0"}
             />
@@ -131,7 +131,7 @@ export function MoneyYearForm({ moneyYear, year, trigger, open, onOpenChange }: 
                 id="expected_irregular_income"
                 name="expected_irregular_income"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={moneyYear?.expected_irregular_income ?? "0"}
               />
@@ -142,7 +142,7 @@ export function MoneyYearForm({ moneyYear, year, trigger, open, onOpenChange }: 
                 id="expected_irregular_expenses"
                 name="expected_irregular_expenses"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={moneyYear?.expected_irregular_expenses ?? "0"}
               />

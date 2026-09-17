@@ -56,7 +56,7 @@ export function CategoryBudgetForm({
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   const categoryName = (c: Category) => (locale === "th" ? c.name_th : c.name_en);
 
@@ -103,7 +103,7 @@ export function CategoryBudgetForm({
               id="amount"
               name="amount"
               type="number"
-              step="0.01"
+              step="any"
               min="0"
               defaultValue={existing?.amount ?? "0"}
               required

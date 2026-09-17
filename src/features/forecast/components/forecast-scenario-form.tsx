@@ -48,7 +48,7 @@ export function ForecastScenarioForm({ scenario, defaults, trigger, open, onOpen
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   const defaultMonthlySavings = defaults ? defaults.monthlySavingsCents / 100 : 0;
   const defaultMonthlyInvestment = defaults ? defaults.monthlyInvestmentCents / 100 : 0;
@@ -137,7 +137,7 @@ export function ForecastScenarioForm({ scenario, defaults, trigger, open, onOpen
                 id="monthly_savings"
                 name="monthly_savings"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={scenario?.monthly_savings ?? defaultMonthlySavings}
               />
@@ -148,7 +148,7 @@ export function ForecastScenarioForm({ scenario, defaults, trigger, open, onOpen
                 id="monthly_investment"
                 name="monthly_investment"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={scenario?.monthly_investment ?? defaultMonthlyInvestment}
               />
@@ -161,7 +161,7 @@ export function ForecastScenarioForm({ scenario, defaults, trigger, open, onOpen
               id="monthly_debt_payment"
               name="monthly_debt_payment"
               type="number"
-              step="0.01"
+              step="any"
               min="0"
               defaultValue={scenario?.monthly_debt_payment ?? defaultMonthlyDebtPayment}
             />
@@ -174,7 +174,7 @@ export function ForecastScenarioForm({ scenario, defaults, trigger, open, onOpen
                 id="one_time_income"
                 name="one_time_income"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={scenario?.one_time_income ?? "0"}
               />
@@ -197,7 +197,7 @@ export function ForecastScenarioForm({ scenario, defaults, trigger, open, onOpen
                 id="one_time_expense"
                 name="one_time_expense"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={scenario?.one_time_expense ?? "0"}
               />

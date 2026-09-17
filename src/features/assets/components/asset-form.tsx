@@ -51,7 +51,7 @@ export function AssetForm({ asset, accounts, trigger, open, onOpenChange }: Asse
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   const linkedAccountLabel = (value: string) =>
     value === NO_LINK ? t("assets.noLink") : accounts.find((a) => a.id === value)?.name ?? t("assets.noLink");
@@ -105,7 +105,7 @@ export function AssetForm({ asset, accounts, trigger, open, onOpenChange }: Asse
                 id="value"
                 name="value"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={asset?.value ?? "0"}
                 required

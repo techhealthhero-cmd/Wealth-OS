@@ -75,7 +75,7 @@ export function TransferForm({ accounts, trigger, open, onOpenChange }: Transfer
     setClientRequestId(crypto.randomUUID());
     toast.success(t("transactions.savedTransfer"), { icon: <SuccessBadge /> });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   const canTransfer = accounts.length >= 2;
   const amountCents = safeAmountCents(amount);

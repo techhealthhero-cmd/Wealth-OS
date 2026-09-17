@@ -59,7 +59,7 @@ export function LiabilityForm({ liability, creditCardAccounts = [], trigger, ope
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -107,7 +107,7 @@ export function LiabilityForm({ liability, creditCardAccounts = [], trigger, ope
               id="balance"
               name="balance"
               type="number"
-              step="0.01"
+              step="any"
               min="0"
               defaultValue={liability?.balance ?? "0"}
               required
@@ -145,7 +145,7 @@ export function LiabilityForm({ liability, creditCardAccounts = [], trigger, ope
                 id="interest_rate"
                 name="interest_rate"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={liability?.interest_rate ?? ""}
               />
@@ -156,7 +156,7 @@ export function LiabilityForm({ liability, creditCardAccounts = [], trigger, ope
                 id="minimum_payment"
                 name="minimum_payment"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={liability?.minimum_payment ?? ""}
               />

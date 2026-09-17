@@ -1409,5 +1409,128 @@
       "noActiveSubscription": "No active subscription found.",
       "cancelFailed": "Couldn't complete that action. Please try again."
     }
+  },
+  "help": {
+    "navLabel": "How to use",
+    "title": "How to use WEALTH OS",
+    "subtitle": "Know your money, grow your income, build your wealth — an easy guide to every feature in the app.",
+    "lastUpdated": "Last updated Sep 17, 2026 · updated every time a new feature ships",
+    "philosophy": {
+      "track": "Track",
+      "analyze": "Analyze",
+      "plan": "Plan",
+      "earn": "Earn",
+      "grow": "Grow"
+    },
+    "gettingStarted": {
+      "title": "Get started in 3 steps",
+      "steps": [
+        {
+          "emoji": "🏦",
+          "title": "Add your first account",
+          "description": "Go to the \"Money\" tab and add an account you actually have — cash, bank, or credit card. Set the starting balance to match reality."
+        },
+        {
+          "emoji": "✍️",
+          "title": "Log your income and expenses",
+          "description": "Every time money comes in or goes out, tap \"+\" to log it. The app updates your balances and net worth automatically."
+        },
+        {
+          "emoji": "🎯",
+          "title": "Set your first goal",
+          "description": "Go to the \"Plan\" tab and set a savings or emergency fund goal. The app will start telling you what to do next on the home page."
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "home",
+        "emoji": "🏠",
+        "title": "Home",
+        "description": "Your whole financial picture in one place — open the app and immediately know where you stand and what to do next.",
+        "items": [
+          { "emoji": "💎", "title": "Net Worth", "description": "The biggest number on the home page, with a 6-month trend chart." },
+          { "emoji": "💯", "title": "Wealth Score", "description": "An overall financial health score from 0-100, based on cash flow, savings, debt, and goals." },
+          { "emoji": "🟢", "title": "Safe-to-Spend", "description": "How much you can spend today without hurting your budget or goals." },
+          { "emoji": "🧭", "title": "Next Best Action", "description": "The single top recommendation the system picked for you specifically." },
+          { "emoji": "🧾", "title": "Recent Transactions", "description": "Your latest transactions with each account's balance — tap to view or edit." }
+        ]
+      },
+      {
+        "id": "money",
+        "emoji": "💰",
+        "title": "Money",
+        "description": "Where every baht gets logged and tracked — from daily income and expenses to every asset and liability you own.",
+        "items": [
+          { "emoji": "🧾", "title": "Transactions", "description": "Log income, expenses, or transfers between accounts. Search, filter, and revisit notes you've saved." },
+          { "emoji": "🏦", "title": "Accounts", "description": "Manage cash, bank, and credit card accounts — see each balance and the total." },
+          { "emoji": "📊", "title": "Budget", "description": "Set a budget per category and track whether you're over or under." },
+          { "emoji": "⚖️", "title": "Assets / Liabilities", "description": "Log what you own and owe, so Net Worth is calculated completely." },
+          { "emoji": "💎", "title": "Net Worth", "description": "Assets minus liabilities, with a breakdown of what's included." },
+          { "emoji": "🔁", "title": "Recurring", "description": "Set up transactions that repeat monthly, plus reminders for upcoming bills." },
+          { "emoji": "🔍", "title": "Subscription Detector", "description": "Automatically scans for recurring subscriptions you might have forgotten to cancel.", "badge": "plus" }
+        ]
+      },
+      {
+        "id": "plan",
+        "emoji": "🎯",
+        "title": "Plan",
+        "description": "From knowing where you stand today to planning ahead — set goals, build a safety net, and simulate your financial future.",
+        "items": [
+          { "emoji": "🎯", "title": "Goals", "description": "Set savings goals and track progress visually." },
+          { "emoji": "🛟", "title": "Emergency Fund", "description": "Set a safety-net target — the app suggests a number of months of essential expenses." },
+          { "emoji": "🗓️", "title": "Money Year", "description": "Plan a full year, broken into quarters and months, against income, savings, and investment targets — then compare to actuals." },
+          { "emoji": "🧊", "title": "Debt Planner", "description": "Simulate paying off debt with the Snowball or Avalanche method and see which clears debt faster.", "badge": "plus" },
+          { "emoji": "🔮", "title": "Forecast", "description": "Simulate \"what if\" scenarios to see the future impact of a decision before you make it.", "badge": "plus" }
+        ]
+      },
+      {
+        "id": "earn",
+        "emoji": "📈",
+        "title": "Earn",
+        "description": "What sets WEALTH OS apart from a typical finance app — it doesn't just help you save, it helps you earn more too.",
+        "items": [
+          { "emoji": "💼", "title": "Income Profile", "description": "Log every income source you have and see how stable it really is." },
+          { "emoji": "🛠️", "title": "My Skills", "description": "Enter your skills, experience, and available time so the app can match you with real opportunities." },
+          { "emoji": "💡", "title": "Opportunities", "description": "Curated side-income and freelance ideas matched to your skills, each with a fit score.", "badge": "limitedFree" },
+          { "emoji": "🚀", "title": "Income Missions", "description": "Clear, step-by-step actions that close the gap between your current and target income.", "badge": "limitedFree" }
+        ]
+      },
+      {
+        "id": "ai",
+        "emoji": "🤖",
+        "title": "AI Money Coach",
+        "description": "A financial assistant you can talk to about anything — it only ever answers from your real data, never guesses.",
+        "items": [
+          { "emoji": "💬", "title": "Ask anything about money", "description": "Like \"did I overspend this month?\" — the AI pulls your real data to answer." },
+          { "emoji": "✨", "title": "Daily insights", "description": "Short, useful observations about your financial habits." },
+          { "emoji": "🔢", "title": "Monthly message limit", "description": "Free: 15 · Plus: 150 · Pro: 500 messages per month." }
+        ]
+      },
+      {
+        "id": "missions",
+        "emoji": "🏆",
+        "title": "Missions & Wealth XP",
+        "description": "Makes staying consistent with your money a little more fun — no pressure, and a missed streak is always easy to restart.",
+        "items": [
+          { "emoji": "🏆", "title": "Wealth Missions", "description": "Small activities that improve your financial health, completed automatically as you use the app normally." },
+          { "emoji": "⭐", "title": "Levels & XP", "description": "Points earned from completing missions — a motivational nudge, not a real financial metric." },
+          { "emoji": "🔥", "title": "Streaks", "description": "Weekly check-ins and monthly reviews. The app never scolds a missed streak, just invites you back." }
+        ]
+      }
+    ],
+    "glossary": [
+      { "emoji": "💎", "term": "Net Worth", "termEn": "", "definition": "Everything you own, minus everything you owe." },
+      { "emoji": "💯", "term": "Wealth Score", "termEn": "", "definition": "A 0-100 financial health score from 7 factors, calculated the same way every time — never an AI guess." },
+      { "emoji": "🟢", "term": "Safe-to-Spend", "termEn": "", "definition": "What you can spend right now without hurting your budget or goals." },
+      { "emoji": "🛟", "term": "Emergency Fund", "termEn": "", "definition": "Money set aside for the unexpected — typically 3-6 months of essential expenses." },
+      { "emoji": "📉", "term": "Income Gap", "termEn": "", "definition": "Target income minus current income — used to pick which missions and opportunities to suggest." },
+      { "emoji": "🗓️", "term": "Money Year", "termEn": "", "definition": "A full-year plan split into quarters and months, compared against actuals. Past years are never overwritten." }
+    ],
+    "badges": {
+      "plus": "Plus/Pro",
+      "limitedFree": "Limited on Free"
+    },
+    "disclaimer": "WEALTH OS never promises you'll get rich. It's a tool to help you see your finances clearly and make better decisions — not investment advice."
   }
 }

@@ -64,7 +64,7 @@ export function OnboardingForm({ defaultDisplayName }: { defaultDisplayName?: st
               </div>
               <div className="space-y-2">
                 <Label htmlFor="starting_balance">{t("onboarding.balanceLabel")}</Label>
-                <Input id="starting_balance" name="starting_balance" type="number" step="0.01" />
+                <Input id="starting_balance" name="starting_balance" type="number" step="any" />
               </div>
             </div>
           </div>

@@ -37,7 +37,7 @@ export function MajorExpenseForm({ moneyYearId, trigger, open, onOpenChange }: M
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -64,7 +64,7 @@ export function MajorExpenseForm({ moneyYearId, trigger, open, onOpenChange }: M
           </div>
           <div className="space-y-2">
             <Label htmlFor="amount">{t("moneyYear.expenseAmount")}</Label>
-            <Input id="amount" name="amount" type="number" step="0.01" min="0" required />
+            <Input id="amount" name="amount" type="number" step="any" min="0" required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="planned_month">{t("moneyYear.plannedMonth")}</Label>

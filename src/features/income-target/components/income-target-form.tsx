@@ -31,7 +31,7 @@ export function IncomeTargetForm({ target, onSuccess, onCancel }: IncomeTargetFo
     // Only ever fire on a fresh success — never on the initial `undefined`
     // state, and never re-fire just because the parent re-rendered.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -42,7 +42,7 @@ export function IncomeTargetForm({ target, onSuccess, onCancel }: IncomeTargetFo
             id="target_monthly_income"
             name="target_monthly_income"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             defaultValue={target?.target_monthly_income ?? ""}
           />
@@ -53,7 +53,7 @@ export function IncomeTargetForm({ target, onSuccess, onCancel }: IncomeTargetFo
             id="desired_extra_income"
             name="desired_extra_income"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             defaultValue={target?.desired_extra_income ?? ""}
           />
@@ -114,7 +114,7 @@ export function IncomeTargetForm({ target, onSuccess, onCancel }: IncomeTargetFo
           id="max_startup_cost"
           name="max_startup_cost"
           type="number"
-          step="0.01"
+          step="any"
           min="0"
           defaultValue={target?.max_startup_cost ?? ""}
         />

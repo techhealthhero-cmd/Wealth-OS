@@ -36,7 +36,7 @@ export function SkillForm({ skill, trigger, open, onOpenChange }: SkillFormProps
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

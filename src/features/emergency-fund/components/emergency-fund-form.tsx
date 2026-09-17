@@ -38,7 +38,7 @@ export function EmergencyFundForm({ emergencyFund, accounts, goals }: EmergencyF
 
   useEffect(() => {
     if (state?.success) window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [state?.success]);
+  }, [state]);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -86,7 +86,7 @@ export function EmergencyFundForm({ emergencyFund, accounts, goals }: EmergencyF
             id="custom_target_amount"
             name="custom_target_amount"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             defaultValue={emergencyFund?.custom_target_amount ?? ""}
             required
@@ -101,7 +101,7 @@ export function EmergencyFundForm({ emergencyFund, accounts, goals }: EmergencyF
             id="current_amount"
             name="current_amount"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             defaultValue={emergencyFund?.current_amount ?? "0"}
           />
@@ -112,7 +112,7 @@ export function EmergencyFundForm({ emergencyFund, accounts, goals }: EmergencyF
             id="monthly_contribution"
             name="monthly_contribution"
             type="number"
-            step="0.01"
+            step="any"
             min="0"
             defaultValue={emergencyFund?.monthly_contribution ?? "0"}
           />

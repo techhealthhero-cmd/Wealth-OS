@@ -45,7 +45,7 @@ export function DebtPlanForm({ plan }: { plan: DebtPlan | null }) {
           id="extra_monthly_payment"
           name="extra_monthly_payment"
           type="number"
-          step="0.01"
+          step="any"
           min="0"
           defaultValue={plan?.extra_monthly_payment ?? "0"}
         />

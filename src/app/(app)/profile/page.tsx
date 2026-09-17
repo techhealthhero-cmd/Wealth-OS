@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Compass } from "lucide-react";
 
 export const metadata: Metadata = { title: "Profile — Wealth OS" };
 
@@ -42,6 +42,26 @@ export default async function ProfilePage() {
             <span className="flex items-center gap-2">
               {dict.billing.currentPlan}
               <Badge variant={entitlements.plan === "free" ? "outline" : "default"}>{entitlements.definition.displayName}</Badge>
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{dict.help.navLabel}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button
+            nativeButton={false}
+            render={<Link href="/help" />}
+            variant="ghost"
+            className="w-full justify-between px-0 hover:bg-transparent"
+          >
+            <span className="flex items-center gap-2">
+              <Compass className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              {dict.help.title}
             </span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </Button>

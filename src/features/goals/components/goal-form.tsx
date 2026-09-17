@@ -50,7 +50,7 @@ export function GoalForm({ goal, accounts, trigger, open, onOpenChange }: GoalFo
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   const linkedAccountLabel = (value: string) =>
     value === NO_LINK ? t("assets.noLink") : accounts.find((a) => a.id === value)?.name ?? t("assets.noLink");
@@ -104,7 +104,7 @@ export function GoalForm({ goal, accounts, trigger, open, onOpenChange }: GoalFo
                 id="target_amount"
                 name="target_amount"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={goal?.target_amount ?? ""}
                 required
@@ -116,7 +116,7 @@ export function GoalForm({ goal, accounts, trigger, open, onOpenChange }: GoalFo
                 id="current_amount"
                 name="current_amount"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={goal?.current_amount ?? "0"}
               />
@@ -150,7 +150,7 @@ export function GoalForm({ goal, accounts, trigger, open, onOpenChange }: GoalFo
                 id="monthly_contribution"
                 name="monthly_contribution"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 defaultValue={goal?.monthly_contribution ?? "0"}
               />

@@ -51,8 +51,14 @@ export function RecurringTransactionCard({
               ) : null}
             </div>
             <p className="mt-1 truncate text-sm text-muted-foreground">
-              {t(`recurring.types.${recurring.type}`)} · {t(`recurring.frequencies.${recurring.frequency}`)} · {t("recurring.nextDue")}:{" "}
-              {recurring.next_due_date}
+              {recurring.description?.trim() ? (
+                recurring.description
+              ) : (
+                <>
+                  {t(`recurring.types.${recurring.type}`)} · {t(`recurring.frequencies.${recurring.frequency}`)} · {t("recurring.nextDue")}:{" "}
+                  {recurring.next_due_date}
+                </>
+              )}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">

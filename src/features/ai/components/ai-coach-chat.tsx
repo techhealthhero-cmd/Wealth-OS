@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { ArrowUp, Check, Copy } from "lucide-react";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkBreaks from "remark-breaks";
 
 import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
@@ -38,6 +40,25 @@ const SUGGESTED_PROMPT_KEYS = [
 ] as const;
 
 const TEXTAREA_MAX_HEIGHT_PX = 160;
+
+// The model naturally writes markdown (**bold**, numbered lists) — this
+// used to render as literal, unrendered "**" characters in the chat bubble
+// since messages were shown as plain text. Kept deliberately minimal: no
+// headings/tables/images/raw HTML, just what a coaching reply actually
+// uses, restyled to fit the compact bubble instead of the browser's
+// default block spacing.
+const MARKDOWN_COMPONENTS: Components = {
+  p: ({ children }) => <p className="m-0 empty:hidden">{children}</p>,
+  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  ul: ({ children }) => <ul className="m-0 list-disc space-y-0.5 pl-4">{children}</ul>,
+  ol: ({ children }) => <ol className="m-0 list-decimal space-y-0.5 pl-4">{children}</ol>,
+  li: ({ children }) => <li>{children}</li>,
+  a: ({ children, href }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+      {children}
+    </a>
+  ),
+};
 
 function CopyMessageButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = React.useState(false);
@@ -207,7 +228,11 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
   function renderBubbleParagraphs(text: string, align: "start" | "end") {
     return text.split("\n\n").map((paragraph, idx) => (
       <Bubble align={align} key={idx} variant={align === "end" ? "muted" : "ghost"}>
-        <BubbleContent className="text-[15px]/6 whitespace-pre-wrap">{paragraph}</BubbleContent>
+        <BubbleContent className="text-[15px]/6">
+          <ReactMarkdown remarkPlugins={[remarkBreaks]} components={MARKDOWN_COMPONENTS}>
+            {paragraph}
+          </ReactMarkdown>
+        </BubbleContent>
       </Bubble>
     ));
   }

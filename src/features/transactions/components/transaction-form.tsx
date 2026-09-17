@@ -169,7 +169,7 @@ export function TransactionForm({
         : `${t("transactions.savedExpense")} ${formatted}`;
     toast.success(toastText, { icon: <SuccessBadge /> });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   const relevantCategories = useMemo(() => {
     const categoryType = type === "income" || type === "refund" ? "income" : "expense";

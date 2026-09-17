@@ -36,7 +36,7 @@ export function IncomeSourceForm({ source, trigger, open, onOpenChange }: Income
   useEffect(() => {
     if (state?.success) setDialogOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.success]);
+  }, [state]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -84,7 +84,7 @@ export function IncomeSourceForm({ source, trigger, open, onOpenChange }: Income
               id="expected_monthly_income"
               name="expected_monthly_income"
               type="number"
-              step="0.01"
+              step="any"
               min="0"
               defaultValue={source?.expected_monthly_income ?? ""}
               required
