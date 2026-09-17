@@ -79,7 +79,28 @@
     "createAccount": "Create account",
     "resetPassword": "Reset password",
     "sendResetLink": "Send reset link",
-    "checkYourEmail": "Please check your email"
+    "checkYourEmail": "Please check your email",
+    "signupSubtitle": "Start tracking your money with Wealth OS",
+    "creatingAccount": "Creating account...",
+    "loginSubtitle": "Welcome back to Wealth OS",
+    "loggingIn": "Logging in...",
+    "forgotPasswordSubtitle": "Enter your email and we'll send you a reset link.",
+    "sendingResetLink": "Sending...",
+    "resetLinkSentMessage": "If an account exists for that email, a reset link is on its way. Please check your inbox.",
+    "backToLogin": "Back to log in",
+    "newPasswordTitle": "Choose a new password",
+    "newPasswordSubtitle": "Enter and confirm your new password.",
+    "newPasswordLabel": "New password",
+    "saveNewPassword": "Save new password"
+  },
+  "profileForm": {
+    "title": "Profile & settings",
+    "languageLabel": "Language",
+    "languageThai": "ไทย (Thai)",
+    "languageEnglish": "English",
+    "timezoneLabel": "Timezone",
+    "saved": "Saved.",
+    "saveChanges": "Save changes"
   },
   "dashboard": {
     "title": "Financial overview",

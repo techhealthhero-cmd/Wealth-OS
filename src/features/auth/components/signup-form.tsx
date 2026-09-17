@@ -4,32 +4,34 @@ import { useActionState } from "react";
 import Link from "next/link";
 
 import { signup } from "@/features/auth/actions";
+import { useTranslation } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function SignupForm() {
+  const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(signup, undefined);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create your account</CardTitle>
-        <CardDescription>Start tracking your money with Wealth OS</CardDescription>
+        <CardTitle>{t("auth.signup")}</CardTitle>
+        <CardDescription>{t("auth.signupSubtitle")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="display_name">Display name</Label>
+            <Label htmlFor="display_name">{t("auth.displayName")}</Label>
             <Input id="display_name" name="display_name" autoComplete="name" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("auth.email")}</Label>
             <Input id="email" name="email" type="email" autoComplete="email" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("auth.password")}</Label>
             <Input
               id="password"
               name="password"
@@ -40,7 +42,7 @@ export function SignupForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirm_password">Confirm password</Label>
+            <Label htmlFor="confirm_password">{t("auth.confirmPassword")}</Label>
             <Input
               id="confirm_password"
               name="confirm_password"
@@ -58,14 +60,14 @@ export function SignupForm() {
           ) : null}
 
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Creating account..." : "Create account"}
+            {isPending ? t("auth.creatingAccount") : t("auth.createAccount")}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {t("auth.haveAccount")}{" "}
           <Link href="/login" className="font-medium text-foreground hover:underline">
-            Log in
+            {t("auth.login")}
           </Link>
         </p>
       </CardContent>

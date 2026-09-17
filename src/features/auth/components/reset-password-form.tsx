@@ -3,24 +3,26 @@
 import { useActionState } from "react";
 
 import { resetPassword } from "@/features/auth/actions";
+import { useTranslation } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ResetPasswordForm() {
+  const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(resetPassword, undefined);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Choose a new password</CardTitle>
-        <CardDescription>Enter and confirm your new password.</CardDescription>
+        <CardTitle>{t("auth.newPasswordTitle")}</CardTitle>
+        <CardDescription>{t("auth.newPasswordSubtitle")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">New password</Label>
+            <Label htmlFor="password">{t("auth.newPasswordLabel")}</Label>
             <Input
               id="password"
               name="password"
@@ -31,7 +33,7 @@ export function ResetPasswordForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirm_password">Confirm password</Label>
+            <Label htmlFor="confirm_password">{t("auth.confirmPassword")}</Label>
             <Input
               id="confirm_password"
               name="confirm_password"
@@ -49,7 +51,7 @@ export function ResetPasswordForm() {
           ) : null}
 
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Saving..." : "Save new password"}
+            {isPending ? t("common.saving") : t("auth.saveNewPassword")}
           </Button>
         </form>
       </CardContent>

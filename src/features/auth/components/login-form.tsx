@@ -4,19 +4,21 @@ import { useActionState } from "react";
 import Link from "next/link";
 
 import { login, signInWithGoogle } from "@/features/auth/actions";
+import { useTranslation } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function LoginForm({ callbackError }: { callbackError?: string }) {
+  const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(login, undefined);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Log in</CardTitle>
-        <CardDescription>Welcome back to Wealth OS</CardDescription>
+        <CardTitle>{t("auth.login")}</CardTitle>
+        <CardDescription>{t("auth.loginSubtitle")}</CardDescription>
       </CardHeader>
       <CardContent>
         {callbackError ? (
@@ -26,14 +28,14 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
         ) : null}
         <form action={formAction} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("auth.email")}</Label>
             <Input id="email" name="email" type="email" autoComplete="email" required />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <Link href="/forgot-password" className="text-xs text-muted-foreground hover:underline">
-                Forgot password?
+                {t("auth.forgotPassword")}
               </Link>
             </div>
             <Input
@@ -52,22 +54,22 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
           ) : null}
 
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Logging in..." : "Log in"}
+            {isPending ? t("auth.loggingIn") : t("auth.login")}
           </Button>
         </form>
 
         <div className="mt-4">
           <form action={signInWithGoogle}>
             <Button type="submit" variant="outline" className="w-full">
-              Sign in with Google
+              {t("auth.signInWithGoogle")}
             </Button>
           </form>
         </div>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          {t("auth.noAccount")}{" "}
           <Link href="/signup" className="font-medium text-foreground hover:underline">
-            Sign up
+            {t("auth.signup")}
           </Link>
         </p>
       </CardContent>

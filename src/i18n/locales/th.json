@@ -79,7 +79,28 @@
     "createAccount": "สร้างบัญชี",
     "resetPassword": "รีเซ็ตรหัสผ่าน",
     "sendResetLink": "ส่งลิงก์รีเซ็ตรหัสผ่าน",
-    "checkYourEmail": "กรุณาตรวจสอบอีเมลของคุณ"
+    "checkYourEmail": "กรุณาตรวจสอบอีเมลของคุณ",
+    "signupSubtitle": "เริ่มติดตามการเงินของคุณกับ Wealth OS",
+    "creatingAccount": "กำลังสร้างบัญชี...",
+    "loginSubtitle": "ยินดีต้อนรับกลับสู่ Wealth OS",
+    "loggingIn": "กำลังเข้าสู่ระบบ...",
+    "forgotPasswordSubtitle": "กรอกอีเมลของคุณ แล้วเราจะส่งลิงก์รีเซ็ตรหัสผ่านให้",
+    "sendingResetLink": "กำลังส่ง...",
+    "resetLinkSentMessage": "หากมีบัญชีที่ใช้อีเมลนี้ ลิงก์สำหรับรีเซ็ตรหัสผ่านกำลังถูกส่งไป กรุณาตรวจสอบกล่องข้อความของคุณ",
+    "backToLogin": "กลับไปเข้าสู่ระบบ",
+    "newPasswordTitle": "ตั้งรหัสผ่านใหม่",
+    "newPasswordSubtitle": "กรอกและยืนยันรหัสผ่านใหม่ของคุณ",
+    "newPasswordLabel": "รหัสผ่านใหม่",
+    "saveNewPassword": "บันทึกรหัสผ่านใหม่"
+  },
+  "profileForm": {
+    "title": "โปรไฟล์และการตั้งค่า",
+    "languageLabel": "ภาษา",
+    "languageThai": "ไทย (Thai)",
+    "languageEnglish": "English",
+    "timezoneLabel": "เขตเวลา",
+    "saved": "บันทึกแล้ว",
+    "saveChanges": "บันทึกการเปลี่ยนแปลง"
   },
   "dashboard": {
     "title": "ภาพรวมการเงิน",

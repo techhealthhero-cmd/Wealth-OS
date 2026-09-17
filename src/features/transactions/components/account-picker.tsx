@@ -62,7 +62,7 @@ export function AccountPicker({ name, accounts, value, onValueChange, id }: Acco
           }}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false}>
         {accounts.map((account) => (
           <SelectItem key={account.id} value={account.id}>
             <span className="flex w-full items-center justify-between gap-3">

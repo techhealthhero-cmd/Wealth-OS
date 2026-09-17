@@ -115,8 +115,18 @@
   --card-foreground: #f2f5ee;
   --popover: #16211b;
   --popover-foreground: #f2f5ee;
-  --primary: #c6f24e;
-  --primary-foreground: #0e1712;
+  /* Dark mode's primary was previously a bright neon lime (#c6f24e) — read
+     as a crypto/gaming accent, at odds with GRAPHICS_PLAN.md's own "no
+     orange/neon/saturated accents" rule and "not a crypto dashboard, not a
+     casino-style app" identity. Replaced with a brightened version of the
+     SAME light-mode forest green (#1f4d3e) rather than a different hue, so
+     the brand reads as one identity across themes — just lifted in
+     lightness/saturation enough to stay legible on a near-black background,
+     the same way light mode's dark green reads on a near-white one. (A
+     softer emerald alternative, #2f8f6f, was tried and screenshotted too —
+     this forest option is the one the user preferred.) */
+  --primary: #2d6b52;
+  --primary-foreground: #ffffff;
   --secondary: #1e2a22;
   --secondary-foreground: #f2f5ee;
   --muted: #1e2a22;
@@ -127,7 +137,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: #c6f24e;
+  --ring: #2d6b52;
   /* Muted chart palette, dark-mode steps — kept in sync with :root's v2.4
      "no orange/neon" rule even though dark mode is only an opt-in secondary
      theme here. */
@@ -139,12 +149,12 @@
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
   --sidebar: #16211b;
   --sidebar-foreground: #f2f5ee;
-  --sidebar-primary: #c6f24e;
-  --sidebar-primary-foreground: #0e1712;
-  --sidebar-accent: rgba(198, 242, 78, 0.16);
-  --sidebar-accent-foreground: #c6f24e;
+  --sidebar-primary: #2d6b52;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(45, 107, 82, 0.18);
+  --sidebar-accent-foreground: #7fd6b2;
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #c6f24e;
+  --sidebar-ring: #2d6b52;
 }
 
 @layer base {
