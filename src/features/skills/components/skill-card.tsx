@@ -21,19 +21,19 @@ export function SkillCard({ skill }: { skill: UserSkill }) {
   return (
     <Card>
       <CardContent className="flex items-center justify-between gap-2 py-4">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-medium leading-none">{skill.skill_name}</p>
-            <Badge variant="secondary" className="text-[10px]">
+            <p className="min-w-0 truncate font-medium leading-none">{skill.skill_name}</p>
+            <Badge variant="secondary" className="shrink-0 text-[10px]">
               {t(`earn.skills.proficiencyLevels.${skill.proficiency_level}`)}
             </Badge>
             {skill.monetized_before ? (
-              <Badge className="bg-emerald-100 text-[10px] text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+              <Badge className="shrink-0 bg-emerald-100 text-[10px] text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
                 {t("earn.skills.monetizedBefore")}
               </Badge>
             ) : null}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 truncate text-sm text-muted-foreground">
             {t(`earn.skills.categories.${skill.category}`)} · {t(`earn.skills.interestLevels.${skill.interest_level}`)}
             {skill.available_hours_per_week !== null ? ` · ${skill.available_hours_per_week} ${t("earn.skills.hoursPerWeekUnit")}` : ""}
           </p>

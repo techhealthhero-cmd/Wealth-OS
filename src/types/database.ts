@@ -273,6 +273,7 @@ export interface Database {
           notes: string | null;
           is_recurring: boolean;
           source: TransactionSource;
+          client_request_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -374,6 +375,7 @@ export interface Database {
           minimum_payment: string | null;
           due_date: string | null;
           include_in_net_worth: boolean;
+          linked_account_id: string | null;
           notes: string | null;
           created_at: string;
           updated_at: string;

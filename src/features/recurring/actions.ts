@@ -10,6 +10,9 @@ import { friendlyDbError } from "@/lib/db-error";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { toLocalDateString } from "@/lib/date";
+import { deterministicUuid } from "@/lib/uuid";
+
+const PG_UNIQUE_VIOLATION = "23505";
 
 export interface ActionResult {
   error?: string;
@@ -132,6 +135,21 @@ export async function confirmRecurringTransaction(id: string): Promise<ActionRes
   if (fetchError || !recurring) return { error: friendlyDbError(fetchError ?? { message: "not found" }, "confirmRecurringTransaction", dict.recurring.confirmFailed) };
   if (!isDue(new Date(recurring.next_due_date))) return { error: dict.recurring.notYetDue };
 
+  // Idempotency key for THIS specific due occurrence — deterministic
+  // (not random) because there's no client form to hold a random key
+  // steady across a retry here, only a server action re-invoked by a
+  // button click. Deriving it from (recurring.id, next_due_date) gives
+  // the same "same intent = same key" property createTransaction's
+  // client-generated key gives ordinary transactions: two rapid clicks
+  // read the same next_due_date (it hasn't advanced yet) and so derive
+  // the SAME key, so the second insert/transfer hits the existing unique
+  // constraint instead of creating a second financial event. Confirming
+  // the NEXT occurrence later derives a different key (next_due_date has
+  // advanced by then), so it is never blocked. Reuses the exact same
+  // database uniqueness mechanism as migration 0012 — no second
+  // duplicate-prevention system.
+  const idempotencyKey = deterministicUuid(`recurring-confirm:${recurring.id}:${recurring.next_due_date}`);
+
   if (recurring.type === "transfer") {
     const { error } = await supabase.rpc("create_transfer", {
       p_from_account_id: recurring.from_account_id,
@@ -140,6 +158,7 @@ export async function confirmRecurringTransaction(id: string): Promise<ActionRes
       p_transaction_date: recurring.next_due_date,
       p_description: recurring.description,
       p_notes: null,
+      p_client_request_id: idempotencyKey,
     });
     if (error) return { error: friendlyDbError(error, "confirmRecurringTransaction", dict.recurring.confirmFailed) };
   } else {
@@ -153,8 +172,15 @@ export async function confirmRecurringTransaction(id: string): Promise<ActionRes
       merchant: recurring.merchant,
       description: recurring.description,
       source: "recurring",
+      client_request_id: idempotencyKey,
     });
-    if (error) return { error: friendlyDbError(error, "confirmRecurringTransaction", dict.recurring.confirmFailed) };
+    // A unique-constraint hit here means this exact occurrence was already
+    // confirmed (e.g. a rapid double-click) — the first click's insert
+    // already produced the result the user wanted, so this is a safe
+    // no-op, not a failure to surface.
+    if (error && error.code !== PG_UNIQUE_VIOLATION) {
+      return { error: friendlyDbError(error, "confirmRecurringTransaction", dict.recurring.confirmFailed) };
+    }
   }
 
   const nextDue = calculateNextDueDate(new Date(recurring.next_due_date), recurring.frequency);

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { completeOnboarding } from "@/features/profile/actions";
+import { useTranslation } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,29 +16,22 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const GOALS = [
-  { value: "save_more", label: "Save more" },
-  { value: "pay_off_debt", label: "Pay off debt" },
-  { value: "build_wealth", label: "Build wealth" },
-  { value: "track_spending", label: "Track spending" },
-  { value: "other", label: "Other" },
-];
+const STARTING_ACCOUNT_TYPES = ["cash", "bank"] as const;
 
 export function OnboardingForm({ defaultDisplayName }: { defaultDisplayName?: string | null }) {
+  const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(completeOnboarding, undefined);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Welcome to Wealth OS</CardTitle>
-        <CardDescription>
-          A few quick details to set up your dashboard. Everything except your name is optional.
-        </CardDescription>
+        <CardTitle>{t("onboarding.welcome")}</CardTitle>
+        <CardDescription>{t("onboarding.subtitle")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="display_name">What&apos;s your name?</Label>
+            <Label htmlFor="display_name">{t("onboarding.nameLabel")}</Label>
             <Input
               id="display_name"
               name="display_name"
@@ -47,50 +41,32 @@ export function OnboardingForm({ defaultDisplayName }: { defaultDisplayName?: st
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="monthly_income">Monthly income (optional)</Label>
-            <Input id="monthly_income" name="monthly_income" type="number" step="0.01" min="0" />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="starting_balance">
-              Starting cash/bank balance (optional)
-            </Label>
-            <Input id="starting_balance" name="starting_balance" type="number" step="0.01" />
-            <p className="text-xs text-muted-foreground">
-              We&apos;ll create a starting Cash account with this balance for you.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="monthly_essential_expenses">
-              Monthly essential expenses (optional)
-            </Label>
-            <Input
-              id="monthly_essential_expenses"
-              name="monthly_essential_expenses"
-              type="number"
-              step="0.01"
-              min="0"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="primary_goal">Primary financial goal (optional)</Label>
-            <Select name="primary_goal">
-              <SelectTrigger id="primary_goal">
-                <SelectValue placeholder="Choose a goal">
-                  {(value: string) => GOALS.find((g) => g.value === value)?.label ?? "Choose a goal"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {GOALS.map((goal) => (
-                  <SelectItem key={goal.value} value={goal.value}>
-                    {goal.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3 rounded-lg border border-border p-3">
+            <div>
+              <p className="text-sm font-medium">{t("onboarding.accountSectionTitle")}</p>
+              <p className="text-xs text-muted-foreground">{t("onboarding.accountSectionHint")}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="starting_account_type">{t("onboarding.accountTypeLabel")}</Label>
+                <Select name="starting_account_type" defaultValue="cash">
+                  <SelectTrigger id="starting_account_type">
+                    <SelectValue>{(value: string) => t(`accounts.types.${value}`)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STARTING_ACCOUNT_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {t(`accounts.types.${type}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="starting_balance">{t("onboarding.balanceLabel")}</Label>
+                <Input id="starting_balance" name="starting_balance" type="number" step="0.01" />
+              </div>
+            </div>
           </div>
 
           {state?.error ? (
@@ -100,7 +76,7 @@ export function OnboardingForm({ defaultDisplayName }: { defaultDisplayName?: st
           ) : null}
 
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Setting up..." : "Get started"}
+            {isPending ? t("onboarding.finishing") : t("onboarding.finish")}
           </Button>
         </form>
       </CardContent>

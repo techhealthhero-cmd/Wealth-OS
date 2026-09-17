@@ -5,7 +5,7 @@ import { useActionState, useEffect, useState } from "react";
 import { createLiability, updateLiability } from "@/features/liabilities/actions";
 import { LIABILITY_TYPES } from "@/lib/validation/liability";
 import { useTranslation } from "@/i18n/client";
-import type { Liability } from "@/types/database";
+import type { Account, Liability } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,19 +27,31 @@ import {
 import { Plus } from "lucide-react";
 import { asTrigger } from "@/lib/as-trigger";
 
+const NO_LINK = "__none__";
+
 interface LiabilityFormProps {
   liability?: Liability;
+  /** Active credit_card-type accounts this liability could link to — see CLAUDE.md "LIABILITY <-> ACCOUNT LINKING". */
+  creditCardAccounts?: Account[];
   trigger?: React.ReactElement | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function LiabilityForm({ liability, trigger, open, onOpenChange }: LiabilityFormProps) {
+export function LiabilityForm({ liability, creditCardAccounts = [], trigger, open, onOpenChange }: LiabilityFormProps) {
   const { t } = useTranslation();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const isControlled = open !== undefined;
   const dialogOpen = isControlled ? open : uncontrolledOpen;
   const setDialogOpen = isControlled ? onOpenChange! : setUncontrolledOpen;
+  // Tracked so the double-counting hint (see CLAUDE.md "CREDIT CARD ACCOUNT
+  // SEMANTICS") only shows for the one liability type that has a matching
+  // accounts.account_type, instead of appearing for every liability type.
+  const [liabilityType, setLiabilityType] = useState(liability?.liability_type ?? "credit_card");
+  const [linkedAccountId, setLinkedAccountId] = useState(liability?.linked_account_id ?? NO_LINK);
+
+  const linkedAccountLabel = (value: string) =>
+    value === NO_LINK ? t("liabilities.noLink") : creditCardAccounts.find((a) => a.id === value)?.name ?? t("liabilities.noLink");
 
   const action = liability ? updateLiability.bind(null, liability.id) : createLiability;
   const [state, formAction, isPending] = useActionState(action, undefined);
@@ -75,7 +87,7 @@ export function LiabilityForm({ liability, trigger, open, onOpenChange }: Liabil
 
           <div className="space-y-2">
             <Label htmlFor="liability_type">{t("liabilities.type")}</Label>
-            <Select name="liability_type" defaultValue={liability?.liability_type ?? "credit_card"}>
+            <Select name="liability_type" value={liabilityType} onValueChange={(value) => value && setLiabilityType(value)}>
               <SelectTrigger id="liability_type">
                 <SelectValue>{(value: string) => t(`liabilities.types.${value}`)}</SelectValue>
               </SelectTrigger>
@@ -100,7 +112,31 @@ export function LiabilityForm({ liability, trigger, open, onOpenChange }: Liabil
               defaultValue={liability?.balance ?? "0"}
               required
             />
+            {liabilityType === "credit_card" ? (
+              <p className="text-xs text-muted-foreground">{t("liabilities.doubleCountHint")}</p>
+            ) : null}
           </div>
+
+          {liabilityType === "credit_card" && creditCardAccounts.length > 0 ? (
+            <div className="space-y-2">
+              <input type="hidden" name="linked_account_id" value={linkedAccountId === NO_LINK ? "" : linkedAccountId} />
+              <Label htmlFor="linked_account_display">{t("liabilities.linkedAccount")}</Label>
+              <Select value={linkedAccountId} onValueChange={(value) => setLinkedAccountId(value ?? NO_LINK)}>
+                <SelectTrigger id="linked_account_display">
+                  <SelectValue>{linkedAccountLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_LINK}>{t("liabilities.noLink")}</SelectItem>
+                  {creditCardAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">{t("liabilities.linkedAccountHint")}</p>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

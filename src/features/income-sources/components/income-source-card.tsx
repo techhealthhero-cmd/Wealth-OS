@@ -22,20 +22,20 @@ export function IncomeSourceCard({ source }: { source: IncomeSource }) {
   return (
     <Card>
       <CardContent className="flex items-center justify-between gap-2 py-4">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-medium leading-none">{source.name}</p>
+            <p className="min-w-0 truncate font-medium leading-none">{source.name}</p>
             {!source.is_active ? (
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" className="shrink-0 text-[10px]">
                 {t("earn.income.inactive")}
               </Badge>
             ) : null}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 truncate text-sm text-muted-foreground">
             {t(`earn.income.types.${source.source_type}`)} · {t(`earn.income.stabilities.${source.stability}`)}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <p className="font-medium">{formatMoneyFromDecimal(source.expected_monthly_income)}</p>
           <DropdownMenu>
             <DropdownMenuTrigger

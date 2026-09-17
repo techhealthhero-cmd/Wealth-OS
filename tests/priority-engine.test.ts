@@ -64,6 +64,25 @@ describe("getFinancialPriorities — savings priority", () => {
     const priorities = getFinancialPriorities({ ...healthy, savingsRatePercent: 10 });
     expect(priorities.some((p) => p.priorityType === "low_savings_rate")).toBe(false);
   });
+
+  it("does not flag low_savings_rate for a brand-new user with no income data yet (hasIncomeThisPeriod: false) — first-session bug fix", () => {
+    // calculateSavingsRate([]) returns exactly 0 for "no transactions", which
+    // is indistinguishable from a real 0% rate without this extra signal —
+    // without the fix this incorrectly fired a "low savings rate" priority
+    // for a user with zero real data.
+    const priorities = getFinancialPriorities({ ...healthy, savingsRatePercent: 0, hasIncomeThisPeriod: false });
+    expect(priorities.some((p) => p.priorityType === "low_savings_rate")).toBe(false);
+  });
+
+  it("still flags a genuinely low savings rate when income data does exist", () => {
+    const priorities = getFinancialPriorities({ ...healthy, savingsRatePercent: 0, hasIncomeThisPeriod: true });
+    expect(priorities.some((p) => p.priorityType === "low_savings_rate")).toBe(true);
+  });
+
+  it("defaults hasIncomeThisPeriod to true when omitted, preserving existing caller behavior", () => {
+    const priorities = getFinancialPriorities({ ...healthy, savingsRatePercent: 5 });
+    expect(priorities.some((p) => p.priorityType === "low_savings_rate")).toBe(true);
+  });
 });
 
 describe("getFinancialPriorities — goal priority", () => {

@@ -6,6 +6,7 @@
     "delete": "Delete",
     "edit": "Edit",
     "archive": "Archive",
+    "unarchive": "Unarchive",
     "add": "Add",
     "loading": "Loading...",
     "saving": "Saving...",
@@ -82,6 +83,8 @@
   },
   "dashboard": {
     "title": "Financial overview",
+    "greeting": "Hello, {name} 👋",
+    "greetingGeneric": "Hello 👋",
     "monthlyIncome": "Income this month",
     "monthlyExpenses": "Expenses this month",
     "cashFlow": "Cash flow",
@@ -111,11 +114,18 @@
     "includeInNetWorth": "Include in net worth",
     "archiveAccount": "Archive account",
     "archived": "Archived",
+    "archivedAccounts": "Archived accounts",
+    "archiveConfirm": "Archive this account? It'll be hidden from your list, but you can restore it anytime from Archived accounts below.",
     "emptyTitle": "No accounts yet",
-    "emptyState": "Add your first account to start tracking your money.",
+    "emptyState": "Add your first account so WEALTH OS can show you a real picture of your money.",
+    "addFirstAccount": "Add your first account",
     "currency": "Currency",
     "namePlaceholder": "e.g. SCB, Cash, TrueMoney",
     "institutionPlaceholder": "e.g. Siam Commercial Bank",
+    "openingBalanceEditHint": "Changing this also changes your current balance — it doesn't add a transaction.",
+    "creditCardTypeHint": "Use this to log spending on the card as transactions. If you already track this card's debt under Liabilities, use only one of the two so it isn't counted twice.",
+    "creditCardBalanceHint": "If you already owe money on this card, enter it as a negative number, e.g. -5,000.",
+    "creditCardBalanceLabel": "Outstanding balance",
     "createFailed": "Could not create the account. Please try again.",
     "updateFailed": "Could not update the account. Please try again.",
     "archiveFailed": "Could not archive the account. Please try again.",
@@ -147,7 +157,11 @@
     "fromAccount": "From account",
     "toAccount": "To account",
     "emptyState": "No transactions yet.",
-    "deleteConfirm": "Delete this transaction?",
+    "emptyTitle": "No transactions yet",
+    "emptyDescription": "Add your first transaction so WEALTH OS can start showing your cash flow and spending patterns.",
+    "addFirstTransaction": "Add your first transaction",
+    "noResultsTitle": "No matching transactions",
+    "deleteConfirm": "Delete this transaction? Your account balance will update right away.",
     "types": {
       "income": "Income",
       "expense": "Expense",
@@ -196,11 +210,14 @@
   },
   "onboarding": {
     "welcome": "Welcome to Wealth OS",
-    "step1Title": "What's your name?",
-    "step2Title": "Monthly income (optional)",
-    "step3Title": "Starting balance (optional)",
-    "step4Title": "Financial goal (optional)",
-    "finish": "Get started"
+    "subtitle": "Let's start with an overview of your money.",
+    "nameLabel": "What should we call you?",
+    "accountSectionTitle": "Add your first account (optional)",
+    "accountSectionHint": "This helps us show your real balance right away. You can skip this and add it later.",
+    "balanceLabel": "Current balance",
+    "accountTypeLabel": "Account type",
+    "finish": "Get started",
+    "finishing": "Setting up..."
   },
   "plan": {
     "subtitle": "Plan your goals and emergency fund."
@@ -218,6 +235,8 @@
     "remaining": "Remaining",
     "percentUsed": "Used",
     "projected": "Projected month-end",
+    "overByAmount": "{amount} over your plan",
+    "remainingAmount": "{amount} left in your plan",
     "status": {
       "no_budget": "No budget set",
       "healthy": "Healthy",
@@ -289,6 +308,11 @@
     "dueDate": "Due date (optional)",
     "includeInNetWorth": "Include in net worth",
     "notes": "Notes",
+    "doubleCountHint": "If you also log spending on this card as an account under Money, use only one of the two — otherwise this debt gets counted twice in your Net Worth.",
+    "linkedAccount": "Link to credit card account",
+    "linkedAccountHint": "Link to prevent the same card's debt from being counted twice in your Net Worth.",
+    "linkedBadge": "linked",
+    "noLink": "No link",
     "types": {
       "credit_card": "Credit card",
       "personal_loan": "Personal loan",
@@ -443,6 +467,7 @@
     "netWorth": "Net Worth",
     "safeToSpend": "Safe to spend today",
     "budgetStatus": "Budget status",
+    "relevantNow": "Matters now",
     "emergencyFund": "Emergency Fund",
     "topGoal": "Top goal",
     "monthlyCashFlow": "Monthly cash flow",
@@ -609,7 +634,9 @@
       "weak_income_growth": "Income isn't growing",
       "income_gap": "Income below target"
     },
-    "noPriorities": "Your finances look healthy across the board."
+    "noPriorities": "Your finances look healthy across the board.",
+    "notEnoughData": "Add a bit more data so we can give you accurate advice.",
+    "notEnoughDataCta": "Add a transaction"
   },
   "nextBestAction": {
     "title": "What to do next",
@@ -685,6 +712,12 @@
     "inputPlaceholder": "Type a question about your finances...",
     "send": "Send",
     "thinking": "Thinking...",
+    "copy": "Copy",
+    "copied": "Copied",
+    "regenerate": "Regenerate",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "jumpToLatest": "Jump to latest",
     "suggestedPrompts": {
       "monthSummary": "How's my money doing this month?",
       "topFocus": "What should I focus on financially right now?",

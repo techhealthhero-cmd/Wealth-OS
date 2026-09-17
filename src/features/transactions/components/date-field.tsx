@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 
 import { formatFriendlyDate } from "@/lib/transaction-ui";
 import { useTranslation } from "@/i18n/client";
@@ -17,7 +17,11 @@ interface DateFieldProps {
  * a raw date input. A single real <input type="date"> still backs it (same
  * `name`, so form submission is unaffected) — it's just rendered invisible
  * and stacked on top of the styled button, so a tap opens the native date
- * picker directly instead of needing extra glue code.
+ * picker directly instead of needing extra glue code. No `min`/`max` is
+ * set, so any past (or future) date can already be picked — the trailing
+ * chevron exists purely so that's visually obvious (this pill previously
+ * looked like a static label, not a tappable control, unlike the account
+ * picker right next to it which already has one).
  */
 export function DateField({ name, value, onValueChange, id }: DateFieldProps) {
   const { t, locale } = useTranslation();
@@ -34,6 +38,7 @@ export function DateField({ name, value, onValueChange, id }: DateFieldProps) {
       >
         <CalendarIcon className="h-4 w-4 text-muted-foreground" />
         {friendly}
+        <ChevronDownIcon className="h-3.5 w-3.5 text-muted-foreground" />
       </span>
       <input
         id={id}

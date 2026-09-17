@@ -40,11 +40,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <I18nProvider locale={locale} dict={dict}>
-      <div className="flex min-h-screen">
+      {/* Mobile overflow fix (real-device iPhone bug, 2026-09): flex items
+          default to `min-width: auto`, meaning they refuse to shrink below
+          their content's intrinsic width — a wide descendant anywhere in
+          `children` (e.g. a horizontally-scrollable tab bar with several
+          Thai labels) could otherwise stretch this entire chain wider than
+          the viewport, escaping even `main`'s own `overflow-x-hidden`
+          (that only clips content overflowing main's OWN box; it doesn't
+          stop main's box itself from being forced wider by flex sizing).
+          `min-w-0` at every level of this row/column flex chain removes
+          that failure mode at its root, instead of hiding it with a
+          page-level `overflow-x-hidden` band-aid. */}
+      <div className="flex min-h-screen min-w-0">
         <Sidebar />
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <Header displayName={profile.display_name} />
-          <main className="flex-1 overflow-x-hidden px-4 py-6 md:px-8">{children}</main>
+          <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-8">{children}</main>
           <BottomNav />
         </div>
       </div>

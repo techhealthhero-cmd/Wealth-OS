@@ -1,13 +1,13 @@
 # Wealth OS
 
-A personal finance operating system for tracking accounts, transactions, and
-cash flow — Thai-first, mobile-first, built on Next.js and Supabase.
+A personal financial operating system — Track → Analyze → Plan → Earn →
+Grow — Thai-first, mobile-first, built on Next.js and Supabase.
 
-This is the **Day 1 foundation**: authentication, database schema with Row
-Level Security, account and transaction CRUD, correct transfer handling, and
-a real dashboard driven by actual data. It is not the full product spec —
-see [Known limitations](#known-limitations) and
-[Next recommended phase](#next-recommended-phase).
+**This file covers setup, local development, and deployment only.** For
+what's actually implemented right now, current build status, known
+limitations, and next steps, see `PROJECT_STATUS.md` — that file is the
+only implementation-status source of truth (see `CLAUDE.md`'s "Document
+Ownership" section for the full map of which doc owns what).
 
 ## Tech stack
 
@@ -88,16 +88,14 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-This applies, in order:
-
-- `supabase/migrations/0001_init.sql` — all tables, indexes, RLS policies,
-  the balance-maintenance triggers, the `create_transfer` RPC, and the
-  `handle_new_user` profile-bootstrap trigger.
-- `supabase/migrations/0002_system_categories.sql` — the shared Thai/English
-  system categories every user sees.
+This applies every file in `supabase/migrations/`, in filename order (each
+migration's own header comment explains what it adds — see that directory
+for the current list rather than relying on a count here, since new
+migrations are added as features ship; `PROJECT_STATUS.md`'s "Migrations
+Added" section tracks what each one was for).
 
 For local development, `supabase start` (or `supabase db reset`) applies
-both migrations and then runs `supabase/seed.sql` automatically.
+all migrations and then runs `supabase/seed.sql` automatically.
 
 ### Seed / demo data
 
@@ -183,59 +181,57 @@ All four currently pass cleanly against this codebase.
 
 ## Folder structure
 
+The shape below is the pattern every feature follows — it's deliberately
+described as a pattern, not an exhaustive current list, since the exact
+set of `src/features/*` domains grows as the product does (see
+`PROJECT_STATUS.md` for what's currently implemented):
+
 ```
 src/
   app/                    Routes (App Router)
     (auth)/               Public auth pages: login, signup, forgot/reset password
-    (app)/                Protected shell: dashboard, money/*, profile
+    (app)/                Protected shell: dashboard, money/*, plan/*, earn/*, ai, profile, billing
     auth/callback/        OAuth + email-confirmation callback route handler
-    onboarding/           Day-1 onboarding (outside the app shell, own layout)
+    onboarding/           Onboarding (outside the app shell, own layout)
   components/
     ui/                   shadcn/ui primitives (Base UI-backed)
-    layout/               Sidebar, bottom nav, header, nav config
+    layout/               Sidebar, bottom nav, header, nav/tab config
     shared/                Cross-feature UI (empty states, ...)
-  features/
-    auth/                 Server actions + forms for login/signup/logout/password reset
-    accounts/             Queries, server actions, and components for accounts
-    transactions/         Queries, server actions, and components for transactions/transfers
-    categories/           Category queries (system + user categories)
-    dashboard/            Dashboard data aggregation + charts + summary cards
-    profile/              Profile queries/actions + onboarding form
+    illustrations/         Flat SVG illustration components (see GRAPHICS_PLAN.md)
+  features/<domain>/       One folder per product domain (accounts, transactions,
+                            budget, goals, income-sources, ai, billing, engagement, ...) —
+                            each with queries.ts (reads), actions.ts (Server Action writes),
+                            and components/
   lib/
     supabase/             Browser / server / admin Supabase clients + middleware session refresh
-    validation/           Zod schemas (account, transaction, transfer, profile, auth)
-    financial/            Pure calculation functions + cents-based money math
+    validation/            Zod schemas
+    financial/             Pure, deterministic calculation functions (see CLAUDE.md's "Financial Logic")
     as-trigger.ts          Base UI render-prop trigger helper
     utils.ts               cn() class merging
   types/database.ts        Hand-written schema types (see note in the file)
   config/                  Validated env access, feature flags
   i18n/                    th/en dictionaries, server locale resolution, client provider/hook
 supabase/
-  migrations/               0001_init.sql, 0002_system_categories.sql
+  migrations/               See that directory for the current, authoritative list
   seed.sql                  Local-dev-only demo data
 tests/                      Vitest unit tests
 ```
 
 ## Row Level Security overview
 
-Every table has RLS enabled. The short version:
+RLS is mandatory on every table (see `CLAUDE.md`'s "Database Rules") — the
+general shape: user-owned tables are scoped to `user_id = auth.uid()`,
+shared read-only reference data (like system categories) is readable by
+any authenticated user but not writable by them, and write policies verify
+every foreign key a client submits actually belongs to the caller rather
+than trusting `user_id` from the request. Application code never trusts
+ownership from the client; see `src/features/*/actions.ts`.
 
-- **profiles**: a user can only read/write their own row (`user_id = auth.uid()`).
-- **accounts**, **transactions**, **tags**: fully scoped to the owning user.
-- **categories**: system categories (`is_system = true`, `user_id IS NULL`)
-  are readable by any authenticated user; custom categories are scoped to
-  their owner, and a user can never set `is_system = true` on their own row.
-- **transaction_tags**: has no `user_id` column of its own, so its policies
-  check ownership via the parent `transactions` row.
-- **transactions insert/update** policies additionally verify that every
-  referenced `account_id` / `from_account_id` / `to_account_id` /
-  `category_id` belongs to the caller (or is a system category) — this is
-  the database-level backstop against a client submitting an account or
-  category it doesn't own. Application code never trusts `user_id` or
-  ownership from the client; see `src/features/*/actions.ts`.
-
-Full detail, including the reasoning for each design choice, is documented
-inline in `supabase/migrations/0001_init.sql`.
+Each migration documents its own tables' policies and reasoning inline —
+see `supabase/migrations/`. For current verified cross-user-isolation test
+results (which tables, how many checks, when last verified), see
+`PROJECT_STATUS.md` rather than this file, since that verification is
+implementation-status, not setup documentation.
 
 ## Design decisions worth knowing about
 
@@ -253,8 +249,7 @@ inline in `supabase/migrations/0001_init.sql`.
   maintained by a trigger that recalculates the full balance from
   `opening_balance` + a fresh aggregate over `transactions` on every
   relevant write, rather than nudging it up/down in place. This makes drift
-  structurally impossible at the cost of a cheap aggregate query per write —
-  a good trade at Day-1 scale.
+  structurally impossible at the cost of a cheap aggregate query per write.
 - **Refund handling**: a refund is treated as an *expense reversal* —
   `calculateExpenses()` nets refunds against gross expenses — rather than as
   income. This keeps `Cash Flow = Income − Expenses` true by construction.
@@ -262,78 +257,15 @@ inline in `supabase/migrations/0001_init.sql`.
   `src/lib/financial/calculations.ts`.
 - **Savings Rate** = `(Income − Expenses) / Income × 100`, returning `0`
   (not `NaN`/`Infinity`) when income is `0`. This is a cash-flow proxy, not
-  a measure of money actually set aside — see
-  [Known limitations](#known-limitations).
+  a measure of money actually set aside.
 - **Categories use `TEXT + CHECK`, not native Postgres enums** — easier to
   extend later (`ALTER TABLE ... ADD CONSTRAINT`) than `ALTER TYPE ... ADD VALUE`.
 
-## Current features (Day 1)
+## Current features, known limitations, and what's next
 
-- Email/password auth (Supabase Auth), with Google OAuth wired up but
-  requiring provider configuration to activate.
-- Protected app shell: sidebar (desktop) + bottom navigation (mobile),
-  profile menu with logout.
-- Accounts: create, edit, archive, with derived (never client-trusted)
-  balances.
-- Transactions: income/expense/refund/debt payment/savings transfer/
-  investment allocation CRUD, plus dedicated, atomic transfers between
-  accounts.
-- Search/filter transactions by type, account, category, and free text.
-- Quick Add: a floating action button (mobile) / inline button (desktop)
-  for fast expense/income/transfer entry.
-- Dashboard: this month's income, expenses, cash flow, savings rate,
-  account balances, recent transactions, income-vs-expense and
-  spending-by-category charts (Recharts, using a colorblind-safe validated
-  palette) — all computed from real data, with explicit empty states
-  instead of zeros or fake numbers.
-- Day-1 onboarding: name, optional monthly income/expenses, optional
-  starting balance (creates a starting Cash account), optional goal.
-- System categories seeded in Thai + English.
-- Thai-default, translation-ready UI (`src/i18n/`) — see limitations below
-  for what's translated so far.
-
-## Known limitations
-
-- **i18n coverage is partial.** The translation infrastructure
-  (`src/i18n/`: dictionaries, `getLocale`, `I18nProvider`, `useTranslation`)
-  is fully wired and working — navigation, the header menu, and the
-  dashboard are translated and switch with the user's `preferred_language`.
-  Forms and dialogs (accounts, transactions, transfers, auth) are still
-  hardcoded in English. Extending coverage is mechanical: add keys to
-  `src/i18n/locales/{th,en}.json` and swap hardcoded strings for `t("...")`
-  in each component.
-- **Editing an existing transfer isn't supported.** Delete and recreate
-  instead. (Creating, listing, filtering, and deleting transfers all work.)
-- **`debt_payment` / `savings_transfer` / `investment_allocation` only debit
-  the source account** — they don't model a corresponding credit to a
-  liability/savings/investment account. A full double-entry ledger is out
-  of scope for Day 1; see `recalc_account_balance()` in the migration for
-  the exact documented behavior.
-- **Savings Rate is a cash-flow proxy**, not a measure of money actually set
-  aside (see Design decisions above).
-- **Cross-currency transfers are rejected** by `create_transfer()` — both
-  accounts must share a currency code for now.
-- **Onboarding's "monthly income" and "monthly essential expenses" fields
-  aren't persisted** — there's no column for them in `profiles` per the
-  Day-1 schema. Only "starting balance" (creates a Cash account) and
-  display name are saved. Extending this needs either new profile columns
-  or a separate `financial_snapshots`-style table.
-- **Google OAuth requires configuration** in the Supabase dashboard before
-  it will work (see Supabase setup above); the code path is complete.
-- No automated RLS policy tests (e.g. pgTAP) — RLS logic is documented
-  inline and was reasoned through manually. Automated policy tests are a
-  good next step.
-
-## Next recommended phase
-
-1. Finish i18n coverage across forms/dialogs.
-2. pgTAP (or similar) tests asserting RLS policies actually block
-   cross-user access, not just that they're declared.
-3. A liability/investment-aware balance model, if debt/savings/investment
-   tracking needs to go beyond "debit the source account."
-4. The remaining nav surfaces from the full spec (Plan, Earn, AI) — each is
-   feature-flagged off (`src/config/features.ts`) and hidden from
-   navigation entirely until it has a real implementation, per the
-   "no fake buttons" rule.
-5. Recurring transactions (the `is_recurring` flag and `source = 'recurring'`
-   already exist in the schema but nothing populates them yet).
+Tracked in `PROJECT_STATUS.md`, not here — this file is setup/run/deploy
+only (see `CLAUDE.md`'s "Document Ownership" section for why). That file
+has the current, verified state of every product area (auth, accounts,
+transactions, budget, goals, net worth, AI coach, income engine,
+engagement, billing, production hardening) plus known limitations and the
+recommended next task.

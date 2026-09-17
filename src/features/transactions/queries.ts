@@ -95,18 +95,30 @@ export interface QuickRepeatCandidate {
  */
 export async function getQuickRepeatCandidates(limit = 6): Promise<QuickRepeatCandidate[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("type, account_id, category_id, merchant, amount, transaction_date, created_at")
-    .neq("type", "transfer")
-    .order("transaction_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const [{ data, error }, { data: activeAccounts, error: accountsError }] = await Promise.all([
+    supabase
+      .from("transactions")
+      .select("type, account_id, category_id, merchant, amount, transaction_date, created_at")
+      .neq("type", "transfer")
+      .order("transaction_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(50),
+    // A candidate whose account has since been archived must not resurface
+    // — Quick Repeat prefills silently (never shows a form field for
+    // "account" until the sheet opens), so an archived account here would
+    // otherwise be reintroduced into active use without the user ever
+    // having chosen it.
+    supabase.from("accounts").select("id").eq("is_archived", false),
+  ]);
 
   if (error) throw new Error("Failed to load recent transactions");
+  if (accountsError) throw new Error("Failed to load accounts");
+
+  const activeAccountIds = new Set((activeAccounts ?? []).map((a) => a.id));
 
   const byKey = new Map<string, QuickRepeatCandidate & { rank: number }>();
   (data ?? []).forEach((row, index) => {
+    if (!activeAccountIds.has(row.account_id as string)) return;
     const key = `${row.type}|${row.category_id ?? ""}|${row.merchant ?? ""}`;
     const existing = byKey.get(key);
     if (existing) {

@@ -126,6 +126,12 @@ export async function getLifeStageAndPriorities(): Promise<LifeStageAndPrioritie
     emergencyFundCurrentCents,
     highInterestLiabilities,
     savingsRatePercent,
+    // First-session bug fix: a brand-new user with zero transactions this
+    // month gets savingsRatePercent === 0 from calculateSavingsRate's
+    // documented "no income → 0, not NaN" behavior — without this, that
+    // reads identically to "you're saving 0% of your income" and wrongly
+    // fires low_savings_rate on someone the app has no real data about yet.
+    hasIncomeThisPeriod: incomeCents > 0,
     hasInvestmentActivity,
     behindGoals,
     incomeGrowthPercent,

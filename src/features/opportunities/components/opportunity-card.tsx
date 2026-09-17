@@ -10,6 +10,7 @@ import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 
 function scoreClass(score: number): string {
@@ -29,11 +30,11 @@ export function OpportunityCard({ ranked, hasActiveMissions }: { ranked: RankedO
     <Card>
       <CardContent className="space-y-3 pt-6">
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-medium">{name}</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+          <div className="min-w-0">
+            <p className="break-words font-medium">{name}</p>
+            <p className="mt-0.5 break-words text-sm text-muted-foreground">{description}</p>
           </div>
-          <Badge className={scoreClass(score.totalScore)}>{score.totalScore}/100</Badge>
+          <Badge className={cn("shrink-0", scoreClass(score.totalScore))}>{score.totalScore}/100</Badge>
         </div>
 
         {score.matchedSkillCategories.length > 0 ? (

@@ -23,6 +23,7 @@ function parseLiabilityFormData(formData: FormData) {
     minimum_payment: formData.get("minimum_payment") || null,
     due_date: formData.get("due_date") || null,
     include_in_net_worth: formData.get("include_in_net_worth") === "on",
+    linked_account_id: formData.get("linked_account_id") || null,
     notes: formData.get("notes") || undefined,
   };
 }

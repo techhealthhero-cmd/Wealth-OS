@@ -41,6 +41,11 @@ export function AccountForm({ account, trigger, open, onOpenChange }: AccountFor
   const isControlled = open !== undefined;
   const dialogOpen = isControlled ? open : uncontrolledOpen;
   const setDialogOpen = isControlled ? onOpenChange! : setUncontrolledOpen;
+  // Tracked so the credit-card-specific hint (sign convention + the
+  // double-counting risk with Liabilities — see CLAUDE.md "CREDIT CARD
+  // ACCOUNT SEMANTICS") can show/hide as the user picks a type, without
+  // waiting for a full form submit.
+  const [accountType, setAccountType] = useState(account?.account_type ?? "bank");
 
   const action = account ? updateAccount.bind(null, account.id) : createAccount;
   const [state, formAction, isPending] = useActionState(action, undefined);
@@ -83,7 +88,7 @@ export function AccountForm({ account, trigger, open, onOpenChange }: AccountFor
 
           <div className="space-y-2">
             <Label htmlFor="account_type">{t("accounts.accountType")}</Label>
-            <Select name="account_type" defaultValue={account?.account_type ?? "bank"}>
+            <Select name="account_type" value={accountType} onValueChange={(value) => value && setAccountType(value)}>
               <SelectTrigger id="account_type">
                 <SelectValue>{(value: string) => t(`accounts.types.${value}`)}</SelectValue>
               </SelectTrigger>
@@ -95,6 +100,9 @@ export function AccountForm({ account, trigger, open, onOpenChange }: AccountFor
                 ))}
               </SelectContent>
             </Select>
+            {accountType === "credit_card" ? (
+              <p className="text-xs text-muted-foreground">{t("accounts.creditCardTypeHint")}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
@@ -119,6 +127,11 @@ export function AccountForm({ account, trigger, open, onOpenChange }: AccountFor
                 defaultValue={account?.opening_balance ?? "0"}
                 required
               />
+              {account ? (
+                <p className="text-xs text-muted-foreground">{t("accounts.openingBalanceEditHint")}</p>
+              ) : accountType === "credit_card" ? (
+                <p className="text-xs text-muted-foreground">{t("accounts.creditCardBalanceHint")}</p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="currency_code">{t("accounts.currency")}</Label>

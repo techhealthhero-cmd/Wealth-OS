@@ -16,7 +16,21 @@ import { ArrowRight } from "lucide-react";
  * asks in chat. The actual text transformation lives in the pure, unit-
  * tested `buildNextBestActionText` — this component only renders it.
  */
-export function NextBestActionCard({ priority }: { priority: PriorityTool | null }) {
+export function NextBestActionCard({
+  priority,
+  hasTransactionHistory = true,
+}: {
+  priority: PriorityTool | null;
+  /**
+   * `priority === null` means "the engine found nothing urgent" — but for a
+   * brand-new user with zero transactions that's not the same as "your
+   * finances are healthy," it's "there's no real data yet to judge." Without
+   * this distinction we'd fabricate confidence exactly where the product
+   * shouldn't (see PRODUCT_OUTCOMES.md's "never fabricate confidence" rule).
+   * Defaults to `true` so existing callers keep today's "healthy" message.
+   */
+  hasTransactionHistory?: boolean;
+}) {
   const { t } = useTranslation();
 
   if (!priority) {
@@ -24,7 +38,15 @@ export function NextBestActionCard({ priority }: { priority: PriorityTool | null
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm font-medium">{t("nextBestAction.title")}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{t("priorityEngine.noPriorities")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {hasTransactionHistory ? t("priorityEngine.noPriorities") : t("priorityEngine.notEnoughData")}
+          </p>
+          {!hasTransactionHistory ? (
+            <Button variant="outline" size="sm" className="mt-3" nativeButton={false} render={<Link href="/money/transactions" />}>
+              {t("priorityEngine.notEnoughDataCta")}
+              <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
     );

@@ -134,3 +134,30 @@ export async function archiveAccount(accountId: string): Promise<ActionResult> {
   revalidatePath("/dashboard");
   return { success: true };
 }
+
+/** Reverses `archiveAccount` — see account-card.tsx's confirm copy, which promises the account can be restored. */
+export async function unarchiveAccount(accountId: string): Promise<ActionResult> {
+  const dict = await getRequestDictionary();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: dict.common.pleaseLogin };
+  }
+
+  const { error } = await supabase
+    .from("accounts")
+    .update({ is_archived: false })
+    .eq("id", accountId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { error: friendlyDbError(error, "unarchiveAccount", dict.accounts.archiveFailed) };
+  }
+
+  revalidatePath("/money/accounts");
+  revalidatePath("/dashboard");
+  return { success: true };
+}

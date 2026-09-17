@@ -1,16 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { Send } from "lucide-react";
+import { ArrowUp, Check, Copy } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import { Message, MessageContent, MessageFooter } from "@/components/ui/message";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group";
 import { AICoachIllustration } from "@/components/illustrations";
 
 interface ChatMessage {
+  id: string;
   role: "user" | "assistant";
   content: string;
 }
@@ -34,6 +37,39 @@ const SUGGESTED_PROMPT_KEYS = [
   "financialProgressQuestion",
 ] as const;
 
+const TEXTAREA_MAX_HEIGHT_PX = 160;
+
+function CopyMessageButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = React.useState(false);
+  const resetRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(() => () => {
+    if (resetRef.current) clearTimeout(resetRef.current);
+  }, []);
+
+  return (
+    <Button
+      type="button"
+      aria-label={label}
+      variant="ghost"
+      size="icon-xs"
+      className="rounded-lg text-muted-foreground hover:text-foreground"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          if (resetRef.current) clearTimeout(resetRef.current);
+          resetRef.current = setTimeout(() => setCopied(false), 1500);
+        } catch {
+          // Clipboard access can fail silently (permissions/insecure context) — no user-facing error needed for a copy affordance.
+        }
+      }}
+    >
+      {copied ? <Check className="size-3.5" aria-hidden="true" /> : <Copy className="size-3.5" aria-hidden="true" />}
+    </Button>
+  );
+}
+
 /**
  * Client-side chat surface. Talks only to `/api/ai/chat` (never a provider
  * directly) and parses the newline-delimited JSON event stream that route
@@ -50,6 +86,7 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
   const [isSending, setIsSending] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -61,7 +98,8 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
 
     setErrorMessage(null);
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", content: trimmed }]);
     setIsSending(true);
 
     try {
@@ -81,7 +119,7 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
         }
         if (typeof data.conversationId === "string") setConversationId(data.conversationId);
         if (typeof data.reply === "string") {
-          setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+          setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: data.reply }]);
         }
         return;
       }
@@ -91,7 +129,8 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
         return;
       }
 
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      const assistantId = crypto.randomUUID();
+      setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -117,11 +156,9 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
             setConversationId(event.conversationId);
           } else if (event.type === "delta" && event.text) {
             const chunk = event.text;
-            setMessages((prev) => {
-              const last = prev[prev.length - 1];
-              if (last?.role !== "assistant") return prev;
-              return [...prev.slice(0, -1), { role: "assistant", content: last.content + chunk }];
-            });
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + chunk } : m))
+            );
           } else if (event.type === "error") {
             sawError = true;
             setErrorMessage(event.message ?? t("aiCoach.errorGeneric"));
@@ -131,7 +168,7 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
 
       if (sawError) {
         // Drop the empty/partial assistant bubble — the error banner covers it.
-        setMessages((prev) => (prev[prev.length - 1]?.content === "" ? prev.slice(0, -1) : prev));
+        setMessages((prev) => prev.filter((m) => !(m.id === assistantId && m.content === "")));
       }
     } catch {
       setErrorMessage(t("aiCoach.errorGeneric"));
@@ -145,10 +182,18 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
     void sendMessage(input);
   }
 
+  function renderBubbleParagraphs(text: string, align: "start" | "end") {
+    return text.split("\n\n").map((paragraph, idx) => (
+      <Bubble align={align} key={idx} variant={align === "end" ? "muted" : "ghost"}>
+        <BubbleContent className="text-[15px]/6 whitespace-pre-wrap">{paragraph}</BubbleContent>
+      </Bubble>
+    ));
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-3">
       {messages.length === 0 ? (
-        <Card>
+        <Card className="rounded-2xl">
           <CardContent className="flex flex-col items-center gap-3 pt-8 pb-8 text-center">
             <AICoachIllustration size={120} />
             <p className="font-medium">{t("aiCoach.emptyTitle")}</p>
@@ -160,7 +205,7 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="text-xs"
+                  className="rounded-full text-xs"
                   onClick={() => void sendMessage(t(`aiCoach.suggestedPrompts.${key}`))}
                 >
                   {t(`aiCoach.suggestedPrompts.${key}`)}
@@ -170,19 +215,33 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3" role="log" aria-live="polite" aria-label={t("aiCoach.title")}>
-          {messages.map((m, i) => (
-            <div key={i} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
-              <div
-                className={cn(
-                  "animate-in fade-in duration-(--motion-fast) max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm break-words",
-                  m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                )}
-              >
-                {m.content || (isSending && i === messages.length - 1 ? t("aiCoach.thinking") : "")}
-              </div>
-            </div>
-          ))}
+        <div className="flex flex-col gap-4.5" role="log" aria-live="polite" aria-label={t("aiCoach.title")}>
+          {messages.map((m, i) => {
+            const align = m.role === "user" ? "end" : "start";
+            const isLast = i === messages.length - 1;
+            const isThinking = isSending && isLast && m.role === "assistant" && !m.content;
+
+            return (
+              <Message align={align} className="animate-in fade-in slide-in-from-bottom-1 duration-(--motion-normal)" key={m.id}>
+                <MessageContent className="gap-1.5">
+                  {isThinking ? (
+                    <Bubble align={align} variant="ghost">
+                      <BubbleContent>
+                        <span className="text-[15px]/6 text-muted-foreground animate-pulse">{t("aiCoach.thinking")}</span>
+                      </BubbleContent>
+                    </Bubble>
+                  ) : (
+                    renderBubbleParagraphs(m.content, align)
+                  )}
+                  {m.content && !isThinking ? (
+                    <MessageFooter className="-mx-1.5">
+                      <CopyMessageButton text={m.content} label={t("aiCoach.copy")} />
+                    </MessageFooter>
+                  ) : null}
+                </MessageContent>
+              </Message>
+            );
+          })}
           <div ref={bottomRef} />
         </div>
       )}
@@ -193,24 +252,45 @@ export function AICoachChat({ initialConversationId }: { initialConversationId?:
         </p>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="flex items-end gap-2">
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={t("aiCoach.inputPlaceholder")}
-          aria-label={t("aiCoach.inputPlaceholder")}
-          disabled={isSending}
-          className="min-h-11 resize-none"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void sendMessage(input);
-            }
-          }}
-        />
-        <Button type="submit" size="icon" disabled={isSending || !input.trim()} aria-label={t("aiCoach.send")}>
-          <Send className="h-4 w-4" aria-hidden="true" />
-        </Button>
+      <form onSubmit={handleSubmit}>
+        <InputGroup className="h-auto min-h-11 items-end rounded-[22px] px-0.5 py-0.5">
+          <InputGroupTextarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              const el = e.target;
+              el.style.height = "auto";
+              el.style.height = `${Math.min(el.scrollHeight, TEXTAREA_MAX_HEIGHT_PX)}px`;
+            }}
+            placeholder={t("aiCoach.inputPlaceholder")}
+            aria-label={t("aiCoach.inputPlaceholder")}
+            disabled={isSending}
+            className="min-h-9 py-2 pl-3 text-[15px]/6"
+            rows={1}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void sendMessage(input);
+              }
+            }}
+          />
+          <InputGroupAddon align="inline-end" className="pr-1.5 pb-1.25">
+            <InputGroupButton
+              type="submit"
+              aria-label={t("aiCoach.send")}
+              disabled={isSending || !input.trim()}
+              size="icon-sm"
+              variant="default"
+              className={cn(
+                "rounded-full transition-transform duration-(--motion-fast) ease-(--ease-standard)",
+                input.trim() ? "scale-100 opacity-100" : "scale-90 opacity-60"
+              )}
+            >
+              <ArrowUp className="size-4" aria-hidden="true" />
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
       </form>
     </div>
   );

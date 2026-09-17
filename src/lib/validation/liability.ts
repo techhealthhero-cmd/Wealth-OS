@@ -29,6 +29,11 @@ export function buildLiabilitySchema(dict: Dictionary) {
     minimum_payment: z.coerce.number().min(0).nullable().optional(),
     due_date: z.string().nullable().optional(),
     include_in_net_worth: z.boolean().default(true),
+    // Optional bookkeeping link to the accounts row that already represents
+    // this same physical debt (migration 0013) — see CLAUDE.md "CREDIT CARD
+    // ACCOUNT SEMANTICS". Ownership (must belong to the same user) is
+    // re-checked by a DB trigger regardless of what the client sends.
+    linked_account_id: z.string().uuid().nullable().optional(),
     notes: z.string().trim().max(1000, dict.validation.notesTooLong).optional().or(z.literal("")),
   });
 }

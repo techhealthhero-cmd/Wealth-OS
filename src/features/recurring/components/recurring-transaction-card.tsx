@@ -35,25 +35,25 @@ export function RecurringTransactionCard({
     <Card>
       <CardContent className="space-y-2 py-4">
         <div className="flex items-start justify-between gap-2">
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-medium leading-none">{recurring.merchant || recurring.description || t(`recurring.types.${recurring.type}`)}</p>
+              <p className="min-w-0 truncate font-medium leading-none">{recurring.merchant || recurring.description || t(`recurring.types.${recurring.type}`)}</p>
               {overdue ? (
-                <Badge className="bg-red-100 text-[10px] text-red-700 dark:bg-red-950 dark:text-red-400">
+                <Badge className="shrink-0 bg-red-100 text-[10px] text-red-700 dark:bg-red-950 dark:text-red-400">
                   {t("upcomingBills.overdue")}
                 </Badge>
               ) : !recurring.is_active ? (
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="shrink-0 text-[10px]">
                   {t("common.archive")}
                 </Badge>
               ) : null}
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 truncate text-sm text-muted-foreground">
               {t(`recurring.types.${recurring.type}`)} · {t(`recurring.frequencies.${recurring.frequency}`)} · {t("recurring.nextDue")}:{" "}
               {recurring.next_due_date}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <p className="font-medium">{formatMoneyFromDecimal(recurring.amount)}</p>
             <DropdownMenu>
               <DropdownMenuTrigger

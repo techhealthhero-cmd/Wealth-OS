@@ -113,9 +113,22 @@ export function TransactionForm({
     transaction?.category_id ?? prefill?.categoryId ?? null
   );
   const [accountId, setAccountId] = useState<string | undefined>(
-    transaction?.account_id ?? prefill?.accountId ?? accounts[0]?.id
+    // `accounts` includes archived ones (so past transactions still render
+    // correctly elsewhere) — a brand-new transaction with no explicit
+    // account yet must default to an active one, never silently fall back
+    // to `accounts[0]` if that happens to be archived. Editing an existing
+    // transaction keeps its real account regardless of archived status —
+    // that's not a "default," it's the transaction's actual history.
+    transaction?.account_id ?? prefill?.accountId ?? accounts.find((a) => !a.is_archived)?.id ?? accounts[0]?.id
   );
   const [dateValue, setDateValue] = useState(transaction?.transaction_date ?? todayISO());
+  // One idempotency key per intended submit attempt (see CLAUDE.md
+  // "TRANSACTION IDEMPOTENCY"): generated once when this form instance
+  // mounts, resent unchanged on every retry of the SAME attempt, and
+  // rotated only after a successful save so the next intentional entry
+  // gets its own fresh key — see the effect below. Only meaningful for a
+  // new transaction; editing doesn't create a new financial event.
+  const [clientRequestId, setClientRequestId] = useState(() => crypto.randomUUID());
 
   const action = transaction ? updateTransaction.bind(null, transaction.id) : createTransaction;
   const [state, formAction, isPending] = useActionState(action, undefined);
@@ -129,7 +142,7 @@ export function TransactionForm({
   useEffect(() => {
     if (!isCreating || accounts.length < 2 || prefill?.accountId) return;
     const last = readLastAccountId();
-    if (last && accounts.some((a) => a.id === last)) {
+    if (last && accounts.some((a) => a.id === last && !a.is_archived)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAccountId(last);
     }
@@ -141,6 +154,12 @@ export function TransactionForm({
     if (!state?.success) return;
     setSheetOpen(false);
     if (accountId) rememberAccountId(accountId);
+    // Next open of this same form instance is a NEW intended transaction —
+    // it must get its own idempotency key, never reuse the one that just
+    // succeeded (reusing it would make the next real save silently no-op
+    // against the unique index instead of creating a new row).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setClientRequestId(crypto.randomUUID());
 
     const cents = safeAmountCents(amount);
     const formatted = formatMoney(cents);
@@ -196,6 +215,7 @@ export function TransactionForm({
         <form action={formAction} className="space-y-5 px-4 pb-4">
           <input type="hidden" name="type" value={type} />
           <input type="hidden" name="account_id" value={accountId ?? ""} />
+          {isCreating ? <input type="hidden" name="client_request_id" value={clientRequestId} /> : null}
 
           {!isCreating && (
             <div className="space-y-2">

@@ -8,6 +8,7 @@ import { useTranslation } from "@/i18n/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
   not_started: "bg-muted text-muted-foreground",
@@ -28,13 +29,13 @@ export function WealthMissionCard({ mission }: { mission: WealthMission }) {
     <Card>
       <CardContent className="space-y-2 py-4">
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className={`font-medium ${mission.status === "skipped" ? "text-muted-foreground line-through" : ""}`}>
+          <div className="min-w-0">
+            <p className={`break-words font-medium ${mission.status === "skipped" ? "text-muted-foreground line-through" : ""}`}>
               {t(`missions.templates.${mission.title}.title`)}
             </p>
-            <p className="mt-0.5 text-sm text-muted-foreground">{t(`missions.templates.${mission.title}.description`)}</p>
+            <p className="mt-0.5 break-words text-sm text-muted-foreground">{t(`missions.templates.${mission.title}.description`)}</p>
           </div>
-          <Badge className={STATUS_BADGE_CLASS[mission.status]}>{t(`missions.statuses.${mission.status}`)}</Badge>
+          <Badge className={cn("shrink-0", STATUS_BADGE_CLASS[mission.status])}>{t(`missions.statuses.${mission.status}`)}</Badge>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">

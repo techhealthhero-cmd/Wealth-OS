@@ -1,22 +1,37 @@
 # WEALTH OS — GRAPHICS PLAN
 
-**This is the single source of truth for visual direction, graphics
-identity, icon rules, illustration rules, asset inventory, roadmap, status,
-and priority.** It replaces `VISUAL_SYSTEM.md`, which has been retired —
-nothing from it was lost; every decision in Part A originated there.
+**This is the single source of truth for visual direction, brand identity,
+icon rules, illustration rules, visual asset specifications, motion, shape
+language, and visual design priorities.** It replaces `VISUAL_SYSTEM.md`,
+which has been retired — nothing from it was lost; every decision in Part A
+originated there.
 
-Companion docs: `CLAUDE.md` (product/engineering source of truth),
-`PROJECT_STATUS.md` (current build-state source of truth), `README.md`
-(setup/run/deploy). Read this file before adding any new color, icon, or
-illustration.
+**It is NOT the source of truth for current implementation status.**
+`PROJECT_STATUS.md` owns current implementation status — what's actually
+built, integrated, and verified. Part B below is a visual-asset roadmap
+(design intent and history), not a build tracker; see its own disclaimer
+before that section for how to read its ✅/🟡/⬜ markers.
 
-**Status markers used throughout Part B** — verified against the actual
-repository at the time of writing (2026-09-11), not against what any prior
-doc claimed:
+See `CLAUDE.md`'s "Document Ownership" section for the canonical map of
+which document owns what (this file doesn't keep its own copy) — in
+short, `UX_GUIDELINES.md` governs structure/behavior/tone and outranks
+this file where the two disagree; this file governs visual style only.
+Read this file before adding any new color, icon, or illustration.
 
-- ✅ Built + integrated — the component exists **and** is imported/rendered somewhere real
-- 🟡 Component ready, not integrated — exists, but nothing in the app renders it yet
-- ⬜ Not built
+**Status markers used throughout Part B are NOT authoritative.** They were
+accurate at the time each was written, but this file is not re-verified on
+every change elsewhere in the app, and Part B's entries in particular
+accumulated across many sessions at different dates — some phrase things
+as "not built yet" that are now built. **`PROJECT_STATUS.md` is the only
+source of truth for whether a feature or asset currently exists.** Treat
+every ✅/🟡/⬜ below as "true as of whenever that line was last touched," a
+loose visual-asset roadmap for design decisions, not a build-status check —
+if you need to know what's actually implemented right now, read
+`PROJECT_STATUS.md`, not this table:
+
+- ✅ Built + integrated — the component exists **and** is imported/rendered somewhere real (as of when this line was written)
+- 🟡 Component ready, not integrated — exists, but nothing in the app renders it yet (as of when this line was written)
+- ⬜ Not built (as of when this line was written — verify against `PROJECT_STATUS.md` before assuming it's still true)
 - 🚫 Intentionally not needed
 
 ---
@@ -98,15 +113,26 @@ Avoid: inconsistent sharp rectangles, excessive pills everywhere, chat-app
 visual language (e.g. fully circular avatars as the whole shape of a
 finance-data element).
 
-## Tone
+## Visual expression of product tone
 
-Warm, plain-spoken, calm, supportive, practical, non-judgmental. Thai copy
-should feel natural (see `src/i18n/locales/th.json` for established
-politeness level). Empty states must tell the user what to do next in one
-line.
+Product tone, financial coaching language, microcopy, empty-state
+communication, and non-judgmental language are governed by
+`UX_GUIDELINES.md` — this document does not duplicate those copy rules.
 
-Avoid: guilt ("You haven't saved anything yet 😢"), jokes in serious
-financial states, childish tone, aggressive urgency.
+This document only defines how that tone is expressed *visually*:
+
+- calm composition, generous whitespace
+- restrained semantic color (see Color system above) — never a wall of
+  color to signal urgency
+- subtle motion only (see Motion system below)
+- non-alarming warning treatment: a warning state reads as "worth a look,"
+  never as a flashing/red-saturated alarm
+- no aggressive urgency visuals (countdown timers, pulsing red, shaking
+  elements)
+- no guilt-oriented graphics (sad mascots, crying icons, red "failure"
+  stamps)
+- no casino-style feedback (confetti bursts, spinning reveals, jackpot-style
+  number reveals)
 
 ## Motion system
 
@@ -136,7 +162,7 @@ motion, excessive confetti.
 
 ## Brand assets
 
-| Asset | Status | Notes |
+| Asset | Visual spec | Notes |
 |---|---|---|
 | Main logo | ✅ | `BrandMark` (`src/components/illustrations/brand-mark.tsx`) + "Wealth OS" wordmark, used in header/sidebar/auth/landing |
 | Icon-only logo | ✅ | `BrandMark` alone *is* the icon-only mark — no wordmark baked into the SVG |
@@ -152,7 +178,7 @@ motion, excessive confetti.
 
 ## Account icon system
 
-| Type | Status |
+| Type | Visual spec |
 |---|---|
 | Cash, Bank, Savings, Credit Card, E-Wallet, Investment, Other | ✅ all 7 — `ACCOUNT_TYPE_EMOJI` in `src/lib/transaction-ui.ts`, rendered in `AccountPicker` and account cards |
 
@@ -161,21 +187,21 @@ optional institution/balance). See `AccountPicker`'s `AccountLabel`.
 
 ## Transaction type icons
 
-| Type | Status |
+| Type | Visual spec |
 |---|---|
 | Income, Expense, Transfer | ✅ — `transactionTypeVisual()` (emoji + color + text badge, never color alone) |
 | Refund, Debt payment, Savings transfer, Investment allocation | ✅ — Lucide icons in `TYPE_ICONS` (`transaction-row.tsx`) |
 
 ## Category visuals
 
-| Set | Status |
+| Set | Visual spec |
 |---|---|
 | Expense (Food, Transport, Housing, Shopping, Health, Entertainment, Education, Utilities, Subscription, Insurance, Family, Other) | ✅ — `CATEGORY_ICON_EMOJI` map, rendered in `CategoryPicker` chip grid |
 | Income (Salary, Freelance, Business, Bonus, Commission, Interest, Cashback/Refund, Other) | ✅ — same map/mechanism |
 
 ## Transaction UX visuals
 
-| Element | Status |
+| Element | Visual spec |
 |---|---|
 | Large amount entry | ✅ `AmountInput` |
 | Account selector visual | ✅ `AccountPicker` |
@@ -190,7 +216,7 @@ optional institution/balance). See `AccountPicker`'s `AccountLabel`.
 
 ## Empty states
 
-| State | Status |
+| State | Visual spec |
 |---|---|
 | No Transactions | ✅ `EmptyTransactionsIllustration` |
 | No Accounts | ✅ `EmptyAccountsIllustration` |
@@ -215,7 +241,7 @@ same component rather than a bespoke layout.
 
 ## Dashboard visuals
 
-| Element | Status |
+| Element | Visual spec |
 |---|---|
 | Cash Flow, Income, Expenses, Savings Rate (summary cards) | ✅ `SummaryCards`, real data |
 | Income vs Expense chart, Spending by Category chart | ✅ `charts.tsx` (Recharts, validated palette) |
@@ -234,7 +260,7 @@ and numbers first; illustration only appears in the zero-data empty state).
 
 ## Status system
 
-| State | Status |
+| State | Visual spec |
 |---|---|
 | Success | ✅ `SuccessBadge`, used as the transaction-save toast icon |
 | Info, Warning, Error, Loading | ✅ already wired at the toast level — `src/components/ui/sonner.tsx` configures Lucide `InfoIcon`/`TriangleAlertIcon`/`OctagonXIcon`/`Loader2Icon` per toast type (pre-existing, confirmed still in place) |
@@ -245,7 +271,7 @@ and numbers first; illustration only appears in the zero-data empty state).
 
 ## Onboarding illustrations
 
-| Concept | Status |
+| Concept | Visual spec |
 |---|---|
 | Generic welcome ("your money, growing") | ✅ `WelcomeIllustration`, used on the single-step Day-1 onboarding screen and the landing page |
 | Track your money / Plan your future / Grow your income / Build your wealth (individual pillar illustrations) | ⬜ not built — current onboarding is the simplified Day-1 single-step flow, not the full multi-step onboarding from the original product spec |
@@ -254,11 +280,10 @@ and numbers first; illustration only appears in the zero-data empty state).
 
 ## Goal graphics
 
-The Goals feature itself doesn't exist yet (CLAUDE.md Phase 3), so
-everything here is 🟡 ready-not-integrated or ⬜ not built — nothing is
-wired to a page.
+Goals shipped and is live (see `PROJECT_STATUS.md`) — the statuses below
+are per sub-item, not a blanket "not built."
 
-| Item | Status |
+| Item | Visual spec |
 |---|---|
 | Generic goal illustration | ✅ `GoalIllustration` (flag-on-a-path motif), integrated on `/plan/goals` empty state (Day 2) |
 | Per-goal-type icons (Emergency Fund, Travel, Gadget, Car, Home, Education, Wedding, Business Capital, 1 Million, Retirement, Custom) | ✅ `GoalTypeIcon` + `GOAL_TYPE_EMOJI` map — one component covering all 10 types, matching the existing category-icon pattern, rather than 10 separate files. Integrated on `/plan/goals` (Day 2). Type union adjusted from a pre-Day-2 placeholder (`business`, no `million`) to match the real `financial_goals.goal_type` schema (`business_capital`, `million`) — safe in-place edit since it wasn't imported anywhere yet. |
@@ -266,7 +291,7 @@ wired to a page.
 
 ## Net Worth / Wealth graphics
 
-| Item | Status |
+| Item | Visual spec |
 |---|---|
 | 7-stage Financial Life Stage progression (Survival → Stable → Protected → Debt Controlled → Investor → Wealth Builder → Financial Freedom) | ✅ `FinancialStageProgress` — a plain stepper, not a game-like level bar, per the "never imply guaranteed wealth" rule below. Integrated on the dashboard's Life Stage card (Day 3), driven by `calculateFinancialLifeStage()` |
 | Net Worth hero, Assets, Liabilities, Net Worth growth, Wealth milestone | ⬜ not built (feature not built) |
@@ -276,14 +301,14 @@ wealth (matches CLAUDE.md's "never promise users will become rich").
 
 ## Budget / Safe-to-Spend visuals
 
-| Item | Status |
+| Item | Visual spec |
 |---|---|
 | Generic budget/safe-to-spend illustration (half-gauge motif) | ✅ `BudgetIllustration`, integrated on `/money/budget` empty state (Day 2) |
 | Category budget progress, overspending warning, under-budget success, Upcoming Bills, Monthly Plan progress | ⬜ not built |
 
 ## AI Coach visuals
 
-| Item | Status |
+| Item | Visual spec |
 |---|---|
 | Generic AI Coach illustration (speech bubble + spark — deliberately not a robot/mascot) | ✅ `AICoachIllustration`, integrated on `/ai`'s empty chat state (Day 4) |
 | AI insight card, Next Best Action card, Monthly Health Check card | ✅ built as plain Card-based layouts (status badges, labeled rows) rather than new illustration assets — matches the existing budget/goal card visual language (Day 4) |
@@ -294,7 +319,7 @@ never robotic, never childish.
 
 ## Earn / Income graphics
 
-| Item | Status |
+| Item | Visual spec |
 |---|---|
 | Generic Earn illustration (ascending bars + growth arrow) | ✅ `EarnIllustration`, integrated on `/earn`, `/earn/income`, `/earn/skills`, `/earn/missions` empty states (Day 5) |
 | Income Gap card, Side Hustle Finder, Skills profile, Opportunity ranking, Income Mission | ✅ built as plain Card-based layouts (status badges, labeled rows, progress counters) — same visual language as the rest of the app (Day 5) |
@@ -304,7 +329,7 @@ Standing rule: motivating, never "get rich quick."
 
 ## Mission / Gamification graphics
 
-| Item | Status |
+| Item | Visual spec |
 |---|---|
 | Generic completed-mission badge | 🟡 `MissionBadge`, still not wired to any page — Day 6's Wealth Missions use plain Card/Badge status labels instead (see below) |
 | Streak badge | ✅ `StreakBadge` (flame motif), integrated on `/missions`' `ProgressCard` and the dashboard's `EngagementSummaryCard` (Day 6) |
@@ -317,13 +342,14 @@ engagement for its own sake.
 
 ## Subscription / Premium visuals
 
-All ⬜ not built — no billing/subscription system exists yet (CLAUDE.md
-Phase 7, not started): Free/Plus/Pro badges, upgrade illustration, locked
-feature visual, billing success/failure, AI usage visual.
+Billing/subscriptions shipped and is live (see `PROJECT_STATUS.md`) —
+Free/Plus/Pro ship as plain Card/Badge layouts (see "Current existing
+assets" below for what's actually integrated); a dedicated upgrade
+illustration and AI-usage visual remain open design opportunities.
 
 ## Celebration / milestone visuals
 
-| Item | Status |
+| Item | Visual spec |
 |---|---|
 | Generic celebration mark (star + a few short understated rays — no confetti) | 🟡 `CelebrationBadge` |
 | Goal reached, net worth milestone, new financial stage, new level, savings streak, first extra income, annual plan completed (specific moments) | ⬜ not built |
@@ -333,7 +359,7 @@ Standing rule: tasteful celebration only — no confetti, no modal takeover
 
 ## Landing / marketing graphics
 
-| Item | Status |
+| Item | Visual spec |
 |---|---|
 | Landing hero (brand mark + `WelcomeIllustration` + headline) | ✅ built + integrated |
 | Track → Plan → Earn → Grow visual | ✅ a 4-step Lucide-icon strip under the hero CTAs (`src/app/page.tsx`) — functional icons, not new illustration SVGs, since a row of small step markers is the icon system's job, not the illustration system's (see Part A "Icon system") |
@@ -344,7 +370,7 @@ Standing rule: tasteful celebration only — no confetti, no modal takeover
 
 ## Social / promotional assets
 
-| Item | Status |
+| Item | Visual spec |
 |---|---|
 | Open Graph image | ✅ `src/app/opengraph-image.tsx` (1200×630, `next/og`) — brand mark + wordmark + tagline on a flat surface with one soft accent circle. `metadataBase` is now set in `src/app/layout.tsx` (from `NEXT_PUBLIC_APP_URL`) so the generated URL resolves correctly instead of defaulting to `localhost`. Verified: returns a real 1200×630 PNG. |
 | Product preview, launch announcement, feature announcement, milestone post template, app preview template | ⬜ not built |
@@ -472,7 +498,8 @@ All assets must:
 
 # DOCUMENT RESPONSIBILITY
 
-- **`GRAPHICS_PLAN.md`** (this file) — the only source of truth for visual direction, graphics identity, icon rules, illustration rules, asset inventory, roadmap, status, and priority.
-- **`CLAUDE.md`** — product/engineering source of truth.
-- **`PROJECT_STATUS.md`** — current build-state source of truth.
-- **`README.md`** — setup/run/deploy documentation.
+See `CLAUDE.md`'s "Document Ownership" section — the canonical, single
+copy of this list. This file owns visual direction, graphics identity,
+icon/illustration rules, and asset specifications; it is explicitly **not**
+authoritative for whether a feature or asset currently exists (see the
+status-marker disclaimer above Part A) — `PROJECT_STATUS.md` is.

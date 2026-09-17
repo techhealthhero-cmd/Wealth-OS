@@ -158,6 +158,20 @@ export function BudgetView({ summary, categories, month }: { summary: BudgetSumm
                     </div>
                   </div>
                   <ProgressBar percent={cb.percentUsed} status={cb.status} />
+                  {/* UX guidelines #5 (explain numbers): a bare "spent / budget"
+                      figure doesn't tell the user what to do — spell out the
+                      over/remaining amount in plain language once a category
+                      is worth attention, using the same remainingCents the
+                      summary card above already computes. */}
+                  {cb.status === "over_budget" ? (
+                    <p className="text-xs text-destructive">
+                      {t("budget.overByAmount").replace("{amount}", formatMoney(Math.abs(cb.remainingCents)))}
+                    </p>
+                  ) : cb.status === "near_limit" ? (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      {t("budget.remainingAmount").replace("{amount}", formatMoney(cb.remainingCents))}
+                    </p>
+                  ) : null}
                 </div>
               );
             })

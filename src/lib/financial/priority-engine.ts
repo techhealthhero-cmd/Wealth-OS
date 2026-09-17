@@ -40,6 +40,19 @@ export interface PriorityEngineInputs {
   emergencyFundCurrentCents: number;
   highInterestLiabilities: { name: string; balanceCents: number; interestRatePercent: number }[];
   savingsRatePercent: number;
+  /**
+   * Whether the user has recorded any income this period. `calculateSavingsRate()`
+   * returns exactly 0 both when a user genuinely saves nothing AND when there's
+   * no income data at all to compute a rate from (see its own doc comment) —
+   * those two cases are indistinguishable from `savingsRatePercent` alone.
+   * Defaults to `true` (existing callers/tests that don't pass this keep
+   * today's behavior) so this is purely additive; a real onboarding/first-
+   * session caller should pass `false` when there's no transaction history
+   * yet, so a brand-new user isn't told their savings rate is "low" when
+   * the honest answer is "we don't know yet" — see `PRODUCT_OUTCOMES.md`'s
+   * "never fabricate confidence" rule.
+   */
+  hasIncomeThisPeriod?: boolean;
   hasInvestmentActivity: boolean;
   behindGoals: { name: string; requiredMonthlyContributionCents: number | null }[];
   incomeGrowthPercent: number | null; // null when there's no prior month to compare (handled as "no data", not penalized)
@@ -117,7 +130,7 @@ export function getFinancialPriorities(inputs: PriorityEngineInputs): FinancialP
     });
   }
 
-  if (inputs.savingsRatePercent < 10) {
+  if (inputs.savingsRatePercent < 10 && inputs.hasIncomeThisPeriod !== false) {
     priorities.push({
       priorityType: "low_savings_rate",
       severity: "medium",

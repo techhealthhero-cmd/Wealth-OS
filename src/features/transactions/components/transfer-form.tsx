@@ -50,14 +50,29 @@ export function TransferForm({ accounts, trigger, open, onOpenChange }: Transfer
 
   const [state, formAction, isPending] = useActionState(createTransfer, undefined);
 
+  // `accounts` includes archived ones (so historic transfers still render
+  // correctly elsewhere) — a new transfer must default to active accounts
+  // only, never silently pick an archived one just because it's first/
+  // second in the array.
+  const activeAccounts = accounts.filter((a) => !a.is_archived);
   const [amount, setAmount] = useState("");
-  const [fromAccountId, setFromAccountId] = useState<string | undefined>(accounts[0]?.id);
-  const [toAccountId, setToAccountId] = useState<string | undefined>(accounts[1]?.id);
+  const [fromAccountId, setFromAccountId] = useState<string | undefined>(
+    activeAccounts[0]?.id ?? accounts[0]?.id
+  );
+  const [toAccountId, setToAccountId] = useState<string | undefined>(
+    activeAccounts[1]?.id ?? accounts[1]?.id
+  );
   const [dateValue, setDateValue] = useState(todayISO());
+  // Same idempotency-key pattern as transaction-form.tsx — see CLAUDE.md
+  // "TRANSACTION IDEMPOTENCY". One key per intended transfer; rotated only
+  // after a successful save.
+  const [clientRequestId, setClientRequestId] = useState(() => crypto.randomUUID());
 
   useEffect(() => {
     if (!state?.success) return;
     setSheetOpen(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setClientRequestId(crypto.randomUUID());
     toast.success(t("transactions.savedTransfer"), { icon: <SuccessBadge /> });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.success]);
@@ -97,6 +112,7 @@ export function TransferForm({ accounts, trigger, open, onOpenChange }: Transfer
           <form action={formAction} className="space-y-5 px-4 pb-4">
             <input type="hidden" name="from_account_id" value={fromAccountId ?? ""} />
             <input type="hidden" name="to_account_id" value={toAccountId ?? ""} />
+            <input type="hidden" name="client_request_id" value={clientRequestId} />
 
             <AmountInput
               name="__amount_display"

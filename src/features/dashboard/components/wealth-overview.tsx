@@ -11,6 +11,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { SafeToSpendCard } from "./safe-to-spend-card";
 import { WealthScoreCard } from "./wealth-score-card";
 import { LifeStageCard } from "./life-stage-card";
@@ -80,6 +81,19 @@ export async function WealthOverview() {
   const emergencyFundCurrentCents = emergencyFund ? parseMoneyToCents(emergencyFund.current_amount) : 0;
   const monthsProtected = calculateMonthsProtected(emergencyFundCurrentCents, essential.cents);
 
+  // UX guidelines #14 (personal relevance beats feature visibility): this
+  // grid's cards are otherwise equal-weight, so whichever one matches the
+  // user's actual current priority — from the existing deterministic
+  // Priority Engine, never a second/invented prioritization — gets a
+  // "soft" highlight instead of sitting identically to the rest. Only
+  // covers the two priority types this grid actually has a card for
+  // (emergency fund, cash-flow/savings-rate-driven budget attention); other
+  // priority types (debt, goals, income) are already surfaced elsewhere
+  // higher up the page (Next Best Action, Goal Progress).
+  const priorityType = lifeStageAndPriorities.topPriority?.priorityType;
+  const isEmergencyFundRelevant = priorityType === "no_emergency_fund";
+  const isBudgetRelevant = priorityType === "negative_cash_flow" || priorityType === "low_savings_rate";
+
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
       <LifeStageCard data={lifeStageAndPriorities} />
@@ -89,9 +103,15 @@ export async function WealthOverview() {
       <SafeToSpendCard computation={safeToSpend} />
 
       <Link href="/money/budget">
-        <Card className="card-interactive h-full transition-colors hover:bg-accent/50">
+        <Card
+          variant={isBudgetRelevant ? "soft" : "default"}
+          className="card-interactive h-full transition-colors hover:bg-accent/50"
+        >
           <CardContent className="space-y-1 pt-6">
-            <p className="text-sm text-muted-foreground">{dict.dashboard2.budgetStatus}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm text-muted-foreground">{dict.dashboard2.budgetStatus}</p>
+              {isBudgetRelevant ? <Badge className="shrink-0 text-[10px]">{dict.dashboard2.relevantNow}</Badge> : null}
+            </div>
             {budgetSummary ? (
               <>
                 <p className={`text-2xl font-bold ${STATUS_TONE[budgetSummary.overall.status]}`}>
@@ -107,9 +127,15 @@ export async function WealthOverview() {
       </Link>
 
       <Link href="/plan/emergency-fund">
-        <Card className="card-interactive h-full transition-colors hover:bg-accent/50">
+        <Card
+          variant={isEmergencyFundRelevant ? "soft" : "default"}
+          className="card-interactive h-full transition-colors hover:bg-accent/50"
+        >
           <CardContent className="space-y-1 pt-6">
-            <p className="text-sm text-muted-foreground">{dict.dashboard2.emergencyFund}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm text-muted-foreground">{dict.dashboard2.emergencyFund}</p>
+              {isEmergencyFundRelevant ? <Badge className="shrink-0 text-[10px]">{dict.dashboard2.relevantNow}</Badge> : null}
+            </div>
             {emergencyFund ? (
               <p className="text-2xl font-bold">
                 {monthsProtected.toFixed(1)}

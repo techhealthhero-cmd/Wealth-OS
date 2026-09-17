@@ -21,10 +21,18 @@ interface AccountPickerProps {
 }
 
 function AccountLabel({ account }: { account: Account }) {
+  const { t } = useTranslation();
   return (
     <span className="flex items-center gap-2">
       <span aria-hidden="true">{ACCOUNT_TYPE_EMOJI[account.account_type]}</span>
       <span>{account.name}</span>
+      {/* This list includes archived accounts (so old transactions still
+          render correctly), so picking one for a NEW transaction must be a
+          visible, deliberate choice — never silent. See CLAUDE.md/
+          UX_GUIDELINES.md "never silently select an archived account." */}
+      {account.is_archived ? (
+        <span className="text-xs text-muted-foreground">({t("accounts.archived")})</span>
+      ) : null}
     </span>
   );
 }

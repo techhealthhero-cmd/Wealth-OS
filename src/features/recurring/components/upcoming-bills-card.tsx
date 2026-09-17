@@ -6,14 +6,14 @@ import { Badge } from "@/components/ui/badge";
 
 function BillRow({ label, amountCents, dueDate, source, dict }: { label: string; amountCents: number; dueDate: string; source: "recurring" | "liability"; dict: Dictionary }) {
   return (
-    <div className="flex items-center justify-between text-sm">
-      <div>
-        <p className="font-medium">{label}</p>
+    <div className="flex items-center justify-between gap-2 text-sm">
+      <div className="min-w-0">
+        <p className="truncate font-medium">{label}</p>
         <p className="text-xs text-muted-foreground">
           {dict.upcomingBills.source[source]} · {dueDate}
         </p>
       </div>
-      <span className="font-medium">{formatMoney(amountCents)}</span>
+      <span className="shrink-0 font-medium">{formatMoney(amountCents)}</span>
     </div>
   );
 }
@@ -23,9 +23,9 @@ export function UpcomingBillsCard({ bills, dict }: { bills: UpcomingBillsSummary
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">{dict.upcomingBills.title}</CardTitle>
-        <span className="text-sm font-medium">{formatMoney(bills.totalDueCents)}</span>
+      <CardHeader className="flex-row items-center justify-between space-y-0 gap-2">
+        <CardTitle className="min-w-0 truncate text-base">{dict.upcomingBills.title}</CardTitle>
+        <span className="shrink-0 text-sm font-medium">{formatMoney(bills.totalDueCents)}</span>
       </CardHeader>
       <CardContent className="space-y-4">
         {!hasAny ? (

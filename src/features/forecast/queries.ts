@@ -49,8 +49,27 @@ export async function getForecastStartingState(): Promise<ForecastStartingState>
     monthlyExpensesCents = calculateExpenses(currentMonthTransactions);
   }
 
+  // Excludes linked liabilities (migration 0013) for the same reason
+  // calculateNetWorth() does: a linked liability's debt is already
+  // reflected in its linked account's (negative) balance, which flows
+  // into `netWorthCents` above. If this figure also included a linked
+  // liability's balance, calculateForecast()'s month-by-month projection
+  // would "pay it off" twice as the horizon progresses — the shrinking
+  // `debt` variable improves projected net worth, while the linked
+  // account's balance baked into the projection's frozen "other net
+  // worth" baseline never correspondingly improves, so the same debt's
+  // payoff would inflate net worth growth beyond what actually happens
+  // for every month debt paydown is simulated, not just when balances
+  // happen to mismatch. Verified in tests/forecast-linked-liability.test.ts.
+  //
+  // This is deliberately narrower than getDefaultBaseAssumptions()'s
+  // `monthlyDebtPaymentCents` below, which correctly includes ALL
+  // liabilities regardless of link status — "how much do I pay toward
+  // debt" is a Debt Engine question, unaffected by linking; this
+  // `totalDebtCents` figure is a Net-Worth-projection input, which must
+  // follow Net Worth's own linking rule instead.
   const totalDebtCents = liabilities
-    .filter((l) => l.include_in_net_worth)
+    .filter((l) => l.include_in_net_worth && l.linked_account_id === null)
     .reduce((sum, l) => sum + parseMoneyToCents(l.balance), 0);
 
   return {

@@ -42,11 +42,27 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
       ) : null}
 
       {transactions.length === 0 ? (
-        <EmptyState
-          illustration={<EmptyTransactionsIllustration size={140} />}
-          title={dict.transactions.emptyState}
-          description={dict.transactions.noTransactionsFound}
-        />
+        isDefaultView ? (
+          // Genuinely zero transactions ever — explain why this matters and
+          // give one obvious action, per UX_GUIDELINES.md #10. Reuses the
+          // same QuickAdd already rendered above the list, so there's no
+          // second transaction-entry mechanism to maintain.
+          <EmptyState
+            illustration={<EmptyTransactionsIllustration size={140} />}
+            title={dict.transactions.emptyTitle}
+            description={dict.transactions.emptyDescription}
+            action={<QuickAdd accounts={accounts} categories={categories} variant="inline" />}
+          />
+        ) : (
+          // Filters/search are active and matched nothing — a different,
+          // honest message: transactions DO exist, just not matching this
+          // filter. Showing "No transactions yet" here would be false.
+          <EmptyState
+            illustration={<EmptyTransactionsIllustration size={140} />}
+            title={dict.transactions.noResultsTitle}
+            description={dict.transactions.noTransactionsFound}
+          />
+        )
       ) : (
         <Card>
           <CardContent className="py-2">

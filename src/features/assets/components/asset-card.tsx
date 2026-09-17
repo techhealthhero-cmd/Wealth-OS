@@ -54,16 +54,20 @@ export function AssetCard({ asset, accounts }: { asset: Asset; accounts: Account
   return (
     <Card>
       <CardContent className="flex items-center justify-between gap-4 py-4">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
             <Icon className="h-5 w-5" aria-hidden="true" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-medium leading-none">{asset.name}</p>
-              {linkedAccount ? <Badge variant="secondary">{linkedAccount.name}</Badge> : null}
+              <p className="min-w-0 truncate font-medium leading-none">{asset.name}</p>
+              {linkedAccount ? (
+                <Badge variant="secondary" className="max-w-[8rem] shrink-0 truncate">
+                  {linkedAccount.name}
+                </Badge>
+              ) : null}
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">{t(`assets.types.${asset.asset_type}`)}</p>
+            <p className="mt-1 truncate text-sm text-muted-foreground">{t(`assets.types.${asset.asset_type}`)}</p>
           </div>
         </div>
 

@@ -34,6 +34,7 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
     liabilities.map((l) => ({
       balanceCents: parseMoneyToCents(l.balance),
       includeInNetWorth: l.include_in_net_worth,
+      linkedAccountId: l.linked_account_id,
     }))
   );
 

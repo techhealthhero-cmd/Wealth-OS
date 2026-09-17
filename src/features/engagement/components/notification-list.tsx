@@ -43,17 +43,18 @@ export function NotificationList({ notifications }: { notifications: FinancialNo
         {notifications.map((n) => (
           <Card key={n.id} className={n.is_read ? "opacity-60" : undefined}>
             <CardContent className="flex items-start justify-between gap-2 py-3">
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium">{n.title}</p>
-                  {!n.is_read ? <Badge className="h-1.5 w-1.5 rounded-full p-0" /> : null}
+                  <p className="break-words text-sm font-medium">{n.title}</p>
+                  {!n.is_read ? <Badge className="h-1.5 w-1.5 shrink-0 rounded-full p-0" /> : null}
                 </div>
-                <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>
+                <p className="mt-0.5 break-words text-sm text-muted-foreground">{n.body}</p>
               </div>
               {!n.is_read ? (
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="shrink-0"
                   disabled={isPending}
                   onClick={() => startTransition(async () => { await markNotificationRead(n.id); })}
                 >

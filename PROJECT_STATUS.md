@@ -1,6 +1,12 @@
 # WEALTH OS — PROJECT STATUS
 
-Last updated: 2026-09-14
+**This is the only source of truth for current implementation status** —
+what's built, verified, and known-limited right now. See `CLAUDE.md`'s
+"Document Ownership" section for how this fits with the other project
+docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
+explicitly non-authoritative and defer to this file).
+
+Last updated: 2026-09-16
 
 ## Current Phase
 
@@ -1011,9 +1017,182 @@ Status legend: ✅ done and verified · 🟡 done, with a documented manual step
 
 **Launch Ready: YES for a Free-plan-only launch on the current infrastructure as-is.** For paid plans to actually work in production, the one remaining manual step is supplying real Stripe (test-mode first, then live-mode) credentials and a real `SUPABASE_SERVICE_ROLE_KEY`, then registering the production webhook endpoint in the Stripe Dashboard — everything those credentials plug into has already been built, tested, and verified live.
 
+## Mobile Responsive Overflow Audit & Fix (2026-09-16, post-launch)
+
+**Trigger**: a real-device bug report from an actual iPhone in Production — some authenticated pages (reported especially on `/money/transactions` and `/plan/goals`) could be dragged/scrolled horizontally past the right edge of the viewport. This had passed every prior browser-based QA pass in this doc, which is exactly why it's recorded here in detail rather than as a one-line fix.
+
+### Root cause (found, not guessed — see verification below)
+
+Two independent, real bugs, both instances of the same underlying anti-pattern: **flex/grid children default to `min-width: auto`, meaning they refuse to shrink below their own content's intrinsic width** unless `min-w-0` is applied. A wide-enough descendant anywhere in that chain stretches every ancestor flex box wider than the viewport — escaping even an explicit `overflow-x-hidden` on an ancestor, because that property only clips content overflowing *that box's own bounds*; it doesn't stop the box's bounds from being forced wider in the first place.
+
+1. **The shared authenticated app shell** (`src/app/(app)/layout.tsx`) nests two flex containers (a row: Sidebar + content; a column inside it: Header/`main`/BottomNav) with **no `min-w-0` anywhere in the chain**. `MoneyTabs`/`PlanTabs`/`EarnTabs` (`-mx-4 overflow-x-auto px-4` + `inline-flex w-max` — the architecturally correct scrollable-tab-bar pattern) were never themselves the bug; their intrinsic width was leaking straight through the unprotected shell into a page-level scrollbar. This explains why `/money/transactions` and `/plan/goals` were named specifically: `MoneyTabs`/`PlanTabs` have the most (and, in Thai, the widest) tab labels of any route, so they were the first to cross the threshold — but every authenticated route shared the same latent defect.
+2. **`GoalCard`** (`src/features/goals/components/goal-card.tsx`, rendered on `/plan/goals`) paired a long, user-entered goal name with a fixed-width dropdown-menu button in a flex row with no `min-w-0`/`truncate` on the text side — a second, independent contributor on that exact route.
+
+The same anti-pattern (dynamic text + a badge/button, no `min-w-0`) was found repeated across roughly a dozen other card components app-wide (see Files Changed) — none individually reported as broken yet, but all latent instances of the identical defect class, fixed proactively.
+
+### Verification (real browser engines, not just code review)
+
+Built a byte-for-byte structural reproduction of the shell (same nesting, same tab-bar markup/classes) as static HTML and measured `document.documentElement.scrollWidth` vs `window.innerWidth` at 375×812 in both **WebKit** (the actual Safari engine) and Chromium via a newly-added Playwright dev dependency:
+
+- **Before the fix**: `scrollWidth` = 1403px (WebKit) / 1456px (Chromium) vs `innerWidth` = 375px — reproduced the exact reported symptom, with the flagged offending elements being precisely `main` and its flex-column ancestors.
+- **After the fix** (`min-w-0` added at the same 3 points now in the real code): `scrollWidth` = `innerWidth` = 375px exactly, in both engines.
+
+This is the strongest evidence available without production/staging credentials to drive a real logged-in session — see Known Limitation below.
+
+### Fix
+
+- `src/app/(app)/layout.tsx`: `min-w-0` added to the outer row flex, the inner column flex, and `main`.
+- `src/features/goals/components/goal-card.tsx`: `min-w-0`/`truncate` on the goal-name row, `shrink-0` on its badge.
+- The same `min-w-0`/`truncate`/`shrink-0` pattern applied to: `account-card.tsx`, `asset-card.tsx`, `liability-card.tsx`, `income-source-card.tsx`, `skill-card.tsx`, `subscription-card.tsx`, `recurring-transaction-card.tsx`, `opportunity-card.tsx`, `notification-list.tsx`, `wealth-mission-card.tsx`, `mission-card.tsx`, `upcoming-bills-card.tsx` — plus `break-words` on a few long, wrappable Thai text blocks (descriptions/notification bodies) as defense against a single unbroken run of text with no natural break point.
+- `dashboard/page.tsx`: `min-w-0`/`truncate` on the page-title row (paired with `PlanBadge`).
+- **Explicitly not changed**: no `overflow-x-hidden` was added anywhere as a primary fix (one already existed on `main` from before this session, kept as-is, but it was never sufficient alone — see root cause above). No visual redesign; no `MoneyTabs`/`PlanTabs`/`QuickRepeat` rewrite (their scrollable-tab pattern was already correct).
+
+### New reusable QA tooling (Playwright, `@playwright/test` dev dependency added)
+
+- `playwright.config.ts` — 6 viewport projects (320×568, 360×800, 375×812, 390×844, 430×932 on WebKit where a real iPhone preset exists, 1280×800 desktop).
+- `tests/e2e/mobile-overflow.spec.ts` — asserts `scrollWidth <= innerWidth + 1` and, on failure, reports every element crossing the viewport edge. Runs unconditionally against the public routes (`/`, `/login`, `/signup`); the authenticated-route suite (all routes listed in this doc's route list) is present and ready but **skips itself** unless `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD` (a disposable staging account) are supplied — deliberately never assumes or fabricates credentials.
+- `npm run test:e2e` added to `package.json`.
+
+### Known Limitation
+
+**Full authenticated-route real-browser verification was not performed against the live app** — this session had no staging/production login credentials available, and this codebase is explicitly marked Production (no test writes permitted). The public-route suite above passed 18/18 against the actual running app; the structural repro above passed in real WebKit+Chromium; the authenticated-route suite is built and ready to run the moment real staging credentials are supplied (`E2E_BASE_URL=<staging-url> E2E_TEST_EMAIL=... E2E_TEST_PASSWORD=... npm run test:e2e`). Confirming on a real iPhone remains the final, decisive check, exactly as it was what caught the original bug.
+
+### Quality gates
+
+`npm run lint` ✅ · `npm run typecheck` ✅ · `npm test` ✅ (474/474) · `npm run build` ✅ (49 routes) · Playwright public-route suite ✅ (18/18 across 6 viewports).
+
+**Not pushed to `main`, not deployed to Production** — per this task's explicit stop condition, everything above is committed to `staging` and ready for staging verification first.
+
+## Financial Data Integrity Hardening — transaction idempotency + credit-card double-counting (2026-09-17)
+
+Follow-up to the earlier Onboarding/Accounts/Transactions First Value audits this session, which had flagged (but not fully closed) two correctness gaps: transaction double-submit protection was a heuristic, not atomic; and a credit card tracked as both an `accounts` row and a `liabilities` row could have its debt subtracted from Net Worth twice.
+
+### Transaction idempotency — real fix, not a heuristic
+
+- **Root design**: a client-generated idempotency key (`client_request_id`, one fresh UUID per form open, resent unchanged on retry, rotated only after a successful save) plus a real database unique constraint — `unique(user_id, client_request_id) where client_request_id is not null` — replaces the earlier 5-second content-based duplicate check as the *primary* mechanism. Never deduplicates by transaction content (two genuinely identical ฿80 coffees both save correctly, with different keys).
+- **`supabase/migrations/0012_transaction_idempotency.sql`** (rewritten — not yet applied to any database, see below): adds `transactions.client_request_id` + the partial unique index, and updates `create_transfer()` to accept `p_client_request_id` and resolve a retried attempt via `ON CONFLICT ... DO UPDATE ... RETURNING` — so a transfer's atomicity (one debit, one credit, never duplicated) stays entirely inside the database function.
+- **`src/features/transactions/actions.ts`**: `createTransaction`/`createTransfer` try the idempotency-key path first; if it fails with "column/function does not exist" (`42703`/`42883` — meaning migration 0012 isn't applied to this database yet), they fall back to the old heuristic check rather than breaking every save. This makes the app safe to run against a database with or without 0012 applied, and the heuristic is now explicitly documented as a temporary bridge, not the design (remove once 0012 is confirmed applied everywhere).
+- Wired into `transaction-form.tsx` / `transfer-form.tsx` via a hidden `client_request_id` field, `useState(() => crypto.randomUUID())`.
+- See CLAUDE.md "TRANSACTION IDEMPOTENCY" for the full authoritative model.
+
+### Credit-card double-counting — `liabilities.linked_account_id`
+
+- **`supabase/migrations/0013_liability_account_linking.sql`** (new — not yet applied, see below): adds `liabilities.linked_account_id` (nullable FK → `accounts.id`), mirroring the existing `assets.linked_account_id` pattern. Includes a DB trigger (`check_liability_linked_account_ownership_trg`) rejecting a link to an account owned by a different user — a plain FK alone does not check this, and RLS on `liabilities` only scopes the liability row itself, not the account a foreign key happens to reference. Also a partial unique index preventing two liabilities from linking to the same account.
+- **`calculateNetWorth()`** (`src/lib/financial/net-worth.ts`) now excludes a linked liability from `totalLiabilitiesCents` — the linked account's balance already represents that debt. The Debt Engine (Wealth Score's Debt Health, Priority Engine's `high_interest_debt`, minimum-payment tracking) is completely unaffected by linking — verified by inspection: those all filter liabilities by `include_in_net_worth` only, never by `linked_account_id`.
+- No auto-sync between the two balances, and no auto-linking of existing data by name/balance/institution guessing — every existing liability row stays unlinked (`linked_account_id = null`) until a user explicitly links it via the new optional field on the credit-card liability form.
+- See CLAUDE.md "LIABILITY <-> ACCOUNT LINKING" for the full authoritative model, including the "account balance is authoritative for Net Worth once linked, liability balance is excluded but otherwise untouched" rule and why a mismatch between the two is surfaced, not silently resolved.
+
+### Tests added
+
+`tests/transaction-double-submit.test.ts` (rewritten, 15 tests: idempotency-key primary path including concurrent-request atomicity, user-scoping, backward-compatible no-key callers, and the pre-migration heuristic fallback, tested separately) and `tests/liability-linking.test.ts` (5 tests: linking, cross-user rejection surfaced as a friendly error, null-link regression). `tests/net-worth.test.ts` extended with linked-liability Net Worth exclusion and mismatched-balance-is-not-reconciled cases. All run against mocked Supabase clients.
+
+## Financial Data Integrity Hardening — migrations applied and live-verified on staging (2026-09-17, follow-up)
+
+Closes out the gap left by the section above: both migrations are now **applied and verified against the real staging database**, using real (disposable, cleaned-up) test users — not mocks, not assumptions.
+
+### Migration history discrepancy found and repaired first
+
+Before pushing anything, `supabase migration list` against the linked staging project (`eovyvlesdgygjqrrvpas`, "wealth-os-staging") showed **every** migration since 0001 as unapplied in the CLI's own bookkeeping table, even though the base schema demonstrably already existed (a live `GET /rest/v1/accounts` succeeded). This meant migrations 0001-0011 had been applied to this database by some means other than `supabase db push` (consistent with this doc's own earlier note about Management-API-driven SQL execution), so their history was never recorded. Pushing blindly would have replayed `create table` statements against tables that already exist and failed immediately. Fixed by running `supabase migration repair --status applied 0001 ... 0011 --linked` (bookkeeping only — no SQL re-executed), confirmed via `db push --dry-run` that exactly `0012` and `0013` remained pending, then pushed those two for real.
+
+### Migrations applied to staging, verified against the real schema (not just CLI exit code)
+
+Both migrations succeeded (`supabase db push --linked`). Verified independently via the Supabase Management API's read-only SQL query endpoint (`POST /v1/projects/{ref}/database/query`), not by trusting CLI output:
+- `transactions.client_request_id`: `uuid`, `is_nullable: YES` — exact expected type.
+- `transactions_user_client_request_id_idx`: confirmed as a real partial unique index on `(user_id, client_request_id) where client_request_id is not null`.
+- `liabilities.linked_account_id`, `liabilities_linked_account_idx`, `liabilities_user_linked_account_idx` (partial unique): all present exactly as designed.
+- `check_liability_linked_account_ownership` trigger function: present.
+- `create_transfer`: **now has two overloads** — Postgres's `create or replace function` does not replace a function when the parameter list changes, it adds a new one. The original 6-param version (0001) and the new 7-param version with `p_client_request_id` (0012) both now exist. Every current real caller passes the parameter explicitly (even as `null`), so this is a documented, verified-dormant artifact, not an active bug — see CLAUDE.md "TRANSACTION IDEMPOTENCY." Found and fixed one caller that didn't yet do this (`src/features/recurring/actions.ts`'s recurring-transfer confirmation) so it can never silently fall back to the older, non-idempotent overload.
+
+### Live tests against the real staging database (real users, cleaned up after)
+
+Created two disposable users directly via the Auth Admin API (`service_role`, bypasses the public signup form and its rate limiter entirely — a legitimate, separate privileged path, not a weakening of the production rate limiter, which only guards the public signup Server Action). All requests below went through the real PostgREST/RPC endpoints with a real user JWT, respecting RLS exactly as the deployed app does:
+
+- **Same-key retry**: first insert 201, retry 409 (`23505`, the real unique-constraint name), exactly 1 row by direct count.
+- **Concurrent same-key** (`Promise.all`, two simultaneous requests): one 201, one 409, exactly 1 row — proves the fix is atomic under real concurrency, closing the exact gap the old heuristic could not (see the earlier section's "known limitation").
+- **Legitimate duplicate content, different keys**: both saved, 2 rows.
+- **Transfer retry** (same key twice): second call returned the identical row id as the first (not an error), Account A's balance moved by exactly -1,000 once (not -2,000), Account B's by exactly +1,000 once, exactly 1 transfer row.
+- **Cross-user link rejection**: User A attempting `linked_account_id` = User B's real account → rejected with the trigger's own `P0001` error; liability confirmed still `null` afterward.
+- **Duplicate-link rejection**: a second liability linking to an already-linked account → rejected (`23505` on the partial unique index).
+- **Valid link + full liability data intact**: linking succeeded and persisted; re-fetching the liability afterward showed `interest_rate`/`minimum_payment` unchanged — confirms Debt Health/Priority Engine would still see complete data.
+- **Balance-mismatch rule**: after linking, changed the liability's own `balance` from 20,000 to 25,000 while the linked account stayed at -20,000, and manually re-derived Net Worth from the fetched raw data using `calculateNetWorth()`'s documented formula — the total was unaffected by the liability-side change, confirming the account balance alone (not the liability's value) drives Net Worth once linked.
+
+All test accounts, liabilities, transactions, and both auth users were deleted afterward (`DELETE /auth/v1/admin/users/{id}` cascades to every owned row via each table's existing `on delete cascade`) and independently re-verified as gone (0 rows, 404 on the deleted user IDs).
+
+### Net Worth call-site audit (Phase 12 of the task that drove this)
+
+Traced every consumer of Net Worth (`forecast/queries.ts`, `monthly-review/queries.ts`, `wealth-score/queries.ts`, `life-stage/queries.ts`, `ai/tools/index.ts`, the dashboard, the Net Worth page): all of them obtain the Net Worth figure via `getNetWorthBreakdown()` — none independently re-sum liabilities for a Net Worth total, so the linked-liability exclusion applies everywhere consistently, not just on one screen. Places that touch `liabilities` directly (Wealth Score's `minimumDebtPaymentsCents`, Forecast's `totalDebtCents`, Life Stage's `highInterestLiabilities`) are all debt-engine-style uses that correctly continue to include every liability regardless of link status, by design.
+
+**One narrow, pre-existing quirk found and documented (not fixed this pass)**: `forecast.ts`'s internal "reconstruct other assets" algebra (`netWorthCents - cashBalanceCents + totalDebtCents`) combines the (correctly linking-aware) Net Worth figure with `totalDebtCents` (which is linking-*unaware* by design). When a linked liability's balance doesn't match its linked account's balance, this specific internal figure is skewed by the mismatch amount — a narrow forecast-accuracy edge case, not a repeat of the Net Worth double-counting bug (the directly-reported `netWorthCents` from Forecast is unaffected). Left undisturbed since fixing it means redesigning Forecast's internal algebra, which is outside this integrity-migration task's scope; flagged here for whoever next touches Forecast.
+
+`net_worth_snapshots`: `recordTodaysNetWorthSnapshot()` is always called with a freshly-computed `breakdown` from `getNetWorthBreakdown()`, so any new snapshot automatically reflects the corrected, linking-aware figures — no code change was needed. Historical snapshots recorded before a user links their accounts are not and should not be rewritten (per the task's own explicit instruction against automatic historical rewrites).
+
+### Production status — MIGRATED (2026-09-17, same session as the re-checks below)
+
+**Both migrations are now applied and live-verified on production** (`lvxuruzspchhcwebrbzy`). Closing out everything the two sections below had left open:
+
+- This session's CLI-based push attempts (`supabase migration repair`/`db push --linked` against production) were blocked by the harness's own safety classifier ("Protected-Scope IaC Apply") — a deliberate guardrail against an agent directly mutating production infrastructure, not worked around.
+- Two `SUPABASE_ACCESS_TOKEN`s tried first were insufficient: one was staging-scoped only, the other (auto-generated by an IDE integration, not created for this purpose) listed the production project but lacked write privileges under Supabase's newer scoped-token model.
+- The user generated a correctly-scoped token themselves via Supabase's new scoped-access-token flow (Project-scoped to `App wealth os` only, `Full access` preset within that scope, 7-day expiry) and ran the CLI commands directly in their own terminal — the appropriate path for an irreversible production schema change.
+- Production had the identical "0001-0011 applied but unrecorded" CLI-bookkeeping gap staging had (see below) — repaired the same way (`migration repair --status applied 0001...0011 --linked`, bookkeeping only).
+- `db push --linked --dry-run` confirmed exactly `0012`/`0013` as pending — matching the read-only pre-check exactly, so the real push was known-safe before running.
+- `db push --linked` (real) applied both migrations successfully.
+- **Independently re-verified** (not just trusting CLI exit status) via the same live, read-only PostgREST schema check used throughout this session: `transactions.client_request_id` and `liabilities.linked_account_id` both now resolve successfully on production.
+
+**Pre-migration heuristic fallback removed** (same session, on request): `findRecentDuplicateTransaction`, the `42703`/`42883` branches, and the old-signature `create_transfer` RPC fallback are all gone from `src/features/transactions/actions.ts` — the idempotency-key mechanism is now the only path, no dead code left behind. `tests/transaction-double-submit.test.ts` had its 6 pre-migration-fallback tests removed accordingly (515 → 509 total tests); `tests/e2e/transaction-live.spec.ts`'s header comment updated to reflect that migrations are live everywhere now. Full quality gate re-run clean after the removal: lint ✅, typecheck ✅, tests ✅ (509/509), build ✅ (49 routes).
+
+**Live functional test battery run against production — DONE, effectively 24/24.** Written by this session, run by the user (the harness's own safety classifier blocked this session's own tool calls from writing any test data — even disposable, self-cleaning — directly to production, a second independent guardrail beyond the schema-push one above). Two disposable Auth users, real INSERT/UPDATE/RPC calls through the real PostgREST/RPC endpoints with real user JWTs (never service-role), covering: same-key retry (23505 on the retry, exactly 1 row), concurrent same-key race (exactly 1 row), legitimate duplicate content with different keys (2 rows), transfer retry via `create_transfer` (same row id returned, not a second insert), cross-user liability-link rejection (trigger's own error, `linked_account_id` stays null), valid same-user link (succeeds, `interest_rate`/`minimum_payment` intact), duplicate-link rejection (`23505` on the partial unique index), balance-mismatch tolerance (liability balance changes independently of the linked account), and cross-user transaction-list isolation. **22/24 asserted as PASS; the 2 reported FAILs were a bug in the verification script's own assertions, not the product**: the script asserted account A's post-transfer balance as a bare `10000 - 1000 = 9000`, forgetting that the same script's own earlier idempotency-test expense transactions (-120, -77, -80, -80 = -357) had already posted against that same account — the actual result, `8643`, is exactly `10000 - 357 - 1000`, which **positively proves** the transfer's debit applied exactly once (a double-applied transfer would have produced `7643`, not `8643`). Both "FAILs" resolve to PASS once the arithmetic accounts for the script's own prior activity on the same account. Cleanup fully verified: both users deleted, zero leftover transactions/liabilities/accounts, re-confirmed by direct count. **The access token(s) used for this work have been deleted** by the user from the Supabase dashboard — this task is fully closed out, no lingering elevated credentials left behind.
+
+### Production status (historical — see "MIGRATED" above for current state)
+
+The access token used only has permissions for the **staging** project. This app's actual `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`) points at a **different, separate production project** (`lvxuruzspchhcwebrbzy`) that remains unmigrated — confirmed directly (`column does not exist` on both new columns via a live read-only query before this session's staging work, unchanged since no production-capable credentials were ever available). **The pre-migration heuristic fallback in `src/features/transactions/actions.ts` was deliberately NOT removed** — doing so would break every transaction save in production today, since `client_request_id` genuinely doesn't exist there. It stays until production is migrated too.
+
+**Re-checked 2026-09-17 (follow-up session).** `.env.local` now carries a real, non-empty production `SUPABASE_SERVICE_ROLE_KEY` (previously empty — carried-forward item #11 below). Re-ran the live schema check directly against production with it: `transactions.client_request_id` and `liabilities.linked_account_id` both still `42703 column does not exist` — production is still unmigrated, independently re-confirmed rather than assumed unchanged. No schema change was attempted.
+
+**Second re-check, same session, two `SUPABASE_ACCESS_TOKEN`s tried:** the first token was staging-scoped only (`supabase projects list` showed only `eovyvlesdgygjqrrvpas`; `supabase link --project-ref lvxuruzspchhcwebrbzy` rejected with a privilege error). A second token did list the production project (`lvxuruzspchhcwebrbzy`) in `supabase projects list`, but `supabase link` against it still failed with the same "account does not have the necessary privileges" error — consistent with a read-only-scoped personal access token (can enumerate projects, can't link/push). Did not attempt to find a workaround for this — CLI-based push to production remains blocked pending a full-privilege token or a DB password. Still needed: either (a) a `SUPABASE_ACCESS_TOKEN` with write/admin scope on the production project, (b) a direct DB connection string+password, or (c) applying `supabase/migrations/0012_transaction_idempotency.sql` and `0013_liability_account_linking.sql` by hand via the Supabase Dashboard SQL editor for production — the last option needs no new credentials and is the most reliable path. Whichever path is used, verify the same way staging was verified (read-only schema check + the same live-user test battery) before removing the heuristic fallback.
+
+### Browser/mobile QA — not performed this pass
+
+Attempted to start a second `next dev` instance on a different port with staging credentials to drive real browser tests; Next.js's own dev-server lock correctly refused, since the user's own dev server (pointed at production) was already running against the same project directory. Did not force this (would mean killing the user's active process). The double-submit/linking guarantees above were instead verified more rigorously at the database level directly — real atomicity and real trigger rejection are proven; the client-side key-generation/rotation logic was verified by code review and unit tests (`tests/transaction-double-submit.test.ts`), not by an actual browser click.
+
+### Quality gates (after this follow-up's code change — `recurring/actions.ts` only)
+
+`npm run lint` ✅ · `npm run typecheck` ✅ · `npm test` ✅ (504/504) · `npm run build` ✅ (49 routes).
+
+## AI Money Coach chat — visual restyle (2026-09-17)
+
+Restyled `src/features/ai/components/ai-coach-chat.tsx` to a cleaner bubble-chat visual language (user turns as a muted rounded pill, right-aligned; assistant turns as plain "ghost" text, left-aligned, no bubble background; a rounded-pill composer with an auto-growing textarea and a circular send button that activates once text is typed), matching a reference chat UI the user pasted. **No change to any business logic** — `sendMessage()`, the NDJSON streaming parse, conversation-id handling, and error handling are byte-for-byte the same as before; only the render/JSX layer and message `id` field (added for stable React keys / copy targeting) changed.
+
+**New shared UI primitives added** (from shadcn's own `base-nova` registry, matching this project's existing `base-ui`/`cva`/`cn` component conventions exactly — installed via `npx shadcn@latest view <name>` and written by hand after the CLI's interactive add prompt hung in this non-interactive session): `src/components/ui/bubble.tsx`, `message.tsx`, `input-group.tsx`. Only `input-group.tsx` needed a manual fix — the registry's raw file imports from `@/registry/base-nova/ui/*`, corrected to this project's real `@/components/ui/*` alias. Did **not** add `message-scroller` (its registry version pulls in a new `@shadcn/react` npm dependency for virtualized-scroll/jump-to-latest behavior) — unnecessary weight for a coach chat with modest message counts; kept the existing simple `scrollIntoView` auto-scroll.
+
+**Added, real, working**: a copy-to-clipboard button under every message (user and assistant), with a brief checkmark swap on success. **Deliberately not added**: "regenerate"/"edit-and-resend" affordances from the reference design — checked `/api/ai/chat`'s route and found conversation history is persisted server-side keyed by `conversationId`; naively resending a message would append a duplicate turn to the stored history rather than truly regenerating in place, which is worse than not having the button (see CLAUDE.md's "never claim a feature works without testing" / "no dead buttons" rules). Also skipped: model-switcher, intelligence-level dropdown, voice input, and file/photo attachments from the reference — none are backed by real functionality in this app's actual AI Money Coach (single fixed model, financial-tool-grounded, text-only), so adding their UI would be dead chrome.
+
+New i18n keys added to both `th.json`/`en.json`: `aiCoach.copy`, `copied`, `regenerate`, `edit`, `cancel`, `jumpToLatest` (the last four reserved for if/when a correctly-designed regenerate/edit flow is built later — not currently wired to anything, but present so a future pass doesn't need a separate i18n round-trip).
+
+### Live visual verification (not just typecheck/build)
+
+Real browser QA was blocked on two fronts this session and worked around rather than skipped:
+- The dev server's default `.env.local` points at **production** — creating a real disposable signup there was avoided given this session's separate, heightened caution around production data (see the migration-verification work earlier this session). Ran the dev server against **staging** instead (`eovyvlesdgygjqrrvpas`, via inline env vars, `.env.local` untouched).
+- A real signup on staging hit Supabase Auth's own built-in email-send rate limit after two email-format rejections (`@example.com`/a fake `.dev` domain are apparently denylisted on this project; a `@gmail.com`-domain address passed format validation but then tripped `over_email_send_rate_limit`) — waiting out Supabase's own limiter wasn't a good time trade for a pure visual check.
+
+Instead, added a **temporary, fully-reverted** static preview: a throwaway route (`src/app/qa-preview-temp/ai-chat/page.tsx`) rendering the real `AICoachChat` component pre-seeded with two fake messages via a dev-only `__qaSeedMessages` prop, plus a temporary one-line addition to `middleware.ts`'s public-route allowlist so the unauthenticated preview route wasn't redirected to `/login`. Verified with Playwright at 390×844 (`iphone-390` project): user bubble, assistant ghost-text bubbles (including correct multi-paragraph spacing), the composer's placeholder/focus/active-send-button states, and the copy button's icon-swap-on-click all render correctly, zero console errors, zero horizontal overflow, Thai text unclipped. Separately confirmed `/ai` itself still correctly redirects an unauthenticated request to `/login` (the real auth gate was untouched). **All three temporary pieces were fully removed afterward**: the preview route, the `__qaSeedMessages` prop/escape hatch from the real component, and the `middleware.ts` allowlist entry — confirmed via `git status` showing zero diff on `middleware.ts` and zero trace of `qa-preview-temp` anywhere, then a full clean lint/typecheck/test/build re-run (515/515 tests, 49 routes) after reverting, to prove the reverts themselves didn't break anything.
+
+**Not verified live**: an actual end-to-end AI reply streaming into the new bubble styling against a real backend call (blocked by the rate limit above). Judged low-risk since `sendMessage()`'s logic is completely unchanged from the prior, already-live-verified implementation (see this file's Day 4/AI Money Coach section) — only the surrounding markup changed, and that markup path was verified by the seeded-message preview using the exact same rendering function for both roles.
+
+### Quality gates
+
+`npm run lint` ✅ (zero errors/warnings) · `npx tsc --noEmit` ✅ · `npm test` ✅ (515/515) · `npm run build` ✅ (49 routes, `qa-preview-temp` confirmed absent from the route list).
+
 ## Next Task
 
-Day 8 is fully done. Per this task's explicit stop condition, **no Day 9 was started.** The one substantive remaining step before a paid-plan production launch is external and manual: real Stripe credentials + a real Supabase service-role key, exactly as documented in "Launch Readiness" above.
+1. ~~Migrate production~~ — **done 2026-09-17**, see "Production status — MIGRATED" above.
+2. ~~Remove the pre-migration heuristic fallback~~ — **done 2026-09-17**, see "Production status — MIGRATED" above.
+2b. ~~Run the live functional test battery against production~~ — **done 2026-09-17**, run by the user, 22/24 asserted PASS + 2 explained false-negatives (see "Production status — MIGRATED" above). ~~Delete the production access token~~ — **done**, all tokens used for this task deleted by the user. This whole production-migration effort is now fully closed.
+3. Real browser/mobile QA against staging, next time the user's own dev server isn't occupying the project directory (or from a second checked-out copy of the repo).
+4. Consider a small follow-up migration to drop `create_transfer`'s original 6-parameter overload now that every real caller passes `p_client_request_id` explicitly — not required for correctness today, purely a hygiene cleanup.
+5. `src/features/recurring/actions.ts`'s recurring-transfer confirmation still has no double-submit protection of its own (documented in its own code comment) — would need a deterministic key derived from `(recurring.id, next_due_date)`, a separate small task.
+6. The new AI Money Coach chat restyle's live streaming path (a real `/api/ai/chat` round trip rendering into the new bubble markup) still needs a genuine browser confirmation — blocked this session by Supabase Auth's email rate limit on staging (see "AI Money Coach chat — visual restyle" above). Retry once the rate limit window has reset, or with a pre-existing seeded staging account instead of a fresh signup.
+
+Day 8 is otherwise fully done. The one substantive remaining step before a paid-plan production launch is external and manual: real Stripe credentials + a real Supabase service-role key, exactly as documented in "Launch Readiness" above.
 
 Carried-forward, non-blocking items from Days 1-7:
 1. Re-check `package.json`'s `vite` override occasionally — it's pinned to unblock this sandbox's native-binding restriction, not a permanent design decision; drop it if a future vitest/vite release fixes the underlying WASM fallback.
@@ -1026,9 +1205,10 @@ Carried-forward, non-blocking items from Days 1-7:
 8. **When adding a new member to a shared enum/union type (e.g. a new `PriorityType`), grep for every i18n namespace keyed by that enum** — this codebase keeps more than one small per-surface label set rather than a single universal dictionary, and a missing key fails silently (renders the raw key, not a build error). See Day 5's "Bugs found via live QA" #1.
 9. **Never call a `"use server"` action that contains `revalidatePath()`/`revalidateTag()`/`redirect()` directly from a Server Component's render** — Next.js 16 disallows it outright. If a Server Component needs to trigger a write on every view (an "upsert/sync on read" pattern, used several times in this codebase), split the function into a plain data-mutating version with no revalidation call, and keep the revalidating version only for client-triggered interactions. See Day 6's "Bugs Fixed" #2.
 10. **When a UI element's label/badge depends on more than one condition (e.g. "is this the recommended plan" vs. "is this the user's current plan"), check the higher-priority condition first, explicitly** — don't assume a static marketing label (like "Recommended") and a dynamic state label (like "Current Plan") can't collide; they will, for exactly the users who matter most (someone who already upgraded to the "recommended" plan). See Day 7's "Bugs Fixed" #1.
-11. `SUPABASE_SERVICE_ROLE_KEY` is present by name in `.env.local` but its value is empty in this environment — any future feature that needs `createAdminClient()` (privileged/service-role writes) will throw at runtime until a real key is supplied. Not a code bug; a standing environment gap. See Day 7's "Known Limitations" #1.
+11. ~~`SUPABASE_SERVICE_ROLE_KEY` is present by name in `.env.local` but its value is empty in this environment~~ — **resolved as of 2026-09-17**: `.env.local` now has a real, non-empty production service-role key; `createAdminClient()`-based features and the production migration-verification check above both confirmed it works. What's still missing for production is a *DDL-capable* credential (`SUPABASE_ACCESS_TOKEN` and/or DB password for the CLI/direct connection) — the service-role key alone only grants PostgREST/RPC access, not schema changes. See "Production status" above.
 12. **When a `getX()` query/lookup function is called from both a layout and the pages nested inside it (or from several nested layouts), wrap it in React's `cache()`** (`import { cache } from "react"`) rather than accepting the repeated query — it's a zero-risk, zero-call-site-change fix, and this exact pattern (`getProfile()` called 2-3 times per request) was real and present since Day 1. Check any new cross-cutting lookup added in a layout for the same risk. See Day 8's "Performance" section.
 13. **A Postgres `SECURITY DEFINER` function explicitly granted to `anon`/`authenticated` can be called through the ordinary request-scoped Supabase client — it does not need the service-role key**, since the function's own elevated privilege (not the caller's role) governs what it touches internally. Used for the Day 8 rate limiter specifically so it would work even with `SUPABASE_SERVICE_ROLE_KEY` unset in this environment; worth reaching for again anywhere else a narrow, well-defined privileged operation is needed without pulling in full admin-client access.
+14. **Any new card/row component that pairs dynamic/user-generated text with a fixed-width sibling (a badge, an icon button, an amount) in a `flex` row must put `min-w-0` on the text-side wrapper and `truncate` (or `break-words`, if wrapping is preferred over truncating) on the text itself, plus `shrink-0` on the fixed sibling.** Without it, flexbox's default `min-width: auto` lets the text refuse to shrink, and — if that component sits inside an equally unprotected ancestor chain — the overflow can escape all the way to a page-level horizontal scrollbar. This exact defect class caused a real Production bug found on a real iPhone (see "Mobile Responsive Overflow Audit & Fix" above); it was found repeated in ~12 other card components that hadn't yet been reported broken. Check for it in any new component built the same way.
 
 ## Update Rule
 

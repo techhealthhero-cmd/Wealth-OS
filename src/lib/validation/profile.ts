@@ -25,12 +25,16 @@ export const onboardingSchema = z.object({
     .trim()
     .min(1, "Name is required")
     .max(80, "Name is too long"),
-  monthly_income: z.coerce.number().nonnegative().optional(),
   starting_balance: z.coerce.number().optional(),
-  monthly_essential_expenses: z.coerce.number().nonnegative().optional(),
-  primary_goal: z
-    .enum(["save_more", "pay_off_debt", "build_wealth", "track_spending", "other"])
-    .optional(),
+  // Minimum-useful-onboarding pass: `monthly_income`, `monthly_essential_expenses`,
+  // and `primary_goal` were previously collected here but never persisted
+  // anywhere (see git history) — pure friction with zero value. Removed
+  // rather than wired up, since doing either honestly needs more than this
+  // one screen can ask without adding real friction back (a goal needs a
+  // target amount; income/expense estimates are better derived from real
+  // transactions than a one-time guess) — see PRODUCT_OUTCOMES.md's
+  // "don't ask for information not required right now."
+  starting_account_type: z.enum(["cash", "bank"]).default("cash"),
 });
 
 export type OnboardingFormValues = z.infer<typeof onboardingSchema>;

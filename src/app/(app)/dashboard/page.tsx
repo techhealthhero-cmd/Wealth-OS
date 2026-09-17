@@ -61,8 +61,16 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6 pb-24">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">{dict.dashboard.title}</h1>
+        <div className="min-w-0">
+          {/* UX guidelines #6 (Home hierarchy): greeting/context leads the
+              page, ahead of the section title — a personal "hello" reads
+              as a coach checking in, not an admin-panel page header. */}
+          <p className="truncate text-lg font-medium">
+            {profile?.display_name
+              ? dict.dashboard.greeting.replace("{name}", profile.display_name)
+              : dict.dashboard.greetingGeneric}
+          </p>
+          <h1 className="truncate text-2xl font-semibold">{dict.dashboard.title}</h1>
           <p className="text-sm text-muted-foreground">
             {new Date().toLocaleDateString(locale === "th" ? "th-TH" : "en-US", { month: "long", year: "numeric" })}
           </p>
@@ -104,7 +112,7 @@ export default async function DashboardPage() {
               <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
             </Button>
           </div>
-          <NextBestActionCard priority={priority} />
+          <NextBestActionCard priority={priority} hasTransactionHistory={data.recentTransactions.length > 0} />
           {topInsight ? <InsightCards insights={[topInsight]} /> : null}
         </div>
       ) : null}

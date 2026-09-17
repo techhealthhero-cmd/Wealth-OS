@@ -10,6 +10,7 @@ import { formatMoneyFromDecimal, formatMoney, parseMoneyToCents } from "@/lib/fi
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const CONFIDENCE_BADGE_CLASS: Record<string, string> = {
   high: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -27,18 +28,20 @@ export function SubscriptionCard({ subscription }: { subscription: DetectedSubsc
     <Card>
       <CardContent className="space-y-2 py-4">
         <div className="flex items-start justify-between gap-2">
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-medium leading-none">{subscription.merchant}</p>
-              <Badge className={CONFIDENCE_BADGE_CLASS[subscription.confidence]}>{t(`subscriptions.confidences.${subscription.confidence}`)}</Badge>
+              <p className="min-w-0 truncate font-medium leading-none">{subscription.merchant}</p>
+              <Badge className={cn("shrink-0", CONFIDENCE_BADGE_CLASS[subscription.confidence])}>
+                {t(`subscriptions.confidences.${subscription.confidence}`)}
+              </Badge>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 truncate text-sm text-muted-foreground">
               {t(`recurring.frequencies.${subscription.frequency}`)} · {t("subscriptions.occurrences")} {subscription.occurrence_count}{" "}
               {t("subscriptions.occurrencesUnit")}
               {subscription.next_expected_date ? ` · ${t("subscriptions.nextExpected")}: ${subscription.next_expected_date}` : ""}
             </p>
           </div>
-          <p className="font-medium">{formatMoneyFromDecimal(subscription.estimated_amount)}</p>
+          <p className="shrink-0 font-medium">{formatMoneyFromDecimal(subscription.estimated_amount)}</p>
         </div>
 
         <p className="text-xs text-muted-foreground">

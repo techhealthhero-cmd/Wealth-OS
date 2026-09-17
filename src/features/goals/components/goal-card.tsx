@@ -19,6 +19,7 @@ import { asTrigger } from "@/lib/as-trigger";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,14 +56,18 @@ export function GoalCard({ goal, accounts }: { goal: FinancialGoal; accounts: Ac
     <Card>
       <CardContent className="space-y-3 py-4">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3">
+          {/* Mobile overflow fix: a long goal name (Thai custom names run
+              long) is a flex child here — without min-w-0 it refuses to
+              shrink below its own text width, pushing this row (and the
+              page) wider than the viewport instead of truncating. */}
+          <div className="flex min-w-0 items-center gap-3">
             <GoalTypeIcon type={goal.goal_type} size={40} />
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <p className="font-medium leading-none">{goal.name}</p>
-                <Badge className={SCHEDULE_BADGE_CLASS[schedule]}>{t(`goals.schedule.${schedule}`)}</Badge>
+                <p className="min-w-0 truncate font-medium leading-none">{goal.name}</p>
+                <Badge className={cn("shrink-0", SCHEDULE_BADGE_CLASS[schedule])}>{t(`goals.schedule.${schedule}`)}</Badge>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 truncate text-sm text-muted-foreground">
                 {formatMoneyFromDecimal(goal.current_amount)} / {formatMoneyFromDecimal(goal.target_amount)}
                 {linkedAccount ? ` · ${linkedAccount.name}` : ""}
               </p>

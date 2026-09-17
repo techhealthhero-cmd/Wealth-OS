@@ -7,6 +7,17 @@
  * wealth NOT already represented by an account — if it has a
  * `linkedAccountId`, the linked account is the one counted, and the asset
  * row itself is excluded here to avoid counting the same money twice.
+ *
+ * The identical rule applies the other direction for debt (migration 0013,
+ * CLAUDE.md "CREDIT CARD ACCOUNT SEMANTICS" / "LIABILITY ↔ ACCOUNT LINKING"):
+ * a `liabilities` row with a `linkedAccountId` means the SAME real-world
+ * debt is already reflected as that account's (typically negative)
+ * balance — excluded here for the same reason a linked asset is. The
+ * account's balance is authoritative for Net Worth once linked; the
+ * liability row itself is otherwise untouched and keeps feeding Debt
+ * Health/interest/minimum-payment/Priority Engine calculations exactly as
+ * an unlinked liability would — this function only ever affects the Net
+ * Worth total, never the liability record or the debt engine.
  */
 
 export interface NetWorthAccountInput {
@@ -23,6 +34,7 @@ export interface NetWorthAssetInput {
 export interface NetWorthLiabilityInput {
   balanceCents: number;
   includeInNetWorth: boolean;
+  linkedAccountId: string | null;
 }
 
 export interface NetWorthResult {
@@ -50,7 +62,7 @@ export function calculateNetWorth(
   const totalAssetsCents = accountAssetsCents + manualAssetsCents;
 
   const totalLiabilitiesCents = liabilities
-    .filter((l) => l.includeInNetWorth)
+    .filter((l) => l.includeInNetWorth && l.linkedAccountId === null)
     .reduce((sum, l) => sum + l.balanceCents, 0);
 
   return {
