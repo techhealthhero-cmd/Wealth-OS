@@ -99,9 +99,15 @@ function CopyMessageButton({ text, label }: { text: string; label: string }) {
  * as a finished streamed reply — the UI doesn't need to know which path
  * produced a given message.
  */
-export function AICoachChat({ initialConversationId }: { initialConversationId?: string }) {
+export function AICoachChat({
+  initialConversationId,
+  initialMessages,
+}: {
+  initialConversationId?: string;
+  initialMessages?: ChatMessage[];
+}) {
   const { t } = useTranslation();
-  const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages ?? []);
   const [input, setInput] = React.useState("");
   const [conversationId, setConversationId] = React.useState<string | undefined>(initialConversationId);
   const [isSending, setIsSending] = React.useState(false);

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
+import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { getFinancialSummary, getFinancialPriority } from "@/features/ai/tools";
 import { getVisibleInsights } from "@/features/ai/lib/insights";
 import { buildMonthlyHealthCheck } from "@/features/ai/lib/health-check";
+import { getLatestConversationWithMessages } from "@/features/ai/queries";
 import { NextBestActionCard } from "@/features/ai/components/next-best-action-card";
 import { MonthlyHealthCheckCard } from "@/features/ai/components/monthly-health-check-card";
 import { InsightCards } from "@/features/ai/components/insight-card";
@@ -16,12 +18,18 @@ import { AIUsageIndicator } from "@/features/billing/components/ai-usage-indicat
 export const metadata: Metadata = { title: "AI Money Coach — Wealth OS" };
 
 export default async function AICoachPage() {
-  const [profile, snapshot, priority, insights, healthCheck] = await Promise.all([
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [profile, snapshot, priority, insights, healthCheck, initialChat] = await Promise.all([
     getProfile(),
     getFinancialSummary(),
     getFinancialPriority(),
     getVisibleInsights(),
     buildMonthlyHealthCheck(),
+    user ? getLatestConversationWithMessages(user.id) : Promise.resolve(null),
   ]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
@@ -43,7 +51,10 @@ export default async function AICoachPage() {
 
       <AIUsageIndicator />
 
-      <AICoachChat />
+      <AICoachChat
+        initialConversationId={initialChat?.conversationId}
+        initialMessages={initialChat?.messages.map((m) => ({ id: m.id, role: m.role, content: m.content }))}
+      />
 
       <p className="text-center text-xs text-muted-foreground">{dict.aiCoach.disclaimer}</p>
     </div>

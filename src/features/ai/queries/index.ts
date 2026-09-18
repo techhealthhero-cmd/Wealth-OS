@@ -46,3 +46,20 @@ export async function getMessages(conversationId: string, userId: string): Promi
   if (error) throw new Error("Failed to load messages");
   return data ?? [];
 }
+
+/**
+ * Restores the AI Money Coach chat on page load instead of always starting
+ * empty — messages are already persisted to `ai_conversations`/`ai_messages`
+ * on every turn (see `/api/ai/chat`), but nothing previously read them back,
+ * so leaving the page and returning silently lost the visible chat even
+ * though the data was never actually gone.
+ */
+export async function getLatestConversationWithMessages(
+  userId: string
+): Promise<{ conversationId: string; messages: AIMessageRow[] } | null> {
+  const conversations = await getConversations();
+  const latest = conversations[0];
+  if (!latest) return null;
+  const messages = await getMessages(latest.id, userId);
+  return { conversationId: latest.id, messages };
+}
