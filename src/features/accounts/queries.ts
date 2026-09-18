@@ -16,6 +16,7 @@ export const getAccounts = cache(async (options?: { includeArchived?: boolean })
   let query = supabase
     .from("accounts")
     .select("*")
+    .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
 
   if (!options?.includeArchived) {

@@ -3,6 +3,7 @@ import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { AccountCard } from "./account-card";
+import { SortableAccountList } from "./sortable-account-list";
 import { AccountForm } from "./account-form";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -45,13 +46,10 @@ export async function AccountList() {
       <div className="flex justify-end">
         <AccountForm />
       </div>
-      {activeAccounts.length > 0 ? (
-        <div className="grid gap-3">
-          {activeAccounts.map((account) => (
-            <AccountCard key={account.id} account={account} />
-          ))}
-        </div>
+      {activeAccounts.length > 1 ? (
+        <p className="text-xs text-muted-foreground">{dict.accounts.reorderHint}</p>
       ) : null}
+      {activeAccounts.length > 0 ? <SortableAccountList accounts={activeAccounts} /> : null}
       {archivedAccounts.length > 0 ? (
         <div className="space-y-3 pt-3">
           <h2 className="text-sm font-medium text-muted-foreground">{dict.accounts.archivedAccounts}</h2>

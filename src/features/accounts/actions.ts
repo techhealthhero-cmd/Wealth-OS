@@ -51,12 +51,21 @@ export async function createAccount(
     return { error: dict.common.pleaseLogin };
   }
 
+  // New accounts append to the end of the manually-orderable list rather
+  // than defaulting to sort_order 0, which would otherwise jump every new
+  // account to the front ahead of the user's existing custom order.
+  const { count } = await supabase
+    .from("accounts")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
   // user_id is always derived from the server-side session, never trusted
   // from the client — see validation schemas' ownership note in README.
   const { error } = await supabase.from("accounts").insert({
     ...parsed.data,
     institution: parsed.data.institution || null,
     user_id: user.id,
+    sort_order: count ?? 0,
   });
 
   if (error) {
@@ -128,6 +137,43 @@ export async function archiveAccount(accountId: string): Promise<ActionResult> {
 
   if (error) {
     return { error: friendlyDbError(error, "archiveAccount", dict.accounts.archiveFailed) };
+  }
+
+  revalidatePath("/money/accounts");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+/**
+ * Persists a new manual drag-to-reorder position for the active accounts
+ * list. `orderedAccountIds` is the full new order (index = new sort_order)
+ * — untrusted client input, so every update is scoped to `.eq("user_id",
+ * user.id)` the same way every other write in this file is: an id that
+ * isn't actually this user's own account simply matches zero rows rather
+ * than being trusted. Writes one row at a time rather than a single batch
+ * RPC — fine for an accounts list, which is always a small, human-sized
+ * count, and this is a rare user-initiated action, not a hot path.
+ */
+export async function reorderAccounts(orderedAccountIds: string[]): Promise<ActionResult> {
+  const dict = await getRequestDictionary();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: dict.common.pleaseLogin };
+  }
+
+  const results = await Promise.all(
+    orderedAccountIds.map((accountId, index) =>
+      supabase.from("accounts").update({ sort_order: index }).eq("id", accountId).eq("user_id", user.id)
+    )
+  );
+
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) {
+    return { error: friendlyDbError(firstError, "reorderAccounts", dict.accounts.updateFailed) };
   }
 
   revalidatePath("/money/accounts");

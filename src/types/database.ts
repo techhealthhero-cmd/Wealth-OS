@@ -220,6 +220,7 @@ export interface Database {
           current_balance: string;
           include_in_net_worth: boolean;
           is_archived: boolean;
+          sort_order: number;
           created_at: string;
           updated_at: string;
         };
