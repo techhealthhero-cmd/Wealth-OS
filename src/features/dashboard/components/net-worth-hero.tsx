@@ -13,7 +13,7 @@ import { getLocale } from "@/i18n/server";
 import type { Locale } from "@/i18n/config";
 import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
-import { AnimatedNumber } from "@/components/shared/animated-number";
+import { PrivateAmount } from "@/components/shared/private-amount";
 import { NetWorthMiniChart } from "./net-worth-mini-chart";
 import type { NetWorthBreakdown } from "@/features/net-worth/queries";
 
@@ -92,10 +92,11 @@ export async function NetWorthHero() {
             <p className={isNegative ? "text-sm text-muted-foreground" : "text-sm text-primary-foreground/70"}>
               {dict.netWorth.currentNetWorth}
             </p>
-            <AnimatedNumber
+            <PrivateAmount
               value={breakdown.netWorthCents}
               formatAs="money"
-              className={`block text-4xl font-bold ${isNegative ? "text-destructive" : ""}`}
+              className={`text-4xl font-bold ${isNegative ? "text-destructive" : ""}`}
+              toggleTone={isNegative ? "default" : "on-dark"}
             />
             {hasHistory ? (
               <p

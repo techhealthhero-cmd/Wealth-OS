@@ -13,7 +13,10 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden"
+      // pb-[env(safe-area-inset-bottom)] keeps the labels/icons clear of the
+      // home-indicator gesture area on notched iPhones instead of sitting
+      // flush against the true viewport edge.
+      className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden"
       aria-label="Primary"
     >
       {NAV_ITEMS.map((item) => {

@@ -47,6 +47,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#f7f8f6",
+  // Required for `env(safe-area-inset-*)` to resolve to a real value on
+  // notched iPhones (BottomNav) — without "cover", Safari never lets the
+  // page extend under the safe area, so those env() vars stay 0.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
