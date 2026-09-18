@@ -22,6 +22,52 @@ function getPreviousMonthRange(): { from: string; to: string } {
   return { from: toLocalDateString(from), to: toLocalDateString(to) };
 }
 
+export interface MonthlyIncomeExpensePoint {
+  /** "YYYY-MM" — a stable sort/dedupe key, formatted for display by the caller (locale-aware). */
+  monthKey: string;
+  monthDate: Date;
+  incomeCents: number;
+  expensesCents: number;
+}
+
+const INCOME_EXPENSE_TREND_MONTHS = 6;
+
+/**
+ * Last 6 calendar months of income/expense, one point per month — matches
+ * the existing "last 6 months" convention already used for the net worth
+ * trend chart (net-worth-hero.tsx). One `transactions` query for the whole
+ * window, then bucketed by month in memory (the same "fetch once, filter
+ * per-bucket" pattern used for money-year's quarterly summaries) rather
+ * than a separate query per month — always includes exactly 6 points, even
+ * for a month with zero transactions, so the trend line never silently
+ * skips a quiet month.
+ */
+export function getIncomeExpenseTrend() {
+  return withPerfLog("getIncomeExpenseTrend", async (): Promise<MonthlyIncomeExpensePoint[]> => {
+    const now = new Date();
+    const from = toLocalDateString(new Date(now.getFullYear(), now.getMonth() - (INCOME_EXPENSE_TREND_MONTHS - 1), 1));
+    const to = toLocalDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    const transactions = await getTransactions({ from, to });
+
+    const points: MonthlyIncomeExpensePoint[] = [];
+    for (let i = INCOME_EXPENSE_TREND_MONTHS - 1; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthFrom = toLocalDateString(monthDate);
+      const monthTo = toLocalDateString(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0));
+      const monthTransactions = transactions.filter(
+        (t) => t.transaction_date >= monthFrom && t.transaction_date <= monthTo
+      );
+      points.push({
+        monthKey: monthFrom.slice(0, 7),
+        monthDate,
+        incomeCents: calculateIncome(monthTransactions),
+        expensesCents: calculateExpenses(monthTransactions),
+      });
+    }
+    return points;
+  });
+}
+
 export function getDashboardData() {
   return withPerfLog("getDashboardData", async () => {
   const { from, to } = getCurrentMonthRange();

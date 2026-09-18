@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
-import { getDashboardData } from "@/features/dashboard/queries";
+import { getDashboardData, getIncomeExpenseTrend } from "@/features/dashboard/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -30,11 +30,12 @@ import { ArrowRight } from "lucide-react";
 export const metadata: Metadata = { title: "Dashboard — Wealth OS" };
 
 export default async function DashboardPage() {
-  const [data, profile, priority, topInsight] = await Promise.all([
+  const [data, profile, priority, topInsight, incomeExpenseTrend] = await Promise.all([
     getDashboardData(),
     getProfile(),
     FEATURES.ai ? getFinancialPriority() : Promise.resolve(null),
     FEATURES.ai ? getTopInsight() : Promise.resolve(null),
+    getIncomeExpenseTrend(),
   ]);
   const currencyCode = profile?.currency_code ?? "THB";
   const locale = await getLocale(profile?.preferred_language);
@@ -169,8 +170,13 @@ export default async function DashboardPage() {
 
       <div className="motion-reveal motion-reveal-7 grid gap-4 lg:grid-cols-2">
         <IncomeVsExpenseChart
-          incomeCents={data.incomeCents}
-          expensesCents={data.expensesCents}
+          data={incomeExpenseTrend.map((point) => ({
+            month: new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "short" }).format(
+              point.monthDate
+            ),
+            incomeCents: point.incomeCents,
+            expensesCents: point.expensesCents,
+          }))}
           currencyCode={currencyCode}
         />
         <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} />

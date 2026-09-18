@@ -1,10 +1,13 @@
 "use client";
 
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   LabelList,
   Pie,
   PieChart,
@@ -44,42 +47,89 @@ const INCOME_EXPENSE_COLORS = {
   expense: "#8EA2B8",
 } as const;
 
-function IncomeExpenseTooltip({
+// 2026-09 soft area-chart restyle (user-supplied hex values) — scoped to
+// IncomeVsExpenseChart's own trend line/fill only, deliberately NOT a
+// change to the shared INCOME_EXPENSE_COLORS above (still used by
+// MonthlyDonutCard/GoalProgressRing elsewhere on the dashboard).
+const TREND_COLORS = {
+  incomeLine: "#73C9A6",
+  incomeFill: "rgba(115, 201, 166, 0.18)",
+  expenseLine: "#D96B78",
+  expenseFill: "rgba(217, 107, 120, 0.14)",
+} as const;
+
+function IncomeExpenseAreaTooltip({
   active,
   payload,
+  label,
   currencyCode,
+  incomeLabel,
+  expenseLabel,
 }: {
   active?: boolean;
-  payload?: { value: number; payload: { label: string; color: string } }[];
+  payload?: { value: number; dataKey: string }[];
+  label?: string;
   currencyCode: string;
+  incomeLabel: string;
+  expenseLabel: string;
 }) {
   if (!active || !payload?.length) return null;
-  const { value, payload: row } = payload[0];
+  const incomeCents = payload.find((p) => p.dataKey === "incomeCents")?.value ?? 0;
+  const expensesCents = payload.find((p) => p.dataKey === "expensesCents")?.value ?? 0;
+
   return (
-    <div className="rounded-xl border bg-popover px-3.5 py-2.5 text-sm text-popover-foreground shadow-lg">
-      <div className="flex items-center gap-1.5">
-        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: row.color }} aria-hidden="true" />
-        <p className="font-medium">{row.label}</p>
+    <div className="min-w-40 rounded-xl border bg-popover px-3.5 py-2.5 text-sm text-popover-foreground shadow-lg">
+      <p className="pb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5">
+            <span
+              className="size-2 shrink-0 rounded-full"
+              style={{ backgroundColor: TREND_COLORS.incomeLine }}
+              aria-hidden="true"
+            />
+            {incomeLabel}
+          </span>
+          <span className="font-semibold">{formatMoney(incomeCents, currencyCode)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5">
+            <span
+              className="size-2 shrink-0 rounded-full"
+              style={{ backgroundColor: TREND_COLORS.expenseLine }}
+              aria-hidden="true"
+            />
+            {expenseLabel}
+          </span>
+          <span className="font-semibold">{formatMoney(expensesCents, currencyCode)}</span>
+        </div>
       </div>
-      <p className="pt-0.5 text-base font-semibold">{formatMoney(value, currencyCode)}</p>
     </div>
   );
 }
 
-interface IncomeVsExpenseChartProps {
+export interface IncomeVsExpenseTrendPoint {
+  /** Already formatted for display (locale-aware short month name) — see dashboard/page.tsx. */
+  month: string;
   incomeCents: number;
   expensesCents: number;
+}
+
+interface IncomeVsExpenseChartProps {
+  data: IncomeVsExpenseTrendPoint[];
   currencyCode: string;
 }
 
-export function IncomeVsExpenseChart({
-  incomeCents,
-  expensesCents,
-  currencyCode,
-}: IncomeVsExpenseChartProps) {
+/**
+ * Soft area-line trend (2026-09 restyle, user-supplied color spec) —
+ * replaces the previous single-month 2-bar comparison with a real 6-month
+ * history (same "last 6 months" window as the net worth trend chart), so
+ * this reads as an actual trend rather than a single snapshot.
+ */
+export function IncomeVsExpenseChart({ data, currencyCode }: IncomeVsExpenseChartProps) {
   const { t, locale } = useTranslation();
   const reducedMotion = usePrefersReducedMotion();
-  const hasData = incomeCents > 0 || expensesCents > 0;
+  const hasData = data.some((d) => d.incomeCents > 0 || d.expensesCents > 0);
 
   // Full 6+ digit numbers (e.g. "600000") don't fit the axis's reserved
   // width and get clipped at the SVG's left edge — compact notation
@@ -90,22 +140,8 @@ export function IncomeVsExpenseChart({
     compactDisplay: "short",
   });
 
-  const data = [
-    {
-      label: t("transactions.types.income"),
-      value: centsToNumber(incomeCents),
-      raw: incomeCents,
-      color: INCOME_EXPENSE_COLORS.income,
-      gradientId: "incomeBarGradient",
-    },
-    {
-      label: t("transactions.types.expense"),
-      value: centsToNumber(expensesCents),
-      raw: expensesCents,
-      color: INCOME_EXPENSE_COLORS.expense,
-      gradientId: "expenseBarGradient",
-    },
-  ];
+  const incomeLabel = t("transactions.types.income");
+  const expenseLabel = t("transactions.types.expense");
 
   return (
     <Card>
@@ -117,34 +153,34 @@ export function IncomeVsExpenseChart({
           <ChartEmptyState message={t("dashboard.noIncomeExpenseData")} />
         ) : (
           <>
-            {/* Day 8 accessibility audit: a bar chart conveys these two
-                numbers visually only — a screen-reader-only text summary
-                gives an equivalent alternative without changing the visual
-                design. */}
+            {/* A line/area chart conveys this trend visually only — a
+                screen-reader-only text summary gives an equivalent
+                alternative without changing the visual design. */}
             <p className="sr-only">
-              {data.map((d) => `${d.label}: ${formatMoney(d.raw, currencyCode)}`).join(". ")}
+              {data
+                .map(
+                  (d) =>
+                    `${d.month}: ${incomeLabel} ${formatMoney(d.incomeCents, currencyCode)}, ${expenseLabel} ${formatMoney(d.expensesCents, currencyCode)}`
+                )
+                .join(". ")}
             </p>
-            <ResponsiveContainer width="100%" height={224}>
-              <BarChart
-                data={data}
-                margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
-                barCategoryGap="35%"
-              >
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                 <defs>
-                  {/* Subtle top-to-bottom gradient in each bar's own tone —
-                      soft/premium, not a neon multi-color gradient. */}
-                  <linearGradient id="incomeBarGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={INCOME_EXPENSE_COLORS.income} stopOpacity={0.85} />
-                    <stop offset="100%" stopColor={INCOME_EXPENSE_COLORS.income} stopOpacity={1} />
+                  {/* Soft top-to-bottom fade to fully transparent — a
+                      subtle tint under the line, never a solid block. */}
+                  <linearGradient id="incomeAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={TREND_COLORS.incomeFill} stopOpacity={1} />
+                    <stop offset="100%" stopColor={TREND_COLORS.incomeFill} stopOpacity={0} />
                   </linearGradient>
-                  <linearGradient id="expenseBarGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={INCOME_EXPENSE_COLORS.expense} stopOpacity={0.85} />
-                    <stop offset="100%" stopColor={INCOME_EXPENSE_COLORS.expense} stopOpacity={1} />
+                  <linearGradient id="expenseAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={TREND_COLORS.expenseFill} stopOpacity={1} />
+                    <stop offset="100%" stopColor={TREND_COLORS.expenseFill} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="4 4" strokeOpacity={0.6} />
+                <CartesianGrid horizontal vertical={false} stroke="var(--border)" strokeDasharray="3 3" strokeOpacity={0.6} />
                 <XAxis
-                  dataKey="label"
+                  dataKey="month"
                   tickLine={false}
                   axisLine={{ stroke: "var(--border)" }}
                   tick={{ fill: "var(--muted-foreground)", fontSize: 12, fontWeight: 500 }}
@@ -157,22 +193,46 @@ export function IncomeVsExpenseChart({
                   width={44}
                 />
                 <Tooltip
-                  content={<IncomeExpenseTooltip currencyCode={currencyCode} />}
-                  cursor={{ fill: "var(--muted)", opacity: 0.5 }}
+                  content={
+                    <IncomeExpenseAreaTooltip currencyCode={currencyCode} incomeLabel={incomeLabel} expenseLabel={expenseLabel} />
+                  }
+                  cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
                 />
-                <Bar
-                  dataKey="raw"
-                  radius={[10, 10, 0, 0]}
-                  maxBarSize={56}
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  height={32}
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(value: string) => <span className="text-xs text-muted-foreground">{value}</span>}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="incomeCents"
+                  name={incomeLabel}
+                  stroke={TREND_COLORS.incomeLine}
+                  strokeWidth={2.5}
+                  fill="url(#incomeAreaGradient)"
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0 }}
                   isAnimationActive={!reducedMotion}
                   animationDuration={CHART_ANIMATION_DURATION_MS}
                   animationEasing="ease-out"
-                >
-                  {data.map((entry) => (
-                    <Cell key={entry.label} fill={`url(#${entry.gradientId})`} />
-                  ))}
-                </Bar>
-              </BarChart>
+                />
+                <Area
+                  type="monotone"
+                  dataKey="expensesCents"
+                  name={expenseLabel}
+                  stroke={TREND_COLORS.expenseLine}
+                  strokeWidth={2.5}
+                  fill="url(#expenseAreaGradient)"
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0 }}
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={CHART_ANIMATION_DURATION_MS}
+                  animationEasing="ease-out"
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </>
         )}
