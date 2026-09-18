@@ -128,16 +128,7 @@
     "vsLastMonth": "จากเดือนก่อน",
     "noDataThisMonthHint": "บันทึกรายรับ-รายจ่ายเพื่อดูภาพรวมการเงินเดือนนี้",
     "thisMonth": "เดือนนี้",
-    "remaining": "คงเหลือ",
-    "incomeExpenseOverview": "รายรับ-รายจ่าย",
-    "selectPeriod": "เลือกช่วงเวลา",
-    "period": {
-      "week": "สัปดาห์",
-      "month": "เดือน",
-      "year": "ปี"
-    },
-    "vsPreviousPeriod": "จากช่วงก่อนหน้า",
-    "noIncomeExpenseDataPeriod": "ยังไม่มีรายรับหรือรายจ่ายในช่วงนี้"
+    "remaining": "คงเหลือ"
   },
   "accounts": {
     "title": "บัญชี",
