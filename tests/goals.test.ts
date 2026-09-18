@@ -78,6 +78,14 @@ describe("calculateProjectedCompletionDate", () => {
   it("edge case: zero contribution and not yet achieved returns null", () => {
     expect(calculateProjectedCompletionDate(0, 500000, 0, today)).toBeNull();
   });
+
+  it("edge case: month-end overflow does not skip into the following month", () => {
+    // Jan 31 + 1 month must clamp to Feb 28/29, never overflow to March.
+    const jan31 = new Date("2026-01-31T00:00:00");
+    const projected = calculateProjectedCompletionDate(0, 100000, 100000, jan31);
+    expect(projected).not.toBeNull();
+    expect(projected!.getMonth()).toBe(1); // February (0-indexed)
+  });
 });
 
 describe("calculateGoalScheduleStatus", () => {

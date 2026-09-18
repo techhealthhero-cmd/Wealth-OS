@@ -1527,6 +1527,7 @@
         ]
       }
     ],
+    "glossaryTitle": "Terms to know",
     "glossary": [
       { "emoji": "💎", "term": "Net Worth", "termEn": "", "definition": "Everything you own, minus everything you owe." },
       { "emoji": "💯", "term": "Wealth Score", "termEn": "", "definition": "A 0-100 financial health score from 7 factors, calculated the same way every time — never an AI guess." },

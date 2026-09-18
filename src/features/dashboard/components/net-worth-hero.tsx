@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { captureError } from "@/lib/observability";
 import {
   ensureTodaysNetWorthSnapshot,
   getNetWorthBreakdown,
@@ -63,7 +64,7 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
 
     return { dict, locale, breakdown, change, hasHistory: previousSnapshot !== null, chartData };
   } catch (error) {
-    console.error("[NetWorthHero] Failed to load Day 2 wealth engine data — has migration 0003 been applied?", error);
+    captureError(error, { route: "dashboard.NetWorthHero", operation: "load_net_worth_hero_data" });
     return null;
   }
 }

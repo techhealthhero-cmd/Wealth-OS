@@ -145,7 +145,7 @@ export function MoneyYearView({
           ) : (
             majorExpenses.map((expense) => (
               <div key={expense.id} className="flex items-center justify-between gap-2 text-sm">
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <Checkbox
                     checked={expense.is_paid}
                     disabled={isPending}
@@ -155,16 +155,18 @@ export function MoneyYearView({
                       })
                     }
                   />
-                  <span className={expense.is_paid ? "text-muted-foreground line-through" : ""}>{expense.name}</span>
+                  <span className={`min-w-0 truncate ${expense.is_paid ? "text-muted-foreground line-through" : ""}`}>
+                    {expense.name}
+                  </span>
                   {expense.planned_month ? (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "short", year: "numeric" }).format(
                         new Date(`${expense.planned_month}T00:00:00`)
                       )}
                     </span>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <span className="font-medium">{formatMoneyFromDecimal(expense.amount)}</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger

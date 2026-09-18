@@ -29,7 +29,8 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
-function addMonthsClamped(date: Date, months: number): Date {
+/** Adds `months` to `date`, clamping the day-of-month so e.g. Jan 31 + 1 month lands on Feb 28, not overflows into March. */
+export function addMonthsClamped(date: Date, months: number): Date {
   const targetMonthIndex = date.getMonth() + months;
   const daysInTargetMonth = new Date(date.getFullYear(), targetMonthIndex + 1, 0).getDate();
   const day = Math.min(date.getDate(), daysInTargetMonth);

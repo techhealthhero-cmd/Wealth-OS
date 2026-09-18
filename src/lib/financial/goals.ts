@@ -4,6 +4,8 @@
  * within a single calculation.
  */
 
+import { addMonthsClamped } from "./recurring";
+
 export type GoalScheduleStatus = "achieved" | "ahead" | "on_track" | "behind" | "unknown";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -62,9 +64,7 @@ export function calculateProjectedCompletionDate(
   if (monthlyContributionCents <= 0) return null;
 
   const monthsNeeded = Math.ceil(remainingCents / monthlyContributionCents);
-  const projected = new Date(today);
-  projected.setMonth(projected.getMonth() + monthsNeeded);
-  return projected;
+  return addMonthsClamped(today, monthsNeeded);
 }
 
 /**

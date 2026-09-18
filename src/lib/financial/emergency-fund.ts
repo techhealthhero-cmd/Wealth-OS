@@ -5,6 +5,8 @@
  * than recomputed here, so this module stays a pure function of its inputs.
  */
 
+import { addMonthsClamped } from "./recurring";
+
 export const EMERGENCY_FUND_MONTH_PRESETS = [3, 6, 9, 12] as const;
 
 /** Target amount from either a months-of-expenses multiple or a flat custom amount. Exactly one input should be meaningful; months takes precedence when both are given. */
@@ -45,7 +47,5 @@ export function calculateEmergencyFundCompletion(
   if (monthlyContributionCents <= 0) return null;
 
   const monthsNeeded = Math.ceil(remaining / monthlyContributionCents);
-  const projected = new Date(today);
-  projected.setMonth(projected.getMonth() + monthsNeeded);
-  return projected;
+  return addMonthsClamped(today, monthsNeeded);
 }

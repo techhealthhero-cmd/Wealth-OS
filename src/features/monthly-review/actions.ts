@@ -8,7 +8,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { friendlyDbError } from "@/lib/db-error";
 import { buildMonthlyReviewSnapshot } from "@/features/monthly-review/queries";
-import { awardXpOnce } from "@/features/engagement/actions";
+import { awardXpOnce } from "@/features/engagement/xp";
 import { trackEvent } from "@/lib/analytics";
 
 export interface ActionResult {

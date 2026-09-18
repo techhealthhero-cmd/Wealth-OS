@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { safeRedirectPath } from "@/lib/safe-redirect";
+import { captureError, captureMessage } from "@/lib/observability";
 
 /**
  * Handles both email-confirmation links and OAuth (e.g. Google) redirects.
@@ -25,10 +26,10 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);
     }
-    console.error("[auth/callback] exchangeCodeForSession failed:", {
-      message: error.message,
-      status: error.status,
-      code: error.code,
+    captureError(new Error(error.message), {
+      route: "auth/callback",
+      operation: "exchangeCodeForSession",
+      extra: { status: error.status ?? "", code: error.code ?? "" },
     });
     const detail =
       process.env.NODE_ENV !== "production"
@@ -37,9 +38,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(detail)}`);
   }
 
-  console.error("[auth/callback] No `code` param on callback URL.", {
-    url: request.url,
-    authError,
+  captureMessage("No `code` param on callback URL", {
+    route: "auth/callback",
+    operation: "missing_code",
+    extra: { authError: authError ?? "" },
   });
   const detail =
     process.env.NODE_ENV !== "production"

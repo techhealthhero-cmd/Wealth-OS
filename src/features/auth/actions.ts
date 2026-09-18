@@ -12,6 +12,7 @@ import {
 } from "@/lib/validation/auth";
 import { trackEvent } from "@/lib/analytics";
 import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
+import { captureError } from "@/lib/observability";
 
 const RATE_LIMIT_MESSAGE = "Too many attempts. Please wait a few minutes and try again.";
 
@@ -30,10 +31,10 @@ export interface ActionResult {
  * `NODE_ENV` so it can never leak in a deployed build.
  */
 function safeAuthError(error: { message: string; status?: number; code?: string }): string {
-  console.error("[auth] Supabase error:", {
-    message: error.message,
-    status: error.status,
-    code: error.code,
+  captureError(new Error(error.message), {
+    route: "auth",
+    operation: "supabase_auth",
+    extra: { status: error.status ?? "", code: error.code ?? "" },
   });
 
   const known: Record<string, string> = {

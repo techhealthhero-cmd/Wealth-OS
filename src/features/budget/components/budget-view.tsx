@@ -113,21 +113,21 @@ export function BudgetView({ summary, categories, month }: { summary: BudgetSumm
               const budgetCategory = budgetCategories.find((bc) => bc.category_id === cb.categoryId);
               return (
                 <div key={cb.categoryId} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-1.5 font-medium">
-                      {categoryName(cb.categoryId)}
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex min-w-0 items-center gap-1.5 font-medium">
+                      <span className="min-w-0 truncate">{categoryName(cb.categoryId)}</span>
                       {cb.isFixed ? (
-                        <Badge variant="secondary" className="text-[10px]">
+                        <Badge variant="secondary" className="shrink-0 text-[10px]">
                           {t("budget.fixed")}
                         </Badge>
                       ) : null}
                       {!cb.isEssential ? (
-                        <Badge variant="secondary" className="text-[10px]">
+                        <Badge variant="secondary" className="shrink-0 text-[10px]">
                           {t("budget.discretionary")}
                         </Badge>
                       ) : null}
                     </span>
-                    <div className="flex items-center gap-1">
+                    <div className="flex shrink-0 items-center gap-1">
                       <span className="text-muted-foreground">
                         {formatMoney(cb.spentCents)} / {formatMoney(cb.budgetCents)}
                       </span>

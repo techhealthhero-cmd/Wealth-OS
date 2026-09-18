@@ -65,4 +65,11 @@ describe("calculateEmergencyFundCompletion", () => {
   it("edge case: zero contribution and target not met returns null", () => {
     expect(calculateEmergencyFundCompletion(0, 6000000, 0, today)).toBeNull();
   });
+
+  it("edge case: month-end overflow does not skip into the following month", () => {
+    const jan31 = new Date("2026-01-31T00:00:00");
+    const result = calculateEmergencyFundCompletion(0, 1000000, 1000000, jan31);
+    expect(result).not.toBeNull();
+    expect(result!.getMonth()).toBe(1); // February (0-indexed), not March
+  });
 });

@@ -22,9 +22,13 @@ export async function createConversation(userId: string, title: string): Promise
   return data.id;
 }
 
-export async function touchConversation(conversationId: string): Promise<void> {
+export async function touchConversation(conversationId: string, userId: string): Promise<void> {
   const supabase = await createClient();
-  await supabase.from("ai_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
+  await supabase
+    .from("ai_conversations")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", conversationId)
+    .eq("user_id", userId);
 }
 
 export async function appendMessage(

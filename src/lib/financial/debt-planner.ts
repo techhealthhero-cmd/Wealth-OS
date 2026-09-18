@@ -85,12 +85,20 @@ function simulatePayoff(
     })
   );
   const minPayments = new Map(order.map((id) => [id, debts.find((d) => d.id === id)!.minimumPaymentCents]));
-  const payoffMonth = new Map<string, number | null>(order.map((id) => [id, null]));
+  // A debt that already has a zero (or negative) balance at the start — e.g.
+  // a paid-off liability still on file — counts as paid off in month 0. The
+  // loop below never revisits month 0, so this can't be derived from inside
+  // it the way every other payoff month is.
+  const payoffMonth = new Map<string, number | null>(order.map((id) => [id, balances.get(id)! <= 0 ? 0 : null]));
   const interestPaid = new Map<string, number>(order.map((id) => [id, 0]));
 
   let month = 0;
   let freedUpPoolCents = 0;
-  let totalMonths: number | null = null;
+  // Same reasoning as payoffMonth above: if every debt starts at zero, the
+  // while loop's guard is false immediately and never runs, so totalMonths
+  // would otherwise stay null — which callers read as "never pays off",
+  // the opposite of the truth.
+  let totalMonths: number | null = order.every((id) => balances.get(id)! <= 0) ? 0 : null;
 
   while (order.some((id) => balances.get(id)! > 0) && month < maxMonths) {
     month++;

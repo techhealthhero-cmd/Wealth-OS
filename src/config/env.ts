@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { captureMessage } from "@/lib/observability";
+
 export type AppEnv = "production" | "staging" | "development";
 
 /**
@@ -262,9 +264,9 @@ export function assertProductionConsistency(env: z.infer<typeof serverEnvSchema>
   // charge can happen on test keys) — worth a loud warning, not a hard
   // stop that would take production down over a key-naming mixup.
   if (appEnv === "production" && isTestStripeKey(env.STRIPE_SECRET_KEY)) {
-    console.warn(
-      "[env] WARNING: NEXT_PUBLIC_APP_ENV is \"production\" but STRIPE_SECRET_KEY looks like a TEST-mode key (sk_test_...). " +
-        "Real users will not be able to complete real payments until this is corrected."
+    captureMessage(
+      "NEXT_PUBLIC_APP_ENV is \"production\" but STRIPE_SECRET_KEY looks like a TEST-mode key (sk_test_...) — real users will not be able to complete real payments until this is corrected.",
+      { route: "config/env", operation: "assertProductionConsistency" }
     );
   }
 }

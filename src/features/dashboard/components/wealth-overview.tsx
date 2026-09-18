@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { captureError } from "@/lib/observability";
 import { getBudgetSummary } from "@/features/budget/queries";
 import { getEmergencyFund, getEssentialMonthlyExpenses } from "@/features/emergency-fund/queries";
 import { ensureTodaysWealthScore } from "@/features/wealth-score/queries";
@@ -68,7 +69,7 @@ async function loadWealthOverviewData(): Promise<WealthOverviewData | null> {
       lifeStageAndPriorities,
     };
   } catch (error) {
-    console.error("[WealthOverview] Failed to load Day 2 wealth engine data — has migration 0003 been applied?", error);
+    captureError(error, { route: "dashboard.WealthOverview", operation: "load_wealth_overview_data" });
     return null;
   }
 }

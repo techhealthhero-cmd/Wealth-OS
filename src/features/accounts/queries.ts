@@ -1,9 +1,17 @@
 import "server-only";
+import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Account } from "@/types/database";
 
-export async function getAccounts(options?: { includeArchived?: boolean }): Promise<Account[]> {
+/**
+ * Wrapped in React's `cache()` (audit finding, mirrors `getProfile()`'s
+ * existing rationale): a single dashboard render independently calls this
+ * with no arguments from `getDashboardData()`, `getNetWorthBreakdown()`, and
+ * `getSafeToSpend()` — `cache()` dedupes calls with identical arguments
+ * within one request's render pass, so those collapse into one query.
+ */
+export const getAccounts = cache(async (options?: { includeArchived?: boolean }): Promise<Account[]> => {
   const supabase = await createClient();
   let query = supabase
     .from("accounts")
@@ -17,7 +25,7 @@ export async function getAccounts(options?: { includeArchived?: boolean }): Prom
   const { data, error } = await query;
   if (error) throw new Error("Failed to load accounts");
   return data ?? [];
-}
+});
 
 export async function getAccount(id: string): Promise<Account | null> {
   const supabase = await createClient();

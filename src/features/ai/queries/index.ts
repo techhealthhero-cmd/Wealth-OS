@@ -15,20 +15,33 @@ export async function getConversations(): Promise<AIConversation[]> {
   return data ?? [];
 }
 
-export async function getConversation(id: string): Promise<AIConversation | null> {
+/**
+ * `userId` is required and filtered on explicitly — not just left to RLS —
+ * specifically because `id` here can originate from a client request body
+ * (see `/api/ai/chat`'s `conversationId`), so this doubles as the ownership
+ * check that decides whether an attacker-supplied id gets treated as "not
+ * found" (same as a real 404) rather than silently trusted.
+ */
+export async function getConversation(id: string, userId: string): Promise<AIConversation | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("ai_conversations").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from("ai_conversations")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (error) throw new Error("Failed to load conversation");
   return data;
 }
 
-/** Oldest-first, for chronological chat rendering. */
-export async function getMessages(conversationId: string): Promise<AIMessageRow[]> {
+/** Oldest-first, for chronological chat rendering. `userId` filtered explicitly for the same reason as `getConversation` above. */
+export async function getMessages(conversationId: string, userId: string): Promise<AIMessageRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("ai_messages")
     .select("*")
     .eq("conversation_id", conversationId)
+    .eq("user_id", userId)
     .order("created_at", { ascending: true });
   if (error) throw new Error("Failed to load messages");
   return data ?? [];

@@ -127,7 +127,7 @@ export async function computeWealthScore(): Promise<WealthScoreComputation> {
       requiredMonthlyContributionCents: calculateRequiredMonthlyContribution(
         parseMoneyToCents(g.current_amount),
         parseMoneyToCents(g.target_amount),
-        g.target_date ? new Date(g.target_date) : null
+        g.target_date ? new Date(`${g.target_date}T00:00:00`) : null
       ),
     })),
   });

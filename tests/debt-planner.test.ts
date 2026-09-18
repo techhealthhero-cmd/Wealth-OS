@@ -83,6 +83,13 @@ describe("calculateDebtPayoffPlan", () => {
     expect(result.perLiability[0].payoffMonth).toBeNull();
   });
 
+  it("edge case: a liability with a zero balance already on file counts as paid off, not 'never pays off'", () => {
+    const alreadyPaid: DebtInput = { id: "paid", name: "Old card", balanceCents: 0, annualInterestRatePercent: 20, minimumPaymentCents: 5000 };
+    const result = calculateDebtPayoffPlan([alreadyPaid], "avalanche", 0);
+    expect(result.totalMonths).toBe(0);
+    expect(result.perLiability[0].payoffMonth).toBe(0);
+  });
+
   it("monthlyDebtRequirementCents sums every minimum payment plus the extra payment", () => {
     const result = calculateDebtPayoffPlan([cardA, cardB, cardC], "avalanche", 50000);
     expect(result.monthlyDebtRequirementCents).toBe(20000 + 30000 + 10000 + 50000);

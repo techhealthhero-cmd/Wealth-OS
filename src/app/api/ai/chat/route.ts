@@ -8,7 +8,7 @@ import { buildFinancialContext } from "@/features/ai/lib/context-builder";
 import { buildSystemPrompt } from "@/features/ai/prompts/money-coach";
 import { getAIProvider } from "@/features/ai/lib/provider";
 import { containsDistressSignal, requestsGuaranteedReturns, validateUserMessage } from "@/features/ai/lib/guardrails";
-import { getMessages } from "@/features/ai/queries";
+import { getConversation, getMessages } from "@/features/ai/queries";
 import { appendMessage, createConversation, deriveConversationTitle, logUsage, touchConversation } from "@/features/ai/actions";
 import { getAIUsageStatus } from "@/lib/billing/ai-usage";
 import { captureError } from "@/lib/observability";
@@ -38,7 +38,18 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const message = typeof body?.message === "string" ? body.message : "";
-  const conversationId = typeof body?.conversationId === "string" ? body.conversationId : null;
+  const requestedConversationId = typeof body?.conversationId === "string" ? body.conversationId : null;
+  // A conversation id here comes straight from the client request body, so
+  // it's untrusted input — verify it's actually this user's own
+  // conversation before it's used for anything (history lookup, appending
+  // messages, or touching updated_at). Anything else (someone else's id, a
+  // stale/deleted id) is treated exactly like "no id" and a fresh
+  // conversation gets created below, rather than silently trusting it.
+  const conversationId = requestedConversationId
+    ? (await getConversation(requestedConversationId, user.id))
+      ? requestedConversationId
+      : null
+    : null;
 
   const validation = validateUserMessage(message);
   if (!validation.valid) {
@@ -54,7 +65,7 @@ export async function POST(request: Request) {
     const finalConversationId = conversationId ?? (await createConversation(user.id, deriveConversationTitle(trimmedMessage)));
     await appendMessage(user.id, finalConversationId, "user", trimmedMessage);
     await appendMessage(user.id, finalConversationId, "assistant", reply);
-    await touchConversation(finalConversationId);
+    await touchConversation(finalConversationId, user.id);
     return Response.json({ conversationId: finalConversationId, reply });
   }
 
@@ -91,7 +102,7 @@ export async function POST(request: Request) {
 
   const [context, history] = await Promise.all([
     buildFinancialContext(),
-    conversationId ? getMessages(conversationId) : Promise.resolve([]),
+    conversationId ? getMessages(conversationId, user.id) : Promise.resolve([]),
   ]);
 
   let system = buildSystemPrompt(context);
@@ -125,7 +136,7 @@ export async function POST(request: Request) {
         }
         const final = result.value;
         await appendMessage(user.id, finalConversationId, "assistant", final.content);
-        await touchConversation(finalConversationId);
+        await touchConversation(finalConversationId, user.id);
         await logUsage(user.id, final.model, final.usage.inputTokens, final.usage.outputTokens);
         // `usage` was resolved before this request's own reply was logged,
         // so 0 here means this is genuinely the first logged message of the

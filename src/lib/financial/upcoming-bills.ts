@@ -52,7 +52,11 @@ export function categorizeUpcomingBills(items: BillItem[], now: Date = new Date(
   const next30Days: BillItem[] = [];
 
   for (const item of deduped) {
-    const dueDate = new Date(item.dueDate);
+    // item.dueDate is a "YYYY-MM-DD" date-only string; parsed bare it's
+    // interpreted as UTC midnight, which shifts a day on any runtime whose
+    // local offset is behind UTC. Anchor to local midnight instead, matching
+    // the `${date}T00:00:00` convention used elsewhere in this codebase.
+    const dueDate = new Date(`${item.dueDate}T00:00:00`);
     if (isOverdue(dueDate, now)) {
       overdue.push(item);
     } else if (dueDate.getTime() - now.getTime() <= WEEK_MS) {

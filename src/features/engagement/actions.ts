@@ -4,40 +4,13 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { getWealthMissionInputs } from "@/features/engagement/queries";
+import { awardXpOnce } from "@/features/engagement/xp";
 import { generateWealthMissionCandidates, isMissionAutoCompletable } from "@/lib/financial/wealth-missions";
-import { getXpReward } from "@/lib/financial/xp";
 import type { MissionStatus } from "@/types/database";
 
 export interface ActionResult {
   error?: string;
   success?: boolean;
-}
-
-/**
- * Awards XP for an event exactly once per `related_id` — the actual
- * dedupe guarantee some callers (mission auto-completion) depend on to
- * never double-count the same real-world action.
- */
-export async function awardXpOnce(userId: string, eventType: Parameters<typeof getXpReward>[0], relatedId: string | null): Promise<void> {
-  const supabase = await createClient();
-
-  if (relatedId) {
-    const { data: existing } = await supabase
-      .from("xp_events")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("event_type", eventType)
-      .eq("related_id", relatedId)
-      .maybeSingle();
-    if (existing) return;
-  }
-
-  await supabase.from("xp_events").insert({
-    user_id: userId,
-    event_type: eventType,
-    xp_amount: getXpReward(eventType),
-    related_id: relatedId,
-  });
 }
 
 /**

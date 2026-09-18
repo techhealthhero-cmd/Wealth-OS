@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
+import { captureError } from "@/lib/observability";
 import type { Profile } from "@/types/database";
 
 /**
@@ -42,11 +43,11 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
     .maybeSingle();
 
   if (error) {
-    console.error("[profile] Failed to load profile:", {
-      message: error.message,
-      code: error.code,
-      hint: error.hint,
-      details: error.details,
+    captureError(new Error(error.message), {
+      route: "profile",
+      operation: "load_profile",
+      userId: user.id,
+      extra: { code: error.code ?? "", hint: error.hint ?? "" },
     });
     if (process.env.NODE_ENV !== "production") {
       throw new Error(
@@ -81,9 +82,11 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
     return existing;
   }
 
-  console.error("[profile] Failed to self-heal missing profile:", {
-    message: createError.message,
-    code: createError.code,
+  captureError(new Error(createError.message), {
+    route: "profile",
+    operation: "self_heal_missing_profile",
+    userId: user.id,
+    extra: { code: createError.code ?? "" },
   });
   if (process.env.NODE_ENV !== "production") {
     throw new Error(`[dev] Failed to create missing profile (${createError.code ?? "?"}): ${createError.message}`);

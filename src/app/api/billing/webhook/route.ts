@@ -139,6 +139,12 @@ export async function POST(request: Request) {
             provider: "stripe",
             provider_customer_id: customerId,
           });
+        } else {
+          captureMessage("checkout.session.completed missing user_id metadata or customer id — subscription not linked", {
+            route: "api/billing/webhook",
+            provider: "stripe",
+            operation: event.type,
+          });
         }
         break;
       }

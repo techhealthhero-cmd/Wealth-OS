@@ -134,7 +134,7 @@ export default async function HelpPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{locale === "th" ? "คำศัพท์ที่ควรรู้จัก" : "Terms to know"}</CardTitle>
+          <CardTitle className="text-base">{help.glossaryTitle}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {help.glossary.map((entry) => (

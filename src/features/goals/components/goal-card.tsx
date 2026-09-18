@@ -44,7 +44,10 @@ export function GoalCard({ goal, accounts }: { goal: FinancialGoal; accounts: Ac
 
   const currentCents = parseMoneyToCents(goal.current_amount);
   const targetCents = parseMoneyToCents(goal.target_amount);
-  const targetDate = goal.target_date ? new Date(goal.target_date) : null;
+  // target_date is a "YYYY-MM-DD" date-only string — anchor to local midnight
+  // rather than letting a bare parse read it as UTC midnight, which shifts a
+  // day on any runtime/browser timezone behind UTC.
+  const targetDate = goal.target_date ? new Date(`${goal.target_date}T00:00:00`) : null;
   const monthlyCents = parseMoneyToCents(goal.monthly_contribution);
 
   const progress = calculateGoalProgress(currentCents, targetCents);

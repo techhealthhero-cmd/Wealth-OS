@@ -1,3 +1,5 @@
+import { captureError } from "@/lib/observability";
+
 /**
  * Never surface raw Postgres/PostgREST error internals to the user in
  * production. Always logs the real error server-side; in development also
@@ -10,7 +12,7 @@ export function friendlyDbError(
   context: string,
   fallbackMessage: string
 ): string {
-  console.error(`[${context}]`, { message: error.message, code: error.code });
+  captureError(new Error(error.message), { route: context, operation: "db_query", extra: { code: error.code ?? "" } });
 
   if (process.env.NODE_ENV !== "production") {
     return `[dev] ${context} failed (${error.code ?? "?"}): ${error.message}`;

@@ -155,7 +155,7 @@ export async function getGoalProgress(): Promise<GoalProgressTool> {
     goals: goals.map((g) => {
       const currentCents = parseMoneyToCents(g.current_amount);
       const targetCents = parseMoneyToCents(g.target_amount);
-      const targetDate = g.target_date ? new Date(g.target_date) : null;
+      const targetDate = g.target_date ? new Date(`${g.target_date}T00:00:00`) : null;
       const monthlyCents = parseMoneyToCents(g.monthly_contribution);
       return {
         name: g.name,

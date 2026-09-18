@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { captureError } from "@/lib/observability";
 import { getGoals } from "@/features/goals/queries";
 import { calculateAmountRemaining, calculateGoalProgress, calculateGoalScheduleStatus, type GoalScheduleStatus } from "@/lib/financial/goals";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
@@ -47,7 +48,10 @@ async function loadGoalProgressData(): Promise<GoalProgressData | null> {
 
     const currentCents = parseMoneyToCents(topGoal.current_amount);
     const targetCents = parseMoneyToCents(topGoal.target_amount);
-    const targetDate = topGoal.target_date ? new Date(topGoal.target_date) : null;
+    // target_date is a "YYYY-MM-DD" date-only string — anchor to local
+    // midnight rather than letting a bare parse read it as UTC midnight,
+    // which shifts a day on any server runtime whose offset is behind UTC.
+    const targetDate = topGoal.target_date ? new Date(`${topGoal.target_date}T00:00:00`) : null;
     const monthlyCents = parseMoneyToCents(topGoal.monthly_contribution);
 
     return {
@@ -58,7 +62,7 @@ async function loadGoalProgressData(): Promise<GoalProgressData | null> {
       schedule: calculateGoalScheduleStatus(currentCents, targetCents, targetDate, monthlyCents),
     };
   } catch (error) {
-    console.error("[GoalProgressCard] Failed to load goals data", error);
+    captureError(error, { route: "dashboard.GoalProgressCard", operation: "load_goals_data" });
     return null;
   }
 }
