@@ -35,9 +35,22 @@ export function NetWorthMiniChart({ data, tone }: NetWorthMiniChartProps) {
     <ResponsiveContainer width="100%" height={64}>
       <LineChart data={data} margin={{ top: 4, right: 2, left: 2, bottom: 0 }}>
         <Tooltip
-          formatter={(value) => formatMoney(Number(value))}
-          labelFormatter={(label) => label}
-          contentStyle={{ fontSize: 12 }}
+          cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+          wrapperStyle={{ outline: "none" }}
+          content={({ active, payload }) => {
+            if (!active || !payload?.length) return null;
+            const point = payload[0].payload as NetWorthMiniChartPoint;
+            // A plain-language "{date}: {amount}" replaces Recharts' default
+            // tooltip, which showed the raw data key ("netWorth : ...") and
+            // fell back to a numeric point index for the label since this
+            // compact chart has no XAxis to derive a real date label from.
+            return (
+              <div className="rounded-lg border bg-popover px-2.5 py-1.5 text-xs shadow-card">
+                <p className="text-muted-foreground">{point.date}</p>
+                <p className="font-medium text-popover-foreground">{formatMoney(point.netWorth)}</p>
+              </div>
+            );
+          }}
         />
         <Line
           type="monotone"

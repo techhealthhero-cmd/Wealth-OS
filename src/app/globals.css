@@ -160,6 +160,13 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Mobile Safari/Chrome paint a solid blue-ish highlight box over any
+       element with a touch/click handler by default (most visible on
+       Recharts elements, which attach their own touch handlers for
+       tooltips) — this app supplies its own tap/press feedback
+       (.card-interactive, Button's active:scale), so the browser's default
+       is redundant and reads as a stray blue box rather than intentional. */
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
