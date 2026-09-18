@@ -1600,6 +1600,18 @@ Quality gate: lint ✅, typecheck ✅, tests ✅ (525/525, unchanged — a new c
 
 **Not yet committed** — pending the user's own check on their device.
 
+## "Your Money Story" — comic-style guide, Chapter 1, integrated into /help (2026-09-18)
+
+**Trigger**: the user had separately generated a 6-page comic (via ChatGPT/DALL-E, saved into a project-root folder named "WEALTH OS — Your Money Story") teaching the Earn/Income features through a character ("นัท," 27, employee + freelancer, ฿60,000/month income goal) — Chapter 1: "รายได้ฉันกำลังดีขึ้นจริงไหม?" covering Income Trend, Income Concentration Risk, Income Target Progress, and a Next Step action plan. Asked for it to be merged into the in-app `/help` guide.
+
+**What shipped**: the 6 source PNGs (~2.1-2.3MB each, ~13MB total — original files left untouched in the root folder, not deleted, since they're the user's own generated content) were copied into `public/story/chapter-1/page-{1-6}.png`. A new `MoneyStoryGallery` client component (`src/features/help/components/money-story-gallery.tsx`) renders them as a horizontally swipeable, CSS scroll-snap comic viewer — no drag library needed, native touch/trackpad paging — with a small scroll listener keeping a "หน้า X/6" caption in sync with whichever page is snapped into view. Uses `next/image` (not a raw `<img>`) with each page's real pixel dimensions, so Next automatically serves an optimized, lazy-loaded, correctly-sized asset instead of shipping the ~2MB source files verbatim to a phone. New `help.story` i18n block (badge, title, subtitle, chapter title, page-count label, "Chapter 2 coming soon" note) in both locales. Placed as its own featured Card in `/help`, right after the "Getting Started" steps and before the feature-by-feature sections.
+
+**Verified**: a temporary preview confirmed the first page's `<img>` genuinely loaded (`naturalWidth > 0`, not just present in the DOM) and that scrolling the gallery container by one page-width correctly advances the synced "หน้า 2/6" label — i.e. actual swipe-paging behavior, not just that the images exist. Screenshotted both states.
+
+Quality gate: lint ✅, typecheck ✅, tests ✅ (525/525, unchanged), build ✅ (50 routes, `/qa-preview-temp` confirmed absent).
+
+**Not yet committed** — pending the user's own check on their device. Note: this adds ~13MB of new binary assets to the repo (`public/story/chapter-1/`) — worth being aware of for repo size over time if more chapters are added; no action needed now, just flagging it.
+
 ## Update Rule
 
 After every major implementation session:

@@ -7,8 +7,22 @@ import { getLocale } from "@/i18n/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WelcomeIllustration } from "@/components/illustrations";
+import { MoneyStoryGallery } from "@/features/help/components/money-story-gallery";
 
 export const metadata: Metadata = { title: "Help — Wealth OS" };
+
+// Actual pixel dimensions of each page image (public/story/chapter-1) —
+// passed to next/image so it can reserve layout space and generate a
+// correctly-sized optimized/lazy-loaded asset instead of shipping the raw
+// ~2MB source PNGs to a phone.
+const CHAPTER_1_PAGES = [
+  { src: "/story/chapter-1/page-1.png", width: 1024, height: 1536 },
+  { src: "/story/chapter-1/page-2.png", width: 1055, height: 1491 },
+  { src: "/story/chapter-1/page-3.png", width: 1122, height: 1402 },
+  { src: "/story/chapter-1/page-4.png", width: 1122, height: 1402 },
+  { src: "/story/chapter-1/page-5.png", width: 1086, height: 1448 },
+  { src: "/story/chapter-1/page-6.png", width: 1122, height: 1402 },
+];
 
 export default async function HelpPage() {
   const profile = await getProfile();
@@ -63,6 +77,21 @@ export default async function HelpPage() {
               </div>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <Badge variant="outline" className="w-fit text-xs font-normal">
+            {help.story.badge}
+          </Badge>
+          <CardTitle className="text-base">{help.story.title}</CardTitle>
+          <p className="text-sm text-muted-foreground">{help.story.subtitle}</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm font-medium">{help.story.chapterTitle}</p>
+          <MoneyStoryGallery pages={CHAPTER_1_PAGES} pageLabel={help.story.pageLabel} />
+          <p className="text-center text-xs text-muted-foreground">{help.story.comingSoon}</p>
         </CardContent>
       </Card>
 

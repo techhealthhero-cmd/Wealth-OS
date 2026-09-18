@@ -1442,6 +1442,14 @@
         }
       ]
     },
+    "story": {
+      "badge": "📖 Your Money Story",
+      "title": "Prefer a story to a list? Try this",
+      "subtitle": "A comic starring \"Nat,\" a full-time employee + freelancer wondering if his income is really improving — a visual walkthrough of the Earn features.",
+      "chapterTitle": "Chapter 1: Is my income really improving?",
+      "pageLabel": "Page {current}/{total}",
+      "comingSoon": "Chapter 2 (cash flow and expenses) is coming soon"
+    },
     "sections": [
       {
         "id": "home",
