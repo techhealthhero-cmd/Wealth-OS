@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -21,8 +22,10 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 import { centsToNumber, formatMoney } from "@/lib/financial/money";
 import { useTranslation } from "@/i18n/client";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconChip } from "@/components/shared/icon-chip";
+import { calculateChangePercent } from "@/lib/financial/calculations";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { IncomeExpenseOverviewPoint, IncomeExpensePeriod } from "@/features/dashboard/queries";
 
 // 2026-09 motion system: charts animate once on first appearance only
 // (Recharts' own animation triggers on mount/data-key change, never on
@@ -40,17 +43,8 @@ function ChartEmptyState({ message }: { message: string }) {
   );
 }
 
-// Bright, muted "Apple-like" finance palette (2026-09 v2.4, user-supplied
-// hex values) — dedicated to this chart, not the shared --chart-* tokens.
-const INCOME_EXPENSE_COLORS = {
-  income: "#7FD6B2",
-  expense: "#8EA2B8",
-} as const;
-
-// 2026-09 soft area-chart restyle (user-supplied hex values) — scoped to
-// IncomeVsExpenseChart's own trend line/fill only, deliberately NOT a
-// change to the shared INCOME_EXPENSE_COLORS above (still used by
-// MonthlyDonutCard/GoalProgressRing elsewhere on the dashboard).
+// 2026-09 soft area-chart restyle (user-supplied hex values) — shared by
+// IncomeVsExpenseChart and IncomeExpenseOverviewCard's trend line/fill.
 const TREND_COLORS = {
   incomeLine: "#73C9A6",
   incomeFill: "rgba(115, 201, 166, 0.18)",
@@ -359,14 +353,6 @@ export function SpendingByCategoryChart({ data, currencyCode }: SpendingByCatego
   );
 }
 
-interface MonthlyDonutCardProps {
-  incomeCents: number;
-  expensesCents: number;
-  cashFlowCents: number;
-  currencyCode: string;
-  labels: { title: string; income: string; expenses: string; remaining: string };
-}
-
 interface GoalProgressRingProps {
   progress: number;
   label: string;
@@ -408,72 +394,205 @@ export function GoalProgressRing({ progress, label }: GoalProgressRingProps) {
   );
 }
 
+interface IncomeExpenseOverviewCardProps {
+  /** All three period buckets, computed once server-side (getIncomeExpenseOverview) — switching the selector below is a pure client-side slice, no refetch. */
+  data: Record<IncomeExpensePeriod, IncomeExpenseOverviewPoint[]>;
+  currencyCode: string;
+}
+
+const PERIOD_OPTIONS: IncomeExpensePeriod[] = ["week", "month", "year"];
+
 /**
- * "This month" hero-style widget — a donut ring (income vs. expenses, same
- * palette as IncomeVsExpenseChart) with the net remaining amount centered
- * in the ring's hole. Intentionally does NOT handle the "no data this
- * month" case itself: the caller (dashboard page) only renders this when
- * SummaryCards' own `hasDataThisMonth` is true, so there's exactly one
- * empty-state message on the page (SummaryCards'), not two.
+ * "เดือนนี้" card's 2026-09 replacement — a period-switchable (week/month/
+ * year) Income vs Expense area trend, reusing the same soft-gradient visual
+ * language as IncomeVsExpenseChart (deliberately separate TREND_COLORS-
+ * keyed gradient ids below — `overviewIncomeGradient`/`overviewExpenseGradient`
+ * — since both charts can be on the page at once and SVG gradient ids are
+ * global to the document).
+ *
+ * The headline number is the selected period's net (income − expenses),
+ * not the raw income figure some reference designs use for this slot —
+ * kept deliberately, since "คงเหลือ" (net remaining) is what the donut card
+ * this replaces always centered, and it stays the more directly actionable
+ * number for this product than income alone.
  */
-export function MonthlyDonutCard({ incomeCents, expensesCents, cashFlowCents, currencyCode, labels }: MonthlyDonutCardProps) {
+export function IncomeExpenseOverviewCard({ data, currencyCode }: IncomeExpenseOverviewCardProps) {
+  const { t, locale } = useTranslation();
   const reducedMotion = usePrefersReducedMotion();
-  const data = [
-    { name: "income", value: Math.max(0, incomeCents) },
-    { name: "expenses", value: Math.max(0, expensesCents) },
-  ];
+  const [period, setPeriod] = useState<IncomeExpensePeriod>("month");
+
+  const points = data[period];
+  const hasData = points.some((p) => p.incomeCents > 0 || p.expensesCents > 0);
+  const dtLocale = locale === "th" ? "th-TH" : "en-US";
+
+  const compactNumberFormatter = useMemo(
+    () => new Intl.NumberFormat(dtLocale, { notation: "compact", compactDisplay: "short" }),
+    [dtLocale]
+  );
+  const pointLabelFormatter = useMemo(() => {
+    const options: Intl.DateTimeFormatOptions =
+      period === "year"
+        ? { year: "numeric" }
+        : period === "week"
+          ? { day: "numeric", month: "short" }
+          : { month: "short" };
+    return new Intl.DateTimeFormat(dtLocale, options);
+  }, [period, dtLocale]);
+  const headlineDateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(dtLocale, { day: "numeric", month: "long", year: "numeric" }),
+    [dtLocale]
+  );
+
+  const formatPointLabel = (point: IncomeExpenseOverviewPoint) =>
+    pointLabelFormatter.format(new Date(`${point.periodStart}T00:00:00`));
+
+  const chartData = points.map((point) => ({
+    label: formatPointLabel(point),
+    incomeCents: point.incomeCents,
+    expensesCents: point.expensesCents,
+  }));
+
+  const latest = points[points.length - 1] as IncomeExpenseOverviewPoint | undefined;
+  const previous = points[points.length - 2] as IncomeExpenseOverviewPoint | undefined;
+  const latestNetCents = latest ? latest.incomeCents - latest.expensesCents : 0;
+  const previousNetCents = previous ? previous.incomeCents - previous.expensesCents : null;
+  const netChangePercent = previous ? calculateChangePercent(latestNetCents, previousNetCents ?? 0) : null;
+
+  const incomeLabel = t("transactions.types.income");
+  const expenseLabel = t("transactions.types.expense");
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{labels.title}</CardTitle>
+        <CardTitle className="text-base">{t("dashboard.incomeExpenseOverview")}</CardTitle>
+        <CardAction>
+          <Select value={period} onValueChange={(value) => setPeriod(value as IncomeExpensePeriod)}>
+            <SelectTrigger size="sm" aria-label={t("dashboard.selectPeriod")}>
+              <SelectValue>{t(`dashboard.period.${period}`)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {PERIOD_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {t(`dashboard.period.${option}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardAction>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="relative size-28 shrink-0 sm:size-32">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  dataKey="value"
-                  innerRadius="70%"
-                  outerRadius="100%"
-                  startAngle={90}
-                  endAngle={-270}
-                  strokeWidth={0}
+        {!hasData ? (
+          <ChartEmptyState message={t("dashboard.noIncomeExpenseDataPeriod")} />
+        ) : (
+          <>
+            <div className="mb-2 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+              <div>
+                <p className="text-xs text-muted-foreground">{t("dashboard.remaining")}</p>
+                <p className={`text-2xl font-bold tabular-nums ${latestNetCents < 0 ? "text-destructive" : ""}`}>
+                  {formatMoney(latestNetCents, currencyCode)}
+                </p>
+              </div>
+              {netChangePercent !== null && latest ? (
+                <div
+                  className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm font-medium ${
+                    netChangePercent >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+                  }`}
+                >
+                  <span className="flex items-center gap-1">
+                    {netChangePercent >= 0 ? (
+                      <TrendingUp className="size-3.5" aria-hidden="true" />
+                    ) : (
+                      <TrendingDown className="size-3.5" aria-hidden="true" />
+                    )}
+                    {netChangePercent >= 0 ? "+" : ""}
+                    {netChangePercent.toFixed(1)}%
+                  </span>
+                  <span className="font-normal text-muted-foreground">
+                    {t("dashboard.vsPreviousPeriod")} · {headlineDateFormatter.format(new Date(`${latest.periodStart}T00:00:00`))}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+
+            {/* A line/area chart conveys this trend visually only — a
+                screen-reader-only text summary gives an equivalent
+                alternative without changing the visual design. */}
+            <p className="sr-only">
+              {points.map((point) => `${formatPointLabel(point)}: ${incomeLabel} ${formatMoney(point.incomeCents, currencyCode)}, ${expenseLabel} ${formatMoney(point.expensesCents, currencyCode)}`).join(". ")}
+            </p>
+
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="overviewIncomeGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={TREND_COLORS.incomeFill} stopOpacity={1} />
+                    <stop offset="100%" stopColor={TREND_COLORS.incomeFill} stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="overviewExpenseGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={TREND_COLORS.expenseFill} stopOpacity={1} />
+                    <stop offset="100%" stopColor={TREND_COLORS.expenseFill} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid horizontal vertical={false} stroke="var(--border)" strokeDasharray="3 3" strokeOpacity={0.6} />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={{ stroke: "var(--border)" }}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 12, fontWeight: 500 }}
+                  interval="preserveStartEnd"
+                  minTickGap={20}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                  tickFormatter={(value: number) => compactNumberFormatter.format(centsToNumber(value))}
+                  width={44}
+                />
+                <Tooltip
+                  content={
+                    <IncomeExpenseAreaTooltip currencyCode={currencyCode} incomeLabel={incomeLabel} expenseLabel={expenseLabel} />
+                  }
+                  cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+                />
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  height={32}
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(value: string) => <span className="text-xs text-muted-foreground">{value}</span>}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="incomeCents"
+                  name={incomeLabel}
+                  stroke={TREND_COLORS.incomeLine}
+                  strokeWidth={2.5}
+                  fill="url(#overviewIncomeGradient)"
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0 }}
                   isAnimationActive={!reducedMotion}
                   animationDuration={CHART_ANIMATION_DURATION_MS}
-                >
-                  <Cell fill={INCOME_EXPENSE_COLORS.income} />
-                  <Cell fill="#E5989B" />
-                </Pie>
-              </PieChart>
+                  animationEasing="ease-out"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="expensesCents"
+                  name={expenseLabel}
+                  stroke={TREND_COLORS.expenseLine}
+                  strokeWidth={2.5}
+                  fill="url(#overviewExpenseGradient)"
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0 }}
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={CHART_ANIMATION_DURATION_MS}
+                  animationEasing="ease-out"
+                />
+              </AreaChart>
             </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-              <p className="text-[11px] text-muted-foreground">{labels.remaining}</p>
-              <p className={`max-w-[80%] break-all text-sm font-bold leading-tight tabular-nums sm:text-lg ${cashFlowCents < 0 ? "text-destructive" : ""}`}>
-                {formatMoney(cashFlowCents, currencyCode)}
-              </p>
-            </div>
-          </div>
-
-          <div className="min-w-0 flex-1 space-y-3">
-            <div className="flex items-center gap-2">
-              <IconChip icon={TrendingUp} tone="mint" className="size-8" />
-              <div className="min-w-0">
-                <p className="truncate text-xs text-muted-foreground">{labels.income}</p>
-                <p className="break-all text-sm font-semibold tabular-nums sm:text-base">{formatMoney(incomeCents, currencyCode)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <IconChip icon={TrendingDown} tone="rose" className="size-8" />
-              <div className="min-w-0">
-                <p className="truncate text-xs text-muted-foreground">{labels.expenses}</p>
-                <p className="break-all text-sm font-semibold tabular-nums sm:text-base">{formatMoney(expensesCents, currencyCode)}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

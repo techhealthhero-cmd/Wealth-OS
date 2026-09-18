@@ -128,7 +128,16 @@
     "vsLastMonth": "vs last month",
     "noDataThisMonthHint": "Log an income or expense to see this month's overview",
     "thisMonth": "This month",
-    "remaining": "Remaining"
+    "remaining": "Remaining",
+    "incomeExpenseOverview": "Income & Expense",
+    "selectPeriod": "Select period",
+    "period": {
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
+    },
+    "vsPreviousPeriod": "vs previous period",
+    "noIncomeExpenseDataPeriod": "No income or expenses in this period yet"
   },
   "accounts": {
     "title": "Accounts",

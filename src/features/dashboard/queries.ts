@@ -68,6 +68,84 @@ export function getIncomeExpenseTrend() {
   });
 }
 
+export type IncomeExpensePeriod = "week" | "month" | "year";
+
+export interface IncomeExpenseOverviewPoint {
+  /** "YYYY-MM-DD" — the start of the bucket, formatted for display by the (client) caller, locale- and period-aware. */
+  periodStart: string;
+  incomeCents: number;
+  expensesCents: number;
+}
+
+const WEEK_POINTS = 8;
+const MONTH_POINTS = 12;
+const YEAR_POINTS = 5;
+
+/** Monday-start week containing `date`, at local midnight. */
+function startOfWeek(date: Date): Date {
+  const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = result.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  result.setDate(result.getDate() + diffToMonday);
+  return result;
+}
+
+/**
+ * Backs the "เดือนนี้" card's replacement (a period-switchable Income vs
+ * Expense trend, 2026-09 redesign) — week/month/year buckets, each always a
+ * fixed point count (even a zero period stays in the series, same
+ * no-silent-gaps rule as getIncomeExpenseTrend above), computed from one
+ * shared "fetch once, bucket in memory" transactions query spanning the
+ * widest window (the 5-year lookback) rather than three separate queries.
+ */
+export function getIncomeExpenseOverview() {
+  return withPerfLog("getIncomeExpenseOverview", async (): Promise<Record<IncomeExpensePeriod, IncomeExpenseOverviewPoint[]>> => {
+    const now = new Date();
+    const currentWeekStart = startOfWeek(now);
+
+    const earliestStart = new Date(now.getFullYear() - (YEAR_POINTS - 1), 0, 1);
+    const from = toLocalDateString(earliestStart);
+    const to = toLocalDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    const transactions = await getTransactions({ from, to });
+
+    const bucket = (start: Date, end: Date): IncomeExpenseOverviewPoint => {
+      const startStr = toLocalDateString(start);
+      const endStr = toLocalDateString(end);
+      const inRange = transactions.filter((t) => t.transaction_date >= startStr && t.transaction_date <= endStr);
+      return {
+        periodStart: startStr,
+        incomeCents: calculateIncome(inRange),
+        expensesCents: calculateExpenses(inRange),
+      };
+    };
+
+    const week: IncomeExpenseOverviewPoint[] = [];
+    for (let i = WEEK_POINTS - 1; i >= 0; i--) {
+      const start = new Date(currentWeekStart);
+      start.setDate(start.getDate() - 7 * i);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      week.push(bucket(start, end));
+    }
+
+    const month: IncomeExpenseOverviewPoint[] = [];
+    for (let i = MONTH_POINTS - 1; i >= 0; i--) {
+      const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+      month.push(bucket(start, end));
+    }
+
+    const year: IncomeExpenseOverviewPoint[] = [];
+    for (let i = YEAR_POINTS - 1; i >= 0; i--) {
+      const start = new Date(now.getFullYear() - i, 0, 1);
+      const end = new Date(now.getFullYear() - i, 11, 31);
+      year.push(bucket(start, end));
+    }
+
+    return { week, month, year };
+  });
+}
+
 export function getDashboardData() {
   return withPerfLog("getDashboardData", async () => {
   const { from, to } = getCurrentMonthRange();

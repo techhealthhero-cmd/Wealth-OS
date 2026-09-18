@@ -35,9 +35,9 @@ export const SpendingByCategoryChart = dynamic(() => import("./charts").then((mo
   loading: ChartSkeleton,
 });
 
-export const MonthlyDonutCard = dynamic(() => import("./charts").then((mod) => mod.MonthlyDonutCard), {
+export const IncomeExpenseOverviewCard = dynamic(() => import("./charts").then((mod) => mod.IncomeExpenseOverviewCard), {
   ssr: false,
-  loading: () => <Skeleton className="h-40 w-full rounded-xl" />,
+  loading: () => <Skeleton className="h-80 w-full rounded-xl" />,
 });
 
 export const GoalProgressRing = dynamic(() => import("./charts").then((mod) => mod.GoalProgressRing), {

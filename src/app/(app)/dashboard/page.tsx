@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
-import { getDashboardData, getIncomeExpenseTrend } from "@/features/dashboard/queries";
+import { getDashboardData, getIncomeExpenseTrend, getIncomeExpenseOverview } from "@/features/dashboard/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -10,7 +10,7 @@ import { SummaryCards } from "@/features/dashboard/components/summary-cards";
 import { WealthOverview } from "@/features/dashboard/components/wealth-overview";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
-import { IncomeVsExpenseChart, SpendingByCategoryChart, MonthlyDonutCard } from "@/features/dashboard/components/charts-lazy";
+import { IncomeVsExpenseChart, SpendingByCategoryChart, IncomeExpenseOverviewCard } from "@/features/dashboard/components/charts-lazy";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { QuickAdd } from "@/features/transactions/components/quick-add";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -30,12 +30,13 @@ import { ArrowRight } from "lucide-react";
 export const metadata: Metadata = { title: "Dashboard — Wealth OS" };
 
 export default async function DashboardPage() {
-  const [data, profile, priority, topInsight, incomeExpenseTrend] = await Promise.all([
+  const [data, profile, priority, topInsight, incomeExpenseTrend, incomeExpenseOverview] = await Promise.all([
     getDashboardData(),
     getProfile(),
     FEATURES.ai ? getFinancialPriority() : Promise.resolve(null),
     FEATURES.ai ? getTopInsight() : Promise.resolve(null),
     getIncomeExpenseTrend(),
+    getIncomeExpenseOverview(),
   ]);
   const currencyCode = profile?.currency_code ?? "THB";
   const locale = await getLocale(profile?.preferred_language);
@@ -105,22 +106,15 @@ export default async function DashboardPage() {
         <QuickAdd accounts={data.accounts} categories={data.categories} variant="row" />
       </div>
 
-      {data.hasMonthData ? (
-        <div className="motion-reveal motion-reveal-3">
-          <MonthlyDonutCard
-            incomeCents={data.incomeCents}
-            expensesCents={data.expensesCents}
-            cashFlowCents={data.cashFlowCents}
-            currencyCode={currencyCode}
-            labels={{
-              title: dict.dashboard.thisMonth,
-              income: dict.dashboard.monthlyIncome,
-              expenses: dict.dashboard.monthlyExpenses,
-              remaining: dict.dashboard.remaining,
-            }}
-          />
-        </div>
-      ) : null}
+      {/* Not gated on data.hasMonthData like the donut card it replaced —
+          this card can show non-empty week/year buckets even in a month
+          with no activity yet, and its own per-period empty state (inside
+          IncomeExpenseOverviewCard) already covers the "nothing in the
+          selected period" case. The page-level empty state above already
+          guarantees the user has *some* data by this point. */}
+      <div className="motion-reveal motion-reveal-3">
+        <IncomeExpenseOverviewCard data={incomeExpenseOverview} currencyCode={currencyCode} />
+      </div>
 
       {FEATURES.ai ? (
         <div className="motion-reveal motion-reveal-4 space-y-3">
