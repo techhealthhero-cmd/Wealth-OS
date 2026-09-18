@@ -381,11 +381,7 @@
     "emptyTitle": "No net worth data yet",
     "emptyState": "Add an account or asset to start calculating your net worth.",
     "noHistoryYet": "Not enough history yet — check back after some time has passed.",
-  "last6Months": "Last 6 months",
-  "hideAmount": "Hide amount",
-  "showAmount": "Show amount",
-  "amountHidden": "Amount hidden",
-  "trendSummary": "Net worth trend chart from {from} ({fromAmount}) to {to} ({toAmount})"
+  "last6Months": "Last 6 months"
   },
   "goals": {
     "title": "Financial Goals",
