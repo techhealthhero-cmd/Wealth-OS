@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeftRight, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowLeftRight, CircleMinus, CirclePlus, Plus, TrendingDown, TrendingUp } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,11 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
   return (
     <>
       {variant === "row" ? (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {(
             [
-              { dialog: "income" as const, icon: TrendingUp, tone: "mint" as const, label: t("transactions.types.income") },
-              { dialog: "expense" as const, icon: TrendingDown, tone: "rose" as const, label: t("transactions.types.expense") },
+              { dialog: "income" as const, icon: CirclePlus, tone: "mint" as const, label: t("transactions.types.income") },
+              { dialog: "expense" as const, icon: CircleMinus, tone: "rose" as const, label: t("transactions.types.expense") },
               { dialog: "transfer" as const, icon: ArrowLeftRight, tone: "lavender" as const, label: t("transactions.types.transfer") },
             ]
           ).map((item) => (

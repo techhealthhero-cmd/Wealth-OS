@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Eye, Sparkles, Target, TrendingUp } from "lucide-react";
 
 import { getCurrentUser } from "@/features/profile/queries";
+import { logNav } from "@/lib/dev-diagnostics";
 import { Button } from "@/components/ui/button";
 import { BrandMark, IllustrationFrame, WelcomeIllustration } from "@/components/illustrations";
 
@@ -16,6 +17,7 @@ const PILLARS = [
 export default async function LandingPage() {
   const user = await getCurrentUser();
   if (user) {
+    logNav({ from: "/", to: "/dashboard", reason: "already signed in", source: "app/page.tsx" });
     redirect("/dashboard");
   }
 

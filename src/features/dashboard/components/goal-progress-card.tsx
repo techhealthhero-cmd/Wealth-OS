@@ -9,8 +9,9 @@ import { getLocale } from "@/i18n/server";
 import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GoalTypeIcon } from "@/components/illustrations";
+import { GoalProgressRing } from "./charts-lazy";
 import type { FinancialGoal } from "@/types/database";
+import { ChevronRight } from "lucide-react";
 
 const SCHEDULE_BADGE_CLASS: Record<string, string> = {
   achieved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -101,36 +102,22 @@ export async function GoalProgressCard() {
   return (
     <Link href="/plan/goals">
       <Card className="card-interactive transition-opacity hover:opacity-90">
-        <CardContent className="space-y-3 pt-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">{dict.dashboard2.topGoal}</p>
-            <Badge className={SCHEDULE_BADGE_CLASS[schedule]}>{dict.goals.schedule[schedule]}</Badge>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <GoalTypeIcon type={topGoal.goal_type} size={36} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium leading-none">{topGoal.name}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+        <CardContent className="pt-6">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <GoalProgressRing progress={progress} label={dict.goals.progress} />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <p className="break-words text-base font-semibold leading-snug">{topGoal.name}</p>
+              <p className="break-all text-[11px] tracking-tight text-muted-foreground min-[375px]:text-sm">
                 {formatMoney(currentCents)} / {formatMoney(targetCents)}
               </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className={SCHEDULE_BADGE_CLASS[schedule]}>{dict.goals.schedule[schedule]}</Badge>
+                <span className="break-all text-xs text-muted-foreground">
+                  {dict.goals.remaining}: {formatMoney(remaining)}
+                </span>
+              </div>
             </div>
-          </div>
-
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-[width] duration-(--motion-value) ease-(--ease-standard)"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              {dict.goals.progress}: {progress.toFixed(0)}%
-            </span>
-            <span>
-              {dict.goals.remaining}: {formatMoney(remaining)}
-            </span>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
           </div>
         </CardContent>
       </Card>

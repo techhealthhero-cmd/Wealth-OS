@@ -5,6 +5,7 @@ import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { I18nProvider } from "@/i18n/client";
+import { logNav } from "@/lib/dev-diagnostics";
 import { OnboardingForm } from "@/features/profile/components/onboarding-form";
 import { IllustrationFrame, WelcomeIllustration } from "@/components/illustrations";
 
@@ -14,10 +15,12 @@ export default async function OnboardingPage() {
   const profile = await getProfile();
 
   if (!profile) {
+    logNav({ from: "/onboarding", to: "/login", reason: "no profile row", source: "onboarding/page.tsx" });
     redirect("/login");
   }
 
   if (profile.onboarding_completed) {
+    logNav({ from: "/onboarding", to: "/dashboard", reason: "onboarding already completed", source: "onboarding/page.tsx" });
     redirect("/dashboard");
   }
 

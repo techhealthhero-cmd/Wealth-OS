@@ -18,8 +18,13 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "ระบบการเงินส่วนบุคคลที่ช่วยให้ผู้ใช้รู้สถานะทางการเงิน ควบคุมเงิน วางแผน เพิ่มรายได้ และสร้างความมั่งคั่ง",
     start_url: "/dashboard",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#2a78d6",
+    background_color: "#f7f8f6",
+    // Matches the app's actual brand green (--primary, #1F4D3E) and the
+    // root layout's own viewport themeColor — the previous #2a78d6 (blue)
+    // was a leftover from an earlier design direction the app moved away
+    // from; an installed PWA's OS status bar/task-switcher chrome would
+    // have shown a jarring blue that doesn't match the app at all.
+    theme_color: "#1F4D3E",
     lang: "th",
     icons: [
       { src: "/icon-192", sizes: "192x192", type: "image/png" },

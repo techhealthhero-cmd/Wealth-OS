@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import type { FinancialGoal } from "@/types/database";
@@ -10,7 +11,14 @@ const PRIORITY_RANK: Record<FinancialGoal["priority"], number> = {
   low: 3,
 };
 
-export async function getGoals(options?: { includeArchived?: boolean }): Promise<FinancialGoal[]> {
+/**
+ * Wrapped in React's `cache()` (perf audit finding, mirrors `getProfile()`'s
+ * existing rationale): every current call site invokes this with no
+ * arguments, and a single dashboard render independently calls it from
+ * `GoalProgressCard`, the Wealth Score computation, and the Life Stage
+ * priority engine — `cache()` dedupes those to one query per request.
+ */
+export const getGoals = cache(async (options?: { includeArchived?: boolean }): Promise<FinancialGoal[]> => {
   const supabase = await createClient();
   let query = supabase.from("financial_goals").select("*").order("created_at", { ascending: true });
 
@@ -25,7 +33,7 @@ export async function getGoals(options?: { includeArchived?: boolean }): Promise
   // alphabetically rather than by actual importance.
   const goals = (data ?? []) as FinancialGoal[];
   return goals.sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]);
-}
+});
 
 export async function getGoal(id: string): Promise<FinancialGoal | null> {
   const supabase = await createClient();

@@ -307,6 +307,47 @@ interface MonthlyDonutCardProps {
   labels: { title: string; income: string; expenses: string; remaining: string };
 }
 
+interface GoalProgressRingProps {
+  progress: number;
+  label: string;
+}
+
+/** Compact goal ring, code-split with the dashboard's other Recharts widgets. */
+export function GoalProgressRing({ progress, label }: GoalProgressRingProps) {
+  const reducedMotion = usePrefersReducedMotion();
+  const safeProgress = Math.min(100, Math.max(0, progress));
+  const data = [
+    { name: "progress", value: safeProgress },
+    { name: "remaining", value: Math.max(0, 100 - safeProgress) },
+  ];
+
+  return (
+    <div className="relative size-20 shrink-0 sm:size-24" role="img" aria-label={`${label}: ${safeProgress.toFixed(0)}%`}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            innerRadius="72%"
+            outerRadius="100%"
+            startAngle={90}
+            endAngle={-270}
+            strokeWidth={0}
+            isAnimationActive={!reducedMotion}
+            animationDuration={CHART_ANIMATION_DURATION_MS}
+          >
+            <Cell fill="var(--primary)" />
+            <Cell fill="var(--muted)" />
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-base font-bold tabular-nums sm:text-lg">
+        {safeProgress.toFixed(0)}%
+      </span>
+    </div>
+  );
+}
+
 /**
  * "This month" hero-style widget — a donut ring (income vs. expenses, same
  * palette as IncomeVsExpenseChart) with the net remaining amount centered
@@ -328,8 +369,8 @@ export function MonthlyDonutCard({ incomeCents, expensesCents, cashFlowCents, cu
         <CardTitle className="text-base">{labels.title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-4">
-          <div className="relative size-32 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="relative size-28 shrink-0 sm:size-32">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -350,7 +391,7 @@ export function MonthlyDonutCard({ incomeCents, expensesCents, cashFlowCents, cu
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
               <p className="text-[11px] text-muted-foreground">{labels.remaining}</p>
-              <p className={`text-lg font-bold ${cashFlowCents < 0 ? "text-destructive" : ""}`}>
+              <p className={`max-w-[80%] break-all text-sm font-bold leading-tight tabular-nums sm:text-lg ${cashFlowCents < 0 ? "text-destructive" : ""}`}>
                 {formatMoney(cashFlowCents, currencyCode)}
               </p>
             </div>
@@ -361,14 +402,14 @@ export function MonthlyDonutCard({ incomeCents, expensesCents, cashFlowCents, cu
               <IconChip icon={TrendingUp} tone="mint" className="size-8" />
               <div className="min-w-0">
                 <p className="truncate text-xs text-muted-foreground">{labels.income}</p>
-                <p className="truncate font-semibold">{formatMoney(incomeCents, currencyCode)}</p>
+                <p className="break-all text-sm font-semibold tabular-nums sm:text-base">{formatMoney(incomeCents, currencyCode)}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <IconChip icon={TrendingDown} tone="rose" className="size-8" />
               <div className="min-w-0">
                 <p className="truncate text-xs text-muted-foreground">{labels.expenses}</p>
-                <p className="truncate font-semibold">{formatMoney(expensesCents, currencyCode)}</p>
+                <p className="break-all text-sm font-semibold tabular-nums sm:text-base">{formatMoney(expensesCents, currencyCode)}</p>
               </div>
             </div>
           </div>

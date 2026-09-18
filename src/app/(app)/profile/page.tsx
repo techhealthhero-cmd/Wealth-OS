@@ -16,10 +16,15 @@ import { ChevronRight, Compass } from "lucide-react";
 export const metadata: Metadata = { title: "Profile — Wealth OS" };
 
 export default async function ProfilePage() {
-  const profile = await getProfile();
+  // getEntitlements() doesn't depend on profile (it resolves the plan from
+  // the session directly) — perf audit finding: these were sequential for
+  // no reason. Safe to run before the profile-null check: the parent
+  // (app)/layout.tsx already redirects unauthenticated users before this
+  // page renders at all, so `!profile` here is a rare defensive case, not
+  // the normal signed-out path.
+  const [profile, entitlements] = await Promise.all([getProfile(), getEntitlements()]);
   if (!profile) redirect("/login");
 
-  const entitlements = await getEntitlements();
   const locale = await getLocale(profile.preferred_language);
   const dict = getDictionary(locale);
 

@@ -12,17 +12,21 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
  */
 export default function DashboardLoading() {
   return (
-    <div className="space-y-6 pb-24">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-40" />
-          <Skeleton className="h-4 w-28" />
-        </div>
-        <Skeleton className="h-6 w-16 rounded-full" />
-      </div>
+    <div className="mx-auto w-full max-w-6xl space-y-5 pb-[calc(6rem+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
+      <Skeleton className="h-8 w-44" />
 
       {/* Net Worth hero */}
       <Skeleton className="h-40 w-full rounded-xl" />
+
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full rounded-xl" />
+        ))}
+      </div>
+
+      <Skeleton className="h-48 w-full rounded-xl" />
+      <Skeleton className="h-40 w-full rounded-xl" />
+      <Skeleton className="h-32 w-full rounded-xl" />
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

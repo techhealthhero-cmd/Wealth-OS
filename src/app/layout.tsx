@@ -47,6 +47,14 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#f7f8f6",
+  // Required for `env(safe-area-inset-*)` to resolve to a real value on
+  // notched iPhones (BottomNav's pb-[env(safe-area-inset-bottom)]) —
+  // without "cover", Safari never lets the page extend under the safe
+  // area, so those env() vars stay 0 and the padding silently does
+  // nothing. (Nav/PWA audit: this was previously added, then lost as a
+  // side effect of reverting an unrelated redesign commit that happened
+  // to be bundled with it — confirmed missing at HEAD before this fix.)
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

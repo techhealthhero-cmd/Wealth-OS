@@ -5,6 +5,7 @@ import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { I18nProvider } from "@/i18n/client";
+import { logNav } from "@/lib/dev-diagnostics";
 import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Header } from "@/components/layout/header";
@@ -30,10 +31,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const profile = await getProfile();
 
   if (!profile) {
+    logNav({ from: "(protected route)", to: "/login", reason: "no profile row", source: "(app)/layout.tsx" });
     redirect("/login");
   }
 
   if (!profile.onboarding_completed) {
+    logNav({
+      from: "(protected route)",
+      to: "/onboarding",
+      reason: "onboarding_completed=false",
+      source: "(app)/layout.tsx",
+    });
     redirect("/onboarding");
   }
 

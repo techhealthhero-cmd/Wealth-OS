@@ -107,6 +107,8 @@
     "title": "Financial overview",
     "greeting": "Hello, {name} 👋",
     "greetingGeneric": "Hello 👋",
+    "greetingCompact": "Hello, {name}",
+    "greetingGenericCompact": "Hello",
     "monthlyIncome": "Income this month",
     "monthlyExpenses": "Expenses this month",
     "cashFlow": "Cash flow",
@@ -388,7 +390,8 @@
     "noHistoryYet": "Not enough history yet — check back after some time has passed.",
   "last6Months": "Last 6 months",
   "whatIsThis": "What is net worth?",
-  "explanation": "Net worth = everything you own, minus everything you owe. It's the single number that best reflects your overall financial position."
+    "explanation": "Net worth = everything you own, minus everything you owe. It's the single number that best reflects your overall financial position.",
+    "tagline": "Small steps toward stronger financial health"
   },
   "goals": {
     "title": "Financial Goals",
@@ -688,6 +691,7 @@
     "title": "What to do next",
     "why": "Why this matters",
     "viewDetails": "View details",
+    "takeAction": "Take action",
     "actions": {
       "negative_cash_flow": "Reduce spending by about",
       "no_emergency_fund": "Increase your emergency fund by",

@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getClientEnv } from "@/config/env";
+import { logNav } from "@/lib/dev-diagnostics";
 
 const PUBLIC_ROUTES = [
   "/login",
@@ -64,10 +65,12 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicRoute(pathname)) {
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("next", pathname);
+    logNav({ from: pathname, to: "/login", reason: "no session", source: "middleware.updateSession" });
     return NextResponse.redirect(redirectUrl);
   }
 
   if (user && (pathname === "/login" || pathname === "/signup")) {
+    logNav({ from: pathname, to: "/dashboard", reason: "already signed in", source: "middleware.updateSession" });
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

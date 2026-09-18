@@ -23,8 +23,15 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [entitlements, subscription, profile] = await Promise.all([getEntitlements(), getSubscription(), getProfile()]);
-  const usage = user ? await getAIUsageStatus(user.id) : null;
+  // perf audit finding: getAIUsageStatus only needs `user` (already
+  // resolved above), so it doesn't need to wait for the other 3 — folded
+  // into the same Promise.all instead of running after it.
+  const [entitlements, subscription, profile, usage] = await Promise.all([
+    getEntitlements(),
+    getSubscription(),
+    getProfile(),
+    user ? getAIUsageStatus(user.id) : Promise.resolve(null),
+  ]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 

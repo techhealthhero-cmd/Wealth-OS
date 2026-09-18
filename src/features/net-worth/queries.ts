@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getAccounts } from "@/features/accounts/queries";
@@ -7,6 +8,7 @@ import { getLiabilities } from "@/features/liabilities/queries";
 import { calculateNetWorth, type NetWorthResult } from "@/lib/financial/net-worth";
 import { parseMoneyToCents, centsToDecimalString } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
+import { withPerfLog } from "@/lib/dev-diagnostics";
 import type { Asset, Liability, NetWorthSnapshot } from "@/types/database";
 
 export interface NetWorthBreakdown extends NetWorthResult {
@@ -14,7 +16,12 @@ export interface NetWorthBreakdown extends NetWorthResult {
   liabilities: Liability[];
 }
 
-export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
+/**
+ * Wrapped in React's `cache()` (perf audit finding): called independently
+ * (directly, and again inside the Wealth Score computation and the Life
+ * Stage priority engine) up to 3x on a single dashboard render.
+ */
+export const getNetWorthBreakdown = cache((): Promise<NetWorthBreakdown> => withPerfLog("getNetWorthBreakdown", async () => {
   const [accounts, assets, liabilities] = await Promise.all([
     getAccounts(),
     getAssets(),
@@ -39,7 +46,7 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
   );
 
   return { ...result, assets, liabilities };
-}
+}));
 
 export async function getNetWorthSnapshots(limit = 12): Promise<NetWorthSnapshot[]> {
   const supabase = await createClient();

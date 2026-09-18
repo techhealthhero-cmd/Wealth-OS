@@ -40,9 +40,7 @@ export default async function MoneyYearPage({ searchParams }: MoneyYearPageProps
     );
   }
 
-  const quarterSummaries = await Promise.all(
-    summary.quarters.map((plan) => getQuarterlySummary(year, plan))
-  );
+  const quarterSummaries = summary.quarters.map((plan) => getQuarterlySummary(year, plan, summary.transactions));
 
   return (
     <div className="space-y-4">

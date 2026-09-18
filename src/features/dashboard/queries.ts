@@ -4,6 +4,7 @@ import { getAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
 import { getCurrentMonthRange, getTransactions } from "@/features/transactions/queries";
 import { toLocalDateString } from "@/lib/date";
+import { withPerfLog } from "@/lib/dev-diagnostics";
 import {
   calculateChangePercent,
   calculateIncome,
@@ -21,7 +22,8 @@ function getPreviousMonthRange(): { from: string; to: string } {
   return { from: toLocalDateString(from), to: toLocalDateString(to) };
 }
 
-export async function getDashboardData() {
+export function getDashboardData() {
+  return withPerfLog("getDashboardData", async () => {
   const { from, to } = getCurrentMonthRange();
   const { from: prevFrom, to: prevTo } = getPreviousMonthRange();
 
@@ -72,4 +74,5 @@ export async function getDashboardData() {
     recentTransactions,
     hasAnyData: accounts.length > 0 || monthTransactions.length > 0,
   };
+  });
 }

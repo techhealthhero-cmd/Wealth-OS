@@ -58,22 +58,18 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 pb-24">
-      <div className="min-w-0">
+    <div className="mx-auto w-full max-w-6xl space-y-5 pb-[calc(6rem+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
+      <div className="hidden min-w-0 md:block">
         {/* UX guidelines #6 (Home hierarchy): greeting/context leads the
             page, ahead of the section title — a personal "hello" reads
             as a coach checking in, not an admin-panel page header. Plan
             badge now lives in the shared app header (visible on every
             page), not duplicated here. */}
-        <p className="truncate text-lg font-medium">
+        <h1 className="truncate text-2xl font-semibold tracking-tight">
           {profile?.display_name
-            ? dict.dashboard.greeting.replace("{name}", profile.display_name)
-            : dict.dashboard.greetingGeneric}
-        </p>
-        <h1 className="truncate text-2xl font-semibold">{dict.dashboard.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString(locale === "th" ? "th-TH" : "en-US", { month: "long", year: "numeric" })}
-        </p>
+            ? dict.dashboard.greetingCompact.replace("{name}", profile.display_name)
+            : dict.dashboard.greetingGenericCompact}
+        </h1>
       </div>
 
       {/* UX reorg (2026-09): information hierarchy follows the "5 core
@@ -108,22 +104,8 @@ export default async function DashboardPage() {
         <QuickAdd accounts={data.accounts} categories={data.categories} variant="row" />
       </div>
 
-      {FEATURES.ai ? (
-        <div className="motion-reveal motion-reveal-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-medium">{dict.aiCoach.title}</h2>
-            <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/ai" />}>
-              {dict.dashboard.viewAll}
-              <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
-            </Button>
-          </div>
-          <NextBestActionCard priority={priority} hasTransactionHistory={data.recentTransactions.length > 0} />
-          {topInsight ? <InsightCards insights={[topInsight]} /> : null}
-        </div>
-      ) : null}
-
       {data.hasMonthData ? (
-        <div className="motion-reveal motion-reveal-4">
+        <div className="motion-reveal motion-reveal-3">
           <MonthlyDonutCard
             incomeCents={data.incomeCents}
             expensesCents={data.expensesCents}
@@ -139,7 +121,27 @@ export default async function DashboardPage() {
         </div>
       ) : null}
 
-      <div className="motion-reveal motion-reveal-5">
+      {FEATURES.ai ? (
+        <div className="motion-reveal motion-reveal-4 space-y-3">
+          <NextBestActionCard priority={priority} hasTransactionHistory={data.recentTransactions.length > 0} />
+          {topInsight ? <InsightCards insights={[topInsight]} /> : null}
+        </div>
+      ) : null}
+
+      <div className="motion-reveal motion-reveal-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{dict.dashboard2.topGoal}</h2>
+          <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/plan/goals" />}>
+            {dict.dashboard.viewAll}
+            <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
+          </Button>
+        </div>
+        <Suspense fallback={<Skeleton className="h-32 w-full rounded-xl" />}>
+          <GoalProgressCard />
+        </Suspense>
+      </div>
+
+      <div className="motion-reveal motion-reveal-6">
         <SummaryCards
           incomeCents={data.incomeCents}
           expensesCents={data.expensesCents}
@@ -163,12 +165,6 @@ export default async function DashboardPage() {
             noDataHint: dict.dashboard.noDataThisMonthHint,
           }}
         />
-      </div>
-
-      <div className="motion-reveal motion-reveal-6">
-        <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
-          <GoalProgressCard />
-        </Suspense>
       </div>
 
       <div className="motion-reveal motion-reveal-7 grid gap-4 lg:grid-cols-2">

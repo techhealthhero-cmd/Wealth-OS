@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getLiabilities } from "@/features/liabilities/queries";
@@ -8,7 +9,8 @@ import { parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import type { RecurringTransaction } from "@/types/database";
 
-export async function getRecurringTransactions(): Promise<RecurringTransaction[]> {
+/** Wrapped in React's `cache()` (perf audit finding) — `/money/recurring` calls this both directly and via `getUpcomingBills()`. */
+export const getRecurringTransactions = cache(async (): Promise<RecurringTransaction[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("recurring_transactions")
@@ -16,7 +18,7 @@ export async function getRecurringTransactions(): Promise<RecurringTransaction[]
     .order("next_due_date", { ascending: true });
   if (error) throw new Error("Failed to load recurring transactions");
   return data ?? [];
-}
+});
 
 export async function getActiveRecurringTransactions(): Promise<RecurringTransaction[]> {
   const all = await getRecurringTransactions();

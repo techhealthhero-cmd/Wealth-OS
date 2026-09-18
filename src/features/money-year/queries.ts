@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import { getTransactions } from "@/features/transactions/queries";
+import { getTransactions, type TransactionWithRelations } from "@/features/transactions/queries";
 import { getEmergencyFund } from "@/features/emergency-fund/queries";
 import {
   calculateDebtReductionContributions,
@@ -68,6 +68,14 @@ export interface MoneyYearSummary {
   metrics: AnnualMetric[];
   quarters: QuarterlyPlan[];
   majorExpenses: MoneyYearMajorExpense[];
+  /**
+   * The full year's transactions, exposed so the caller can derive each
+   * quarter's summary (`getQuarterlySummary`) by filtering this array in
+   * memory instead of issuing one more `transactions` query per quarter
+   * (perf audit finding: this was a real N+1 — 4 extra DB round-trips for
+   * data already sitting in this same response).
+   */
+  transactions: TransactionWithRelations[];
 }
 
 /**
@@ -123,7 +131,7 @@ export async function getMoneyYearSummary(year: number): Promise<MoneyYearSummar
     ),
   ];
 
-  return { moneyYear, metrics, quarters, majorExpenses };
+  return { moneyYear, metrics, quarters, majorExpenses, transactions };
 }
 
 export interface QuarterlyMetric {
@@ -144,9 +152,16 @@ function quarterDateRange(year: number, quarter: number): { from: string; to: st
   return { from, to };
 }
 
-export async function getQuarterlySummary(year: number, plan: QuarterlyPlan): Promise<QuarterlySummary> {
+/**
+ * Takes the year's already-fetched transactions (see `MoneyYearSummary.
+ * transactions`) and filters to this quarter's date range in memory,
+ * instead of querying the database again per quarter — same filtering
+ * boundary (`transaction_date` within `[from, to]`) as the removed
+ * `getTransactions({from, to})` call, so results are identical.
+ */
+export function getQuarterlySummary(year: number, plan: QuarterlyPlan, yearTransactions: TransactionWithRelations[]): QuarterlySummary {
   const { from, to } = quarterDateRange(year, plan.quarter);
-  const transactions = await getTransactions({ from, to });
+  const transactions = yearTransactions.filter((t) => t.transaction_date >= from && t.transaction_date <= to);
   const elapsedFraction = calculateQuarterElapsedFraction(year, plan.quarter);
 
   const buildMetric = (key: QuarterlyMetric["key"], actualCents: number, targetCents: number): QuarterlyMetric => ({

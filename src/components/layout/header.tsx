@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { LogOut, Settings, User } from "lucide-react";
 
 import { logout } from "@/features/auth/actions";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { BrandMark } from "@/components/illustrations";
 
 function initials(name: string | null | undefined) {
   if (!name) return "?";
@@ -36,15 +38,29 @@ export function Header({
   actions?: React.ReactNode;
 }) {
   const { t } = useTranslation();
+  const pathname = usePathname();
+  const isDashboard = pathname === "/dashboard";
+  const compactGreeting = displayName
+    ? t("dashboard.greetingCompact").replace("{name}", displayName)
+    : t("dashboard.greetingGenericCompact");
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-end gap-1 border-b px-4">
-      {actions}
-      <ThemeToggle />
+    <header className="flex h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 items-center gap-1 border-b px-4 pt-[env(safe-area-inset-top)]">
+      {isDashboard ? (
+        <div className="flex min-w-0 items-center gap-2 text-primary md:hidden">
+          <BrandMark size={30} />
+          <h1 className="truncate text-xl font-semibold tracking-tight text-foreground">{compactGreeting}</h1>
+        </div>
+      ) : null}
+      <div className="ml-auto flex items-center gap-1">
+        {actions}
+        <span className={isDashboard ? "hidden md:inline-flex" : "inline-flex"}>
+          <ThemeToggle />
+        </span>
       <DropdownMenu>
         <DropdownMenuTrigger
           {...asTrigger(
-            <Button variant="ghost" className="gap-2 px-2">
+            <Button variant="ghost" className={isDashboard ? "hidden gap-2 px-2 md:flex" : "gap-2 px-2"}>
               <Avatar className="h-7 w-7">
                 <AvatarFallback>{initials(displayName)}</AvatarFallback>
               </Avatar>
@@ -70,6 +86,7 @@ export function Header({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }

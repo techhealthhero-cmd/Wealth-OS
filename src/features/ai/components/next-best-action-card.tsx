@@ -7,7 +7,8 @@ import { buildNextBestActionText } from "@/features/ai/lib/next-best-action";
 import { useTranslation } from "@/i18n/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { IconChip } from "@/components/shared/icon-chip";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 /**
  * Deterministic — every word here comes from the i18n dictionary plus real
@@ -35,18 +36,23 @@ export function NextBestActionCard({
 
   if (!priority) {
     return (
-      <Card>
+      <Card variant="soft">
         <CardContent className="pt-6">
-          <p className="text-sm font-medium">{t("nextBestAction.title")}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {hasTransactionHistory ? t("priorityEngine.noPriorities") : t("priorityEngine.notEnoughData")}
-          </p>
-          {!hasTransactionHistory ? (
-            <Button variant="outline" size="sm" className="mt-3" nativeButton={false} render={<Link href="/money/transactions" />}>
-              {t("priorityEngine.notEnoughDataCta")}
-              <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
-            </Button>
-          ) : null}
+          <div className="flex items-start gap-3">
+            <IconChip icon={Sparkles} tone="mint" className="size-11" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">{t("nextBestAction.title")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {hasTransactionHistory ? t("priorityEngine.noPriorities") : t("priorityEngine.notEnoughData")}
+              </p>
+              {!hasTransactionHistory ? (
+                <Button size="sm" className="mt-3" nativeButton={false} render={<Link href="/money/transactions" />}>
+                  {t("priorityEngine.notEnoughDataCta")}
+                  <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
+                </Button>
+              ) : null}
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -56,22 +62,22 @@ export function NextBestActionCard({
   const { actionText, cta } = buildNextBestActionText(priority, t);
 
   return (
-    <Card>
-      <CardContent className="space-y-2 pt-6">
-        <p className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-          {/* One-shot soft pulse (never looping) marking a freshly-rendered
-              Next Best Action — see `.motion-pulse-once` in globals.css. */}
-          <span className="motion-pulse-once size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-          {t("nextBestAction.title")}
-        </p>
-        <p className="text-lg font-semibold">{actionText}</p>
-        <p className="text-sm text-muted-foreground">{reason}</p>
-        {cta ? (
-          <Button variant="outline" size="sm" nativeButton={false} render={<Link href={cta} />}>
-            {t("nextBestAction.viewDetails")}
-            <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
-          </Button>
-        ) : null}
+    <Card variant="soft">
+      <CardContent className="pt-6">
+        <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-3 min-[375px]:grid-cols-[auto_minmax(0,1fr)_auto] min-[375px]:items-center">
+          <IconChip icon={Sparkles} tone="mint" className="motion-pulse-once size-11" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-muted-foreground">{t("nextBestAction.title")}</p>
+            <p className="mt-1 break-words text-base font-semibold leading-snug sm:text-lg">{actionText}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{reason}</p>
+          </div>
+          {cta ? (
+            <Button size="sm" className="col-span-2 w-full min-[375px]:col-span-1 min-[375px]:w-auto" nativeButton={false} render={<Link href={cta} />}>
+              {t("nextBestAction.takeAction")}
+              <ArrowRight className="ml-1 h-4 w-4" aria-hidden="true" />
+            </Button>
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   );

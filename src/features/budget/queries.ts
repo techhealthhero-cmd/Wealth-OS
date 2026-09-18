@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getTransactions } from "@/features/transactions/queries";
@@ -49,9 +50,16 @@ export async function getBudgets(): Promise<Budget[]> {
   return data ?? [];
 }
 
-/** Full budget-vs-actual summary for a given month, or null if no budget exists for that month yet. */
-export async function getBudgetSummary(monthDate: Date = new Date()): Promise<BudgetSummary | null> {
-  const monthKey = toMonthKey(monthDate);
+/**
+ * React `cache()` keys by argument identity — `monthDate: Date = new Date()`
+ * would never dedupe on its own default (a fresh `Date` object every call,
+ * even within the same millisecond). Keying the cached inner function by
+ * the already-computed `monthKey` string (a primitive) is what actually
+ * dedupes the 3 independent per-render callers the perf audit found
+ * (`WealthOverview`, `getSafeToSpend`, `getLifeStageAndPriorities`).
+ */
+const getBudgetSummaryCached = cache(async (monthKey: string): Promise<BudgetSummary | null> => {
+  const monthDate = new Date(`${monthKey}T00:00:00`);
   const budget = await getBudgetForMonth(monthKey);
   if (!budget) return null;
 
@@ -87,4 +95,9 @@ export async function getBudgetSummary(monthDate: Date = new Date()): Promise<Bu
   );
 
   return { budget, categories, overall, byCategory };
+});
+
+/** Full budget-vs-actual summary for a given month, or null if no budget exists for that month yet. */
+export function getBudgetSummary(monthDate: Date = new Date()): Promise<BudgetSummary | null> {
+  return getBudgetSummaryCached(toMonthKey(monthDate));
 }

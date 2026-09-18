@@ -1,9 +1,11 @@
 import "server-only";
+import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Asset } from "@/types/database";
 
-export async function getAssets(): Promise<Asset[]> {
+/** Wrapped in React's `cache()` (perf audit finding) — called via `getNetWorthBreakdown()` up to 3x on a single dashboard render. */
+export const getAssets = cache(async (): Promise<Asset[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("assets")
@@ -12,7 +14,7 @@ export async function getAssets(): Promise<Asset[]> {
 
   if (error) throw new Error("Failed to load assets");
   return data ?? [];
-}
+});
 
 export async function getAsset(id: string): Promise<Asset | null> {
   const supabase = await createClient();

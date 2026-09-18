@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { getTransactions, getCurrentMonthRange } from "@/features/transactions/queries";
 import { getIncomeSources } from "@/features/income-sources/queries";
@@ -26,7 +27,8 @@ export interface IncomeProfileSummary {
   sources: IncomeSource[];
 }
 
-export async function getIncomeProfileSummary(): Promise<IncomeProfileSummary> {
+/** Wrapped in React's `cache()` (perf audit finding) — `/earn/income` calls this from two independent sibling Server Components. */
+export const getIncomeProfileSummary = cache(async (): Promise<IncomeProfileSummary> => {
   const { from: currentFrom, to: currentTo } = getCurrentMonthRange();
   const { from: trailingFrom, to: trailingTo } = trailingMonthsRange();
 
@@ -57,4 +59,4 @@ export async function getIncomeProfileSummary(): Promise<IncomeProfileSummary> {
   });
 
   return { profile, sources };
-}
+});

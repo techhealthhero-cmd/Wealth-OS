@@ -1,6 +1,8 @@
 import "server-only";
+import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
+import { withPerfLog } from "@/lib/dev-diagnostics";
 import {
   FEATURES,
   PLANS,
@@ -58,14 +60,24 @@ export function resolvePlanFromSubscription(row: Subscription | null): PlanId {
   return row.plan;
 }
 
-/** Resolves the signed-in user's actual entitled plan (or "free" if signed out). */
-export async function getUserPlan(): Promise<PlanId> {
+/**
+ * Resolves the signed-in user's actual entitled plan (or "free" if signed
+ * out). Wrapped in React's `cache()` (perf audit finding, mirrors
+ * `getProfile()`'s existing rationale): every function below calls this,
+ * and `PlanBadge` in the shared app header calls one of them on literally
+ * every page — several pages (billing, profile, /money/subscriptions,
+ * /plan/debt, /plan/forecast) also independently call `getEntitlements()`/
+ * `requireFeature()` themselves, which was previously a second, uncached
+ * `subscriptions` query on top of the header's. `cache()` dedupes all of
+ * these to one query per request.
+ */
+export const getUserPlan = cache((): Promise<PlanId> => withPerfLog("getUserPlan", async () => {
   const userId = await getCurrentUserId();
   if (!userId) return "free";
 
   const row = await getSubscriptionRow(userId);
   return resolvePlanFromSubscription(row);
-}
+}));
 
 export interface Entitlements {
   plan: PlanId;

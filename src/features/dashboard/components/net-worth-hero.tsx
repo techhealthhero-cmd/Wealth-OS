@@ -17,7 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedNumber } from "@/components/shared/animated-number";
 import { IconChip } from "@/components/shared/icon-chip";
 import { ClickableCard } from "@/components/shared/clickable-card";
-import { NetWorthMiniChart } from "./net-worth-mini-chart";
+import { NetWorthMiniChart } from "./charts-lazy";
 import { NetWorthInfoPopover } from "./net-worth-info-popover";
 import type { NetWorthBreakdown } from "@/features/net-worth/queries";
 
@@ -95,23 +95,30 @@ export async function NetWorthHero() {
   return (
     <div className="space-y-3">
       <ClickableCard href="/money/net-worth" ariaLabel={dict.netWorth.currentNetWorth}>
-        <Card variant={isNegative ? "default" : "highlight"} className="card-interactive transition-opacity hover:opacity-90">
-          <CardContent className="space-y-3 pt-6">
+        <Card variant={isNegative ? "default" : "highlight"} className="card-interactive rounded-3xl transition-opacity hover:opacity-90">
+          <CardContent className="space-y-4 pt-6">
             <div className="space-y-1">
-              <div className="flex items-center gap-1">
-                <p className={isNegative ? "text-sm text-muted-foreground" : "text-sm text-primary-foreground/70"}>
-                  {dict.netWorth.currentNetWorth}
-                </p>
-                <NetWorthInfoPopover
-                  label={dict.netWorth.whatIsThis}
-                  explanation={dict.netWorth.explanation}
-                  tone={isNegative ? "default" : "on-dark"}
-                />
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-1">
+                  <p className={isNegative ? "text-sm text-muted-foreground" : "text-sm text-primary-foreground/70"}>
+                    {dict.netWorth.currentNetWorth}
+                  </p>
+                  <NetWorthInfoPopover
+                    label={dict.netWorth.whatIsThis}
+                    explanation={dict.netWorth.explanation}
+                    tone={isNegative ? "default" : "on-dark"}
+                  />
+                </div>
+                {!isNegative ? (
+                  <p className="max-w-36 text-right text-xs leading-relaxed text-primary-foreground/60">
+                    {dict.netWorth.tagline}
+                  </p>
+                ) : null}
               </div>
               <AnimatedNumber
                 value={breakdown.netWorthCents}
                 formatAs="money"
-                className={`block text-4xl font-bold ${isNegative ? "text-destructive" : ""}`}
+                className={`block break-all text-[clamp(2rem,10vw,3.75rem)] font-bold leading-none tracking-tight tabular-nums ${isNegative ? "text-destructive" : ""}`}
               />
               {hasHistory ? (
                 <span
@@ -157,21 +164,21 @@ export async function NetWorthHero() {
       </ClickableCard>
 
       <Link href="/money/net-worth">
-        <Card className="card-interactive transition-opacity hover:opacity-90">
+        <Card className="card-interactive rounded-2xl transition-opacity hover:opacity-90">
           <CardContent className="space-y-3 pt-6">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <IconChip icon={Wallet} tone="mint" className="size-8" />
+            <div className="grid grid-cols-2 gap-3 text-sm sm:gap-6">
+              <div className="flex min-w-0 items-start gap-2">
+                <IconChip icon={Wallet} tone="mint" className="size-9" />
                 <div className="min-w-0">
-                  <p className="truncate text-muted-foreground">{dict.netWorth.totalAssets}</p>
-                  <p className="truncate font-medium">{formatMoney(breakdown.totalAssetsCents)}</p>
+                  <p className="text-muted-foreground">{dict.netWorth.totalAssets}</p>
+                  <p className="whitespace-nowrap text-sm font-semibold tracking-tight tabular-nums sm:text-base">{formatMoney(breakdown.totalAssetsCents)}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <IconChip icon={CreditCard} tone="rose" className="size-8" />
+              <div className="flex min-w-0 items-start gap-2 border-l pl-3 sm:pl-6">
+                <IconChip icon={CreditCard} tone="rose" className="size-9" />
                 <div className="min-w-0">
-                  <p className="truncate text-muted-foreground">{dict.netWorth.totalLiabilities}</p>
-                  <p className="truncate font-medium">{formatMoney(breakdown.totalLiabilitiesCents)}</p>
+                  <p className="text-muted-foreground">{dict.netWorth.totalLiabilities}</p>
+                  <p className="whitespace-nowrap text-sm font-semibold tracking-tight tabular-nums sm:text-base">{formatMoney(breakdown.totalLiabilitiesCents)}</p>
                 </div>
               </div>
             </div>

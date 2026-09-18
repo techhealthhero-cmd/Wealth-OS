@@ -15,11 +15,12 @@ import { LockedFeatureCard } from "@/features/billing/components/locked-feature-
 export const metadata: Metadata = { title: "Debt Planner — Wealth OS" };
 
 export default async function DebtPlannerPage() {
-  const profile = await getProfile();
+  // requireFeature() doesn't depend on profile — perf audit finding: these
+  // were sequential for no reason, each paying its own round-trip.
+  const [profile, gate] = await Promise.all([getProfile(), requireFeature(FEATURES.DEBT_PLANNER)]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 
-  const gate = await requireFeature(FEATURES.DEBT_PLANNER);
   if (!gate.allowed) {
     return (
       <div className="mx-auto max-w-lg py-8">

@@ -1,7 +1,9 @@
 import "server-only";
+import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import { toLocalDateString } from "@/lib/date";
+import { withPerfLog } from "@/lib/dev-diagnostics";
 import type { Transaction, TransactionType } from "@/types/database";
 
 export interface TransactionWithRelations extends Transaction {
@@ -44,9 +46,7 @@ function sanitizeForOrFilter(value: string): string {
   return value.replace(/[,()]/g, "").trim();
 }
 
-export async function getTransactions(
-  filters: TransactionFilters = {}
-): Promise<TransactionWithRelations[]> {
+async function fetchTransactions(filters: TransactionFilters): Promise<TransactionWithRelations[]> {
   const supabase = await createClient();
   let query = supabase
     .from("transactions")
@@ -76,6 +76,22 @@ export async function getTransactions(
   const { data, error } = await query;
   if (error) throw new Error("Failed to load transactions");
   return (data ?? []) as unknown as TransactionWithRelations[];
+}
+
+// React `cache()` keys by argument identity (Object.is per positional arg,
+// via an internal WeakMap for objects) — a fresh `{from, to}` object
+// literal at each call site would never dedupe even with identical
+// content. Normalizing to a stable, sorted-key JSON string first (a
+// primitive) is what makes `cache()` actually work here: perf audit found
+// this exact filter combination (the current month's date range) requested
+// independently by 6+ different dashboard queries on a single page load.
+const fetchTransactionsCached = cache((filtersKey: string): Promise<TransactionWithRelations[]> =>
+  withPerfLog(`getTransactions(${filtersKey})`, () => fetchTransactions(JSON.parse(filtersKey) as TransactionFilters))
+);
+
+export function getTransactions(filters: TransactionFilters = {}): Promise<TransactionWithRelations[]> {
+  const filtersKey = JSON.stringify(filters, Object.keys(filters).sort());
+  return fetchTransactionsCached(filtersKey);
 }
 
 export interface QuickRepeatCandidate {

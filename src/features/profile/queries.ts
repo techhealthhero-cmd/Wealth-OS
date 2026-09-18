@@ -3,6 +3,7 @@ import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import { captureError } from "@/lib/observability";
+import { withPerfLog } from "@/lib/dev-diagnostics";
 import type { Profile } from "@/types/database";
 
 /**
@@ -28,7 +29,7 @@ import type { Profile } from "@/types/database";
  * instead of one each. Automatically reset between requests, so this can
  * never leak one user's profile into another's request.
  */
-export const getProfile = cache(async (): Promise<Profile | null> => {
+export const getProfile = cache((): Promise<Profile | null> => withPerfLog("getProfile", async () => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -92,7 +93,7 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
     throw new Error(`[dev] Failed to create missing profile (${createError.code ?? "?"}): ${createError.message}`);
   }
   throw new Error("Failed to load profile");
-});
+}));
 
 export async function getCurrentUser() {
   const supabase = await createClient();

@@ -39,3 +39,20 @@ export const MonthlyDonutCard = dynamic(() => import("./charts").then((mod) => m
   ssr: false,
   loading: () => <Skeleton className="h-40 w-full rounded-xl" />,
 });
+
+export const GoalProgressRing = dynamic(() => import("./charts").then((mod) => mod.GoalProgressRing), {
+  ssr: false,
+  loading: () => <Skeleton className="size-20 shrink-0 rounded-full sm:size-24" />,
+});
+
+/**
+ * Nav/perf audit: `NetWorthMiniChart` was the one remaining direct
+ * (non-lazy) Recharts import on the dashboard — rendered inside the Net
+ * Worth hero, which paints first on every /dashboard view, so its eager
+ * import was pulling Recharts into the initial client bundle regardless of
+ * the lazy-loading already done for the other charts below it on the page.
+ */
+export const NetWorthMiniChart = dynamic(() => import("./net-worth-mini-chart").then((mod) => mod.NetWorthMiniChart), {
+  ssr: false,
+  loading: () => <Skeleton className="h-16 w-full" />,
+});
