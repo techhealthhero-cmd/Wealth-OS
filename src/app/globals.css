@@ -228,6 +228,8 @@
 .motion-reveal-4 { animation-delay: 150ms; }
 .motion-reveal-5 { animation-delay: 200ms; }
 .motion-reveal-6 { animation-delay: 250ms; }
+.motion-reveal-7 { animation-delay: 300ms; }
+.motion-reveal-8 { animation-delay: 350ms; }
 
 /* One-shot, non-looping attention cue for a newly-appeared Next Best
    Action — never repeats (a single animation run, not `infinite`). */

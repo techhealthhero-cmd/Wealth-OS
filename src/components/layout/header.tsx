@@ -27,11 +27,19 @@ function initials(name: string | null | undefined) {
     .join("");
 }
 
-export function Header({ displayName }: { displayName: string | null | undefined }) {
+export function Header({
+  displayName,
+  actions,
+}: {
+  displayName: string | null | undefined;
+  /** Server-rendered slot (notification bell, plan badge, ...) — passed in from the (app) layout, a Server Component, since this file is a Client Component and can't import async Server Components directly. */
+  actions?: React.ReactNode;
+}) {
   const { t } = useTranslation();
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-end gap-1 border-b px-4">
+      {actions}
       <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger

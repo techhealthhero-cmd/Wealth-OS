@@ -124,7 +124,9 @@
     "other": "Other",
     "moreInsights": "More insights",
     "vsLastMonth": "vs last month",
-    "noDataThisMonthHint": "Log an income or expense to see this month's overview"
+    "noDataThisMonthHint": "Log an income or expense to see this month's overview",
+    "thisMonth": "This month",
+    "remaining": "Remaining"
   },
   "accounts": {
     "title": "Accounts",
@@ -384,7 +386,9 @@
     "emptyTitle": "No net worth data yet",
     "emptyState": "Add an account or asset to start calculating your net worth.",
     "noHistoryYet": "Not enough history yet — check back after some time has passed.",
-  "last6Months": "Last 6 months"
+  "last6Months": "Last 6 months",
+  "whatIsThis": "What is net worth?",
+  "explanation": "Net worth = everything you own, minus everything you owe. It's the single number that best reflects your overall financial position."
   },
   "goals": {
     "title": "Financial Goals",

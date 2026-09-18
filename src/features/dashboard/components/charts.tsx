@@ -6,16 +6,20 @@ import {
   CartesianGrid,
   Cell,
   LabelList,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { TrendingDown, TrendingUp } from "lucide-react";
 
 import { centsToNumber, formatMoney } from "@/lib/financial/money";
 import { useTranslation } from "@/i18n/client";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { IconChip } from "@/components/shared/icon-chip";
 
 // 2026-09 motion system: charts animate once on first appearance only
 // (Recharts' own animation triggers on mount/data-key change, never on
@@ -290,6 +294,85 @@ export function SpendingByCategoryChart({ data, currencyCode }: SpendingByCatego
             </ResponsiveContainer>
           </>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface MonthlyDonutCardProps {
+  incomeCents: number;
+  expensesCents: number;
+  cashFlowCents: number;
+  currencyCode: string;
+  labels: { title: string; income: string; expenses: string; remaining: string };
+}
+
+/**
+ * "This month" hero-style widget — a donut ring (income vs. expenses, same
+ * palette as IncomeVsExpenseChart) with the net remaining amount centered
+ * in the ring's hole. Intentionally does NOT handle the "no data this
+ * month" case itself: the caller (dashboard page) only renders this when
+ * SummaryCards' own `hasDataThisMonth` is true, so there's exactly one
+ * empty-state message on the page (SummaryCards'), not two.
+ */
+export function MonthlyDonutCard({ incomeCents, expensesCents, cashFlowCents, currencyCode, labels }: MonthlyDonutCardProps) {
+  const reducedMotion = usePrefersReducedMotion();
+  const data = [
+    { name: "income", value: Math.max(0, incomeCents) },
+    { name: "expenses", value: Math.max(0, expensesCents) },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{labels.title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-4">
+          <div className="relative size-32 shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  innerRadius="70%"
+                  outerRadius="100%"
+                  startAngle={90}
+                  endAngle={-270}
+                  strokeWidth={0}
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={CHART_ANIMATION_DURATION_MS}
+                >
+                  <Cell fill={INCOME_EXPENSE_COLORS.income} />
+                  <Cell fill="#E5989B" />
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+              <p className="text-[11px] text-muted-foreground">{labels.remaining}</p>
+              <p className={`text-lg font-bold ${cashFlowCents < 0 ? "text-destructive" : ""}`}>
+                {formatMoney(cashFlowCents, currencyCode)}
+              </p>
+            </div>
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="flex items-center gap-2">
+              <IconChip icon={TrendingUp} tone="mint" className="size-8" />
+              <div className="min-w-0">
+                <p className="truncate text-xs text-muted-foreground">{labels.income}</p>
+                <p className="truncate font-semibold">{formatMoney(incomeCents, currencyCode)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <IconChip icon={TrendingDown} tone="rose" className="size-8" />
+              <div className="min-w-0">
+                <p className="truncate text-xs text-muted-foreground">{labels.expenses}</p>
+                <p className="truncate font-semibold">{formatMoney(expensesCents, currencyCode)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

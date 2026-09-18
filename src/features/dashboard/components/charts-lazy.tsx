@@ -34,3 +34,8 @@ export const SpendingByCategoryChart = dynamic(() => import("./charts").then((mo
   ssr: false,
   loading: ChartSkeleton,
 });
+
+export const MonthlyDonutCard = dynamic(() => import("./charts").then((mod) => mod.MonthlyDonutCard), {
+  ssr: false,
+  loading: () => <Skeleton className="h-40 w-full rounded-xl" />,
+});

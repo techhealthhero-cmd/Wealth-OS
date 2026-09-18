@@ -10,7 +10,7 @@ import { SummaryCards } from "@/features/dashboard/components/summary-cards";
 import { WealthOverview } from "@/features/dashboard/components/wealth-overview";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
-import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
+import { IncomeVsExpenseChart, SpendingByCategoryChart, MonthlyDonutCard } from "@/features/dashboard/components/charts-lazy";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { QuickAdd } from "@/features/transactions/components/quick-add";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -25,7 +25,6 @@ import { getTopInsight } from "@/features/ai/lib/insights";
 import { NextBestActionCard } from "@/features/ai/components/next-best-action-card";
 import { InsightCards } from "@/features/ai/components/insight-card";
 import { EngagementSummaryCard } from "@/features/engagement/components/engagement-summary-card";
-import { PlanBadge } from "@/features/billing/components/plan-badge";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = { title: "Dashboard — Wealth OS" };
@@ -60,22 +59,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          {/* UX guidelines #6 (Home hierarchy): greeting/context leads the
-              page, ahead of the section title — a personal "hello" reads
-              as a coach checking in, not an admin-panel page header. */}
-          <p className="truncate text-lg font-medium">
-            {profile?.display_name
-              ? dict.dashboard.greeting.replace("{name}", profile.display_name)
-              : dict.dashboard.greetingGeneric}
-          </p>
-          <h1 className="truncate text-2xl font-semibold">{dict.dashboard.title}</h1>
-          <p className="text-sm text-muted-foreground">
-            {new Date().toLocaleDateString(locale === "th" ? "th-TH" : "en-US", { month: "long", year: "numeric" })}
-          </p>
-        </div>
-        <PlanBadge />
+      <div className="min-w-0">
+        {/* UX guidelines #6 (Home hierarchy): greeting/context leads the
+            page, ahead of the section title — a personal "hello" reads
+            as a coach checking in, not an admin-panel page header. Plan
+            badge now lives in the shared app header (visible on every
+            page), not duplicated here. */}
+        <p className="truncate text-lg font-medium">
+          {profile?.display_name
+            ? dict.dashboard.greeting.replace("{name}", profile.display_name)
+            : dict.dashboard.greetingGeneric}
+        </p>
+        <h1 className="truncate text-2xl font-semibold">{dict.dashboard.title}</h1>
+        <p className="text-sm text-muted-foreground">
+          {new Date().toLocaleDateString(locale === "th" ? "th-TH" : "en-US", { month: "long", year: "numeric" })}
+        </p>
       </div>
 
       {/* UX reorg (2026-09): information hierarchy follows the "5 core
@@ -103,8 +101,15 @@ export default async function DashboardPage() {
         </Suspense>
       </div>
 
+      {/* Always-visible income/expense/transfer tiles — the same QuickAdd
+          dialogs as the floating-action-button dropdown further down, just
+          surfaced directly instead of behind a menu. */}
+      <div className="motion-reveal motion-reveal-2">
+        <QuickAdd accounts={data.accounts} categories={data.categories} variant="row" />
+      </div>
+
       {FEATURES.ai ? (
-        <div className="motion-reveal motion-reveal-2 space-y-3">
+        <div className="motion-reveal motion-reveal-3 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-medium">{dict.aiCoach.title}</h2>
             <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/ai" />}>
@@ -117,7 +122,24 @@ export default async function DashboardPage() {
         </div>
       ) : null}
 
-      <div className="motion-reveal motion-reveal-3">
+      {data.hasMonthData ? (
+        <div className="motion-reveal motion-reveal-4">
+          <MonthlyDonutCard
+            incomeCents={data.incomeCents}
+            expensesCents={data.expensesCents}
+            cashFlowCents={data.cashFlowCents}
+            currencyCode={currencyCode}
+            labels={{
+              title: dict.dashboard.thisMonth,
+              income: dict.dashboard.monthlyIncome,
+              expenses: dict.dashboard.monthlyExpenses,
+              remaining: dict.dashboard.remaining,
+            }}
+          />
+        </div>
+      ) : null}
+
+      <div className="motion-reveal motion-reveal-5">
         <SummaryCards
           incomeCents={data.incomeCents}
           expensesCents={data.expensesCents}
@@ -143,13 +165,13 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="motion-reveal motion-reveal-4">
+      <div className="motion-reveal motion-reveal-6">
         <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
           <GoalProgressCard />
         </Suspense>
       </div>
 
-      <div className="motion-reveal motion-reveal-5 grid gap-4 lg:grid-cols-2">
+      <div className="motion-reveal motion-reveal-7 grid gap-4 lg:grid-cols-2">
         <IncomeVsExpenseChart
           incomeCents={data.incomeCents}
           expensesCents={data.expensesCents}
@@ -158,7 +180,7 @@ export default async function DashboardPage() {
         <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} />
       </div>
 
-      <div className="motion-reveal motion-reveal-6 space-y-3">
+      <div className="motion-reveal motion-reveal-8 space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground">{dict.dashboard.moreInsights}</h2>
         <Suspense
           fallback={

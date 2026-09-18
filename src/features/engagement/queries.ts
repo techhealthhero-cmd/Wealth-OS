@@ -158,6 +158,17 @@ export async function getNotifications(options?: { unreadOnly?: boolean; limit?:
   return data ?? [];
 }
 
+/** Cheap count-only query for a header badge dot — no rows fetched. */
+export async function getUnreadNotificationCount(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("financial_notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("is_read", false);
+  if (error) throw new Error("Failed to load unread notification count");
+  return count ?? 0;
+}
+
 export async function getNotificationPreferences(): Promise<NotificationPreferences | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("notification_preferences").select("*").maybeSingle();

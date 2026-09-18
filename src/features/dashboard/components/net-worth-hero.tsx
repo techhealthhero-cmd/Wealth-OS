@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TrendingDown, TrendingUp, Wallet, CreditCard } from "lucide-react";
 
 import { captureError } from "@/lib/observability";
 import {
@@ -14,7 +15,10 @@ import type { Locale } from "@/i18n/config";
 import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedNumber } from "@/components/shared/animated-number";
+import { IconChip } from "@/components/shared/icon-chip";
+import { ClickableCard } from "@/components/shared/clickable-card";
 import { NetWorthMiniChart } from "./net-worth-mini-chart";
+import { NetWorthInfoPopover } from "./net-worth-info-popover";
 import type { NetWorthBreakdown } from "@/features/net-worth/queries";
 
 const CHART_HISTORY_MONTHS = 6;
@@ -84,70 +88,113 @@ export async function NetWorthHero() {
   const { dict, breakdown, change, hasHistory, chartData } = data;
   const isNegative = breakdown.netWorthCents < 0;
 
+  const totalCents = breakdown.totalAssetsCents + breakdown.totalLiabilitiesCents;
+  const assetsPercent = totalCents > 0 ? (breakdown.totalAssetsCents / totalCents) * 100 : 50;
+  const liabilitiesPercent = 100 - assetsPercent;
+
   return (
-    <Link href="/money/net-worth">
-      <Card variant={isNegative ? "default" : "highlight"} className="card-interactive transition-opacity hover:opacity-90">
-        <CardContent className="space-y-3 pt-6">
-          <div className="space-y-1">
-            <p className={isNegative ? "text-sm text-muted-foreground" : "text-sm text-primary-foreground/70"}>
-              {dict.netWorth.currentNetWorth}
-            </p>
-            <AnimatedNumber
-              value={breakdown.netWorthCents}
-              formatAs="money"
-              className={`block text-4xl font-bold ${isNegative ? "text-destructive" : ""}`}
-            />
-            {hasHistory ? (
-              <p
-                className={
-                  isNegative
-                    ? change.changeCents >= 0
-                      ? "text-sm text-emerald-600 dark:text-emerald-400"
-                      : "text-sm text-destructive"
-                    : `text-sm ${change.changeCents >= 0 ? "text-[#7FD6B2]" : "text-rose-300"}`
-                }
-              >
-                {change.changeCents >= 0 ? "+" : ""}
-                {formatMoney(change.changeCents)}
-                {change.changePercent !== null
-                  ? ` · ${change.changeCents >= 0 ? "+" : ""}${change.changePercent.toFixed(1)}%`
-                  : ""}{" "}
-                {dict.netWorth.monthlyChange}
-              </p>
-            ) : (
-              <p className={isNegative ? "text-sm text-muted-foreground" : "text-sm text-primary-foreground/60"}>
-                {dict.netWorth.noHistoryYet}
-              </p>
-            )}
-          </div>
-
-          {chartData.length >= 2 ? (
+    <div className="space-y-3">
+      <ClickableCard href="/money/net-worth" ariaLabel={dict.netWorth.currentNetWorth}>
+        <Card variant={isNegative ? "default" : "highlight"} className="card-interactive transition-opacity hover:opacity-90">
+          <CardContent className="space-y-3 pt-6">
             <div className="space-y-1">
-              <p className={isNegative ? "text-xs text-muted-foreground" : "text-xs text-primary-foreground/60"}>
-                {dict.netWorth.last6Months}
-              </p>
-              <NetWorthMiniChart data={chartData} tone={isNegative ? "default" : "highlight"} />
+              <div className="flex items-center gap-1">
+                <p className={isNegative ? "text-sm text-muted-foreground" : "text-sm text-primary-foreground/70"}>
+                  {dict.netWorth.currentNetWorth}
+                </p>
+                <NetWorthInfoPopover
+                  label={dict.netWorth.whatIsThis}
+                  explanation={dict.netWorth.explanation}
+                  tone={isNegative ? "default" : "on-dark"}
+                />
+              </div>
+              <AnimatedNumber
+                value={breakdown.netWorthCents}
+                formatAs="money"
+                className={`block text-4xl font-bold ${isNegative ? "text-destructive" : ""}`}
+              />
+              {hasHistory ? (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                    isNegative
+                      ? change.changeCents >= 0
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                        : "bg-rose-500/10 text-rose-700 dark:text-rose-400"
+                      : change.changeCents >= 0
+                        ? "bg-primary-foreground/15 text-[#7FD6B2]"
+                        : "bg-primary-foreground/15 text-rose-300"
+                  }`}
+                >
+                  {change.changeCents >= 0 ? (
+                    <TrendingUp className="size-3.5" aria-hidden="true" />
+                  ) : (
+                    <TrendingDown className="size-3.5" aria-hidden="true" />
+                  )}
+                  {change.changeCents >= 0 ? "+" : ""}
+                  {formatMoney(change.changeCents)}
+                  {change.changePercent !== null
+                    ? ` · ${change.changeCents >= 0 ? "+" : ""}${change.changePercent.toFixed(1)}%`
+                    : ""}{" "}
+                  {dict.netWorth.monthlyChange}
+                </span>
+              ) : (
+                <p className={isNegative ? "text-sm text-muted-foreground" : "text-sm text-primary-foreground/60"}>
+                  {dict.netWorth.noHistoryYet}
+                </p>
+              )}
             </div>
-          ) : null}
 
-          <div
-            className={`grid grid-cols-2 gap-3 border-t pt-3 text-sm ${isNegative ? "border-border" : "border-primary-foreground/15"}`}
-          >
-            <div>
-              <p className={isNegative ? "text-muted-foreground" : "text-primary-foreground/70"}>
-                {dict.netWorth.totalAssets}
-              </p>
-              <p className="font-medium">{formatMoney(breakdown.totalAssetsCents)}</p>
+            {chartData.length >= 2 ? (
+              <div className="space-y-1">
+                <p className={isNegative ? "text-xs text-muted-foreground" : "text-xs text-primary-foreground/60"}>
+                  {dict.netWorth.last6Months}
+                </p>
+                <NetWorthMiniChart data={chartData} tone={isNegative ? "default" : "highlight"} />
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      </ClickableCard>
+
+      <Link href="/money/net-worth">
+        <Card className="card-interactive transition-opacity hover:opacity-90">
+          <CardContent className="space-y-3 pt-6">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <IconChip icon={Wallet} tone="mint" className="size-8" />
+                <div className="min-w-0">
+                  <p className="truncate text-muted-foreground">{dict.netWorth.totalAssets}</p>
+                  <p className="truncate font-medium">{formatMoney(breakdown.totalAssetsCents)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <IconChip icon={CreditCard} tone="rose" className="size-8" />
+                <div className="min-w-0">
+                  <p className="truncate text-muted-foreground">{dict.netWorth.totalLiabilities}</p>
+                  <p className="truncate font-medium">{formatMoney(breakdown.totalLiabilitiesCents)}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className={isNegative ? "text-muted-foreground" : "text-primary-foreground/70"}>
-                {dict.netWorth.totalLiabilities}
-              </p>
-              <p className="font-medium">{formatMoney(breakdown.totalLiabilitiesCents)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+
+            {totalCents > 0 ? (
+              <div className="space-y-1.5">
+                <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-[#7FD6B2]" style={{ width: `${assetsPercent}%` }} />
+                  <div className="h-full bg-rose-400" style={{ width: `${liabilitiesPercent}%` }} />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>
+                    {assetsPercent.toFixed(0)}% {dict.netWorth.totalAssets}
+                  </span>
+                  <span>
+                    {liabilitiesPercent.toFixed(0)}% {dict.netWorth.totalLiabilities}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      </Link>
+    </div>
   );
 }

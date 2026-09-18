@@ -8,6 +8,8 @@ import { I18nProvider } from "@/i18n/client";
 import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Header } from "@/components/layout/header";
+import { NotificationBell } from "@/components/layout/notification-bell";
+import { PlanBadge } from "@/features/billing/components/plan-badge";
 import { Toaster } from "@/components/ui/sonner";
 
 /**
@@ -54,7 +56,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-h-screen min-w-0">
         <Sidebar />
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <Header displayName={profile.display_name} />
+          <Header
+            displayName={profile.display_name}
+            actions={
+              <>
+                <NotificationBell />
+                <PlanBadge />
+              </>
+            }
+          />
           <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-8">{children}</main>
           <BottomNav />
         </div>
