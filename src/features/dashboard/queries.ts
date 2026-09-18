@@ -76,7 +76,10 @@ export function getDashboardData() {
   const [monthTransactions, prevMonthTransactions, recentTransactions, accounts, categories] = await Promise.all([
     getTransactions({ from, to }),
     getTransactions({ from: prevFrom, to: prevTo }),
-    getTransactions({ limit: 5 }),
+    // 2026-09 Home redesign: recent transactions is now a 3-item preview
+    // behind the "show more details" toggle (full history at
+    // /money/transactions), not a 5-item list rendered by default.
+    getTransactions({ limit: 3 }),
     getAccounts(),
     getCategories(),
   ]);

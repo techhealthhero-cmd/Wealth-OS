@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -16,13 +17,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { ChevronDown, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 
 import { centsToNumber, formatMoney } from "@/lib/financial/money";
 import { useTranslation } from "@/i18n/client";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconChip } from "@/components/shared/icon-chip";
+import { QuickAdd } from "@/features/transactions/components/quick-add";
+import type { Account, Category } from "@/types/database";
 
 // 2026-09 motion system: charts animate once on first appearance only
 // (Recharts' own animation triggers on mount/data-key change, never on
@@ -363,8 +367,57 @@ interface MonthlyDonutCardProps {
   incomeCents: number;
   expensesCents: number;
   cashFlowCents: number;
+  savingsRatePercent: number;
+  /** Percent change vs. last month; null when there's nothing to compare against (see calculateChangePercent). */
+  incomeChangePercent: number | null;
+  expensesChangePercent: number | null;
+  cashFlowChangePercent: number | null;
+  /** Percentage-POINT difference, not calculateChangePercent — savings rate is already a percentage. */
+  savingsRateChangePoints: number | null;
+  hasDataThisMonth: boolean;
   currencyCode: string;
-  labels: { title: string; income: string; expenses: string; remaining: string };
+  accounts: Account[];
+  categories: Category[];
+  labels: {
+    title: string;
+    income: string;
+    expenses: string;
+    remaining: string;
+    cashFlow: string;
+    savingsRate: string;
+    vsLastMonth: string;
+    viewDetails: string;
+    noDataTitle: string;
+    noDataHint: string;
+  };
+}
+
+/** Compact inline trend indicator (arrow + %) — same sign/tone logic as SummaryCards' TrendLine, just inline rather than its own line. */
+function InlineTrend({
+  changeValue,
+  unit = "%",
+  invertTone = false,
+}: {
+  changeValue: number | null;
+  unit?: "%" | "pp";
+  invertTone?: boolean;
+}) {
+  if (changeValue === null) return null;
+  const isGoodDirection = invertTone ? changeValue <= 0 : changeValue >= 0;
+  const Icon = changeValue >= 0 ? TrendingUp : TrendingDown;
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-0.5 text-[11px] font-medium",
+        isGoodDirection ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+      )}
+    >
+      <Icon className="size-2.5" aria-hidden="true" />
+      {changeValue >= 0 ? "+" : ""}
+      {changeValue.toFixed(1)}
+      {unit}
+    </span>
+  );
 }
 
 interface GoalProgressRingProps {
@@ -411,24 +464,57 @@ export function GoalProgressRing({ progress, label }: GoalProgressRingProps) {
 /**
  * "This month" hero-style widget — a donut ring (income vs. expenses, same
  * palette as IncomeVsExpenseChart) with the net remaining amount centered
- * in the ring's hole. Intentionally does NOT handle the "no data this
- * month" case itself: the caller (dashboard page) only renders this when
- * SummaryCards' own `hasDataThisMonth` is true, so there's exactly one
- * empty-state message on the page (SummaryCards'), not two.
+ * in the ring's hole, plus a chevron-expand section (2026-09 Home redesign)
+ * revealing Cash Flow and Savings Rate — this card now OWNS its own "no
+ * data this month" empty state (ported in from the now-deleted
+ * SummaryCards) rather than the page gating its render, since it's the
+ * only monthly-snapshot card on the page.
  */
-export function MonthlyDonutCard({ incomeCents, expensesCents, cashFlowCents, currencyCode, labels }: MonthlyDonutCardProps) {
+export function MonthlyDonutCard({
+  incomeCents,
+  expensesCents,
+  cashFlowCents,
+  savingsRatePercent,
+  incomeChangePercent,
+  expensesChangePercent,
+  cashFlowChangePercent,
+  savingsRateChangePoints,
+  hasDataThisMonth,
+  currencyCode,
+  accounts,
+  categories,
+  labels,
+}: MonthlyDonutCardProps) {
   const reducedMotion = usePrefersReducedMotion();
+  const [expanded, setExpanded] = useState(false);
   const data = [
     { name: "income", value: Math.max(0, incomeCents) },
     { name: "expenses", value: Math.max(0, expensesCents) },
   ];
+
+  // UX_GUIDELINES.md #10: never show a dead "฿0" card with nothing to do
+  // about it — mirrors the empty state SummaryCards used to render.
+  if (!hasDataThisMonth) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+          <IconChip icon={Wallet} tone="lavender" className="size-10" />
+          <div className="space-y-1">
+            <p className="font-medium">{labels.noDataTitle}</p>
+            <p className="text-sm text-muted-foreground">{labels.noDataHint}</p>
+          </div>
+          <QuickAdd accounts={accounts} categories={categories} variant="inline" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{labels.title}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="relative size-28 shrink-0 sm:size-32">
             <ResponsiveContainer width="100%" height="100%">
@@ -460,20 +546,58 @@ export function MonthlyDonutCard({ incomeCents, expensesCents, cashFlowCents, cu
           <div className="min-w-0 flex-1 space-y-3">
             <div className="flex items-center gap-2">
               <IconChip icon={TrendingUp} tone="mint" className="size-8" />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-xs text-muted-foreground">{labels.income}</p>
-                <p className="break-all text-sm font-semibold tabular-nums sm:text-base">{formatMoney(incomeCents, currencyCode)}</p>
+                <div className="flex flex-wrap items-baseline gap-x-1.5">
+                  <p className="break-all text-sm font-semibold tabular-nums sm:text-base">{formatMoney(incomeCents, currencyCode)}</p>
+                  <InlineTrend changeValue={incomeChangePercent} />
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <IconChip icon={TrendingDown} tone="rose" className="size-8" />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-xs text-muted-foreground">{labels.expenses}</p>
-                <p className="break-all text-sm font-semibold tabular-nums sm:text-base">{formatMoney(expensesCents, currencyCode)}</p>
+                <div className="flex flex-wrap items-baseline gap-x-1.5">
+                  <p className="break-all text-sm font-semibold tabular-nums sm:text-base">{formatMoney(expensesCents, currencyCode)}</p>
+                  <InlineTrend changeValue={expensesChangePercent} invertTone />
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-1 text-xs font-medium text-primary transition-transform duration-(--motion-fast) active:scale-[0.98]"
+        >
+          {labels.viewDetails}
+          <ChevronDown
+            className={cn("h-3 w-3 transition-transform duration-(--motion-normal) ease-(--ease-standard)", expanded && "rotate-180")}
+            aria-hidden="true"
+          />
+        </button>
+
+        {expanded ? (
+          <div className="animate-in fade-in slide-in-from-top-1 duration-(--motion-normal) space-y-2 border-t pt-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">{labels.cashFlow}</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                {formatMoney(cashFlowCents, currencyCode)}
+                <InlineTrend changeValue={cashFlowChangePercent} />
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">{labels.savingsRate}</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                {savingsRatePercent.toFixed(1)}%
+                <InlineTrend changeValue={savingsRateChangePoints} unit="pp" />
+              </span>
+            </div>
+            <p className="pt-0.5 text-[11px] text-muted-foreground">{labels.vsLastMonth}</p>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

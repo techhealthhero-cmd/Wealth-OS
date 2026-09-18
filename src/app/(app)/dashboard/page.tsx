@@ -6,10 +6,10 @@ import { getDashboardData, getIncomeExpenseTrend } from "@/features/dashboard/qu
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
-import { SummaryCards } from "@/features/dashboard/components/summary-cards";
 import { WealthOverview } from "@/features/dashboard/components/wealth-overview";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
+import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboard-details-toggle";
 import { IncomeVsExpenseChart, SpendingByCategoryChart, MonthlyDonutCard } from "@/features/dashboard/components/charts-lazy";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { QuickAdd } from "@/features/transactions/components/quick-add";
@@ -76,11 +76,19 @@ export default async function DashboardPage() {
       {/* UX reorg (2026-09): information hierarchy follows the "5 core
           questions" framework — Net Worth (am I wealthier?) first, Next
           Best Action (what should I do?) second, then the monthly
-          income/expense/cash-flow picture, goal progress, spending
-          breakdown, and only then the deeper Wealth Score/Life Stage/
-          Safe-to-Spend detail grid and recent activity. Nothing here
-          changes what data is fetched or how it's calculated — this is a
-          presentation-order change only.
+          income/expense/cash-flow picture, goal progress, and engagement.
+          Nothing here changes what data is fetched or how it's calculated
+          — this is a presentation-order change only.
+
+          2026-09 "command center" redesign: everything beyond the above —
+          charts, the deeper Wealth Score/Life Stage/Safe-to-Spend/Budget/
+          Emergency Fund grid, and account/transaction previews — now lives
+          behind one collapsed DashboardDetailsToggle instead of being part
+          of the default scroll (see UX_GUIDELINES.md #4, progressive
+          disclosure). Net Worth's own assets/liabilities breakdown and the
+          monthly snapshot's cash-flow/savings-rate detail follow the same
+          principle at the card level (chevron-expand, collapsed by
+          default) rather than being separate always-visible cards.
 
           2026-09 motion pass: each section gets a small staggered
           fade+translateY entrance (`.motion-reveal*`, see globals.css) —
@@ -105,22 +113,34 @@ export default async function DashboardPage() {
         <QuickAdd accounts={data.accounts} categories={data.categories} variant="row" />
       </div>
 
-      {data.hasMonthData ? (
-        <div className="motion-reveal motion-reveal-3">
-          <MonthlyDonutCard
-            incomeCents={data.incomeCents}
-            expensesCents={data.expensesCents}
-            cashFlowCents={data.cashFlowCents}
-            currencyCode={currencyCode}
-            labels={{
-              title: dict.dashboard.thisMonth,
-              income: dict.dashboard.monthlyIncome,
-              expenses: dict.dashboard.monthlyExpenses,
-              remaining: dict.dashboard.remaining,
-            }}
-          />
-        </div>
-      ) : null}
+      <div className="motion-reveal motion-reveal-3">
+        <MonthlyDonutCard
+          incomeCents={data.incomeCents}
+          expensesCents={data.expensesCents}
+          cashFlowCents={data.cashFlowCents}
+          savingsRatePercent={data.savingsRatePercent}
+          incomeChangePercent={data.incomeChangePercent}
+          expensesChangePercent={data.expensesChangePercent}
+          cashFlowChangePercent={data.cashFlowChangePercent}
+          savingsRateChangePoints={data.savingsRateChangePoints}
+          hasDataThisMonth={data.hasMonthData}
+          currencyCode={currencyCode}
+          accounts={data.accounts}
+          categories={data.categories}
+          labels={{
+            title: dict.dashboard.thisMonth,
+            income: dict.dashboard.monthlyIncome,
+            expenses: dict.dashboard.monthlyExpenses,
+            remaining: dict.dashboard.remaining,
+            cashFlow: dict.dashboard.cashFlow,
+            savingsRate: dict.dashboard.savingsRate,
+            vsLastMonth: dict.dashboard.vsLastMonth,
+            viewDetails: dict.dashboard2.viewDetails,
+            noDataTitle: dict.dashboard.noIncomeExpenseData,
+            noDataHint: dict.dashboard.noDataThisMonthHint,
+          }}
+        />
+      </div>
 
       {FEATURES.ai ? (
         <div className="motion-reveal motion-reveal-4 space-y-3">
@@ -143,110 +163,87 @@ export default async function DashboardPage() {
       </div>
 
       <div className="motion-reveal motion-reveal-6">
-        <SummaryCards
-          incomeCents={data.incomeCents}
-          expensesCents={data.expensesCents}
-          cashFlowCents={data.cashFlowCents}
-          savingsRatePercent={data.savingsRatePercent}
-          incomeChangePercent={data.incomeChangePercent}
-          expensesChangePercent={data.expensesChangePercent}
-          cashFlowChangePercent={data.cashFlowChangePercent}
-          savingsRateChangePoints={data.savingsRateChangePoints}
-          hasDataThisMonth={data.hasMonthData}
-          currencyCode={currencyCode}
-          accounts={data.accounts}
-          categories={data.categories}
-          labels={{
-            income: dict.dashboard.monthlyIncome,
-            expenses: dict.dashboard.monthlyExpenses,
-            cashFlow: dict.dashboard.cashFlow,
-            savingsRate: dict.dashboard.savingsRate,
-            vsLastMonth: dict.dashboard.vsLastMonth,
-            noDataTitle: dict.dashboard.noIncomeExpenseData,
-            noDataHint: dict.dashboard.noDataThisMonthHint,
-          }}
-        />
+        <EngagementSummaryCard />
       </div>
 
-      <div className="motion-reveal motion-reveal-7 grid gap-4 lg:grid-cols-2">
-        <IncomeVsExpenseChart
-          data={incomeExpenseTrend.map((point) => ({
-            month: new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "short" }).format(
-              point.monthDate
-            ),
-            incomeCents: point.incomeCents,
-            expensesCents: point.expensesCents,
-          }))}
-          currencyCode={currencyCode}
-        />
-        <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} />
-      </div>
+      <div className="motion-reveal motion-reveal-7">
+        <DashboardDetailsToggle label={dict.dashboard.moreInsights}>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <IncomeVsExpenseChart
+              data={incomeExpenseTrend.map((point) => ({
+                month: new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "short" }).format(
+                  point.monthDate
+                ),
+                incomeCents: point.incomeCents,
+                expensesCents: point.expensesCents,
+              }))}
+              currencyCode={currencyCode}
+            />
+            <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} />
+          </div>
 
-      <div className="motion-reveal motion-reveal-8 space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground">{dict.dashboard.moreInsights}</h2>
-        <Suspense
-          fallback={
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-xl" />
-              ))}
-            </div>
-          }
-        >
-          <WealthOverview />
-        </Suspense>
-      </div>
-
-      <EngagementSummaryCard />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardContent className="space-y-3 pt-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-medium">{dict.dashboard.accountBalances}</h2>
-              <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/money/accounts" />}>
-                {dict.dashboard.viewAll}
-              </Button>
-            </div>
-            {data.accounts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{dict.accounts.emptyState}</p>
-            ) : (
-              <ul className="space-y-2">
-                {data.accounts.map((account) => (
-                  <li key={account.id} className="flex items-center justify-between text-sm">
-                    <span>{account.name}</span>
-                    <span className="font-medium">
-                      {formatMoneyFromDecimal(account.current_balance, account.currency_code)}
-                    </span>
-                  </li>
+          <Suspense
+            fallback={
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-24 w-full rounded-xl" />
                 ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+              </div>
+            }
+          >
+            <WealthOverview />
+          </Suspense>
 
-        <Card>
-          <CardContent className="space-y-1 pt-6">
-            <div className="flex items-center justify-between pb-2">
-              <h2 className="font-medium">{dict.dashboard.recentTransactions}</h2>
-              <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/money/transactions" />}>
-                {dict.dashboard.viewAll}
-              </Button>
-            </div>
-            {data.recentTransactions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{dict.transactions.emptyState}</p>
-            ) : (
-              data.recentTransactions.map((transaction) => (
-                <TransactionRow
-                  key={transaction.id}
-                  transaction={transaction}
-                  accounts={data.accounts}
-                  categories={data.categories}
-                />
-              ))
-            )}
-          </CardContent>
-        </Card>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-medium">{dict.dashboard.accountBalances}</h2>
+                  <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/money/accounts" />}>
+                    {dict.dashboard.viewAll}
+                  </Button>
+                </div>
+                {data.accounts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{dict.accounts.emptyState}</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {data.accounts.slice(0, 3).map((account) => (
+                      <li key={account.id} className="flex items-center justify-between text-sm">
+                        <span>{account.name}</span>
+                        <span className="font-medium">
+                          {formatMoneyFromDecimal(account.current_balance, account.currency_code)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="space-y-1 pt-6">
+                <div className="flex items-center justify-between pb-2">
+                  <h2 className="font-medium">{dict.dashboard.recentTransactions}</h2>
+                  <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/money/transactions" />}>
+                    {dict.dashboard.viewAll}
+                  </Button>
+                </div>
+                {data.recentTransactions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{dict.transactions.emptyState}</p>
+                ) : (
+                  data.recentTransactions.slice(0, 3).map((transaction) => (
+                    <TransactionRow
+                      key={transaction.id}
+                      transaction={transaction}
+                      accounts={data.accounts}
+                      categories={data.categories}
+                    />
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </DashboardDetailsToggle>
       </div>
 
       <QuickAdd accounts={data.accounts} categories={data.categories} />

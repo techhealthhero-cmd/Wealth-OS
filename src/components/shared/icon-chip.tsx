@@ -15,7 +15,7 @@ interface IconChipProps {
 // lime/sky/orange palette — no orange or saturated colors anywhere. "rose"
 // (debt/liability, negative movement) reuses Tailwind's rose scale rather
 // than a bespoke hex, matching the rose already used for negative-value
-// text elsewhere in the dashboard (net-worth-hero.tsx, summary-cards.tsx).
+// text elsewhere in the dashboard (net-worth-hero.tsx, charts.tsx).
 const TONE_CLASSES: Record<NonNullable<IconChipProps["tone"]>, string> = {
   mint: "bg-[#7FD6B2]/20 text-[#1F4D3E]",
   slate: "bg-[#8EA2B8]/20 text-[#3E4E5C]",
