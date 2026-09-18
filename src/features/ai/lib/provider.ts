@@ -8,6 +8,28 @@ export interface GenerateParams {
   maxTokens?: number;
 }
 
+/**
+ * Anthropic's Messages API accepts `content` as either a plain string or an
+ * array of content blocks (image + text mixed). Only build the array form
+ * when a message actually has an image attached — every existing text-only
+ * call site is unaffected (still sends a plain string, byte-for-byte the
+ * same request shape as before image support existed).
+ */
+function toAnthropicMessage(m: AIMessage): { role: string; content: unknown } {
+  if (!m.images?.length) return { role: m.role, content: m.content };
+
+  return {
+    role: m.role,
+    content: [
+      ...m.images.map((img) => ({
+        type: "image",
+        source: { type: "base64", media_type: img.mediaType, data: img.base64Data },
+      })),
+      { type: "text", text: m.content },
+    ],
+  };
+}
+
 export interface GenerateResult {
   content: string;
   usage: { inputTokens: number; outputTokens: number };
@@ -70,9 +92,7 @@ class AnthropicProvider implements AIProvider {
       model: this.model,
       max_tokens: params.maxTokens ?? DEFAULT_MAX_TOKENS,
       system: params.system,
-      messages: params.messages
-        .filter((m) => m.role !== "system")
-        .map((m) => ({ role: m.role, content: m.content })),
+      messages: params.messages.filter((m) => m.role !== "system").map(toAnthropicMessage),
       stream,
     };
   }

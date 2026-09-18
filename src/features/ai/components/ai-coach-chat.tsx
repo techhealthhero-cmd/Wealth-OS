@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUp, Check, Copy } from "lucide-react";
+import { ArrowUp, Check, Copy, ImagePlus, X } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 
@@ -18,6 +18,17 @@ interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Client-side only (data: URL) — the screenshot the user attached, if any. Never round-trips through the server (see route.ts: images are never persisted). */
+  imageDataUrl?: string;
+}
+
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+interface PendingImage {
+  dataUrl: string;
+  mediaType: string;
+  base64Data: string;
 }
 
 const SUGGESTED_PROMPT_KEYS = [
@@ -112,8 +123,10 @@ export function AICoachChat({
   const [conversationId, setConversationId] = React.useState<string | undefined>(initialConversationId);
   const [isSending, setIsSending] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [pendingImage, setPendingImage] = React.useState<PendingImage | null>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   // "Stick to bottom" while streaming, but stop following the moment the
   // user scrolls away — a reply can run to many paragraphs, and locking
   // the page to the newest token means the user can never read up while
@@ -138,24 +151,64 @@ export function AICoachChat({
     }
   }, [messages]);
 
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    setErrorMessage(null);
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setErrorMessage(t("aiCoach.errorImageUnsupportedType"));
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setErrorMessage(t("aiCoach.errorImageTooLarge"));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === "string" ? reader.result : "";
+      // data:image/png;base64,iVBORw0... -> just the part after the comma.
+      const base64Data = dataUrl.slice(dataUrl.indexOf(",") + 1);
+      if (!base64Data) {
+        setErrorMessage(t("aiCoach.errorGeneric"));
+        return;
+      }
+      setPendingImage({ dataUrl, mediaType: file.type, base64Data });
+    };
+    reader.onerror = () => setErrorMessage(t("aiCoach.errorGeneric"));
+    reader.readAsDataURL(file);
+  }
+
   async function sendMessage(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || isSending) return;
+    const image = pendingImage;
+    if ((!trimmed && !image) || isSending) return;
 
     setErrorMessage(null);
     setInput("");
+    setPendingImage(null);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     // The user just acted — resume following the conversation even if they'd
     // scrolled away reading an earlier reply.
     stickToBottomRef.current = true;
-    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", content: trimmed }]);
+    setMessages((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), role: "user", content: trimmed, imageDataUrl: image?.dataUrl },
+    ]);
     setIsSending(true);
 
     try {
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, conversationId }),
+        body: JSON.stringify({
+          message: trimmed,
+          conversationId,
+          image: image ? { mediaType: image.mediaType, base64Data: image.base64Data } : undefined,
+        }),
       });
 
       const contentType = res.headers.get("Content-Type") ?? "";
@@ -277,6 +330,14 @@ export function AICoachChat({
             return (
               <Message align={align} className="animate-in fade-in slide-in-from-bottom-1 duration-(--motion-normal)" key={m.id}>
                 <MessageContent className="gap-1.5">
+                  {m.imageDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- a transient client-side data: URL (never uploaded/persisted), not an optimizable remote/static asset next/image expects.
+                    <img
+                      src={m.imageDataUrl}
+                      alt={t("aiCoach.imageAttachedAlt")}
+                      className="max-h-48 w-auto max-w-full rounded-xl object-contain"
+                    />
+                  ) : null}
                   {isThinking ? (
                     <Bubble align={align} variant="ghost">
                       <BubbleContent>
@@ -284,7 +345,7 @@ export function AICoachChat({
                       </BubbleContent>
                     </Bubble>
                   ) : (
-                    renderBubbleParagraphs(m.content, align)
+                    m.content ? renderBubbleParagraphs(m.content, align) : null
                   )}
                   {m.content && !isThinking ? (
                     <MessageFooter className="-mx-1.5">
@@ -305,8 +366,45 @@ export function AICoachChat({
         </p>
       ) : null}
 
+      {pendingImage ? (
+        <div className="relative w-fit">
+          {/* eslint-disable-next-line @next/next/no-img-element -- transient client-side data: URL preview of a not-yet-sent attachment, not an optimizable asset. */}
+          <img src={pendingImage.dataUrl} alt={t("aiCoach.imageAttachedAlt")} className="h-16 w-16 rounded-lg object-cover" />
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-xs"
+            aria-label={t("aiCoach.removeImage")}
+            className="absolute -right-1.5 -top-1.5 rounded-full shadow-card"
+            onClick={() => setPendingImage(null)}
+          >
+            <X className="size-3" aria-hidden="true" />
+          </Button>
+        </div>
+      ) : null}
+
       <form onSubmit={handleSubmit}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ALLOWED_IMAGE_TYPES.join(",")}
+          onChange={handleFileSelect}
+          hidden
+        />
         <InputGroup className="h-auto min-h-11 items-end rounded-[22px] px-0.5 py-0.5">
+          <InputGroupAddon align="inline-start" className="pb-1.25 pl-1.5">
+            <InputGroupButton
+              type="button"
+              aria-label={t("aiCoach.attachImage")}
+              disabled={isSending}
+              size="icon-sm"
+              variant="ghost"
+              className="rounded-full"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <ImagePlus className="size-4" aria-hidden="true" />
+            </InputGroupButton>
+          </InputGroupAddon>
           <InputGroupTextarea
             ref={textareaRef}
             value={input}
@@ -319,7 +417,7 @@ export function AICoachChat({
             placeholder={t("aiCoach.inputPlaceholder")}
             aria-label={t("aiCoach.inputPlaceholder")}
             disabled={isSending}
-            className="min-h-9 py-2 pl-3 text-[15px]/6"
+            className="min-h-9 py-2 pl-1 text-[15px]/6"
             rows={1}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -332,12 +430,12 @@ export function AICoachChat({
             <InputGroupButton
               type="submit"
               aria-label={t("aiCoach.send")}
-              disabled={isSending || !input.trim()}
+              disabled={isSending || (!input.trim() && !pendingImage)}
               size="icon-sm"
               variant="default"
               className={cn(
                 "rounded-full transition-transform duration-(--motion-fast) ease-(--ease-standard)",
-                input.trim() ? "scale-100 opacity-100" : "scale-90 opacity-60"
+                input.trim() || pendingImage ? "scale-100 opacity-100" : "scale-90 opacity-60"
               )}
             >
               <ArrowUp className="size-4" aria-hidden="true" />

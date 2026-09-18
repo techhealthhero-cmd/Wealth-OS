@@ -7,14 +7,19 @@ import { getLocale } from "@/i18n/server";
 import { buildFinancialContext } from "@/features/ai/lib/context-builder";
 import { buildSystemPrompt } from "@/features/ai/prompts/money-coach";
 import { getAIProvider } from "@/features/ai/lib/provider";
-import { containsDistressSignal, requestsGuaranteedReturns, validateUserMessage } from "@/features/ai/lib/guardrails";
+import {
+  containsDistressSignal,
+  requestsGuaranteedReturns,
+  validateImageAttachment,
+  validateUserMessage,
+} from "@/features/ai/lib/guardrails";
 import { getConversation, getMessages } from "@/features/ai/queries";
 import { appendMessage, createConversation, deriveConversationTitle, logUsage, touchConversation } from "@/features/ai/actions";
 import { getAIUsageStatus } from "@/lib/billing/ai-usage";
 import { captureError } from "@/lib/observability";
 import { trackEvent } from "@/lib/analytics";
 import { checkRateLimit } from "@/lib/rate-limit";
-import type { AIMessage } from "@/features/ai/types";
+import type { AIImageMediaType, AIMessage, AIMessageImage } from "@/features/ai/types";
 
 const MAX_HISTORY_MESSAGES = 20;
 
@@ -39,6 +44,24 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const message = typeof body?.message === "string" ? body.message : "";
   const requestedConversationId = typeof body?.conversationId === "string" ? body.conversationId : null;
+
+  // Optional single-image attachment (a screenshot the user wants explained
+  // — e.g. "what does this form field mean?"). Never persisted to
+  // ai_messages (see appendMessage calls below) — used only for this one
+  // turn's request to the provider, so a possibly-sensitive screenshot
+  // doesn't sit in the database indefinitely. Untrusted client input:
+  // validated for type/size before it ever reaches the provider.
+  const rawImage = body?.image;
+  let image: AIMessageImage | null = null;
+  if (rawImage && typeof rawImage.mediaType === "string" && typeof rawImage.base64Data === "string") {
+    const imageValidation = validateImageAttachment(rawImage.mediaType, rawImage.base64Data);
+    if (!imageValidation.valid) {
+      const error =
+        imageValidation.reason === "too_large" ? dict.aiCoach.errorImageTooLarge : dict.aiCoach.errorImageUnsupportedType;
+      return Response.json({ error }, { status: 400 });
+    }
+    image = { mediaType: rawImage.mediaType as AIImageMediaType, base64Data: rawImage.base64Data };
+  }
   // A conversation id here comes straight from the client request body, so
   // it's untrusted input — verify it's actually this user's own
   // conversation before it's used for anything (history lookup, appending
@@ -51,12 +74,18 @@ export async function POST(request: Request) {
       : null
     : null;
 
-  const validation = validateUserMessage(message);
+  // An image attached with no typed question ("just look at this") is a
+  // real, expected case for this feature — substitute a default question
+  // before the usual empty-message rejection, rather than forcing the
+  // client to fabricate placeholder text itself.
+  const effectiveMessage = !message.trim() && image ? dict.aiCoach.imageOnlyDefaultPrompt : message;
+
+  const validation = validateUserMessage(effectiveMessage);
   if (!validation.valid) {
     const error = validation.reason === "empty" ? dict.aiCoach.errorEmpty : dict.aiCoach.errorTooLong;
     return Response.json({ error }, { status: 400 });
   }
-  const trimmedMessage = message.trim();
+  const trimmedMessage = effectiveMessage.trim();
 
   // Acute personal crisis takes priority over money coaching — short-circuit
   // before any AI call and point to real help instead.
@@ -113,7 +142,7 @@ export async function POST(request: Request) {
 
   const conversationMessages: AIMessage[] = [
     ...history.slice(-MAX_HISTORY_MESSAGES).map((m) => ({ role: m.role, content: m.content })),
-    { role: "user", content: trimmedMessage },
+    { role: "user", content: trimmedMessage, images: image ? [image] : undefined },
   ];
 
   const finalConversationId = conversationId ?? (await createConversation(user.id, deriveConversationTitle(trimmedMessage)));

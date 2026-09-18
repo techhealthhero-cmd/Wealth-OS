@@ -7,9 +7,19 @@
 
 export type Locale = "th" | "en";
 
+export type AIImageMediaType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+
+export interface AIMessageImage {
+  mediaType: AIImageMediaType;
+  /** Raw base64 payload, no "data:image/...;base64," prefix. */
+  base64Data: string;
+}
+
 export interface AIMessage {
   role: "system" | "user" | "assistant";
   content: string;
+  /** Only ever set on a "user" message — a screenshot/photo attached to that single turn (e.g. "what does this form field mean?"). Never persisted to ai_messages; see route.ts. */
+  images?: AIMessageImage[];
 }
 
 export interface FinancialSnapshotTool {

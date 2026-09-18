@@ -797,7 +797,13 @@
     "limitReachedMessage": "คุณใช้ข้อความ AI ครบตามสิทธิ์ของแผนนี้ในเดือนนี้แล้ว",
     "limitReachedReset": "โควตาจะรีเซ็ตในวันที่",
     "limitReachedShort": "ใช้ครบแล้ว",
-    "upgradeCta": "อัปเกรดแผน"
+    "upgradeCta": "อัปเกรดแผน",
+    "attachImage": "แนบรูปภาพ",
+    "removeImage": "ลบรูปภาพ",
+    "imageAttachedAlt": "รูปภาพที่แนบ",
+    "errorImageTooLarge": "ไฟล์รูปภาพใหญ่เกินไป (สูงสุด 5MB)",
+    "errorImageUnsupportedType": "รองรับเฉพาะไฟล์รูปภาพ JPG, PNG, WEBP หรือ GIF",
+    "imageOnlyDefaultPrompt": "ช่วยดูรูปนี้แล้วอธิบายให้หน่อยได้ไหม"
   },
   "aiInsight": {
     "title": "ข้อสังเกตจากข้อมูลการเงิน",

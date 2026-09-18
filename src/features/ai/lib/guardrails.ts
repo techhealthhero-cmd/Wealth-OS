@@ -36,6 +36,29 @@ export function validateUserMessage(text: string): MessageValidation {
   return { valid: true };
 }
 
+const ALLOWED_IMAGE_MEDIA_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+// Anthropic recommends images stay under 5MB raw (larger ones are
+// auto-downscaled, wasting the upload) — enforced here too so an
+// oversized attachment fails fast with a clear message instead of a slow
+// upload followed by a confusing provider-side error.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+export interface ImageValidation {
+  valid: boolean;
+  reason?: "unsupported_type" | "too_large" | "invalid_data";
+}
+
+/** Basic shape validation for an incoming chat image attachment — not a content filter. */
+export function validateImageAttachment(mediaType: string, base64Data: string): ImageValidation {
+  if (!ALLOWED_IMAGE_MEDIA_TYPES.includes(mediaType)) return { valid: false, reason: "unsupported_type" };
+  if (!base64Data || !/^[A-Za-z0-9+/]+=*$/.test(base64Data)) return { valid: false, reason: "invalid_data" };
+  // Base64 encodes 3 raw bytes as 4 characters — this is the standard
+  // inverse without needing to actually decode the payload first.
+  const approxRawBytes = (base64Data.length * 3) / 4;
+  if (approxRawBytes > MAX_IMAGE_BYTES) return { valid: false, reason: "too_large" };
+  return { valid: true };
+}
+
 const DISTRESS_KEYWORDS = [
   "อยากตาย",
   "ฆ่าตัวตาย",

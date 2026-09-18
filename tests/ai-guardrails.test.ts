@@ -4,6 +4,7 @@ import {
   containsDistressSignal,
   requestsGuaranteedReturns,
   sanitizeUserText,
+  validateImageAttachment,
   validateUserMessage,
 } from "@/features/ai/lib/guardrails";
 
@@ -72,5 +73,48 @@ describe("requestsGuaranteedReturns", () => {
   it("does not flag a normal investment question", () => {
     expect(requestsGuaranteedReturns("ควรเริ่มลงทุนยังไงดี")).toBe(false);
     expect(requestsGuaranteedReturns("What's a reasonable expected return for an index fund?")).toBe(false);
+  });
+});
+
+describe("validateImageAttachment", () => {
+  // 12 raw bytes, well under any size limit — content doesn't matter, only shape/size.
+  const smallBase64 = Buffer.from("hello world!").toString("base64");
+
+  it("accepts a small, allowed-type image", () => {
+    expect(validateImageAttachment("image/png", smallBase64)).toEqual({ valid: true });
+    expect(validateImageAttachment("image/jpeg", smallBase64)).toEqual({ valid: true });
+    expect(validateImageAttachment("image/webp", smallBase64)).toEqual({ valid: true });
+    expect(validateImageAttachment("image/gif", smallBase64)).toEqual({ valid: true });
+  });
+
+  it("rejects an unsupported media type", () => {
+    expect(validateImageAttachment("application/pdf", smallBase64)).toEqual({
+      valid: false,
+      reason: "unsupported_type",
+    });
+    expect(validateImageAttachment("text/html", smallBase64)).toEqual({
+      valid: false,
+      reason: "unsupported_type",
+    });
+  });
+
+  it("rejects empty or non-base64 data", () => {
+    expect(validateImageAttachment("image/png", "")).toEqual({ valid: false, reason: "invalid_data" });
+    expect(validateImageAttachment("image/png", "not base64!! <script>")).toEqual({
+      valid: false,
+      reason: "invalid_data",
+    });
+  });
+
+  it("rejects an image over the size limit", () => {
+    // ~6MB of raw data, base64-encoded — over the 5MB raw limit.
+    const oversized = "A".repeat(Math.ceil((6 * 1024 * 1024 * 4) / 3));
+    expect(validateImageAttachment("image/png", oversized)).toEqual({ valid: false, reason: "too_large" });
+  });
+
+  it("accepts an image right at the size limit", () => {
+    // ~4MB raw, comfortably under the 5MB limit.
+    const underLimit = "A".repeat(Math.ceil((4 * 1024 * 1024 * 4) / 3));
+    expect(validateImageAttachment("image/jpeg", underLimit)).toEqual({ valid: true });
   });
 });

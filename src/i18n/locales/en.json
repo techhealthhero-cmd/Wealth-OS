@@ -797,7 +797,13 @@
     "limitReachedMessage": "You've used all the AI messages included in your plan this month.",
     "limitReachedReset": "Your quota resets on",
     "limitReachedShort": "Limit reached",
-    "upgradeCta": "Upgrade plan"
+    "upgradeCta": "Upgrade plan",
+    "attachImage": "Attach image",
+    "removeImage": "Remove image",
+    "imageAttachedAlt": "Attached image",
+    "errorImageTooLarge": "Image is too large (5MB max)",
+    "errorImageUnsupportedType": "Only JPG, PNG, WEBP, or GIF images are supported",
+    "imageOnlyDefaultPrompt": "Can you look at this image and explain it to me?"
   },
   "aiInsight": {
     "title": "Insight from your data",
