@@ -1431,7 +1431,7 @@
     "navLabel": "How to use",
     "title": "How to use WEALTH OS",
     "subtitle": "Know your money, grow your income, build your wealth — an easy guide to every feature in the app.",
-    "lastUpdated": "Last updated Sep 17, 2026 · updated every time a new feature ships",
+    "lastUpdated": "Last updated Sep 19, 2026 · updated every time a new feature ships",
     "philosophy": {
       "track": "Track",
       "analyze": "Analyze",
@@ -1528,6 +1528,7 @@
         "description": "A financial assistant you can talk to about anything — it only ever answers from your real data, never guesses.",
         "items": [
           { "emoji": "💬", "title": "Ask anything about money", "description": "Like \"did I overspend this month?\" — the AI pulls your real data to answer." },
+          { "emoji": "📷", "title": "Attach a photo", "description": "Attach a screenshot or photo — like a form field you don't understand — and the AI can explain it (never saved, used only for that one reply)." },
           { "emoji": "✨", "title": "Daily insights", "description": "Short, useful observations about your financial habits." },
           { "emoji": "🔢", "title": "Monthly message limit", "description": "Free: 15 · Plus: 150 · Pro: 500 messages per month." }
         ]
