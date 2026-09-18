@@ -123,12 +123,22 @@ export default async function DashboardPage() {
           expensesCents={data.expensesCents}
           cashFlowCents={data.cashFlowCents}
           savingsRatePercent={data.savingsRatePercent}
+          incomeChangePercent={data.incomeChangePercent}
+          expensesChangePercent={data.expensesChangePercent}
+          cashFlowChangePercent={data.cashFlowChangePercent}
+          savingsRateChangePoints={data.savingsRateChangePoints}
+          hasDataThisMonth={data.hasMonthData}
           currencyCode={currencyCode}
+          accounts={data.accounts}
+          categories={data.categories}
           labels={{
             income: dict.dashboard.monthlyIncome,
             expenses: dict.dashboard.monthlyExpenses,
             cashFlow: dict.dashboard.cashFlow,
             savingsRate: dict.dashboard.savingsRate,
+            vsLastMonth: dict.dashboard.vsLastMonth,
+            noDataTitle: dict.dashboard.noIncomeExpenseData,
+            noDataHint: dict.dashboard.noDataThisMonthHint,
           }}
         />
       </div>

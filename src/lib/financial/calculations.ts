@@ -129,6 +129,20 @@ export function calculateAccountBalance(
   return parseMoneyToCents(openingBalance) + net;
 }
 
+/**
+ * Percent change from `previousCents` to `currentCents`, using the
+ * previous value's magnitude as the base (so a swing from a negative to a
+ * positive cash flow still reads as a sensible percentage rather than an
+ * inverted-sign one). Null — not 0/NaN/Infinity — when there's no previous
+ * value to compare against, so callers can render "no comparison yet"
+ * instead of a misleading "+0%"/"∞%". Mirrors `calculateNetWorthChange`'s
+ * same null-safe shape (net-worth.ts) for the same reason.
+ */
+export function calculateChangePercent(currentCents: number, previousCents: number): number | null {
+  if (previousCents === 0) return null;
+  return ((currentCents - previousCents) / Math.abs(previousCents)) * 100;
+}
+
 export interface CategorySpending {
   categoryId: string | null;
   totalCents: number;

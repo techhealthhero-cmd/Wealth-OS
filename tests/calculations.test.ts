@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateAccountBalance,
+  calculateChangePercent,
   calculateDebtReductionContributions,
   calculateExpenses,
   calculateIncome,
@@ -140,6 +141,23 @@ describe("calculateSpendingByCategory", () => {
 
   it("returns an empty array for no expenses", () => {
     expect(calculateSpendingByCategory([salary, transferOut])).toEqual([]);
+  });
+});
+
+describe("calculateChangePercent", () => {
+  it("computes percent change against the previous value", () => {
+    expect(calculateChangePercent(120000, 100000)).toBeCloseTo(20);
+    expect(calculateChangePercent(80000, 100000)).toBeCloseTo(-20);
+  });
+
+  it("edge case: previous value of 0 returns null, not Infinity/NaN", () => {
+    expect(calculateChangePercent(50000, 0)).toBeNull();
+    expect(calculateChangePercent(0, 0)).toBeNull();
+  });
+
+  it("edge case: a swing from negative to positive uses the magnitude as the base, not an inverted sign", () => {
+    // -100 -> +50 is a genuine improvement; the sign must read positive.
+    expect(calculateChangePercent(5000, -10000)).toBeCloseTo(150);
   });
 });
 

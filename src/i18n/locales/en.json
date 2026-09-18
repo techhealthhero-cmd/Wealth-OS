@@ -122,7 +122,9 @@
     "noIncomeExpenseData": "No income or expenses recorded this month yet.",
     "noExpenseData": "No expenses recorded this month yet.",
     "other": "Other",
-    "moreInsights": "More insights"
+    "moreInsights": "More insights",
+    "vsLastMonth": "vs last month",
+    "noDataThisMonthHint": "Log an income or expense to see this month's overview"
   },
   "accounts": {
     "title": "Accounts",
