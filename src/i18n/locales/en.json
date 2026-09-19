@@ -24,7 +24,9 @@
     "moreActions": "More options",
     "optional": "optional",
     "invalidInput": "Invalid input",
-    "pleaseLogin": "Please log in first"
+    "pleaseLogin": "Please log in first",
+    "releaseToRefresh": "Release to refresh",
+    "refreshing": "Refreshing..."
   },
   "validation": {
     "amountRequired": "Please enter an amount",

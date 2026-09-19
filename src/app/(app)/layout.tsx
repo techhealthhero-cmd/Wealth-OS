@@ -12,6 +12,7 @@ import { Header } from "@/components/layout/header";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { PlanBadge } from "@/features/billing/components/plan-badge";
 import { Toaster } from "@/components/ui/sonner";
+import { PullToRefresh } from "@/components/shared/pull-to-refresh";
 
 /**
  * Day 8 STEP 11 — every page behind auth (dashboard, money, plan, earn, ai,
@@ -73,7 +74,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </>
             }
           />
-          <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-8">{children}</main>
+          <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-8">
+            <PullToRefresh>{children}</PullToRefresh>
+          </main>
           <BottomNav />
         </div>
       </div>

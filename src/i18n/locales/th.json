@@ -24,7 +24,9 @@
     "moreActions": "ตัวเลือกเพิ่มเติม",
     "optional": "ไม่บังคับ",
     "invalidInput": "ข้อมูลไม่ถูกต้อง",
-    "pleaseLogin": "กรุณาเข้าสู่ระบบก่อน"
+    "pleaseLogin": "กรุณาเข้าสู่ระบบก่อน",
+    "releaseToRefresh": "ปล่อยเพื่อรีเฟรช",
+    "refreshing": "กำลังรีเฟรช..."
   },
   "validation": {
     "amountRequired": "กรุณาใส่จำนวนเงิน",
