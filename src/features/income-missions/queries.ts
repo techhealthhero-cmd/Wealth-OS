@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import type { IncomeMission } from "@/types/database";
+import { throwDbError } from "@/lib/db-error";
 
 export async function getIncomeMissions(): Promise<IncomeMission[]> {
   const supabase = await createClient();
@@ -9,7 +10,7 @@ export async function getIncomeMissions(): Promise<IncomeMission[]> {
     .from("income_missions")
     .select("*")
     .order("sequence_order", { ascending: true });
-  if (error) throw new Error("Failed to load income missions");
+  if (error) throwDbError(error, "income-missions.getIncomeMissions", "Failed to load income missions");
   return data ?? [];
 }
 

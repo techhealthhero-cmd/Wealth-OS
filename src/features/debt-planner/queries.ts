@@ -5,11 +5,12 @@ import { getLiabilities } from "@/features/liabilities/queries";
 import { calculateDebtPayoffPlan, type DebtInput, type DebtPayoffResult } from "@/lib/financial/debt-planner";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import type { DebtPlan, Liability } from "@/types/database";
+import { throwDbError } from "@/lib/db-error";
 
 export async function getDebtPlan(): Promise<DebtPlan | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("debt_plans").select("*").maybeSingle();
-  if (error) throw new Error("Failed to load debt plan");
+  if (error) throwDbError(error, "debt-planner.getDebtPlan", "Failed to load debt plan");
   return data;
 }
 
@@ -20,7 +21,7 @@ export async function getDebtPlanPriorityOrder(debtPlanId: string): Promise<stri
     .select("liability_id")
     .eq("debt_plan_id", debtPlanId)
     .order("priority_order", { ascending: true });
-  if (error) throw new Error("Failed to load debt plan priorities");
+  if (error) throwDbError(error, "debt-planner.getDebtPlanPriorityOrder", "Failed to load debt plan priorities");
   return (data ?? []).map((row) => row.liability_id as string);
 }
 

@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { throwDbError } from "@/lib/db-error";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Liability } from "@/types/database";
@@ -16,13 +17,13 @@ export const getLiabilities = cache(async (): Promise<Liability[]> => {
     .select("*")
     .order("created_at", { ascending: true });
 
-  if (error) throw new Error("Failed to load liabilities");
+  if (error) throwDbError(error, "liabilities.getLiabilities", "Failed to load liabilities");
   return data ?? [];
 });
 
 export async function getLiability(id: string): Promise<Liability | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("liabilities").select("*").eq("id", id).maybeSingle();
-  if (error) throw new Error("Failed to load liability");
+  if (error) throwDbError(error, "liabilities.getLiability", "Failed to load liability");
   return data;
 }

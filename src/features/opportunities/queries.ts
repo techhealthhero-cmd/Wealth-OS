@@ -9,11 +9,12 @@ import { scoreOpportunity, type OpportunityScoreResult } from "@/lib/financial/o
 import { generateMissionSequence } from "@/lib/financial/income-missions";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import type { IncomeOpportunity } from "@/types/database";
+import { throwDbError } from "@/lib/db-error";
 
 export async function getOpportunityCatalog(): Promise<IncomeOpportunity[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("income_opportunities").select("*").order("name_th", { ascending: true });
-  if (error) throw new Error("Failed to load opportunity catalog");
+  if (error) throwDbError(error, "opportunities.getOpportunityCatalog", "Failed to load opportunity catalog");
   return data ?? [];
 }
 

@@ -6,6 +6,7 @@ import { detectSubscriptions } from "@/lib/financial/subscription-detector";
 import { parseMoneyToCents, centsToDecimalString } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import type { DetectedSubscription } from "@/types/database";
+import { throwDbError } from "@/lib/db-error";
 
 const LOOKBACK_DAYS = 365;
 
@@ -35,7 +36,7 @@ export async function getDetectedSubscriptions(): Promise<DetectedSubscription[]
     getTransactions({ from, to, type: "expense" }),
     supabase.from("detected_subscriptions").select("*"),
   ]);
-  if (existingError) throw new Error("Failed to load detected subscriptions");
+  if (existingError) throwDbError(existingError, "subscriptions.getDetectedSubscriptions", "Failed to load detected subscriptions");
 
   const existingMerchants = new Set((existing ?? []).map((s) => s.merchant.trim().toLowerCase()));
 
@@ -62,14 +63,14 @@ export async function getDetectedSubscriptions(): Promise<DetectedSubscription[]
         status: "pending",
       }))
     );
-    if (insertError) throw new Error("Failed to save detected subscriptions");
+    if (insertError) throwDbError(insertError, "subscriptions.getDetectedSubscriptions", "Failed to save detected subscriptions");
   }
 
   const { data: finalList, error: finalError } = await supabase
     .from("detected_subscriptions")
     .select("*")
     .order("estimated_amount", { ascending: false });
-  if (finalError) throw new Error("Failed to load detected subscriptions");
+  if (finalError) throwDbError(finalError, "subscriptions.getDetectedSubscriptions", "Failed to load detected subscriptions");
   return finalList ?? [];
 }
 

@@ -16,11 +16,12 @@ import { calculateTotalXp, calculateLevel, type LevelProgress } from "@/lib/fina
 import { generateWealthMissionCandidates, type WealthMissionInputs } from "@/lib/financial/wealth-missions";
 import { toLocalDateString } from "@/lib/date";
 import type { FinancialNotification, NotificationPreferences, WealthMission } from "@/types/database";
+import { throwDbError } from "@/lib/db-error";
 
 export async function getWealthMissions(): Promise<WealthMission[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("wealth_missions").select("*").order("created_at", { ascending: true });
-  if (error) throw new Error("Failed to load wealth missions");
+  if (error) throwDbError(error, "engagement.getWealthMissions", "Failed to load wealth missions");
   return data ?? [];
 }
 
@@ -94,7 +95,7 @@ async function getPendingSubscriptionCount(): Promise<number> {
     .from("detected_subscriptions")
     .select("*", { count: "exact", head: true })
     .eq("status", "pending");
-  if (error) throw new Error("Failed to load subscription count");
+  if (error) throwDbError(error, "engagement.getPendingSubscriptionCount", "Failed to load subscription count");
   return count ?? 0;
 }
 
@@ -107,7 +108,7 @@ async function getMonthlyReviewForCurrentMonth() {
     .eq("year", now.getFullYear())
     .eq("month", now.getMonth() + 1)
     .maybeSingle();
-  if (error) throw new Error("Failed to load monthly review");
+  if (error) throwDbError(error, "engagement.getMonthlyReviewForCurrentMonth", "Failed to load monthly review");
   return data;
 }
 
@@ -134,8 +135,8 @@ export async function getUserProgress(): Promise<UserProgress> {
     supabase.from("monthly_reviews").select("year, month").not("completed_at", "is", null),
     getTransactions({ from: recent.from, to: recent.to }),
   ]);
-  if (eventsError) throw new Error("Failed to load XP events");
-  if (reviewsError) throw new Error("Failed to load monthly reviews");
+  if (eventsError) throwDbError(eventsError, "engagement.getUserProgress", "Failed to load XP events");
+  if (reviewsError) throwDbError(reviewsError, "engagement.getUserProgress", "Failed to load monthly reviews");
 
   const totalXp = calculateTotalXp((events ?? []).map((e) => ({ xpAmount: e.xp_amount })));
   const reviewDates = (reviews ?? []).map((r) => new Date(r.year, r.month - 1, 1));
@@ -154,7 +155,7 @@ export async function getNotifications(options?: { unreadOnly?: boolean; limit?:
   if (options?.unreadOnly) query = query.eq("is_read", false);
   if (options?.limit) query = query.limit(options.limit);
   const { data, error } = await query;
-  if (error) throw new Error("Failed to load notifications");
+  if (error) throwDbError(error, "engagement.getNotifications", "Failed to load notifications");
   return data ?? [];
 }
 
@@ -165,13 +166,13 @@ export async function getUnreadNotificationCount(): Promise<number> {
     .from("financial_notifications")
     .select("id", { count: "exact", head: true })
     .eq("is_read", false);
-  if (error) throw new Error("Failed to load unread notification count");
+  if (error) throwDbError(error, "engagement.getUnreadNotificationCount", "Failed to load unread notification count");
   return count ?? 0;
 }
 
 export async function getNotificationPreferences(): Promise<NotificationPreferences | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("notification_preferences").select("*").maybeSingle();
-  if (error) throw new Error("Failed to load notification preferences");
+  if (error) throwDbError(error, "engagement.getNotificationPreferences", "Failed to load notification preferences");
   return data;
 }

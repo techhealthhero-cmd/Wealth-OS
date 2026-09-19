@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { throwDbError } from "@/lib/db-error";
 
 import { createClient } from "@/lib/supabase/server";
 import type { FinancialGoal } from "@/types/database";
@@ -27,7 +28,7 @@ export const getGoals = cache(async (options?: { includeArchived?: boolean }): P
   }
 
   const { data, error } = await query;
-  if (error) throw new Error("Failed to load goals");
+  if (error) throwDbError(error, "goals.getGoals", "Failed to load goals");
   // Sorted by priority in application code — 'priority' is a text column
   // ('critical'/'high'/'medium'/'low'), so an ORDER BY on it would sort
   // alphabetically rather than by actual importance.
@@ -38,6 +39,6 @@ export const getGoals = cache(async (options?: { includeArchived?: boolean }): P
 export async function getGoal(id: string): Promise<FinancialGoal | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("financial_goals").select("*").eq("id", id).maybeSingle();
-  if (error) throw new Error("Failed to load goal");
+  if (error) throwDbError(error, "goals.getGoal", "Failed to load goal");
   return data;
 }

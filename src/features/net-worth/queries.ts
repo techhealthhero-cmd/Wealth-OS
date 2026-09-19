@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { throwDbError } from "@/lib/db-error";
 
 import { createClient } from "@/lib/supabase/server";
 import { getAccounts } from "@/features/accounts/queries";
@@ -56,7 +57,7 @@ export async function getNetWorthSnapshots(limit = 12): Promise<NetWorthSnapshot
     .order("snapshot_date", { ascending: false })
     .limit(limit);
 
-  if (error) throw new Error("Failed to load net worth history");
+  if (error) throwDbError(error, "net-worth.getNetWorthSnapshots", "Failed to load net worth history");
   return (data ?? []).reverse();
 }
 
@@ -72,7 +73,7 @@ export async function getNetWorthSnapshotsSince(monthsBack: number): Promise<Net
     .gte("snapshot_date", toLocalDateString(since))
     .order("snapshot_date", { ascending: true });
 
-  if (error) throw new Error("Failed to load net worth history");
+  if (error) throwDbError(error, "net-worth.getNetWorthSnapshotsSince", "Failed to load net worth history");
   return data ?? [];
 }
 

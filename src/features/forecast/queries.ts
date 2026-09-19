@@ -11,6 +11,7 @@ import { ZERO_ASSUMPTIONS } from "@/lib/financial/forecast";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import type { AccountType, ForecastScenario } from "@/types/database";
+import { throwDbError } from "@/lib/db-error";
 
 const LIQUID_ACCOUNT_TYPES: AccountType[] = ["cash", "bank", "e_wallet"];
 
@@ -97,14 +98,14 @@ export async function getForecastScenarios(): Promise<ForecastScenario[]> {
     .from("forecast_scenarios")
     .select("*")
     .order("created_at", { ascending: true });
-  if (error) throw new Error("Failed to load forecast scenarios");
+  if (error) throwDbError(error, "forecast.getForecastScenarios", "Failed to load forecast scenarios");
   return data ?? [];
 }
 
 export async function getForecastScenario(id: string): Promise<ForecastScenario | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("forecast_scenarios").select("*").eq("id", id).maybeSingle();
-  if (error) throw new Error("Failed to load forecast scenario");
+  if (error) throwDbError(error, "forecast.getForecastScenario", "Failed to load forecast scenario");
   return data;
 }
 

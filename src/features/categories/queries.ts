@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { throwDbError } from "@/lib/db-error";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Category, CategoryType } from "@/types/database";
@@ -14,6 +15,6 @@ export const getCategories = cache(async (type?: CategoryType): Promise<Category
   }
 
   const { data, error } = await query;
-  if (error) throw new Error("Failed to load categories");
+  if (error) throwDbError(error, "categories.getCategories", "Failed to load categories");
   return data ?? [];
 });

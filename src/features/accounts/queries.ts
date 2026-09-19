@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { throwDbError } from "@/lib/db-error";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Account } from "@/types/database";
@@ -24,7 +25,7 @@ export const getAccounts = cache(async (options?: { includeArchived?: boolean })
   }
 
   const { data, error } = await query;
-  if (error) throw new Error("Failed to load accounts");
+  if (error) throwDbError(error, "accounts.getAccounts", "Failed to load accounts");
   return data ?? [];
 });
 
@@ -36,6 +37,6 @@ export async function getAccount(id: string): Promise<Account | null> {
     .eq("id", id)
     .maybeSingle();
 
-  if (error) throw new Error("Failed to load account");
+  if (error) throwDbError(error, "accounts.getAccount", "Failed to load account");
   return data;
 }

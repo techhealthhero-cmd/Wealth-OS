@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { throwDbError } from "@/lib/db-error";
 
 import { createClient } from "@/lib/supabase/server";
 import { getBudgetSummary } from "@/features/budget/queries";
@@ -10,7 +11,7 @@ import type { EmergencyFund } from "@/types/database";
 export const getEmergencyFund = cache(async (): Promise<EmergencyFund | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.from("emergency_funds").select("*").maybeSingle();
-  if (error) throw new Error("Failed to load emergency fund");
+  if (error) throwDbError(error, "emergency-fund.getEmergencyFund", "Failed to load emergency fund");
   return data;
 });
 

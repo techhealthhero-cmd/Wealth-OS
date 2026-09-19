@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import type { AIConversation, AIMessageRow } from "@/types/database";
+import { throwDbError } from "@/lib/db-error";
 
 /** Newest-first, for a conversation list/sidebar. RLS scopes this to the caller's own rows. */
 export async function getConversations(): Promise<AIConversation[]> {
@@ -11,7 +12,7 @@ export async function getConversations(): Promise<AIConversation[]> {
     .select("*")
     .order("updated_at", { ascending: false })
     .limit(50);
-  if (error) throw new Error("Failed to load conversations");
+  if (error) throwDbError(error, "ai.getConversations", "Failed to load conversations");
   return data ?? [];
 }
 
@@ -30,7 +31,7 @@ export async function getConversation(id: string, userId: string): Promise<AICon
     .eq("id", id)
     .eq("user_id", userId)
     .maybeSingle();
-  if (error) throw new Error("Failed to load conversation");
+  if (error) throwDbError(error, "ai.getConversation", "Failed to load conversation");
   return data;
 }
 
@@ -43,7 +44,7 @@ export async function getMessages(conversationId: string, userId: string): Promi
     .eq("conversation_id", conversationId)
     .eq("user_id", userId)
     .order("created_at", { ascending: true });
-  if (error) throw new Error("Failed to load messages");
+  if (error) throwDbError(error, "ai.getMessages", "Failed to load messages");
   return data ?? [];
 }
 

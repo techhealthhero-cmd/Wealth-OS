@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { throwDbError } from "@/lib/db-error";
 
 import { createClient } from "@/lib/supabase/server";
 import { getTransactions } from "@/features/transactions/queries";
@@ -28,7 +29,7 @@ export function toMonthKey(date: Date): string {
 export async function getBudgetForMonth(monthKey: string): Promise<Budget | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("budgets").select("*").eq("month", monthKey).maybeSingle();
-  if (error) throw new Error("Failed to load budget");
+  if (error) throwDbError(error, "budget.getBudgetForMonth", "Failed to load budget");
   return data;
 }
 
@@ -39,14 +40,14 @@ export async function getBudgetCategories(budgetId: string): Promise<BudgetCateg
     .select("*, category:categories(id, name_th, name_en, icon)")
     .eq("budget_id", budgetId);
 
-  if (error) throw new Error("Failed to load budget categories");
+  if (error) throwDbError(error, "budget.getBudgetCategories", "Failed to load budget categories");
   return (data ?? []) as unknown as BudgetCategoryWithCategory[];
 }
 
 export async function getBudgets(): Promise<Budget[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("budgets").select("*").order("month", { ascending: false });
-  if (error) throw new Error("Failed to load budgets");
+  if (error) throwDbError(error, "budget.getBudgets", "Failed to load budgets");
   return data ?? [];
 }
 

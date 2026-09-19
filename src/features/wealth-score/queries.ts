@@ -30,6 +30,7 @@ import {
   type WealthScoreResult,
 } from "@/lib/financial/wealth-score";
 import type { WealthScore } from "@/types/database";
+import { throwDbError } from "@/lib/db-error";
 
 function previousMonthRange(): { from: string; to: string } {
   const now = new Date();
@@ -47,7 +48,7 @@ export async function getLatestStoredWealthScore(): Promise<WealthScore | null> 
     .limit(1)
     .maybeSingle();
 
-  if (error) throw new Error("Failed to load wealth score");
+  if (error) throwDbError(error, "wealth-score.getLatestStoredWealthScore", "Failed to load wealth score");
   return data;
 }
 

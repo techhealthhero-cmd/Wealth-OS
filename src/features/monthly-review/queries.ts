@@ -21,6 +21,7 @@ import { calculateIncomeGap } from "@/lib/financial/income-gap";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import type { MonthlyReview } from "@/types/database";
+import { throwDbError } from "@/lib/db-error";
 
 function monthRange(year: number, month: number): { from: string; to: string } {
   const from = new Date(year, month - 1, 1);
@@ -128,7 +129,7 @@ export async function getMonthlyReview(year: number, month: number): Promise<Mon
     .eq("year", year)
     .eq("month", month)
     .maybeSingle();
-  if (error) throw new Error("Failed to load monthly review");
+  if (error) throwDbError(error, "monthly-review.getMonthlyReview", "Failed to load monthly review");
   return data;
 }
 
@@ -141,6 +142,6 @@ export async function getReviewHistory(limit = 12): Promise<MonthlyReview[]> {
     .order("year", { ascending: false })
     .order("month", { ascending: false })
     .limit(limit);
-  if (error) throw new Error("Failed to load review history");
+  if (error) throwDbError(error, "monthly-review.getReviewHistory", "Failed to load review history");
   return data ?? [];
 }

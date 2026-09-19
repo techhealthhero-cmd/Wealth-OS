@@ -20,18 +20,19 @@ import {
 import { parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import type { MoneyYear, MoneyYearMajorExpense, QuarterlyPlan } from "@/types/database";
+import { throwDbError } from "@/lib/db-error";
 
 export async function getMoneyYears(): Promise<MoneyYear[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("money_years").select("*").order("year", { ascending: false });
-  if (error) throw new Error("Failed to load money years");
+  if (error) throwDbError(error, "money-year.getMoneyYears", "Failed to load money years");
   return data ?? [];
 }
 
 export async function getMoneyYear(year: number): Promise<MoneyYear | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("money_years").select("*").eq("year", year).maybeSingle();
-  if (error) throw new Error("Failed to load money year");
+  if (error) throwDbError(error, "money-year.getMoneyYear", "Failed to load money year");
   return data;
 }
 
@@ -42,7 +43,7 @@ export async function getQuarterlyPlans(moneyYearId: string): Promise<QuarterlyP
     .select("*")
     .eq("money_year_id", moneyYearId)
     .order("quarter", { ascending: true });
-  if (error) throw new Error("Failed to load quarterly plans");
+  if (error) throwDbError(error, "money-year.getQuarterlyPlans", "Failed to load quarterly plans");
   return data ?? [];
 }
 
@@ -53,7 +54,7 @@ export async function getMajorExpenses(moneyYearId: string): Promise<MoneyYearMa
     .select("*")
     .eq("money_year_id", moneyYearId)
     .order("planned_month", { ascending: true, nullsFirst: false });
-  if (error) throw new Error("Failed to load major expenses");
+  if (error) throwDbError(error, "money-year.getMajorExpenses", "Failed to load major expenses");
   return data ?? [];
 }
 

@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { throwDbError } from "@/lib/db-error";
 
 import { createClient } from "@/lib/supabase/server";
 import { getLiabilities } from "@/features/liabilities/queries";
@@ -16,7 +17,7 @@ export const getRecurringTransactions = cache(async (): Promise<RecurringTransac
     .from("recurring_transactions")
     .select("*")
     .order("next_due_date", { ascending: true });
-  if (error) throw new Error("Failed to load recurring transactions");
+  if (error) throwDbError(error, "recurring.getRecurringTransactions", "Failed to load recurring transactions");
   return data ?? [];
 });
 
