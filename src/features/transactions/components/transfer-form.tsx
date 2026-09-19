@@ -4,12 +4,12 @@ import { cloneElement, useActionState, useEffect, useState, type ReactElement } 
 import { ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 
-import { createTransfer } from "@/features/transactions/actions";
+import { createTransfer, updateTransfer } from "@/features/transactions/actions";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import { transactionTypeVisual } from "@/lib/transaction-ui";
 import { useTranslation } from "@/i18n/client";
-import type { Account } from "@/types/database";
+import type { Account, Transaction } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,13 +36,15 @@ function safeAmountCents(raw: string): number {
 
 interface TransferFormProps {
   accounts: Account[];
+  /** Present to edit an existing transfer in place (update_transfer RPC, migration 0015) rather than create a new one. */
+  transfer?: Transaction;
   trigger: React.ReactElement | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
 /** Thin trigger/open-state wrapper — see goal-form.tsx for why the fields live in a separate, fully self-contained subcomponent. */
-export function TransferForm({ accounts, trigger, open, onOpenChange }: TransferFormProps) {
+export function TransferForm({ accounts, transfer, trigger, open, onOpenChange }: TransferFormProps) {
   const { t } = useTranslation();
   const { openForm, close: closeMinimizable } = useMinimizableFormActions();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
@@ -50,12 +52,15 @@ export function TransferForm({ accounts, trigger, open, onOpenChange }: Transfer
   const sheetOpen = isControlled ? open : uncontrolledOpen;
   const setSheetOpen = isControlled ? onOpenChange! : setUncontrolledOpen;
 
+  const formId = transfer ? `transfer-form-edit-${transfer.id}` : "transfer-form-add";
+  const pillTitle = transfer ? t("transactions.editTransaction") : t("transactions.addTransfer");
+
   useEffect(() => {
     if (sheetOpen) {
       openForm({
-        id: "transfer-form",
-        title: t("transactions.addTransfer"),
-        content: <TransferFormFields accounts={accounts} onOpenChange={setSheetOpen} />,
+        id: formId,
+        title: pillTitle,
+        content: <TransferFormFields accounts={accounts} transfer={transfer} onOpenChange={setSheetOpen} />,
       });
     } else {
       closeMinimizable();
@@ -70,27 +75,41 @@ export function TransferForm({ accounts, trigger, open, onOpenChange }: Transfer
   });
 }
 
-function TransferFormFields({ accounts, onOpenChange }: { accounts: Account[]; onOpenChange: (open: boolean) => void }) {
+function TransferFormFields({
+  accounts,
+  transfer,
+  onOpenChange,
+}: {
+  accounts: Account[];
+  transfer?: Transaction;
+  onOpenChange: (open: boolean) => void;
+}) {
   const { t } = useTranslation();
   const { close: closeMinimizable } = useMinimizableFormActions();
-  const [state, formAction, isPending] = useActionState(createTransfer, undefined);
+
+  const isEditing = Boolean(transfer);
+  const action = transfer ? updateTransfer.bind(null, transfer.id) : createTransfer;
+  const [state, formAction, isPending] = useActionState(action, undefined);
 
   // `accounts` includes archived ones (so historic transfers still render
-  // correctly elsewhere) — a new transfer must default to active accounts
+  // correctly elsewhere) — a NEW transfer must default to active accounts
   // only, never silently pick an archived one just because it's first/
-  // second in the array.
+  // second in the array. Editing an existing transfer keeps its real
+  // accounts regardless of archived status — that's not a "default," it's
+  // the transfer's actual history (same rule transaction-form.tsx applies).
   const activeAccounts = accounts.filter((a) => !a.is_archived);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(transfer ? String(transfer.amount) : "");
   const [fromAccountId, setFromAccountId] = useState<string | undefined>(
-    activeAccounts[0]?.id ?? accounts[0]?.id
+    transfer?.from_account_id ?? activeAccounts[0]?.id ?? accounts[0]?.id
   );
   const [toAccountId, setToAccountId] = useState<string | undefined>(
-    activeAccounts[1]?.id ?? accounts[1]?.id
+    transfer?.to_account_id ?? activeAccounts[1]?.id ?? accounts[1]?.id
   );
-  const [dateValue, setDateValue] = useState(todayISO());
+  const [dateValue, setDateValue] = useState(transfer?.transaction_date ?? todayISO());
   // Same idempotency-key pattern as transaction-form.tsx — see CLAUDE.md
-  // "TRANSACTION IDEMPOTENCY". One key per intended transfer; rotated only
-  // after a successful save.
+  // "TRANSACTION IDEMPOTENCY". Only meaningful for a new transfer; editing
+  // doesn't create a new financial event (update_transfer needs no key —
+  // see actions.ts's updateTransfer doc comment).
   const [clientRequestId, setClientRequestId] = useState(() => crypto.randomUUID());
 
   function handleClose() {
@@ -114,7 +133,8 @@ function TransferFormFields({ accounts, onOpenChange }: { accounts: Account[]; o
     amountCents > 0 && Boolean(fromAccountId) && Boolean(toAccountId) && !sameAccount && !isPending;
 
   const visual = transactionTypeVisual("transfer");
-  const saveLabel = amountCents > 0 ? `${t("transactions.saveTransfer")} ${formatMoney(amountCents)}` : t("transactions.saveTransfer");
+  const saveLabelPrefix = t("transactions.saveTransfer");
+  const saveLabel = amountCents > 0 ? `${saveLabelPrefix} ${formatMoney(amountCents)}` : saveLabelPrefix;
 
   const title = (
     <>
@@ -124,7 +144,9 @@ function TransferFormFields({ accounts, onOpenChange }: { accounts: Account[]; o
         <span aria-hidden="true">{visual.emoji}</span>
         {t("transactions.types.transfer")}
       </span>
-      <p className="font-heading text-base leading-tight font-medium">{t("transactions.addTransfer")}</p>
+      <p className="font-heading text-base leading-tight font-medium">
+        {transfer ? t("transactions.editTransaction") : t("transactions.addTransfer")}
+      </p>
     </>
   );
 
@@ -136,14 +158,14 @@ function TransferFormFields({ accounts, onOpenChange }: { accounts: Account[]; o
         <form action={formAction} className="space-y-5">
           <input type="hidden" name="from_account_id" value={fromAccountId ?? ""} />
           <input type="hidden" name="to_account_id" value={toAccountId ?? ""} />
-          <input type="hidden" name="client_request_id" value={clientRequestId} />
+          {isEditing ? null : <input type="hidden" name="client_request_id" value={clientRequestId} />}
 
           <AmountInput
             name="__amount_display"
             value={amount}
             onValueChange={setAmount}
             aria-label={t("transactions.amount")}
-            autoFocus
+            autoFocus={!isEditing}
           />
           <input type="hidden" name="amount" value={amount} />
 
@@ -180,10 +202,10 @@ function TransferFormFields({ accounts, onOpenChange }: { accounts: Account[]; o
 
           <div className="space-y-1.5">
             <Label htmlFor="description">{t("transactions.description")}</Label>
-            <Input id="description" name="description" maxLength={200} />
+            <Input id="description" name="description" defaultValue={transfer?.description ?? ""} maxLength={200} />
           </div>
 
-          <CollapsibleNotes name="notes" />
+          <CollapsibleNotes name="notes" defaultValue={transfer?.notes ?? ""} />
 
           {state?.error ? (
             <p role="alert" className="text-sm text-destructive">

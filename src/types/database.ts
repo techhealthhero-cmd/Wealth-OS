@@ -947,6 +947,18 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["transactions"]["Row"];
       };
+      update_transfer: {
+        Args: {
+          p_transaction_id: string;
+          p_from_account_id: string;
+          p_to_account_id: string;
+          p_amount: number;
+          p_transaction_date?: string;
+          p_description?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["transactions"]["Row"];
+      };
     };
   };
 }

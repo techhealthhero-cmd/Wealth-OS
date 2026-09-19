@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 import { TransactionForm } from "./transaction-form";
+import { TransferForm } from "./transfer-form";
 
 const TYPE_ICONS: Record<TransactionType, React.ElementType> = {
   income: TrendingUp,
@@ -144,9 +145,7 @@ export function TransactionRow({
               )}
             />
             <DropdownMenuContent align="end">
-              {!isTransfer && (
-                <DropdownMenuItem onClick={() => setEditOpen(true)}>{t("common.edit")}</DropdownMenuItem>
-              )}
+              <DropdownMenuItem onClick={() => setEditOpen(true)}>{t("common.edit")}</DropdownMenuItem>
               <DropdownMenuItem
                 variant="destructive"
                 disabled={isPending}
@@ -171,7 +170,15 @@ export function TransactionRow({
         </div>
       ) : null}
 
-      {!isTransfer && (
+      {isTransfer ? (
+        <TransferForm
+          accounts={accounts}
+          transfer={transaction}
+          trigger={null}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
+      ) : (
         <TransactionForm
           defaultType={transaction.type as Exclude<TransactionType, "transfer">}
           accounts={accounts}

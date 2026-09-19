@@ -260,3 +260,63 @@ export async function createTransfer(
     error: friendlyDbError(error, "createTransfer", dict.transactions.transferFailed),
   };
 }
+
+/**
+ * Edits an existing transfer in place (same row — a transfer is a single
+ * `transactions` row, not two linked ones — see createTransfer's own doc
+ * comment above). No idempotency key needed here: unlike a create, a
+ * retried update just re-applies to the same `transactionId`, so there's
+ * no "second row" failure mode a key would need to guard against.
+ * update_transfer() (migration 0015) does the actual validation/ownership
+ * checks and lets the existing recalc-balance trigger handle both the old
+ * and new accounts' balances correctly.
+ */
+export async function updateTransfer(
+  transactionId: string,
+  _prev: ActionResult | undefined,
+  formData: FormData
+): Promise<ActionResult> {
+  const dict = await getRequestDictionary();
+  const parsed = buildTransferSchema(dict).safeParse({
+    from_account_id: formData.get("from_account_id"),
+    to_account_id: formData.get("to_account_id"),
+    amount: formData.get("amount"),
+    transaction_date: formData.get("transaction_date"),
+    description: formData.get("description") || undefined,
+    notes: formData.get("notes") || undefined,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? dict.common.invalidInput };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: dict.common.pleaseLogin };
+  }
+
+  const { error } = await supabase.rpc("update_transfer", {
+    p_transaction_id: transactionId,
+    p_from_account_id: parsed.data.from_account_id,
+    p_to_account_id: parsed.data.to_account_id,
+    p_amount: parsed.data.amount,
+    p_transaction_date: parsed.data.transaction_date,
+    p_description: parsed.data.description || null,
+    p_notes: parsed.data.notes || null,
+  });
+
+  if (!error) {
+    revalidatePath("/money/transactions");
+    revalidatePath("/money/accounts");
+    revalidatePath("/dashboard");
+    return { success: true };
+  }
+
+  return {
+    error: friendlyDbError(error, "updateTransfer", dict.transactions.updateFailed),
+  };
+}
