@@ -54,18 +54,25 @@ const currencyLocales: Record<string, string> = {
 /**
  * Formats a money value for display. Accepts cents (the internal
  * representation) so call sites never need to round-trip through decimals.
+ *
+ * `fractionDigits` defaults to 2 (the normal, precise display everywhere)
+ * — pass 0 only for a tightly space-constrained headline number (e.g. a
+ * donut chart's center label) where the full decimal string would wrap
+ * and visually overlap the ring around it. Never changes the underlying
+ * cents value, only what's shown.
  */
 export function formatMoney(
   cents: number,
   currencyCode = "THB",
-  locale?: string
+  locale?: string,
+  fractionDigits = 2
 ): string {
   const resolvedLocale = locale ?? currencyLocales[currencyCode] ?? "en-US";
   return new Intl.NumberFormat(resolvedLocale, {
     style: "currency",
     currency: currencyCode,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(centsToNumber(cents));
 }
 

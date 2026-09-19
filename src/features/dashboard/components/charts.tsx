@@ -535,10 +535,17 @@ export function MonthlyDonutCard({
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
               <p className="text-[11px] text-muted-foreground">{labels.remaining}</p>
-              <p className={`max-w-[80%] break-all text-sm font-bold leading-tight tabular-nums sm:text-lg ${cashFlowCents < 0 ? "text-destructive" : ""}`}>
-                {formatMoney(cashFlowCents, currencyCode)}
+              {/* Whole-currency-unit only (fractionDigits: 0), and forced
+                  onto one line with an ellipsis fallback rather than
+                  break-all — a wrapped 2-decimal amount here was tall
+                  enough to visually spill past the ring around it for any
+                  6+ digit balance (reported: text overlapping the donut). */}
+              <p
+                className={`max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold leading-tight tabular-nums sm:text-lg ${cashFlowCents < 0 ? "text-destructive" : ""}`}
+              >
+                {formatMoney(cashFlowCents, currencyCode, undefined, 0)}
               </p>
             </div>
           </div>
