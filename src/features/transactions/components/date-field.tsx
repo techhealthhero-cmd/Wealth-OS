@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 
 import { formatFriendlyDate } from "@/lib/transaction-ui";
@@ -25,13 +26,35 @@ interface DateFieldProps {
  */
 export function DateField({ name, value, onValueChange, id }: DateFieldProps) {
   const { t, locale } = useTranslation();
+  const inputRef = useRef<HTMLInputElement>(null);
   const friendly = formatFriendlyDate(value, locale, {
     today: t("transactions.today"),
     yesterday: t("transactions.yesterday"),
   });
 
+  // Reported: worked on mobile, not on desktop. Mobile browsers treat a tap
+  // anywhere on <input type="date"> as "open the picker" — desktop Chrome/
+  // Edge/Firefox only do that for a click on the input's own tiny built-in
+  // calendar-icon glyph, which is invisible here (the whole real input is
+  // opacity-0, stretched under the styled pill). showPicker() opens it
+  // programmatically regardless of where in the pill was clicked; feature-
+  // detected and wrapped in try/catch since older desktop Safari and some
+  // browsers don't support it yet — falls back to the native invisible-
+  // input click behavior (today's status quo) rather than throwing.
+  function openPicker() {
+    const el = inputRef.current;
+    if (el && "showPicker" in el) {
+      try {
+        el.showPicker();
+      } catch {
+        // Not supported, or called outside a direct user gesture — the
+        // native input underneath the click still handles it as before.
+      }
+    }
+  }
+
   return (
-    <div className="relative inline-flex">
+    <div className="relative inline-flex" onClick={openPicker}>
       <span
         aria-hidden="true"
         className="pointer-events-none flex items-center gap-1.5 rounded-full border bg-background px-3 py-2 text-sm font-medium"
@@ -41,6 +64,7 @@ export function DateField({ name, value, onValueChange, id }: DateFieldProps) {
         <ChevronDownIcon className="h-3.5 w-3.5 text-muted-foreground" />
       </span>
       <input
+        ref={inputRef}
         id={id}
         type="date"
         name={name}
