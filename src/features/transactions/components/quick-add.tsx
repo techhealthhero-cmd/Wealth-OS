@@ -30,6 +30,23 @@ interface QuickAddProps {
 export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAddProps) {
   const { t } = useTranslation();
   const [activeDialog, setActiveDialog] = useState<QuickAddDialog>(null);
+  const [transferPrefillAmount, setTransferPrefillAmount] = useState<string | undefined>(undefined);
+
+  // Lets someone who opened "add expense"/"add income" change their mind to
+  // "transfer" without retyping the amount — see TransactionForm's
+  // onSwitchToTransfer doc comment. Setting `activeDialog` to "transfer"
+  // here flips the currently-open TransactionForm's `open` prop to false
+  // and TransferForm's to true in the same render; each form's own effect
+  // (transaction-form.tsx / transfer-form.tsx) then closes/opens itself
+  // through the normal MinimizableForm flow. That only lands the new
+  // content correctly because TransferForm is rendered AFTER both
+  // TransactionForm instances below — React runs sibling effects in that
+  // same order, so the old form's close() always resolves before the new
+  // one's openForm() — don't reorder those three without preserving that.
+  function handleSwitchToTransfer(amount: string) {
+    setTransferPrefillAmount(amount);
+    setActiveDialog("transfer");
+  }
 
   return (
     <>
@@ -97,6 +114,7 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
         defaultType="expense"
         accounts={accounts}
         categories={categories}
+        onSwitchToTransfer={handleSwitchToTransfer}
         trigger={null}
         open={activeDialog === "expense"}
         onOpenChange={(open) => setActiveDialog(open ? "expense" : null)}
@@ -105,12 +123,14 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
         defaultType="income"
         accounts={accounts}
         categories={categories}
+        onSwitchToTransfer={handleSwitchToTransfer}
         trigger={null}
         open={activeDialog === "income"}
         onOpenChange={(open) => setActiveDialog(open ? "income" : null)}
       />
       <TransferForm
         accounts={accounts}
+        prefillAmount={transferPrefillAmount}
         trigger={null}
         open={activeDialog === "transfer"}
         onOpenChange={(open) => setActiveDialog(open ? "transfer" : null)}

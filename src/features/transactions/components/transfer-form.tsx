@@ -38,13 +38,15 @@ interface TransferFormProps {
   accounts: Account[];
   /** Present to edit an existing transfer in place (update_transfer RPC, migration 0015) rather than create a new one. */
   transfer?: Transaction;
+  /** Carries an amount over from another form the user switched away from (see TransactionForm's onSwitchToTransfer) — ignored once `transfer` is set, since editing always uses the real row's amount. */
+  prefillAmount?: string;
   trigger: React.ReactElement | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
 /** Thin trigger/open-state wrapper — see goal-form.tsx for why the fields live in a separate, fully self-contained subcomponent. */
-export function TransferForm({ accounts, transfer, trigger, open, onOpenChange }: TransferFormProps) {
+export function TransferForm({ accounts, transfer, prefillAmount, trigger, open, onOpenChange }: TransferFormProps) {
   const { t } = useTranslation();
   const { openForm, close: closeMinimizable } = useMinimizableFormActions();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
@@ -60,7 +62,9 @@ export function TransferForm({ accounts, transfer, trigger, open, onOpenChange }
       openForm({
         id: formId,
         title: pillTitle,
-        content: <TransferFormFields accounts={accounts} transfer={transfer} onOpenChange={setSheetOpen} />,
+        content: (
+          <TransferFormFields accounts={accounts} transfer={transfer} prefillAmount={prefillAmount} onOpenChange={setSheetOpen} />
+        ),
       });
     } else {
       closeMinimizable();
@@ -78,10 +82,12 @@ export function TransferForm({ accounts, transfer, trigger, open, onOpenChange }
 function TransferFormFields({
   accounts,
   transfer,
+  prefillAmount,
   onOpenChange,
 }: {
   accounts: Account[];
   transfer?: Transaction;
+  prefillAmount?: string;
   onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
@@ -98,7 +104,7 @@ function TransferFormFields({
   // accounts regardless of archived status — that's not a "default," it's
   // the transfer's actual history (same rule transaction-form.tsx applies).
   const activeAccounts = accounts.filter((a) => !a.is_archived);
-  const [amount, setAmount] = useState(transfer ? String(transfer.amount) : "");
+  const [amount, setAmount] = useState(transfer ? String(transfer.amount) : (prefillAmount ?? ""));
   const [fromAccountId, setFromAccountId] = useState<string | undefined>(
     transfer?.from_account_id ?? activeAccounts[0]?.id ?? accounts[0]?.id
   );

@@ -83,6 +83,15 @@ interface TransactionFormProps {
   categories: Category[];
   transaction?: Transaction;
   prefill?: TransactionPrefill;
+  /**
+   * When provided, a new (never editing) transaction's type selector also
+   * offers "transfer" — picking it calls this with the amount typed so far
+   * instead of setting local type state (a transfer needs two accounts and
+   * no category, so it can't just become another value of this same form;
+   * see the caller, e.g. QuickAdd, for how it opens a real TransferForm
+   * with that amount carried over).
+   */
+  onSwitchToTransfer?: (amount: string) => void;
   trigger: React.ReactElement | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -95,6 +104,7 @@ export function TransactionForm({
   categories,
   transaction,
   prefill,
+  onSwitchToTransfer,
   trigger,
   open,
   onOpenChange,
@@ -127,6 +137,7 @@ export function TransactionForm({
             categories={categories}
             transaction={transaction}
             prefill={prefill}
+            onSwitchToTransfer={onSwitchToTransfer}
             onOpenChange={setSheetOpen}
           />
         ),
@@ -150,6 +161,7 @@ function TransactionFormFields({
   categories,
   transaction,
   prefill,
+  onSwitchToTransfer,
   onOpenChange,
 }: {
   defaultType: Exclude<TransactionType, "transfer">;
@@ -157,6 +169,7 @@ function TransactionFormFields({
   categories: Category[];
   transaction?: Transaction;
   prefill?: TransactionPrefill;
+  onSwitchToTransfer?: (amount: string) => void;
   onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
@@ -255,6 +268,23 @@ function TransactionFormFields({
   const saveLabelPrefix = type === "income" ? t("transactions.saveIncome") : t("transactions.saveExpense");
   const saveLabel = amountCents > 0 ? `${saveLabelPrefix} ${formatMoney(amountCents)}` : saveLabelPrefix;
 
+  // "transfer" only ever appears as a type choice while creating (never
+  // editing — an existing row's type can't become a transfer through this
+  // form; see update_transfer/TransferForm for that), and only once the
+  // caller both offers somewhere to send it (onSwitchToTransfer) and
+  // there are at least two accounts to transfer between.
+  const canOfferTransfer = isCreating && Boolean(onSwitchToTransfer) && accounts.length >= 2;
+  const typeOptions: TransactionType[] = canOfferTransfer ? [...EDITABLE_TYPES, "transfer"] : EDITABLE_TYPES;
+
+  function handleTypeChange(v: TransactionType | null) {
+    if (!v) return;
+    if (v === "transfer") {
+      onSwitchToTransfer?.(amount);
+      return;
+    }
+    setType(v);
+  }
+
   const title = (
     <>
       <span
@@ -276,26 +306,21 @@ function TransactionFormFields({
         <input type="hidden" name="account_id" value={accountId ?? ""} />
         {isCreating ? <input type="hidden" name="client_request_id" value={clientRequestId} /> : null}
 
-        {!isCreating && (
-          <div className="space-y-2">
-            <Label htmlFor="type-select">{t("transactions.type")}</Label>
-            <Select
-              value={type}
-              onValueChange={(v) => setType(v as TransactionType)}
-            >
-              <SelectTrigger id="type-select">
-                <SelectValue>{(value: TransactionType) => t(`transactions.types.${value}`)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {EDITABLE_TYPES.map((tOption) => (
-                  <SelectItem key={tOption} value={tOption}>
-                    {t(`transactions.types.${tOption}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="space-y-2">
+          <Label htmlFor="type-select">{t("transactions.type")}</Label>
+          <Select value={type} onValueChange={handleTypeChange}>
+            <SelectTrigger id="type-select">
+              <SelectValue>{(value: TransactionType) => t(`transactions.types.${value}`)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {typeOptions.map((tOption) => (
+                <SelectItem key={tOption} value={tOption}>
+                  {t(`transactions.types.${tOption}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <AmountInput
           name="__amount_display"
