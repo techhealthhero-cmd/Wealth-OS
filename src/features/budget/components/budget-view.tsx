@@ -64,7 +64,7 @@ export function BudgetView({ summary, categories, month }: { summary: BudgetSumm
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex items-center justify-between space-y-0">
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{t("budget.currentMonth")}</CardTitle>
           <div className="flex items-center gap-2">
             <Badge className={STATUS_BADGE_CLASS[overall.status]}>{t(`budget.status.${overall.status}`)}</Badge>
@@ -99,7 +99,7 @@ export function BudgetView({ summary, categories, month }: { summary: BudgetSumm
       </Card>
 
       <Card>
-        <CardHeader className="flex items-center justify-between space-y-0">
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{t("budget.categoryBudgets")}</CardTitle>
           {unallocatedCategories.length > 0 ? (
             <CategoryBudgetForm budgetId={budget.id} categories={unallocatedCategories} />

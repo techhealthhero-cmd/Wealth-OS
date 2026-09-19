@@ -81,7 +81,7 @@ export function MonthlyHealthCheckCard({
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex items-center justify-between space-y-0">
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{t("monthlyHealthCheck.title")}</CardTitle>
           <Badge className={STATUS_BADGE_CLASS[health.overallStatus]}>
             {t(`monthlyHealthCheck.status.${health.overallStatus}`)}

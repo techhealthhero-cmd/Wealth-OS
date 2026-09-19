@@ -93,7 +93,7 @@ export async function EarnOverview() {
       <IncomeProfileCard profile={overview.profile} />
 
       <Card>
-        <CardHeader className="flex items-center justify-between space-y-0">
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{dict.earn.dashboard.incomeSources}</CardTitle>
           <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/earn/income" />}>
             {dict.earn.dashboard.viewAll}

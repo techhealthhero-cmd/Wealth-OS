@@ -20,7 +20,7 @@ export function IncomeProfileCard({ profile }: { profile: IncomeProfile }) {
 
   return (
     <Card>
-      <CardHeader className="flex items-center justify-between space-y-0">
+      <CardHeader className="flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">{t("earn.income.profile.title")}</CardTitle>
         <Badge className={STABILITY_BADGE_CLASS[profile.stability]}>
           {t(`earn.income.stabilityRatings.${profile.stability}`)}

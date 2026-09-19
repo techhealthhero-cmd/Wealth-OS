@@ -23,7 +23,7 @@ export function UpcomingBillsCard({ bills, dict }: { bills: UpcomingBillsSummary
 
   return (
     <Card>
-      <CardHeader className="flex items-center justify-between space-y-0 gap-2">
+      <CardHeader className="flex-row items-center justify-between space-y-0 gap-2">
         <CardTitle className="min-w-0 truncate text-base">{dict.upcomingBills.title}</CardTitle>
         {/* Deliberately NOT a sum of everything shown below — totalDueCents
             is overdue + next7Days only (see upcoming-bills.ts), so it must

@@ -135,7 +135,7 @@ export function MoneyYearView({
       </Card>
 
       <Card>
-        <CardHeader className="flex items-center justify-between space-y-0">
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{t("moneyYear.majorExpenses")}</CardTitle>
           <MajorExpenseForm moneyYearId={moneyYearId} />
         </CardHeader>
