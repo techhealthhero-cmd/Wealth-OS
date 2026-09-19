@@ -82,6 +82,28 @@ export default async function HelpPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">{help.tips.title}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {help.tips.items.map((tip) => (
+            <div key={tip.title} className="flex gap-3 border-t pt-3 first:border-t-0 first:pt-0">
+              <div
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-base"
+                aria-hidden="true"
+              >
+                {tip.emoji}
+              </div>
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-sm font-medium">{tip.title}</p>
+                <p className="text-sm text-muted-foreground">{tip.description}</p>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <Badge variant="outline" className="w-fit text-xs font-normal">
             {help.story.badge}
           </Badge>

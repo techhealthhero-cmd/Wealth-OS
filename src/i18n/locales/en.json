@@ -1465,6 +1465,21 @@
         }
       ]
     },
+    "tips": {
+      "title": "Usage tips",
+      "items": [
+        {
+          "emoji": "📌",
+          "title": "Minimize a form while filling it in",
+          "description": "Filling in a transaction, goal, asset, etc. and need to check something on another page first? Tap the \"−\" button in the form's top-right corner to shrink it into a floating button — go anywhere in the app and nothing you typed is lost. Tap the floating button to pick up right where you left off."
+        },
+        {
+          "emoji": "🔄",
+          "title": "Pull down to refresh",
+          "description": "At the top of a page, pull down to refresh with the latest data — same gesture as most apps."
+        }
+      ]
+    },
     "story": {
       "badge": "📖 Your Money Story",
       "title": "Prefer a story to a list? Try this",
