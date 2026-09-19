@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUp, Check, Copy, ImagePlus, X } from "lucide-react";
+import { ArrowUp, Check, Copy, ImagePlus, MessageSquarePlus, X } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 
@@ -13,6 +13,7 @@ import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Message, MessageContent, MessageFooter } from "@/components/ui/message";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group";
 import { AICoachIllustration } from "@/components/illustrations";
+import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 
 interface ChatMessage {
   id: string;
@@ -118,6 +119,7 @@ export function AICoachChat({
   initialMessages?: ChatMessage[];
 }) {
   const { t } = useTranslation();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages ?? []);
   const [input, setInput] = React.useState("");
   const [conversationId, setConversationId] = React.useState<string | undefined>(initialConversationId);
@@ -284,6 +286,28 @@ export function AICoachChat({
     void sendMessage(input);
   }
 
+  /**
+   * Reported: no way to reset the chat and start over. The server already
+   * treats a request with no `conversationId` as "create a new one" (see
+   * /api/ai/chat), so this only needs to clear local state — the next sent
+   * message naturally starts a fresh `ai_conversations` row, which becomes
+   * "latest" and is what `getLatestConversationWithMessages` restores next
+   * page load. The old conversation is never deleted, just no longer the
+   * one shown here (there's no conversation history/switcher UI yet) —
+   * hence the confirm step, so that isn't a surprise.
+   */
+  async function handleNewConversation() {
+    if (isSending) return;
+    if (!(await confirm(t("aiCoach.newConversationConfirm"), { title: t("aiCoach.newConversation") }))) return;
+    setMessages([]);
+    setConversationId(undefined);
+    setErrorMessage(null);
+    setPendingImage(null);
+    setInput("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    stickToBottomRef.current = true;
+  }
+
   function renderBubbleParagraphs(text: string, align: "start" | "end") {
     return text.split("\n\n").map((paragraph, idx) => (
       <Bubble align={align} key={idx} variant={align === "end" ? "muted" : "ghost"}>
@@ -322,6 +346,19 @@ export function AICoachChat({
         </Card>
       ) : (
         <div className="flex flex-col gap-4.5" role="log" aria-live="polite" aria-label={t("aiCoach.title")}>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              disabled={isSending}
+              onClick={() => void handleNewConversation()}
+            >
+              <MessageSquarePlus className="mr-1.5 size-3.5" aria-hidden="true" />
+              {t("aiCoach.newConversation")}
+            </Button>
+          </div>
           {messages.map((m, i) => {
             const align = m.role === "user" ? "end" : "start";
             const isLast = i === messages.length - 1;
@@ -449,6 +486,7 @@ export function AICoachChat({
           </InputGroupAddon>
         </InputGroup>
       </form>
+      {confirmDialog}
     </div>
   );
 }
