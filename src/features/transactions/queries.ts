@@ -4,6 +4,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { toLocalDateString } from "@/lib/date";
 import { withPerfLog } from "@/lib/dev-diagnostics";
+import { throwDbError } from "@/lib/db-error";
 import type { Transaction, TransactionType } from "@/types/database";
 
 export interface TransactionWithRelations extends Transaction {
@@ -74,7 +75,7 @@ async function fetchTransactions(filters: TransactionFilters): Promise<Transacti
   if (filters.limit) query = query.limit(filters.limit);
 
   const { data, error } = await query;
-  if (error) throw new Error("Failed to load transactions");
+  if (error) throwDbError(error, "transactions.fetchTransactions", "Failed to load transactions");
   return (data ?? []) as unknown as TransactionWithRelations[];
 }
 
@@ -129,8 +130,8 @@ export async function getQuickRepeatCandidates(limit = 6): Promise<QuickRepeatCa
     supabase.from("accounts").select("id").eq("is_archived", false),
   ]);
 
-  if (error) throw new Error("Failed to load recent transactions");
-  if (accountsError) throw new Error("Failed to load accounts");
+  if (error) throwDbError(error, "transactions.getQuickRepeatCandidates", "Failed to load recent transactions");
+  if (accountsError) throwDbError(accountsError, "transactions.getQuickRepeatCandidates", "Failed to load accounts");
 
   const activeAccountIds = new Set((activeAccounts ?? []).map((a) => a.id));
 

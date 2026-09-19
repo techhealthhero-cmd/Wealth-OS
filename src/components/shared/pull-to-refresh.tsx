@@ -13,6 +13,19 @@ const MAX_PULL_PX = 110;
 // mirrors the "rubber band" resistance of native pull-to-refresh instead
 // of a 1:1 drag, which reads as physically real rather than sluggish.
 const PULL_DAMPING = 0.5;
+// Dead-zone before the gesture commits to a pull and starts calling
+// preventDefault(). Reported bug: scrolling sometimes got stuck. Root
+// cause candidate: the old code called preventDefault() on the very
+// first pixel of any downward touch movement at scrollY 0 — that hijacks
+// the gesture before the browser/OS has resolved what it actually is
+// (a deliberate pull vs. a normal scroll's initial jitter, a tap-drag, an
+// edge back-swipe), and on some Android WebViews an aggressively
+// prevented gesture can be left in a state where neither touchmove nor
+// touchend/touchcancel ever reach us again, leaving pull state stuck.
+// Waiting for a small real displacement first gives ordinary
+// interactions room to resolve as "not a pull" before we ever touch
+// preventDefault().
+const PULL_START_THRESHOLD_PX = 10;
 
 /**
  * Custom pull-to-refresh for the installed-PWA app shell. `display:
@@ -64,6 +77,15 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
 
     function handleTouchMove(e: TouchEvent) {
       if (startYRef.current === null) return;
+      // A second touch point (pinch, or the OS's own edge-swipe gesture)
+      // means this was never a single-finger pull — release it back to
+      // the browser instead of racing it for the gesture.
+      if (e.touches.length > 1) {
+        startYRef.current = null;
+        isPullingRef.current = false;
+        updatePullDistance(0);
+        return;
+      }
       // Abandon the gesture the moment the page has scrolled away from the
       // top (e.g. content above grew) or the drag reverses upward — lets
       // normal scrolling resume untouched instead of fighting it.
@@ -79,9 +101,14 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         updatePullDistance(0);
         return;
       }
+      if (!isPullingRef.current && delta < PULL_START_THRESHOLD_PX) {
+        // Still inside the dead-zone — don't preventDefault yet, so a
+        // normal scroll/tap/back-swipe is free to resolve as itself.
+        return;
+      }
       isPullingRef.current = true;
       e.preventDefault();
-      updatePullDistance(Math.min(delta * PULL_DAMPING, MAX_PULL_PX));
+      updatePullDistance(Math.min((delta - PULL_START_THRESHOLD_PX) * PULL_DAMPING, MAX_PULL_PX));
     }
 
     function handleTouchEnd() {
