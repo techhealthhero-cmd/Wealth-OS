@@ -1,10 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { cloneElement, useActionState, useEffect, useMemo, useState, type ReactElement } from "react";
 import { toast } from "sonner";
 
 import { createTransaction, updateTransaction } from "@/features/transactions/actions";
-import { asTrigger } from "@/lib/as-trigger";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import { transactionTypeVisual } from "@/lib/transaction-ui";
@@ -20,13 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { SuccessBadge } from "@/components/illustrations";
 import { AmountInput } from "./amount-input";
 import { CategoryPicker } from "./category-picker";
 import { AccountPicker } from "./account-picker";
 import { DateField } from "./date-field";
 import { CollapsibleNotes } from "./collapsible-notes";
+import { useMinimizableFormActions } from "@/components/shared/minimizable-form-context";
+import { MinimizableFormShell } from "@/components/shared/minimizable-form-shell";
 
 const LAST_ACCOUNT_KEY = "wealthos:lastAccountId";
 
@@ -88,6 +88,7 @@ interface TransactionFormProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+/** Thin trigger/open-state wrapper — see goal-form.tsx for why the fields live in a separate, fully self-contained subcomponent. */
 export function TransactionForm({
   defaultType,
   accounts,
@@ -99,10 +100,67 @@ export function TransactionForm({
   onOpenChange,
 }: TransactionFormProps) {
   const { t } = useTranslation();
+  const { openForm, close: closeMinimizable } = useMinimizableFormActions();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const isControlled = open !== undefined;
   const sheetOpen = isControlled ? open : uncontrolledOpen;
   const setSheetOpen = isControlled ? onOpenChange! : setUncontrolledOpen;
+
+  const formId = transaction ? `transaction-form-edit-${transaction.id}` : "transaction-form-add";
+  // For the floating pill's label only (shown while minimized) — the
+  // in-form header (built inside TransactionFormFields) reflects the
+  // live `type` selection instead, since that's internal state this
+  // thin wrapper deliberately doesn't own. See goal-form.tsx.
+  const pillTitle = transaction
+    ? t("transactions.editTransaction")
+    : t(`transactions.add${defaultType === "income" ? "Income" : "Expense"}`);
+
+  useEffect(() => {
+    if (sheetOpen) {
+      openForm({
+        id: formId,
+        title: pillTitle,
+        content: (
+          <TransactionFormFields
+            defaultType={defaultType}
+            accounts={accounts}
+            categories={categories}
+            transaction={transaction}
+            prefill={prefill}
+            onOpenChange={setSheetOpen}
+          />
+        ),
+      });
+    } else {
+      closeMinimizable();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetOpen]);
+
+  if (trigger === null) return null;
+
+  return cloneElement(trigger as ReactElement<{ onClick?: () => void }>, {
+    onClick: () => setSheetOpen(true),
+  });
+}
+
+function TransactionFormFields({
+  defaultType,
+  accounts,
+  categories,
+  transaction,
+  prefill,
+  onOpenChange,
+}: {
+  defaultType: Exclude<TransactionType, "transfer">;
+  accounts: Account[];
+  categories: Category[];
+  transaction?: Transaction;
+  prefill?: TransactionPrefill;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const { close: closeMinimizable } = useMinimizableFormActions();
 
   const isCreating = !transaction;
   const [type, setType] = useState<TransactionType>(transaction?.type ?? defaultType);
@@ -133,6 +191,11 @@ export function TransactionForm({
   const action = transaction ? updateTransaction.bind(null, transaction.id) : createTransaction;
   const [state, formAction, isPending] = useActionState(action, undefined);
 
+  function handleClose() {
+    onOpenChange(false);
+    closeMinimizable();
+  }
+
   // Smart default (Step 4): prefer the most recently used account for a
   // brand-new transaction, once there's more than one to choose between (a
   // single account is already the initial state, above). Deferred to an
@@ -152,7 +215,7 @@ export function TransactionForm({
 
   useEffect(() => {
     if (!state?.success) return;
-    setSheetOpen(false);
+    handleClose();
     if (accountId) rememberAccountId(accountId);
     // Next open of this same form instance is a NEW intended transaction —
     // it must get its own idempotency key, never reuse the one that just
@@ -192,124 +255,119 @@ export function TransactionForm({
   const saveLabelPrefix = type === "income" ? t("transactions.saveIncome") : t("transactions.saveExpense");
   const saveLabel = amountCents > 0 ? `${saveLabelPrefix} ${formatMoney(amountCents)}` : saveLabelPrefix;
 
-  return (
-    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-      {trigger !== null ? <SheetTrigger {...asTrigger(trigger)} /> : null}
-      <SheetContent
-        side="bottom"
-        className="mx-auto max-h-[92vh] w-full overflow-y-auto rounded-t-2xl sm:max-w-md sm:rounded-2xl sm:border"
+  const title = (
+    <>
+      <span
+        className={`inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium ${visual.colorClass}`}
       >
-        <div className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-muted sm:hidden" aria-hidden="true" />
-        <SheetHeader className="pb-0">
-          <span
-            className={`inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium ${visual.colorClass}`}
-          >
-            <span aria-hidden="true">{visual.emoji}</span>
-            {t(`transactions.types.${type}`)}
-          </span>
-          <SheetTitle>
-            {transaction ? t("transactions.editTransaction") : t(`transactions.add${type === "income" ? "Income" : "Expense"}`)}
-          </SheetTitle>
-        </SheetHeader>
+        <span aria-hidden="true">{visual.emoji}</span>
+        {t(`transactions.types.${type}`)}
+      </span>
+      <p className="font-heading text-base leading-tight font-medium">
+        {transaction ? t("transactions.editTransaction") : t(`transactions.add${type === "income" ? "Income" : "Expense"}`)}
+      </p>
+    </>
+  );
 
-        <form action={formAction} className="space-y-5 px-4 pb-4">
-          <input type="hidden" name="type" value={type} />
-          <input type="hidden" name="account_id" value={accountId ?? ""} />
-          {isCreating ? <input type="hidden" name="client_request_id" value={clientRequestId} /> : null}
+  return (
+    <MinimizableFormShell title={title} onClose={handleClose} variant="sheet">
+      <form action={formAction} className="space-y-5">
+        <input type="hidden" name="type" value={type} />
+        <input type="hidden" name="account_id" value={accountId ?? ""} />
+        {isCreating ? <input type="hidden" name="client_request_id" value={clientRequestId} /> : null}
 
-          {!isCreating && (
-            <div className="space-y-2">
-              <Label htmlFor="type-select">{t("transactions.type")}</Label>
-              <Select
-                value={type}
-                onValueChange={(v) => setType(v as TransactionType)}
-              >
-                <SelectTrigger id="type-select">
-                  <SelectValue>{(value: TransactionType) => t(`transactions.types.${value}`)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {EDITABLE_TYPES.map((tOption) => (
-                    <SelectItem key={tOption} value={tOption}>
-                      {t(`transactions.types.${tOption}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <AmountInput
-            name="__amount_display"
-            value={amount}
-            onValueChange={setAmount}
-            aria-label={t("transactions.amount")}
-            autoFocus={isCreating}
-          />
-          {/* The real submitted field: always a plain decimal string, kept in sync with the big display input above. */}
-          <input type="hidden" name="amount" value={amount} />
-
-          <CategoryPicker
-            name="category_id"
-            categories={relevantCategories}
-            value={categoryId}
-            onValueChange={setCategoryId}
-          />
-
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="account_display" className="sr-only">
-                {t("transactions.account")}
-              </Label>
-              <AccountPicker
-                id="account_display"
-                name="__account_display"
-                accounts={accounts}
-                value={accountId}
-                onValueChange={setAccountId}
-              />
-            </div>
-            <DateField name="transaction_date" value={dateValue} onValueChange={setDateValue} />
+        {!isCreating && (
+          <div className="space-y-2">
+            <Label htmlFor="type-select">{t("transactions.type")}</Label>
+            <Select
+              value={type}
+              onValueChange={(v) => setType(v as TransactionType)}
+            >
+              <SelectTrigger id="type-select">
+                <SelectValue>{(value: TransactionType) => t(`transactions.types.${value}`)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {EDITABLE_TYPES.map((tOption) => (
+                  <SelectItem key={tOption} value={tOption}>
+                    {t(`transactions.types.${tOption}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+        )}
 
+        <AmountInput
+          name="__amount_display"
+          value={amount}
+          onValueChange={setAmount}
+          aria-label={t("transactions.amount")}
+          autoFocus={isCreating}
+        />
+        {/* The real submitted field: always a plain decimal string, kept in sync with the big display input above. */}
+        <input type="hidden" name="amount" value={amount} />
+
+        <CategoryPicker
+          name="category_id"
+          categories={relevantCategories}
+          value={categoryId}
+          onValueChange={setCategoryId}
+        />
+
+        <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1.5">
-            <Label htmlFor="merchant">{merchantLabel}</Label>
-            <Input
-              id="merchant"
-              name="merchant"
-              defaultValue={transaction?.merchant ?? prefill?.merchant ?? ""}
-              placeholder={merchantPlaceholder}
-              maxLength={120}
+            <Label htmlFor="account_display" className="sr-only">
+              {t("transactions.account")}
+            </Label>
+            <AccountPicker
+              id="account_display"
+              name="__account_display"
+              accounts={accounts}
+              value={accountId}
+              onValueChange={setAccountId}
             />
           </div>
+          <DateField name="transaction_date" value={dateValue} onValueChange={setDateValue} />
+        </div>
 
-          <CollapsibleNotes
-            name="notes"
-            defaultValue={transaction?.notes ?? ""}
-            // 2026-09: for an expense, the "merchant" field above is now
-            // framed as "what did you pay for" (see merchantLabel) — notes
-            // takes over the "who did you pay" framing that field used to
-            // carry, rather than staying a generic note field. Income/
-            // transfer keep the generic defaults (transfer-form.tsx's own
-            // CollapsibleNotes usage is untouched).
-            toggleLabel={type === "expense" ? t("transactions.payeeExpenseLabel") : undefined}
-            placeholder={type === "expense" ? t("transactions.payeeExpensePlaceholder") : undefined}
+        <div className="space-y-1.5">
+          <Label htmlFor="merchant">{merchantLabel}</Label>
+          <Input
+            id="merchant"
+            name="merchant"
+            defaultValue={transaction?.merchant ?? prefill?.merchant ?? ""}
+            placeholder={merchantPlaceholder}
+            maxLength={120}
           />
+        </div>
 
-          {state?.error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {state.error}
-            </p>
-          ) : null}
+        <CollapsibleNotes
+          name="notes"
+          defaultValue={transaction?.notes ?? ""}
+          // 2026-09: for an expense, the "merchant" field above is now
+          // framed as "what did you pay for" (see merchantLabel) — notes
+          // takes over the "who did you pay" framing that field used to
+          // carry, rather than staying a generic note field. Income/
+          // transfer keep the generic defaults (transfer-form.tsx's own
+          // CollapsibleNotes usage is untouched).
+          toggleLabel={type === "expense" ? t("transactions.payeeExpenseLabel") : undefined}
+          placeholder={type === "expense" ? t("transactions.payeeExpensePlaceholder") : undefined}
+        />
 
-          {accounts.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground">{t("transactions.needAccountFirst")}</p>
-          ) : (
-            <Button type="submit" className="w-full" size="lg" disabled={!canSubmit}>
-              {isPending ? t("transactions.saving") : saveLabel}
-            </Button>
-          )}
-        </form>
-      </SheetContent>
-    </Sheet>
+        {state?.error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {state.error}
+          </p>
+        ) : null}
+
+        {accounts.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground">{t("transactions.needAccountFirst")}</p>
+        ) : (
+          <Button type="submit" className="w-full" size="lg" disabled={!canSubmit}>
+            {isPending ? t("transactions.saving") : saveLabel}
+          </Button>
+        )}
+      </form>
+    </MinimizableFormShell>
   );
 }
