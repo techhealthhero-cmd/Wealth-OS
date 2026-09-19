@@ -26,7 +26,9 @@
     "invalidInput": "ข้อมูลไม่ถูกต้อง",
     "pleaseLogin": "กรุณาเข้าสู่ระบบก่อน",
     "releaseToRefresh": "ปล่อยเพื่อรีเฟรช",
-    "refreshing": "กำลังรีเฟรช..."
+    "refreshing": "กำลังรีเฟรช...",
+    "minimizeForm": "พับฟอร์มนี้",
+    "tapToResume": "แตะเพื่อทำต่อ"
   },
   "validation": {
     "amountRequired": "กรุณาใส่จำนวนเงิน",

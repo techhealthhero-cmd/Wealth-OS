@@ -26,7 +26,9 @@
     "invalidInput": "Invalid input",
     "pleaseLogin": "Please log in first",
     "releaseToRefresh": "Release to refresh",
-    "refreshing": "Refreshing..."
+    "refreshing": "Refreshing...",
+    "minimizeForm": "Minimize this form",
+    "tapToResume": "Tap to resume"
   },
   "validation": {
     "amountRequired": "Please enter an amount",
