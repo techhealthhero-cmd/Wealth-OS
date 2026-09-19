@@ -555,6 +555,11 @@
       "on_track": "On track",
       "behind": "Behind plan"
     },
+    "compareYears": "Compare years",
+    "compareTitle": "Compare Money Years",
+    "compareMetric": "Metric",
+    "compareEmptyTitle": "Not enough data to compare yet",
+    "compareEmptyState": "You need at least 2 years of Money Year plans to compare — try adding a plan for a previous year.",
     "quarters": "Quarterly plans",
     "quarter": "Quarter",
     "addQuarterPlan": "Set quarter target",
@@ -1397,13 +1402,17 @@
           "Full Monthly Financial Review",
           "Automatic Subscription Detector",
           "All Income Opportunities and Missions",
-          "AI Money Coach — 150 messages/month"
+          "AI Money Coach — 150 messages/month",
+          "Browse and search your past AI chat history",
+          "Compare multiple years of your Money Year plans"
         ],
         "pro": [
           "Everything in Plus",
           "AI Money Coach — 500 messages/month",
           "Every AI Insight, not just the top one",
-          "Export your transaction history as a CSV file"
+          "Export your transaction history as a CSV file",
+          "AI Money Coach checks in with a summary every month, unprompted",
+          "Export a shareable PDF financial report"
         ]
       }
     },
@@ -1420,7 +1429,13 @@
       "moreOpportunitiesDescription": "{count} more waiting — upgrade to see all of them.",
       "moreMissionsTitle": "More missions in Plus",
       "moreMissionsDescription": "{count} more waiting — upgrade to see all of them.",
-      "goalsLimitReached": "Free plans can have up to 3 goals. Upgrade to Plus for unlimited goals."
+      "goalsLimitReached": "Free plans can have up to 3 goals. Upgrade to Plus for unlimited goals.",
+      "aiChatHistoryTitle": "Available in Plus",
+      "aiChatHistoryDescription": "Upgrade to view and search all your past AI Money Coach conversations.",
+      "moneyYearCompareTitle": "Available in Plus",
+      "moneyYearCompareDescription": "Upgrade to compare multiple years of your Money Year plans side by side.",
+      "pdfReportTitle": "Available in Pro",
+      "pdfReportDescription": "Upgrade to export a shareable PDF financial report."
     },
     "errors": {
       "invalidPlan": "That plan isn't valid.",

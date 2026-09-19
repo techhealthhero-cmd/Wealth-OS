@@ -7,6 +7,7 @@ import { getLocale } from "@/i18n/server";
 import { MoneyYearForm } from "@/features/money-year/components/money-year-form";
 import { MoneyYearView } from "@/features/money-year/components/money-year-view";
 import { YearSelector } from "@/features/money-year/components/year-selector";
+import { CompareYearsButton } from "@/features/money-year/components/compare-years-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { WelcomeIllustration } from "@/components/illustrations";
 
@@ -44,7 +45,12 @@ export default async function MoneyYearPage({ searchParams }: MoneyYearPageProps
 
   return (
     <div className="space-y-4">
-      <YearSelector year={year} />
+      <div className="flex items-center justify-center gap-3">
+        <YearSelector year={year} />
+      </div>
+      <div className="flex justify-end">
+        <CompareYearsButton />
+      </div>
       <MoneyYearView
         year={year}
         metrics={summary.metrics}

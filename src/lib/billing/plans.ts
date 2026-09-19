@@ -34,6 +34,12 @@ export const FEATURES = {
   WEALTH_MISSIONS: "WEALTH_MISSIONS",
   ADVANCED_INSIGHTS: "ADVANCED_INSIGHTS",
   DATA_EXPORT: "DATA_EXPORT",
+  /** Browse/search past AI Money Coach conversations, not just the latest one. Plus+. */
+  AI_CHAT_HISTORY: "AI_CHAT_HISTORY",
+  /** Compare Money Year plans across multiple years side by side. Plus+. */
+  MONEY_YEAR_COMPARE: "MONEY_YEAR_COMPARE",
+  /** Designed, shareable PDF financial report (distinct from DATA_EXPORT's raw CSV). Pro only. */
+  PDF_REPORT: "PDF_REPORT",
 } as const;
 
 export type FeatureId = (typeof FEATURES)[keyof typeof FEATURES];
@@ -48,6 +54,16 @@ export interface PlanLimits {
   incomeOpportunitiesMax: number | null;
   /** Concurrently visible Income Missions (Day 5). */
   incomeMissionsMax: number | null;
+  /**
+   * Unprompted AI Money Coach check-ins per calendar-month billing period
+   * (the app messages the user, instead of only replying when asked) — a
+   * limit rather than a boolean FEATURES flag because "how many" is exactly
+   * what needs capping for cost control; the monthly dedupe key in
+   * `financial_notifications` enforces this value being respected. Doesn't
+   * share `aiMessagesPerMonth`'s counter — the user didn't spend their own
+   * quota by the app messaging them first.
+   */
+  aiCheckinsPerMonth: number;
 }
 
 export interface PlanDefinition {
@@ -81,6 +97,16 @@ export interface PlanDefinition {
  * Plus despite nothing ever reading it. Both were picked specifically because
  * they reuse data the app already computes/stores, rather than inventing a
  * new gated system.
+ *
+ * 2026-09 (four more premium features, same "reuse existing data" principle):
+ * `AI_CHAT_HISTORY` and `MONEY_YEAR_COMPARE` follow the Plus grouping above —
+ * both are "unlock a fuller view of your own planning data," same shape as
+ * Forecast/Debt Planner/Subscription Detector. `PDF_REPORT` (a designed,
+ * shareable report — distinct from `DATA_EXPORT`'s raw CSV) and
+ * `aiCheckinsPerMonth` (the AI messaging the user monthly, unprompted,
+ * instead of only replying when asked) follow the Pro grouping — both are
+ * AI-cost/export power features, same shape as `ADVANCED_INSIGHTS`/
+ * `DATA_EXPORT` above.
  */
 export const PLANS: Record<PlanId, PlanDefinition> = {
   free: {
@@ -93,6 +119,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       activeGoalsMax: 3,
       incomeOpportunitiesMax: 3,
       incomeMissionsMax: 3,
+      aiCheckinsPerMonth: 0,
     },
     features: {
       AI_CHAT: true,
@@ -106,6 +133,9 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       WEALTH_MISSIONS: true,
       ADVANCED_INSIGHTS: false,
       DATA_EXPORT: false,
+      AI_CHAT_HISTORY: false,
+      MONEY_YEAR_COMPARE: false,
+      PDF_REPORT: false,
     },
   },
   plus: {
@@ -118,6 +148,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       activeGoalsMax: null,
       incomeOpportunitiesMax: null,
       incomeMissionsMax: null,
+      aiCheckinsPerMonth: 0,
     },
     features: {
       AI_CHAT: true,
@@ -131,6 +162,9 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       WEALTH_MISSIONS: true,
       ADVANCED_INSIGHTS: false,
       DATA_EXPORT: false,
+      AI_CHAT_HISTORY: true,
+      MONEY_YEAR_COMPARE: true,
+      PDF_REPORT: false,
     },
   },
   pro: {
@@ -143,6 +177,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       activeGoalsMax: null,
       incomeOpportunitiesMax: null,
       incomeMissionsMax: null,
+      aiCheckinsPerMonth: 1,
     },
     features: {
       AI_CHAT: true,
@@ -156,6 +191,9 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       WEALTH_MISSIONS: true,
       ADVANCED_INSIGHTS: true,
       DATA_EXPORT: true,
+      AI_CHAT_HISTORY: true,
+      MONEY_YEAR_COMPARE: true,
+      PDF_REPORT: true,
     },
   },
 };

@@ -555,6 +555,11 @@
       "on_track": "เป็นไปตามแผน",
       "behind": "ช้ากว่าแผน"
     },
+    "compareYears": "เทียบแผนรายปี",
+    "compareTitle": "เทียบแผนการเงินรายปี",
+    "compareMetric": "รายการ",
+    "compareEmptyTitle": "ยังไม่มีข้อมูลพอให้เทียบ",
+    "compareEmptyState": "ต้องมีแผนการเงินรายปีอย่างน้อย 2 ปีถึงจะเทียบกันได้ ลองสร้างแผนของปีก่อนหน้าเพิ่มดูสิ",
     "quarters": "แผนรายไตรมาส",
     "quarter": "ไตรมาส",
     "addQuarterPlan": "ตั้งเป้าไตรมาส",
@@ -1397,13 +1402,17 @@
           "ทบทวนการเงินประจำเดือนแบบเต็มรูปแบบ",
           "ตรวจจับ Subscription อัตโนมัติ",
           "Income Opportunities และภารกิจครบทุกรายการ",
-          "AI Money Coach 150 ข้อความ/เดือน"
+          "AI Money Coach 150 ข้อความ/เดือน",
+          "ดูและค้นหาประวัติแชท AI ย้อนหลังได้",
+          "เทียบแผนการเงินรายปีหลายปีย้อนหลัง"
         ],
         "pro": [
           "ทุกอย่างในแผน Plus",
           "AI Money Coach 500 ข้อความ/เดือน",
           "Insight เชิงลึกครบทุกรายการ ไม่ใช่แค่รายการเดียว",
-          "Export ประวัติธุรกรรมเป็นไฟล์ CSV"
+          "Export ประวัติธุรกรรมเป็นไฟล์ CSV",
+          "AI Money Coach ทักทายสรุปการเงินให้ทุกเดือนโดยไม่ต้องถาม",
+          "Export รายงานการเงินเป็นไฟล์ PDF พร้อมแชร์"
         ]
       }
     },
@@ -1420,7 +1429,13 @@
       "moreOpportunitiesDescription": "อีก {count} โอกาสรออยู่ อัปเกรดเพื่อดูทั้งหมด",
       "moreMissionsTitle": "ดูภารกิจเพิ่มเติมใน Plus",
       "moreMissionsDescription": "อีก {count} ภารกิจรออยู่ อัปเกรดเพื่อดูทั้งหมด",
-      "goalsLimitReached": "แผนฟรีตั้งเป้าหมายได้สูงสุด 3 เป้าหมาย อัปเกรดเป็น Plus เพื่อตั้งได้ไม่จำกัด"
+      "goalsLimitReached": "แผนฟรีตั้งเป้าหมายได้สูงสุด 3 เป้าหมาย อัปเกรดเป็น Plus เพื่อตั้งได้ไม่จำกัด",
+      "aiChatHistoryTitle": "ใช้ได้ใน Plus",
+      "aiChatHistoryDescription": "อัปเกรดเพื่อดูและค้นหาบทสนทนา AI Money Coach ย้อนหลังทั้งหมด",
+      "moneyYearCompareTitle": "ใช้ได้ใน Plus",
+      "moneyYearCompareDescription": "อัปเกรดเพื่อเทียบแผนการเงินรายปีหลายปีย้อนหลังแบบเคียงข้างกัน",
+      "pdfReportTitle": "ใช้ได้ใน Pro",
+      "pdfReportDescription": "อัปเกรดเพื่อ Export รายงานการเงินเป็นไฟล์ PDF พร้อมแชร์"
     },
     "errors": {
       "invalidPlan": "แผนที่เลือกไม่ถูกต้อง",

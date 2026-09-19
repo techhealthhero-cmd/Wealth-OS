@@ -86,20 +86,23 @@ describe("planHasFeature / getPlanLimit — feature entitlement (STEP 17)", () =
 
   it("a Free -> Plus transition unlocks every Plus-tier premium feature", () => {
     const plusFeatures = Object.values(FEATURES).filter(
-      (f) => f !== FEATURES.ADVANCED_INSIGHTS && f !== FEATURES.DATA_EXPORT
+      (f) => f !== FEATURES.ADVANCED_INSIGHTS && f !== FEATURES.DATA_EXPORT && f !== FEATURES.PDF_REPORT
     );
     for (const feature of plusFeatures) {
       expect(planHasFeature("plus", feature)).toBe(true);
     }
   });
 
-  it("ADVANCED_INSIGHTS and DATA_EXPORT are Pro-exclusive — Plus does NOT get them (2026-09 fix: previously Plus had ADVANCED_INSIGHTS=true despite nothing reading it, making Pro a strict Plus superset with no real differentiator)", () => {
+  it("ADVANCED_INSIGHTS, DATA_EXPORT, and PDF_REPORT are Pro-exclusive — Plus does NOT get them (2026-09 fix: previously Plus had ADVANCED_INSIGHTS=true despite nothing reading it, making Pro a strict Plus superset with no real differentiator)", () => {
     expect(planHasFeature("plus", FEATURES.ADVANCED_INSIGHTS)).toBe(false);
     expect(planHasFeature("plus", FEATURES.DATA_EXPORT)).toBe(false);
+    expect(planHasFeature("plus", FEATURES.PDF_REPORT)).toBe(false);
     expect(planHasFeature("pro", FEATURES.ADVANCED_INSIGHTS)).toBe(true);
     expect(planHasFeature("pro", FEATURES.DATA_EXPORT)).toBe(true);
+    expect(planHasFeature("pro", FEATURES.PDF_REPORT)).toBe(true);
     expect(planHasFeature("free", FEATURES.ADVANCED_INSIGHTS)).toBe(false);
     expect(planHasFeature("free", FEATURES.DATA_EXPORT)).toBe(false);
+    expect(planHasFeature("free", FEATURES.PDF_REPORT)).toBe(false);
   });
 
   it("Pro includes everything Plus includes (a strict superset today)", () => {
