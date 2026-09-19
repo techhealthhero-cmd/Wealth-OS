@@ -393,16 +393,22 @@ export function AICoachChat({
         />
         <InputGroup className="h-auto min-h-11 items-end rounded-[22px] px-0.5 py-0.5">
           <InputGroupAddon align="inline-start" className="pb-1.25 pl-1.5">
+            {/* InputGroupAddon defaults to text-muted-foreground, meant for
+                decorative content — too low-contrast for an actual tappable
+                affordance (reported: users couldn't spot it), so this one
+                overrides to the app's primary green with a soft tint
+                background, same "clearly interactive" treatment as other
+                icon-only add actions (e.g. QuickAdd). */}
             <InputGroupButton
               type="button"
               aria-label={t("aiCoach.attachImage")}
               disabled={isSending}
               size="icon-sm"
               variant="ghost"
-              className="rounded-full"
+              className="rounded-full bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
               onClick={() => fileInputRef.current?.click()}
             >
-              <ImagePlus className="size-4" aria-hidden="true" />
+              <ImagePlus className="size-4.5" aria-hidden="true" />
             </InputGroupButton>
           </InputGroupAddon>
           <InputGroupTextarea
