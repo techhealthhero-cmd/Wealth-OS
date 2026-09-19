@@ -797,7 +797,7 @@
     "errorTooLong": "That message is too long — please shorten it.",
     "errorEmpty": "Please type a message before sending.",
     "newConversation": "Start a new conversation",
-    "newConversationConfirm": "This chat won't be shown again after this (your data stays saved, nothing is deleted). Start a new conversation?",
+    "newConversationConfirm": "Start a new conversation?",
     "distressNotice": "If you're feeling unsafe or having thoughts of harming yourself, please contact a crisis line (in Thailand: 1323, free, 24/7) or reach out to someone you trust right away.",
     "disclaimer": "The AI Money Coach gives general guidance based on your financial data. It is not a licensed financial adviser and does not guarantee any return or outcome.",
     "usageLabel": "AI messages this month",
