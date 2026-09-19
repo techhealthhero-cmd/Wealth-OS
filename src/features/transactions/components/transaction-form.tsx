@@ -39,6 +39,9 @@ const EDITABLE_TYPES: TransactionType[] = [
   "investment_allocation",
 ];
 
+/** The only three choices offered while creating a NEW transaction or transfer — everything else in EDITABLE_TYPES is meant to come from its own dedicated flow (e.g. a debt payment from the Debt Planner), not picked by hand here. Shared with transfer-form.tsx's own type selector so the two stay in lockstep. */
+export const CREATE_TYPE_OPTIONS: TransactionType[] = ["expense", "income", "transfer"];
+
 function todayISO() {
   return toLocalDateString(new Date());
 }
@@ -277,7 +280,7 @@ function TransactionFormFields({
   // row, unchanged from before.
   const canOfferTransfer = isCreating && Boolean(onSwitchToTransfer) && accounts.length >= 2;
   const typeOptions: TransactionType[] = isCreating
-    ? (canOfferTransfer ? ["expense", "income", "transfer"] : ["expense", "income"])
+    ? (canOfferTransfer ? CREATE_TYPE_OPTIONS : CREATE_TYPE_OPTIONS.filter((opt) => opt !== "transfer"))
     : EDITABLE_TYPES;
 
   function handleTypeChange(v: TransactionType | null) {

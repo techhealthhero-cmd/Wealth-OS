@@ -13,6 +13,13 @@ import type { Account, Transaction } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SuccessBadge } from "@/components/illustrations";
 import { AmountInput } from "./amount-input";
 import { AccountPicker } from "./account-picker";
@@ -20,6 +27,7 @@ import { DateField } from "./date-field";
 import { CollapsibleNotes } from "./collapsible-notes";
 import { useMinimizableFormActions } from "@/components/shared/minimizable-form-context";
 import { MinimizableFormShell } from "@/components/shared/minimizable-form-shell";
+import { CREATE_TYPE_OPTIONS } from "./transaction-form";
 
 function todayISO() {
   return toLocalDateString(new Date());
@@ -40,13 +48,28 @@ interface TransferFormProps {
   transfer?: Transaction;
   /** Carries an amount over from another form the user switched away from (see TransactionForm's onSwitchToTransfer) — ignored once `transfer` is set, since editing always uses the real row's amount. */
   prefillAmount?: string;
+  /**
+   * When provided, a new (never editing) transfer's type selector also
+   * offers "expense"/"income" — picking one calls this with the amount
+   * typed so far instead of trying to submit a transfer, mirroring
+   * TransactionForm's own onSwitchToTransfer in the other direction.
+   */
+  onSwitchToTransaction?: (type: "income" | "expense", amount: string) => void;
   trigger: React.ReactElement | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
 /** Thin trigger/open-state wrapper — see goal-form.tsx for why the fields live in a separate, fully self-contained subcomponent. */
-export function TransferForm({ accounts, transfer, prefillAmount, trigger, open, onOpenChange }: TransferFormProps) {
+export function TransferForm({
+  accounts,
+  transfer,
+  prefillAmount,
+  onSwitchToTransaction,
+  trigger,
+  open,
+  onOpenChange,
+}: TransferFormProps) {
   const { t } = useTranslation();
   const { openForm, close: closeMinimizable } = useMinimizableFormActions();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
@@ -63,7 +86,13 @@ export function TransferForm({ accounts, transfer, prefillAmount, trigger, open,
         id: formId,
         title: pillTitle,
         content: (
-          <TransferFormFields accounts={accounts} transfer={transfer} prefillAmount={prefillAmount} onOpenChange={setSheetOpen} />
+          <TransferFormFields
+            accounts={accounts}
+            transfer={transfer}
+            prefillAmount={prefillAmount}
+            onSwitchToTransaction={onSwitchToTransaction}
+            onOpenChange={setSheetOpen}
+          />
         ),
       });
     } else {
@@ -83,11 +112,13 @@ function TransferFormFields({
   accounts,
   transfer,
   prefillAmount,
+  onSwitchToTransaction,
   onOpenChange,
 }: {
   accounts: Account[];
   transfer?: Transaction;
   prefillAmount?: string;
+  onSwitchToTransaction?: (type: "income" | "expense", amount: string) => void;
   onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
@@ -138,6 +169,14 @@ function TransferFormFields({
   const canSubmit =
     amountCents > 0 && Boolean(fromAccountId) && Boolean(toAccountId) && !sameAccount && !isPending;
 
+  // Same three-way switch as TransactionForm's own type selector, shown
+  // only while creating (never editing — an existing transfer can't
+  // become a plain transaction through this form).
+  function handleTypeChange(v: string | null) {
+    if (!v || v === "transfer") return;
+    onSwitchToTransaction?.(v as "income" | "expense", amount);
+  }
+
   const visual = transactionTypeVisual("transfer");
   const saveLabelPrefix = t("transactions.saveTransfer");
   const saveLabel = amountCents > 0 ? `${saveLabelPrefix} ${formatMoney(amountCents)}` : saveLabelPrefix;
@@ -165,6 +204,24 @@ function TransferFormFields({
           <input type="hidden" name="from_account_id" value={fromAccountId ?? ""} />
           <input type="hidden" name="to_account_id" value={toAccountId ?? ""} />
           {isEditing ? null : <input type="hidden" name="client_request_id" value={clientRequestId} />}
+
+          {isEditing ? null : (
+            <div className="space-y-2">
+              <Label htmlFor="type-select">{t("transactions.type")}</Label>
+              <Select value="transfer" onValueChange={handleTypeChange}>
+                <SelectTrigger id="type-select">
+                  <SelectValue>{(value: string) => t(`transactions.types.${value}`)}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {CREATE_TYPE_OPTIONS.map((tOption) => (
+                    <SelectItem key={tOption} value={tOption}>
+                      {t(`transactions.types.${tOption}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <AmountInput
             name="__amount_display"

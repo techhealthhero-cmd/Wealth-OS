@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeftRight, CircleMinus, CirclePlus, Plus, TrendingDown, TrendingUp } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
@@ -27,26 +27,50 @@ interface QuickAddProps {
   variant?: "floating" | "inline" | "row";
 }
 
+type PendingSwitch = { dialog: Exclude<QuickAddDialog, null>; amount: string } | null;
+
 export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAddProps) {
   const { t } = useTranslation();
   const [activeDialog, setActiveDialog] = useState<QuickAddDialog>(null);
-  const [transferPrefillAmount, setTransferPrefillAmount] = useState<string | undefined>(undefined);
+  const [carryOverAmount, setCarryOverAmount] = useState<string | undefined>(undefined);
+  const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch>(null);
 
-  // Lets someone who opened "add expense"/"add income" change their mind to
-  // "transfer" without retyping the amount — see TransactionForm's
-  // onSwitchToTransfer doc comment. Setting `activeDialog` to "transfer"
-  // here flips the currently-open TransactionForm's `open` prop to false
-  // and TransferForm's to true in the same render; each form's own effect
-  // (transaction-form.tsx / transfer-form.tsx) then closes/opens itself
-  // through the normal MinimizableForm flow. That only lands the new
-  // content correctly because TransferForm is rendered AFTER both
-  // TransactionForm instances below — React runs sibling effects in that
-  // same order, so the old form's close() always resolves before the new
-  // one's openForm() — don't reorder those three without preserving that.
-  function handleSwitchToTransfer(amount: string) {
-    setTransferPrefillAmount(amount);
-    setActiveDialog("transfer");
+  // A fresh, direct open (FAB / dropdown item / tile) must never inherit an
+  // amount left over from an earlier, unrelated switch.
+  function openDialog(dialog: Exclude<QuickAddDialog, null>) {
+    setCarryOverAmount(undefined);
+    setActiveDialog(dialog);
   }
+
+  // Lets someone who opened "add expense"/"add income"/"transfer" change
+  // their mind to a different one of the three without retyping the
+  // amount — see TransactionForm's onSwitchToTransfer and TransferForm's
+  // onSwitchToTransaction. Setting `activeDialog` straight to the new
+  // value would flip the old form's `open` prop to false and the new
+  // form's to true in the SAME render, but they're separate sibling
+  // components — nothing guarantees the old one's close() effect runs
+  // before the new one's openForm() effect, and MinimizableFormProvider's
+  // openForm() deliberately refuses to replace a still-active different
+  // form (its usual protection against an unrelated navigation silently
+  // discarding an in-progress draft elsewhere). So this closes first
+  // (`activeDialog(null)`), and only opens the target once that close has
+  // actually landed, via the effect below reacting on the NEXT render —
+  // two separate commits, so ordering between forms never matters.
+  function requestSwitch(dialog: Exclude<QuickAddDialog, null>, amount: string) {
+    setPendingSwitch({ dialog, amount });
+    setActiveDialog(null);
+  }
+
+  useEffect(() => {
+    if (!pendingSwitch) return;
+    // Deliberately synchronous: this MUST land as a render strictly after
+    // the one that closed the previous form, not be folded into it — see
+    // requestSwitch's comment for why that separation is the whole point.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCarryOverAmount(pendingSwitch.amount);
+    setActiveDialog(pendingSwitch.dialog);
+    setPendingSwitch(null);
+  }, [pendingSwitch]);
 
   return (
     <>
@@ -62,7 +86,7 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
             <button
               key={item.dialog}
               type="button"
-              onClick={() => setActiveDialog(item.dialog)}
+              onClick={() => openDialog(item.dialog)}
               className={cn(
                 "card-interactive flex flex-col items-center gap-2 rounded-xl bg-card py-4 text-card-foreground shadow-card ring-1 ring-foreground/5",
                 "transition-colors hover:bg-accent/50"
@@ -94,15 +118,15 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
             )}
           />
           <DropdownMenuContent align="end" side={variant === "floating" ? "top" : "bottom"}>
-            <DropdownMenuItem onClick={() => setActiveDialog("expense")}>
+            <DropdownMenuItem onClick={() => openDialog("expense")}>
               <TrendingDown className="mr-2 h-4 w-4" aria-hidden="true" />
               {t("transactions.types.expense")}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setActiveDialog("income")}>
+            <DropdownMenuItem onClick={() => openDialog("income")}>
               <TrendingUp className="mr-2 h-4 w-4" aria-hidden="true" />
               {t("transactions.types.income")}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setActiveDialog("transfer")}>
+            <DropdownMenuItem onClick={() => openDialog("transfer")}>
               <ArrowLeftRight className="mr-2 h-4 w-4" aria-hidden="true" />
               {t("transactions.types.transfer")}
             </DropdownMenuItem>
@@ -114,7 +138,8 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
         defaultType="expense"
         accounts={accounts}
         categories={categories}
-        onSwitchToTransfer={handleSwitchToTransfer}
+        prefill={{ amount: carryOverAmount }}
+        onSwitchToTransfer={(amount) => requestSwitch("transfer", amount)}
         trigger={null}
         open={activeDialog === "expense"}
         onOpenChange={(open) => setActiveDialog(open ? "expense" : null)}
@@ -123,14 +148,16 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
         defaultType="income"
         accounts={accounts}
         categories={categories}
-        onSwitchToTransfer={handleSwitchToTransfer}
+        prefill={{ amount: carryOverAmount }}
+        onSwitchToTransfer={(amount) => requestSwitch("transfer", amount)}
         trigger={null}
         open={activeDialog === "income"}
         onOpenChange={(open) => setActiveDialog(open ? "income" : null)}
       />
       <TransferForm
         accounts={accounts}
-        prefillAmount={transferPrefillAmount}
+        prefillAmount={carryOverAmount}
+        onSwitchToTransaction={(type, amount) => requestSwitch(type, amount)}
         trigger={null}
         open={activeDialog === "transfer"}
         onOpenChange={(open) => setActiveDialog(open ? "transfer" : null)}
