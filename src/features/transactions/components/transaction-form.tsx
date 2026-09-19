@@ -282,7 +282,18 @@ export function TransactionForm({
             />
           </div>
 
-          <CollapsibleNotes name="notes" defaultValue={transaction?.notes ?? ""} />
+          <CollapsibleNotes
+            name="notes"
+            defaultValue={transaction?.notes ?? ""}
+            // 2026-09: for an expense, the "merchant" field above is now
+            // framed as "what did you pay for" (see merchantLabel) — notes
+            // takes over the "who did you pay" framing that field used to
+            // carry, rather than staying a generic note field. Income/
+            // transfer keep the generic defaults (transfer-form.tsx's own
+            // CollapsibleNotes usage is untouched).
+            toggleLabel={type === "expense" ? t("transactions.payeeExpenseLabel") : undefined}
+            placeholder={type === "expense" ? t("transactions.payeeExpensePlaceholder") : undefined}
+          />
 
           {state?.error ? (
             <p role="alert" className="text-sm text-destructive">

@@ -9,10 +9,14 @@ import { useTranslation } from "@/i18n/client";
 interface CollapsibleNotesProps {
   name: string;
   defaultValue?: string;
+  /** Overrides the collapsed toggle's text — defaults to the generic "+ Add note". */
+  toggleLabel?: string;
+  /** Overrides the opened textarea's placeholder — defaults to the generic "Notes". */
+  placeholder?: string;
 }
 
 /** Stays collapsed behind a "+ Add note" toggle so the normal flow never shows a large empty textarea (Step 6). */
-export function CollapsibleNotes({ name, defaultValue }: CollapsibleNotesProps) {
+export function CollapsibleNotes({ name, defaultValue, toggleLabel, placeholder }: CollapsibleNotesProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(Boolean(defaultValue));
 
@@ -24,7 +28,7 @@ export function CollapsibleNotes({ name, defaultValue }: CollapsibleNotesProps) 
         className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
       >
         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-        {t("transactions.addNote")}
+        {toggleLabel ?? t("transactions.addNote")}
       </button>
     );
   }
@@ -35,7 +39,7 @@ export function CollapsibleNotes({ name, defaultValue }: CollapsibleNotesProps) 
       defaultValue={defaultValue}
       maxLength={1000}
       autoFocus
-      placeholder={t("transactions.notes")}
+      placeholder={placeholder ?? t("transactions.notes")}
       className="min-h-16"
     />
   );
