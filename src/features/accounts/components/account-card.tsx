@@ -56,7 +56,8 @@ export function AccountCard({ account }: { account: Account }) {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="min-w-0 truncate font-medium leading-none">{account.name}</p>
+              {/* leading-tight, not leading-none — see transaction-row.tsx's title for why (Thai tone-mark clipping). */}
+              <p className="min-w-0 truncate font-medium leading-tight">{account.name}</p>
               {account.is_archived ? (
                 <Badge variant="secondary" className="shrink-0">{t("accounts.archived")}</Badge>
               ) : null}

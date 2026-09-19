@@ -50,7 +50,8 @@ export function LiabilityCard({
             <Icon className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="truncate font-medium leading-none">{liability.name}</p>
+            {/* leading-tight, not leading-none — see transaction-row.tsx's title for why (Thai tone-mark clipping). */}
+            <p className="truncate font-medium leading-tight">{liability.name}</p>
             <p className="mt-1 truncate text-sm text-muted-foreground">
               {t(`liabilities.types.${liability.liability_type}`)}
               {liability.minimum_payment

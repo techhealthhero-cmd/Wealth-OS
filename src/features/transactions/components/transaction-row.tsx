@@ -86,7 +86,13 @@ export function TransactionRow({
         <Icon className="h-4 w-4" aria-hidden="true" />
       </div>
       <div className="min-w-0">
-        <p className="truncate font-medium leading-none">{title}</p>
+        {/* leading-tight, not leading-none: Thai tone marks/vowels stack
+            above and below the consonant (e.g. ไม้เอก, สระอุ) and get
+            visually clipped at line-height:1 — reported as merchant/goal/
+            account names appearing "chipped". Same fix applied to every
+            other truncated title using this pattern (account/asset/goal/
+            income-source/liability/recurring/skill/subscription cards). */}
+        <p className="truncate font-medium leading-tight">{title}</p>
         <p className="mt-1 flex items-center gap-1 truncate text-sm text-muted-foreground">
           <Wallet className="h-3 w-3 shrink-0" aria-hidden="true" />
           {accountLabel} ·{" "}

@@ -69,7 +69,8 @@ export function GoalCard({ goal, accounts }: { goal: FinancialGoal; accounts: Ac
             <GoalTypeIcon type={goal.goal_type} size={40} />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <p className="min-w-0 truncate font-medium leading-none">{goal.name}</p>
+                {/* leading-tight, not leading-none — see transaction-row.tsx's title for why (Thai tone-mark clipping). */}
+                <p className="min-w-0 truncate font-medium leading-tight">{goal.name}</p>
                 <Badge className={cn("shrink-0", SCHEDULE_BADGE_CLASS[schedule])}>{t(`goals.schedule.${schedule}`)}</Badge>
               </div>
               <p className="mt-1 truncate text-sm text-muted-foreground">

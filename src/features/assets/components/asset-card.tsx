@@ -104,7 +104,8 @@ export function AssetCard({ asset, accounts }: { asset: Asset; accounts: Account
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="min-w-0 truncate font-medium leading-none">{asset.name}</p>
+              {/* leading-tight, not leading-none — see transaction-row.tsx's title for why (Thai tone-mark clipping). */}
+              <p className="min-w-0 truncate font-medium leading-tight">{asset.name}</p>
               {linkedAccount ? (
                 <Badge variant="secondary" className="max-w-[8rem] shrink-0 truncate">
                   {linkedAccount.name}

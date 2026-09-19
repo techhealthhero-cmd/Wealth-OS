@@ -26,7 +26,8 @@ export function IncomeSourceCard({ source }: { source: IncomeSource }) {
       <CardContent className="flex items-center justify-between gap-2 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <p className="min-w-0 truncate font-medium leading-none">{source.name}</p>
+            {/* leading-tight, not leading-none — see transaction-row.tsx's title for why (Thai tone-mark clipping). */}
+            <p className="min-w-0 truncate font-medium leading-tight">{source.name}</p>
             {!source.is_active ? (
               <Badge variant="secondary" className="shrink-0 text-[10px]">
                 {t("earn.income.inactive")}
