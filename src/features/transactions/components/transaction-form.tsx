@@ -268,13 +268,17 @@ function TransactionFormFields({
   const saveLabelPrefix = type === "income" ? t("transactions.saveIncome") : t("transactions.saveExpense");
   const saveLabel = amountCents > 0 ? `${saveLabelPrefix} ${formatMoney(amountCents)}` : saveLabelPrefix;
 
-  // "transfer" only ever appears as a type choice while creating (never
-  // editing — an existing row's type can't become a transfer through this
-  // form; see update_transfer/TransferForm for that), and only once the
-  // caller both offers somewhere to send it (onSwitchToTransfer) and
-  // there are at least two accounts to transfer between.
+  // Reported: creating a new transaction showed the full EDITABLE_TYPES
+  // list (expense/income/refund/debt_payment/savings_transfer/investment_
+  // allocation) — too many, and most of those are created through their
+  // own dedicated flows (e.g. debt payments from the Debt Planner), not
+  // picked by hand here. A brand-new transaction only ever offers the
+  // three everyday choices; the fuller list stays for editing an existing
+  // row, unchanged from before.
   const canOfferTransfer = isCreating && Boolean(onSwitchToTransfer) && accounts.length >= 2;
-  const typeOptions: TransactionType[] = canOfferTransfer ? [...EDITABLE_TYPES, "transfer"] : EDITABLE_TYPES;
+  const typeOptions: TransactionType[] = isCreating
+    ? (canOfferTransfer ? ["expense", "income", "transfer"] : ["expense", "income"])
+    : EDITABLE_TYPES;
 
   function handleTypeChange(v: TransactionType | null) {
     if (!v) return;
