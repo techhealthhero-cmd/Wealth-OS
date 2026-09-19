@@ -1341,7 +1341,7 @@
     "next7Days": "Next 7 days",
     "next30Days": "Next 30 days",
     "noUpcoming": "No upcoming bills",
-    "totalDue": "Total due",
+    "totalDue": "Overdue + due in 7 days",
     "source": {
       "recurring": "Recurring item",
       "liability": "Debt"

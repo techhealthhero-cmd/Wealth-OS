@@ -25,7 +25,16 @@ export function UpcomingBillsCard({ bills, dict }: { bills: UpcomingBillsSummary
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0 gap-2">
         <CardTitle className="min-w-0 truncate text-base">{dict.upcomingBills.title}</CardTitle>
-        <span className="shrink-0 text-sm font-medium">{formatMoney(bills.totalDueCents)}</span>
+        {/* Deliberately NOT a sum of everything shown below — totalDueCents
+            is overdue + next7Days only (see upcoming-bills.ts), so it must
+            carry its own label or it reads as "total of this whole card"
+            and looks wrong whenever every bill happens to fall in the
+            next30Days bucket (reported: card showed ฿0.00 above a list of
+            real, non-zero upcoming bills). */}
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-medium">{formatMoney(bills.totalDueCents)}</p>
+          <p className="text-xs text-muted-foreground">{dict.upcomingBills.totalDue}</p>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {!hasAny ? (
