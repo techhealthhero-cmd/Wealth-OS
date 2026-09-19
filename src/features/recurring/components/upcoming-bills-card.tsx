@@ -21,20 +21,24 @@ function BillRow({ label, amountCents, dueDate, source, dict }: { label: string;
 export function UpcomingBillsCard({ bills, dict }: { bills: UpcomingBillsSummary; dict: Dictionary }) {
   const hasAny = bills.overdue.length > 0 || bills.next7Days.length > 0 || bills.next30Days.length > 0;
 
+  // The header total intentionally mirrors everything the card actually
+  // lists (overdue + next7Days + next30Days) — NOT `bills.totalDueCents`,
+  // which is a narrower "overdue + next 7 days only" figure used
+  // elsewhere (the AI coach's "total due soon" context, see
+  // upcoming-bills.ts). Showing that narrower number here read as wrong:
+  // it could be ฿0.00 while the list right below it showed real,
+  // non-zero bills whenever every one of them happened to fall in the
+  // next30Days bucket (reported).
+  const totalWithin30DaysCents = [...bills.overdue, ...bills.next7Days, ...bills.next30Days].reduce(
+    (sum, b) => sum + b.amountCents,
+    0
+  );
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0 gap-2">
         <CardTitle className="min-w-0 truncate text-base">{dict.upcomingBills.title}</CardTitle>
-        {/* Deliberately NOT a sum of everything shown below — totalDueCents
-            is overdue + next7Days only (see upcoming-bills.ts), so it must
-            carry its own label or it reads as "total of this whole card"
-            and looks wrong whenever every bill happens to fall in the
-            next30Days bucket (reported: card showed ฿0.00 above a list of
-            real, non-zero upcoming bills). */}
-        <div className="shrink-0">
-          <p className="text-sm font-medium">{formatMoney(bills.totalDueCents)}</p>
-          <p className="text-xs text-muted-foreground">{dict.upcomingBills.totalDue}</p>
-        </div>
+        <span className="shrink-0 text-sm font-medium">{formatMoney(totalWithin30DaysCents)}</span>
       </CardHeader>
       <CardContent className="space-y-4">
         {!hasAny ? (
