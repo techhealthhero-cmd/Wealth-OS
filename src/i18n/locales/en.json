@@ -815,7 +815,15 @@
     "imageAttachedAlt": "Attached image",
     "errorImageTooLarge": "Image is too large (5MB max)",
     "errorImageUnsupportedType": "Only JPG, PNG, WEBP, or GIF images are supported",
-    "imageOnlyDefaultPrompt": "Can you look at this image and explain it to me?"
+    "imageOnlyDefaultPrompt": "Can you look at this image and explain it to me?",
+    "history": {
+      "title": "History",
+      "searchPlaceholder": "Search past conversations...",
+      "loading": "Loading...",
+      "noResults": "No matching messages found",
+      "empty": "No past conversations yet",
+      "untitled": "Untitled conversation"
+    }
   },
   "aiInsight": {
     "title": "Insight from your data",

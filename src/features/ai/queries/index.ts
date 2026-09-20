@@ -64,3 +64,41 @@ export async function getLatestConversationWithMessages(
   const messages = await getMessages(latest.id, userId);
   return { conversationId: latest.id, messages };
 }
+
+export interface AIMessageSearchHit {
+  message: AIMessageRow;
+  conversationTitle: string | null;
+}
+
+/**
+ * Plus+ feature (FEATURES.AI_CHAT_HISTORY) — substring search across a
+ * user's own message history, backed by the `pg_trgm` GIN index added in
+ * migration 0016 (see that file for why trigram `ilike` was chosen over
+ * Postgres full-text search: Thai doesn't tokenize well under FTS, and this
+ * app's chat content is bilingual). `userId` filtered explicitly — same
+ * ownership-check rationale as `getConversation`/`getMessages` above, since
+ * this is reachable from a client-supplied search term, not just RLS.
+ * `%`/`_` in `term` are escaped so a user's own search text can't widen the
+ * match pattern unexpectedly (RLS still scopes rows to the caller either
+ * way, so this is a correctness concern for the search results, not a
+ * security one).
+ */
+export async function searchMessages(userId: string, term: string, limit = 30): Promise<AIMessageSearchHit[]> {
+  const escaped = term.replace(/[%_]/g, (c) => `\\${c}`);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ai_messages")
+    .select("*, ai_conversations!ai_messages_conversation_id_fkey(title)")
+    .eq("user_id", userId)
+    .ilike("content", `%${escaped}%`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throwDbError(error, "ai.searchMessages", "Failed to search messages");
+
+  return (data ?? []).map((row) => {
+    const { ai_conversations, ...message } = row as AIMessageRow & {
+      ai_conversations: { title: string | null } | null;
+    };
+    return { message: message as AIMessageRow, conversationTitle: ai_conversations?.title ?? null };
+  });
+}

@@ -815,7 +815,15 @@
     "imageAttachedAlt": "รูปภาพที่แนบ",
     "errorImageTooLarge": "ไฟล์รูปภาพใหญ่เกินไป (สูงสุด 5MB)",
     "errorImageUnsupportedType": "รองรับเฉพาะไฟล์รูปภาพ JPG, PNG, WEBP หรือ GIF",
-    "imageOnlyDefaultPrompt": "ช่วยดูรูปนี้แล้วอธิบายให้หน่อยได้ไหม"
+    "imageOnlyDefaultPrompt": "ช่วยดูรูปนี้แล้วอธิบายให้หน่อยได้ไหม",
+    "history": {
+      "title": "ประวัติแชท",
+      "searchPlaceholder": "ค้นหาบทสนทนาเก่า...",
+      "loading": "กำลังโหลด...",
+      "noResults": "ไม่พบข้อความที่ค้นหา",
+      "empty": "ยังไม่มีบทสนทนาเก่า",
+      "untitled": "บทสนทนาไม่มีชื่อ"
+    }
   },
   "aiInsight": {
     "title": "ข้อสังเกตจากข้อมูลการเงิน",

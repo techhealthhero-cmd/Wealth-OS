@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUp, Check, Copy, ImagePlus, MessageSquarePlus, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowUp, Check, Copy, History, ImagePlus, Lock, MessageSquarePlus, Search, X } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 
@@ -9,11 +10,13 @@ import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Message, MessageContent, MessageFooter } from "@/components/ui/message";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group";
 import { AICoachIllustration } from "@/components/illustrations";
 import { useConfirmDialog } from "@/components/shared/confirm-dialog";
+import type { AIConversation, AIMessageRow } from "@/types/database";
 
 interface ChatMessage {
   id: string;
@@ -103,6 +106,129 @@ function CopyMessageButton({ text, label }: { text: string; label: string }) {
   );
 }
 
+const HISTORY_SEARCH_DEBOUNCE_MS = 300;
+
+/**
+ * Plus+ chat history/search panel (FEATURES.AI_CHAT_HISTORY) — talks to the
+ * new `/api/ai/history` (list + search) and `/api/ai/conversations/[id]`
+ * (load one conversation's messages) routes, both gated server-side. A
+ * plain inline expanding panel rather than a Dialog/Sheet — this chat
+ * surface doesn't use either elsewhere, and the panel's own content (a
+ * search box + a short list) doesn't need a modal's focus-trap/overlay
+ * weight.
+ */
+function ChatHistoryPanel({
+  onSelectConversation,
+  onClose,
+}: {
+  onSelectConversation: (conversationId: string) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const [query, setQuery] = React.useState("");
+  const [conversations, setConversations] = React.useState<AIConversation[] | null>(null);
+  const [hits, setHits] = React.useState<{ message: AIMessageRow; conversationTitle: string | null }[] | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    // Marks loading the instant `query` changes (debounce timer included) —
+    // deliberately synchronous, not deferred to a callback, since there's
+    // no external event to hang it off; this is the fetch's own start.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+
+    const trimmed = query.trim();
+    const url = trimmed ? `/api/ai/history?q=${encodeURIComponent(trimmed)}` : "/api/ai/history";
+    const timer = setTimeout(
+      () => {
+        fetch(url)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (cancelled || !data) return;
+            if (trimmed) setHits(data.hits ?? []);
+            else setConversations(data.conversations ?? []);
+          })
+          .finally(() => {
+            if (!cancelled) setLoading(false);
+          });
+      },
+      trimmed ? HISTORY_SEARCH_DEBOUNCE_MS : 0
+    );
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const showingSearch = query.trim().length > 0;
+
+  return (
+    <Card className="rounded-2xl">
+      <CardContent className="space-y-3 pt-4 pb-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-medium">{t("aiCoach.history.title")}</p>
+          <Button type="button" variant="ghost" size="icon-xs" aria-label={t("common.close")} onClick={onClose}>
+            <X className="size-3.5" aria-hidden="true" />
+          </Button>
+        </div>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("aiCoach.history.searchPlaceholder")}
+            aria-label={t("aiCoach.history.searchPlaceholder")}
+            className="h-9 pl-8"
+          />
+        </div>
+
+        {loading ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">{t("aiCoach.history.loading")}</p>
+        ) : showingSearch ? (
+          hits && hits.length > 0 ? (
+            <ul className="max-h-64 space-y-1 overflow-y-auto">
+              {hits.map((hit) => (
+                <li key={hit.message.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectConversation(hit.message.conversation_id)}
+                    className="w-full rounded-lg px-2.5 py-2 text-left hover:bg-muted"
+                  >
+                    <p className="truncate text-xs font-medium text-muted-foreground">
+                      {hit.conversationTitle ?? t("aiCoach.history.untitled")}
+                    </p>
+                    <p className="line-clamp-2 text-sm">{hit.message.content}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="py-4 text-center text-sm text-muted-foreground">{t("aiCoach.history.noResults")}</p>
+          )
+        ) : conversations && conversations.length > 0 ? (
+          <ul className="max-h-64 space-y-1 overflow-y-auto">
+            {conversations.map((conv) => (
+              <li key={conv.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelectConversation(conv.id)}
+                  className="w-full truncate rounded-lg px-2.5 py-2 text-left text-sm hover:bg-muted"
+                >
+                  {conv.title || t("aiCoach.history.untitled")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="py-4 text-center text-sm text-muted-foreground">{t("aiCoach.history.empty")}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 /**
  * Client-side chat surface. Talks only to `/api/ai/chat` (never a provider
  * directly) and parses the newline-delimited JSON event stream that route
@@ -114,9 +240,12 @@ function CopyMessageButton({ text, label }: { text: string; label: string }) {
 export function AICoachChat({
   initialConversationId,
   initialMessages,
+  historyEnabled = false,
 }: {
   initialConversationId?: string;
   initialMessages?: ChatMessage[];
+  /** Plus+ gate (FEATURES.AI_CHAT_HISTORY), resolved server-side by the page — this component never re-checks entitlement itself, same as every other client component in this app that receives an `entitled`-shaped prop. */
+  historyEnabled?: boolean;
 }) {
   const { t } = useTranslation();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
@@ -126,6 +255,7 @@ export function AICoachChat({
   const [isSending, setIsSending] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [pendingImage, setPendingImage] = React.useState<PendingImage | null>(null);
+  const [historyOpen, setHistoryOpen] = React.useState(false);
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -293,7 +423,8 @@ export function AICoachChat({
    * message naturally starts a fresh `ai_conversations` row, which becomes
    * "latest" and is what `getLatestConversationWithMessages` restores next
    * page load. The old conversation is never deleted, just no longer the
-   * one shown here (there's no conversation history/switcher UI yet) —
+   * one shown here by default — a Plus+ user can still get back to it via
+   * the history panel (see loadConversation below); a Free user can't yet,
    * hence the confirm step, so that isn't a surprise.
    */
   async function handleNewConversation() {
@@ -308,6 +439,31 @@ export function AICoachChat({
     stickToBottomRef.current = true;
   }
 
+  /** Swaps the visible chat to a past conversation, loaded via the Plus+ history panel. */
+  async function loadConversation(id: string) {
+    setHistoryOpen(false);
+    if (id === conversationId) return;
+    try {
+      const res = await fetch(`/api/ai/conversations/${id}`);
+      if (!res.ok) {
+        setErrorMessage(t("aiCoach.errorGeneric"));
+        return;
+      }
+      const data = await res.json();
+      const loaded: ChatMessage[] = (data.messages ?? []).map((m: AIMessageRow) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+      }));
+      setMessages(loaded);
+      setConversationId(id);
+      setErrorMessage(null);
+      stickToBottomRef.current = true;
+    } catch {
+      setErrorMessage(t("aiCoach.errorGeneric"));
+    }
+  }
+
   function renderBubbleParagraphs(text: string, align: "start" | "end") {
     return text.split("\n\n").map((paragraph, idx) => (
       <Bubble align={align} key={idx} variant={align === "end" ? "muted" : "ghost"}>
@@ -320,8 +476,28 @@ export function AICoachChat({
     ));
   }
 
+  const historyButton = historyEnabled ? (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="text-muted-foreground"
+      onClick={() => setHistoryOpen((v) => !v)}
+    >
+      <History className="mr-1.5 size-3.5" aria-hidden="true" />
+      {t("aiCoach.history.title")}
+    </Button>
+  ) : (
+    <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" nativeButton={false} render={<Link href="/pricing" />}>
+      <Lock className="mr-1.5 size-3.5" aria-hidden="true" />
+      {t("aiCoach.history.title")}
+    </Button>
+  );
+
   return (
     <div className="flex flex-col gap-3">
+      {historyOpen ? <ChatHistoryPanel onSelectConversation={(id) => void loadConversation(id)} onClose={() => setHistoryOpen(false)} /> : null}
+
       {messages.length === 0 ? (
         <Card className="rounded-2xl">
           <CardContent className="flex flex-col items-center gap-3 pt-8 pb-8 text-center">
@@ -342,11 +518,13 @@ export function AICoachChat({
                 </Button>
               ))}
             </div>
+            {!historyOpen ? <div className="mt-1">{historyButton}</div> : null}
           </CardContent>
         </Card>
       ) : (
         <div className="flex flex-col gap-4.5" role="log" aria-live="polite" aria-label={t("aiCoach.title")}>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-1">
+            {historyButton}
             <Button
               type="button"
               variant="ghost"
