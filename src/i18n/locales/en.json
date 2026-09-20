@@ -185,7 +185,32 @@
     "columnCategory": "Category",
     "columnMerchant": "Merchant / paid to",
     "columnDescription": "Description",
-    "columnNotes": "Notes"
+    "columnNotes": "Notes",
+    "exportPdf": "Export PDF report",
+    "exportingPdf": "Generating report...",
+    "pdfLockedDescription": "Upgrade to Pro to export a shareable PDF financial report",
+    "report": {
+      "title": "Financial Report",
+      "generatedOn": "Generated on",
+      "cashFlowSection": "This month's cash flow",
+      "income": "Income",
+      "expenses": "Expenses",
+      "cashFlow": "Net cash flow",
+      "savingsRate": "Savings rate",
+      "netWorthSection": "Net Worth",
+      "wealthScoreSection": "Wealth Score",
+      "debtSection": "Debt summary",
+      "noDebt": "No debt recorded",
+      "interestRate": "Interest rate",
+      "minimumPayment": "Minimum payment",
+      "emergencyFundSection": "Emergency Fund",
+      "goalsSection": "Goal progress",
+      "noGoals": "No goals recorded",
+      "moneyYearSection": "Annual financial plan",
+      "target": "Target",
+      "actual": "Actual",
+      "disclaimer": "This report is generated from data you recorded in WEALTH OS as of the time it was generated. It is informational only, not advice from a licensed financial adviser, and does not guarantee any return or outcome."
+    }
   },
   "transactions": {
     "title": "Transactions",

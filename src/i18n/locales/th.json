@@ -185,7 +185,32 @@
     "columnCategory": "หมวดหมู่",
     "columnMerchant": "ร้าน/ผู้รับ",
     "columnDescription": "รายละเอียด",
-    "columnNotes": "หมายเหตุ"
+    "columnNotes": "หมายเหตุ",
+    "exportPdf": "Export รายงาน PDF",
+    "exportingPdf": "กำลังสร้างรายงาน...",
+    "pdfLockedDescription": "อัปเกรดเป็น Pro เพื่อ Export รายงานการเงินเป็นไฟล์ PDF พร้อมแชร์",
+    "report": {
+      "title": "รายงานการเงิน",
+      "generatedOn": "สร้างเมื่อ",
+      "cashFlowSection": "กระแสเงินสดเดือนนี้",
+      "income": "รายรับ",
+      "expenses": "รายจ่าย",
+      "cashFlow": "กระแสเงินสดคงเหลือ",
+      "savingsRate": "อัตราการออม",
+      "netWorthSection": "มูลค่าสุทธิ",
+      "wealthScoreSection": "คะแนนสุขภาพการเงิน",
+      "debtSection": "สรุปหนี้สิน",
+      "noDebt": "ไม่มีหนี้สินที่บันทึกไว้",
+      "interestRate": "อัตราดอกเบี้ย",
+      "minimumPayment": "ยอดชำระขั้นต่ำ",
+      "emergencyFundSection": "เงินสำรองฉุกเฉิน",
+      "goalsSection": "ความคืบหน้าเป้าหมาย",
+      "noGoals": "ยังไม่มีเป้าหมายที่บันทึกไว้",
+      "moneyYearSection": "แผนการเงินประจำปี",
+      "target": "เป้าหมาย",
+      "actual": "ทำได้จริง",
+      "disclaimer": "รายงานนี้สร้างจากข้อมูลที่คุณบันทึกไว้ใน WEALTH OS ณ เวลาที่สร้างรายงาน เป็นเพียงข้อมูลประกอบการตัดสินใจ ไม่ใช่คำแนะนำจากที่ปรึกษาการเงินที่มีใบอนุญาต และไม่รับประกันผลตอบแทนหรือความมั่งคั่ง"
+    }
   },
   "transactions": {
     "title": "รายการธุรกรรม",
