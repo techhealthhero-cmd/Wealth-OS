@@ -144,7 +144,8 @@ export type NotificationType =
   | "emergency_fund_milestone"
   | "debt_milestone"
   | "monthly_review_due"
-  | "mission_reminder";
+  | "mission_reminder"
+  | "ai_checkin";
 
 export type TransactionSource = "manual" | "seed" | "import" | "recurring";
 
@@ -833,6 +834,7 @@ export interface Database {
           debt_milestone: boolean;
           monthly_review_due: boolean;
           mission_reminder: boolean;
+          ai_checkin: boolean;
           created_at: string;
           updated_at: string;
         };

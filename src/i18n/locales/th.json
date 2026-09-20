@@ -1371,7 +1371,8 @@
       "emergency_fund_milestone": "ความคืบหน้าเงินสำรองฉุกเฉิน",
       "debt_milestone": "ความคืบหน้าการปลดหนี้",
       "monthly_review_due": "ถึงเวลาทบทวนประจำเดือน",
-      "mission_reminder": "แจ้งเตือนภารกิจ"
+      "mission_reminder": "แจ้งเตือนภารกิจ",
+      "ai_checkin": "AI Money Coach ทักทายประจำเดือน (Pro)"
     }
   },
   "upcomingBills": {

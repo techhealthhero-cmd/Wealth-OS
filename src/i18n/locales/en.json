@@ -1371,7 +1371,8 @@
       "emergency_fund_milestone": "Emergency fund milestones",
       "debt_milestone": "Debt payoff milestones",
       "monthly_review_due": "Monthly review due",
-      "mission_reminder": "Mission reminders"
+      "mission_reminder": "Mission reminders",
+      "ai_checkin": "AI Money Coach monthly check-in (Pro)"
     }
   },
   "upcomingBills": {

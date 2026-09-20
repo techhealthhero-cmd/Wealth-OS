@@ -62,6 +62,8 @@ const serverEnvSchema = clientEnvSchema.extend({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PRICE_ID_PLUS: z.string().optional(),
   STRIPE_PRICE_ID_PRO: z.string().optional(),
+  /** Authenticates Vercel Cron's request to api/cron/ai-checkin (compared against its `Authorization: Bearer` header) — optional, same "not configured is a real, expected state" pattern as AI_API_KEY; unset means the cron route always rejects, never that it skips the check. */
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 function formatIssues(error: z.ZodError) {
@@ -167,6 +169,7 @@ export function getServerEnv() {
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     STRIPE_PRICE_ID_PLUS: process.env.STRIPE_PRICE_ID_PLUS,
     STRIPE_PRICE_ID_PRO: process.env.STRIPE_PRICE_ID_PRO,
+    CRON_SECRET: process.env.CRON_SECRET,
   });
 
   if (!parsed.success) {

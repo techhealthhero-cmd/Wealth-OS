@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getWealthMissionInputs } from "@/features/engagement/queries";
 import { awardXpOnce } from "@/features/engagement/xp";
 import { generateWealthMissionCandidates, isMissionAutoCompletable } from "@/lib/financial/wealth-missions";
+import { NOTIFICATION_CATEGORIES } from "@/lib/notification-categories";
 import type { MissionStatus } from "@/types/database";
 
 export interface ActionResult {
@@ -164,20 +165,7 @@ export async function updateNotificationPreferences(_prev: ActionResult | undefi
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not signed in" };
 
-  const categories = [
-    "upcoming_bill",
-    "budget_near_limit",
-    "budget_exceeded",
-    "recurring_payment_due",
-    "subscription_detected",
-    "goal_milestone",
-    "emergency_fund_milestone",
-    "debt_milestone",
-    "monthly_review_due",
-    "mission_reminder",
-  ] as const;
-
-  const values = Object.fromEntries(categories.map((c) => [c, formData.get(c) === "on"]));
+  const values = Object.fromEntries(NOTIFICATION_CATEGORIES.map((c) => [c, formData.get(c) === "on"]));
 
   const { error } = await supabase
     .from("notification_preferences")

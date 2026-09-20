@@ -6,7 +6,7 @@ import "server-only";
  * this structure, never recompute or override it.
  */
 
-import { getTransactions, getCurrentMonthRange } from "@/features/transactions/queries";
+import { getTransactions, getCurrentMonthRange, type TransactionWithRelations } from "@/features/transactions/queries";
 import {
   calculateDebtReductionContributions,
   calculateExpenses,
@@ -15,7 +15,7 @@ import {
   calculateSavingsRate,
 } from "@/lib/financial/calculations";
 import { getBudgetStatus, getFinancialPriority, getNetWorthSummary } from "@/features/ai/tools";
-import type { PriorityTool } from "@/features/ai/types";
+import type { BudgetStatusTool, NetWorthTool, PriorityTool } from "@/features/ai/types";
 import { toLocalDateString } from "@/lib/date";
 
 export type HealthCheckItemType =
@@ -74,17 +74,26 @@ const INCOME_CHANGE_THRESHOLD_PERCENT = 5;
 const EXPENSE_CHANGE_THRESHOLD_PERCENT = 10;
 const SAVINGS_RATE_CHANGE_THRESHOLD_POINTS = 5;
 
-export async function buildMonthlyHealthCheck(): Promise<MonthlyHealthCheck> {
-  const { from, to } = getCurrentMonthRange();
-  const prev = previousMonthRange();
+export interface HealthCheckInputs {
+  currentTx: TransactionWithRelations[];
+  prevTx: TransactionWithRelations[];
+  budget: BudgetStatusTool;
+  netWorth: NetWorthTool;
+  priorityAction: PriorityTool | null;
+}
 
-  const [currentTx, prevTx, budget, netWorth, priorityAction] = await Promise.all([
-    getTransactions({ from, to }),
-    getTransactions({ from: prev.from, to: prev.to }),
-    getBudgetStatus(),
-    getNetWorthSummary(),
-    getFinancialPriority(),
-  ]);
+/**
+ * The pure diff/scoring core, split out from buildMonthlyHealthCheck()
+ * below so the proactive AI check-in cron job (health-check-for-user.ts)
+ * can reuse the exact same math against data it fetches its own way (an
+ * explicit userId + service-role client, since a cron job has no session
+ * to read via the usual request-scoped createClient()) — never a second,
+ * drifting copy of this logic. Zero behavior change for the existing
+ * interactive path; buildMonthlyHealthCheck() is now just this plus the
+ * session-scoped fetch.
+ */
+export function computeMonthlyHealthCheck(inputs: HealthCheckInputs): MonthlyHealthCheck {
+  const { currentTx, prevTx, budget, netWorth, priorityAction } = inputs;
 
   if (prevTx.length === 0) {
     // Not enough history for a month-over-month comparison yet — an honest
@@ -170,4 +179,20 @@ export async function buildMonthlyHealthCheck(): Promise<MonthlyHealthCheck> {
   }
 
   return { hasEnoughData: true, overallStatus, positives, risks, changes, priorityAction };
+}
+
+/** Session-scoped fetch + compute, for the interactive AI page (unchanged behavior from before the computeMonthlyHealthCheck() split above). */
+export async function buildMonthlyHealthCheck(): Promise<MonthlyHealthCheck> {
+  const { from, to } = getCurrentMonthRange();
+  const prev = previousMonthRange();
+
+  const [currentTx, prevTx, budget, netWorth, priorityAction] = await Promise.all([
+    getTransactions({ from, to }),
+    getTransactions({ from: prev.from, to: prev.to }),
+    getBudgetStatus(),
+    getNetWorthSummary(),
+    getFinancialPriority(),
+  ]);
+
+  return computeMonthlyHealthCheck({ currentTx, prevTx, budget, netWorth, priorityAction });
 }
