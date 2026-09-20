@@ -94,10 +94,7 @@ export async function NetWorthHero() {
 
   return (
     <ClickableCard href="/money/net-worth" ariaLabel={dict.netWorth.currentNetWorth}>
-      <Card
-        variant={isNegative ? "default" : "highlight"}
-        className="card-interactive rounded-3xl shadow-2xl shadow-black/20 transition-opacity hover:opacity-90 dark:shadow-black/60"
-      >
+      <Card variant={isNegative ? "default" : "highlight"} className="card-interactive rounded-3xl transition-opacity hover:opacity-90">
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-1">
             <div className="flex items-start justify-between gap-3">
