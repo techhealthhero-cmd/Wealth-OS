@@ -2,11 +2,19 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
-// 2026-09 motion system: active press uses a subtle scale (~0.98) rather
-// than the old 1px vertical shift — matches the "calm, Apple-like" press
-// feedback spec (120-160ms) instead of a jarring nudge.
+// 2026-09 motion system: active press uses a subtle scale rather than the
+// old 1px vertical shift — matches the "calm, Apple-like" press feedback
+// spec (120-160ms) instead of a jarring nudge.
+//
+// Reported: presses didn't feel tactile enough, especially on touch
+// devices where :hover never fires — the previous scale-[0.98] (a 2%
+// shrink) was too close to imperceptible. Deepened to scale-[0.96] +
+// brightness-90 (a real "compressed/shaded" cue, not just barely-there
+// sizing) — still a plain scale/brightness transform within the "small
+// scale on tap feedback" guidance in GRAPHICS_PLAN.md's motion system,
+// not a bounce/spring (explicitly to avoid).
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all duration-(--motion-fast) ease-(--ease-standard) outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all duration-(--motion-fast) ease-(--ease-standard) outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:scale-[0.96] active:not-aria-[haspopup]:brightness-90 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {

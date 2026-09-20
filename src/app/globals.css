@@ -299,6 +299,19 @@
   box-shadow: 0 1px 2px rgba(28, 37, 33, 0.04), 0 10px 20px -12px rgba(28, 37, 33, 0.14);
 }
 
+/* Reported: taps on cards didn't feel like pressing a real button — this
+   class previously only had a :hover lift, which never fires on a touch
+   device at all (the whole point of :active), so mobile users got zero
+   press feedback from any card using it. Declared AFTER :hover so it
+   wins the cascade tie for the common desktop case (mouse held down
+   while hovering) — presses downward/inward (scale <1, smaller shadow),
+   the opposite direction of the hover lift, so it reads as "being pushed
+   in" rather than fighting the lift for the same effect. */
+.card-interactive:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 2px rgba(28, 37, 33, 0.04), 0 2px 6px -4px rgba(28, 37, 33, 0.1);
+}
+
 /* GoalIllustration's "always moving toward the goal" motion cue: a small
    dot traveling the same dashed path toward the flag, on a slow, calm
    loop — deliberately an abstract cue, never a character/mascot walking
