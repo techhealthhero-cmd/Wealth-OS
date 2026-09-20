@@ -54,6 +54,7 @@ Copy `.env.example` to `.env.local` and fill in:
 | `SUPABASE_SERVICE_ROLE_KEY` | **No — server only** | Supabase project → Settings → API. Required for billing (checkout customer bootstrap, webhook writes) — see below |
 | `AI_API_KEY` / `AI_MODEL` | **No — server only** | AI Money Coach (Anthropic). Optional — the chat UI shows a clean "not configured" state without it |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_ID_PLUS` / `STRIPE_PRICE_ID_PRO` | **No — server only** | Billing (Stripe). Optional in development; if any one is set in production, all four must be, and `SUPABASE_SERVICE_ROLE_KEY` becomes required too — `src/config/env.ts` throws a clear error otherwise |
+| `CRON_SECRET` | **No — server only** | Proactive AI check-in cron (`/api/cron/ai-checkin`, see `vercel.json`). Optional in development; without it, the route always rejects rather than skipping its auth check. Vercel attaches it as the request's `Authorization: Bearer` header automatically once set as a project env var — generate any random value, e.g. `openssl rand -hex 32` |
 
 `src/config/env.ts` validates these with Zod at startup and fails with a
 clear error message (naming the missing variable) rather than an obscure

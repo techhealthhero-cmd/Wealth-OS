@@ -1,10 +1,11 @@
 /**
  * A minimal, purpose-built in-memory fake of the Supabase admin client's
- * query-builder surface — only the exact methods `/api/billing/webhook`
- * actually calls (`from().select().eq().maybeSingle()`,
- * `from().insert()`, `from().update().eq()`, chained `.eq().eq()` for an
- * extra filter). Not a general Supabase mock — intentionally narrow so it
- * stays honest about what it verifies.
+ * query-builder surface — grew from `/api/billing/webhook`'s original
+ * narrow set (`.eq().maybeSingle()`, `.insert()`, `.update().eq()`) to
+ * also cover `/api/cron/ai-checkin`'s needs (`.in()`, `.order()`,
+ * `.limit()`, `.single()`) as each route's test needed them. Still not a
+ * general Supabase mock — only add a method here once an actual test
+ * calls it, so this stays honest about what it verifies.
  */
 
 type Row = Record<string, unknown>;
@@ -15,6 +16,10 @@ export interface FakeDb {
 
 class FakeQuery implements PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }> {
   private filters: [string, unknown][] = [];
+  private inFilters: [string, unknown[]][] = [];
+  private orderColumn: string | null = null;
+  private orderAscending = true;
+  private limitCount: number | null = null;
 
   constructor(
     private db: FakeDb,
@@ -29,13 +34,45 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: { code?: string; 
     return this;
   }
 
+  in(column: string, values: unknown[]): this {
+    this.inFilters.push([column, values]);
+    return this;
+  }
+
+  order(column: string, opts?: { ascending?: boolean }): this {
+    this.orderColumn = column;
+    this.orderAscending = opts?.ascending ?? true;
+    return this;
+  }
+
+  limit(count: number): this {
+    this.limitCount = count;
+    return this;
+  }
+
+  /** No-op chain method — real Supabase narrows returned columns, this fake always returns full rows. Exists so `.insert(...).select("id").single()` chains type-check and run. */
+  select(_columns?: string): this {
+    return this;
+  }
+
   private matches(row: Row): boolean {
-    return this.filters.every(([col, val]) => row[col] === val);
+    return (
+      this.filters.every(([col, val]) => row[col] === val) &&
+      this.inFilters.every(([col, values]) => values.includes(row[col]))
+    );
   }
 
   async maybeSingle() {
+    if (this.op !== "select") return singleFromResult(this.execute());
     const rows = (this.db[this.table] ?? []).filter((r) => this.matches(r));
     return { data: rows[0] ?? null, error: null };
+  }
+
+  async single() {
+    if (this.op !== "select") return singleFromResult(this.execute());
+    const rows = (this.db[this.table] ?? []).filter((r) => this.matches(r));
+    if (rows.length === 0) return { data: null, error: { message: "no rows" } };
+    return { data: rows[0], error: null };
   }
 
   then<TResult1 = { data: unknown; error: { code?: string; message?: string } | null }, TResult2 = never>(
@@ -86,8 +123,25 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: { code?: string; 
       return { data: row, error: null };
     }
 
-    return { data: table.filter((r) => this.matches(r)), error: null };
+    let rows = table.filter((r) => this.matches(r));
+    if (this.orderColumn) {
+      const col = this.orderColumn;
+      rows = [...rows].sort((a, b) => {
+        const av = a[col];
+        const bv = b[col];
+        const cmp = av === bv ? 0 : av! > bv! ? 1 : -1;
+        return this.orderAscending ? cmp : -cmp;
+      });
+    }
+    if (this.limitCount !== null) rows = rows.slice(0, this.limitCount);
+    return { data: rows, error: null };
   }
+}
+
+function singleFromResult(result: { data: unknown; error: { code?: string; message?: string } | null }) {
+  if (result.error) return { data: null, error: result.error };
+  const data = Array.isArray(result.data) ? (result.data[0] ?? null) : result.data;
+  return { data, error: null };
 }
 
 /** A stand-in for `createAdminClient()`'s return value, backed by an in-memory `FakeDb` the test can inspect directly. */
