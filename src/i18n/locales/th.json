@@ -1375,7 +1375,8 @@
       "debt_milestone": "ความคืบหน้าการปลดหนี้",
       "monthly_review_due": "ถึงเวลาทบทวนประจำเดือน",
       "mission_reminder": "แจ้งเตือนภารกิจ",
-      "ai_checkin": "AI Money Coach ทักทายประจำเดือน (Pro)"
+      "ai_checkin": "AI Money Coach ทักทายประจำเดือน (Pro)",
+      "priority_alert": "สิ่งที่ควรทำต่อไป"
     }
   },
   "upcomingBills": {

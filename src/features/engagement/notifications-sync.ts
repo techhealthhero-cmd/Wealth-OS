@@ -8,7 +8,9 @@ import { getGoals } from "@/features/goals/queries";
 import { getEmergencyFund, getEssentialMonthlyExpenses } from "@/features/emergency-fund/queries";
 import { getTransactions } from "@/features/transactions/queries";
 import { getProfile } from "@/features/profile/queries";
-import { getDictionary } from "@/i18n/dictionaries";
+import { getLifeStageAndPriorities } from "@/features/life-stage/queries";
+import { buildNextBestActionText } from "@/features/ai/lib/next-best-action";
+import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { calculateMonthsProtected } from "@/lib/financial/emergency-fund";
 import { calculateDebtReductionContributions } from "@/lib/financial/calculations";
@@ -27,6 +29,20 @@ interface NotificationDraft {
 
 function monthKey(date: Date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Minimal server-side counterpart to i18n/client.tsx's useTranslation() —
+ * that one is a client hook (can't be imported here), and
+ * buildNextBestActionText() just needs a plain `(key) => string` dot-path
+ * lookup, the same contract the client version provides.
+ */
+function translate(dict: Dictionary, key: string): string {
+  const value = key.split(".").reduce<unknown>((node, segment) => {
+    if (typeof node !== "object" || node === null) return undefined;
+    return (node as Record<string, unknown>)[segment];
+  }, dict);
+  return typeof value === "string" ? value : key;
 }
 
 /**
@@ -188,6 +204,35 @@ export async function syncNotifications(): Promise<void> {
         body: missionTitle,
         dedupeKey: `mission_reminder:${monthKey()}`,
         relatedId: highImpactMissions[0].id,
+      });
+    }
+  }
+
+  // The app's own Next Best Action Engine (priority-engine.ts) already
+  // ranks negative cash flow, an underfunded emergency fund, high-interest
+  // debt, a goal falling behind, an income gap, a low savings rate, weak
+  // income growth, and no investment activity — CLAUDE.md's documented
+  // "what is the next best financial action for this user?" core loop —
+  // but until now it only ever showed up on the dashboard's
+  // NextBestActionCard, never as something a user could come back to here.
+  // Reuses that exact computation and copy (getLifeStageAndPriorities(),
+  // buildNextBestActionText()) — no new financial math or wording, just
+  // wiring the existing output into the notification pipeline. Only the
+  // single TOP priority is notified (matches the dashboard showing one
+  // "next best action" at a time, not all 8 at once), and the dedupe key
+  // includes the priority type so a change in what's most urgent re-notifies
+  // while the same standing issue doesn't repeat every day.
+  if (enabled("priority_alert")) {
+    const { topPriority } = await getLifeStageAndPriorities();
+    if (topPriority) {
+      const t = (key: string) => translate(dict, key);
+      const { actionText } = buildNextBestActionText(topPriority, t);
+      const priorityLabels = dict.priorityEngine.priorities as Record<string, string>;
+      drafts.push({
+        type: "priority_alert",
+        title: priorityLabels[topPriority.priorityType] ?? dict.notifications.categories.priority_alert,
+        body: actionText,
+        dedupeKey: `priority_alert:${monthKey()}:${topPriority.priorityType}`,
       });
     }
   }

@@ -19,4 +19,5 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationType[] = [
   "monthly_review_due",
   "mission_reminder",
   "ai_checkin",
+  "priority_alert",
 ];
