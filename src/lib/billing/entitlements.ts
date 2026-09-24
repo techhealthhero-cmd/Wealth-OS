@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { withPerfLog } from "@/lib/dev-diagnostics";
 import {
   FEATURES,
@@ -33,18 +33,22 @@ export type { FeatureId, PlanId };
  * server's read of provider-confirmed state always wins over anything else.
  */
 async function getCurrentUserId(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   return user?.id ?? null;
 }
 
-async function getSubscriptionRow(userId: string): Promise<Subscription | null> {
+/**
+ * Perf audit finding: this exact query (`subscriptions` row for the
+ * signed-in user) was duplicated verbatim in `features/billing/queries.ts`'s
+ * `getSubscription()` — every page calling both this resolver and that
+ * function (e.g. `/billing`) queried the same row twice. `cache()`d and
+ * exported so `getSubscription()` can reuse this one instead.
+ */
+export const getSubscriptionRow = cache(async (userId: string): Promise<Subscription | null> => {
   const supabase = await createClient();
   const { data } = await supabase.from("subscriptions").select("*").eq("user_id", userId).maybeSingle();
   return (data as Subscription | null) ?? null;
-}
+});
 
 /**
  * Pure resolution rule, deliberately separated from the DB fetch above so

@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { captureError } from "@/lib/observability";
 import { withPerfLog } from "@/lib/dev-diagnostics";
 import type { Profile } from "@/types/database";
@@ -30,13 +30,10 @@ import type { Profile } from "@/types/database";
  * never leak one user's profile into another's request.
  */
 export const getProfile = cache((): Promise<Profile | null> => withPerfLog("getProfile", async () => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getAuthUser();
   if (!user) return null;
 
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -96,9 +93,5 @@ export const getProfile = cache((): Promise<Profile | null> => withPerfLog("getP
 }));
 
 export async function getCurrentUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  return getAuthUser();
 }

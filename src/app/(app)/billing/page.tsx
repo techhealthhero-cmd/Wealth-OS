@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { getAIUsageStatus } from "@/lib/billing/ai-usage";
 import { getSubscription } from "@/features/billing/queries";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/server";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -18,10 +18,7 @@ interface BillingPageProps {
 export default async function BillingPage({ searchParams }: BillingPageProps) {
   const { checkout } = await searchParams;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   // perf audit finding: getAIUsageStatus only needs `user` (already
   // resolved above), so it doesn't need to wait for the other 3 — folded
