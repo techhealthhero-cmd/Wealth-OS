@@ -28,8 +28,6 @@ import { CollapsibleNotes } from "./collapsible-notes";
 import { useMinimizableFormActions } from "@/components/shared/minimizable-form-context";
 import { MinimizableFormShell } from "@/components/shared/minimizable-form-shell";
 
-const LAST_ACCOUNT_KEY = "wealthos:lastAccountId";
-
 const EDITABLE_TYPES: TransactionType[] = [
   "expense",
   "income",
@@ -53,22 +51,6 @@ function safeAmountCents(raw: string): number {
     return parseMoneyToCents(raw);
   } catch {
     return 0;
-  }
-}
-
-function readLastAccountId(): string | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage.getItem(LAST_ACCOUNT_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function rememberAccountId(id: string) {
-  try {
-    window.localStorage.setItem(LAST_ACCOUNT_KEY, id);
-  } catch {
-    // Private browsing / storage disabled — fine to skip, it's just a convenience default.
   }
 }
 
@@ -193,6 +175,10 @@ function TransactionFormFields({
     // to `accounts[0]` if that happens to be archived. Editing an existing
     // transaction keeps its real account regardless of archived status —
     // that's not a "default," it's the transaction's actual history.
+    // Reported: this should always be the first account in the list (the
+    // same order AccountPicker renders them in), never a "remembered last
+    // used" account — a prior smart-default that silently picked whatever
+    // was used last has been removed for exactly that reason.
     transaction?.account_id ?? prefill?.accountId ?? accounts.find((a) => !a.is_archived)?.id ?? accounts[0]?.id
   );
   const [dateValue, setDateValue] = useState(transaction?.transaction_date ?? todayISO());
@@ -212,27 +198,9 @@ function TransactionFormFields({
     closeMinimizable();
   }
 
-  // Smart default (Step 4): prefer the most recently used account for a
-  // brand-new transaction, once there's more than one to choose between (a
-  // single account is already the initial state, above). Deferred to an
-  // effect — not computed during render — because localStorage is a browser
-  // API unavailable during the server render pass; reading it here, after
-  // mount, is the correct place to hydrate from it, hence the rule override.
-  useEffect(() => {
-    if (!isCreating || accounts.length < 2 || prefill?.accountId) return;
-    const last = readLastAccountId();
-    if (last && accounts.some((a) => a.id === last && !a.is_archived)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAccountId(last);
-    }
-    // Only run once, when the sheet first has accounts to work with.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCreating, accounts.length > 1]);
-
   useEffect(() => {
     if (!state?.success) return;
     handleClose();
-    if (accountId) rememberAccountId(accountId);
     // Next open of this same form instance is a NEW intended transaction —
     // it must get its own idempotency key, never reuse the one that just
     // succeeded (reusing it would make the next real save silently no-op
