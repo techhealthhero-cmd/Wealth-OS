@@ -13,6 +13,7 @@ import { getLocale } from "@/i18n/server";
 import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { InlineLoadError } from "@/components/shared/inline-load-error";
 import { SafeToSpendCard } from "./safe-to-spend-card";
 import { WealthScoreCard } from "./wealth-score-card";
 import { LifeStageCard } from "./life-stage-card";
@@ -76,7 +77,16 @@ async function loadWealthOverviewData(): Promise<WealthOverviewData | null> {
 
 export async function WealthOverview() {
   const data = await loadWealthOverviewData();
-  if (!data) return null;
+  if (!data) {
+    // Only reached from the catch block above — a real fetch error (or,
+    // rarely, the Day 2 migration not yet applied — see this file's own
+    // doc comment). Either way, silently rendering nothing left this
+    // whole grid invisible with zero signal; getLocale()/getDictionary()
+    // are safe here even if the failure was inside getProfile() itself.
+    const locale = await getLocale();
+    const dict = getDictionary(locale);
+    return <InlineLoadError message={dict.common.somethingWentWrong} />;
+  }
 
   const { dict, wealthScoreComputation, budgetSummary, emergencyFund, essential, safeToSpend, lifeStageAndPriorities } = data;
   const emergencyFundCurrentCents = emergencyFund ? parseMoneyToCents(emergencyFund.current_amount) : 0;

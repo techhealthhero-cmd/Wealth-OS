@@ -15,6 +15,7 @@ import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedNumber } from "@/components/shared/animated-number";
 import { ClickableCard } from "@/components/shared/clickable-card";
+import { InlineLoadError } from "@/components/shared/inline-load-error";
 import { NetWorthMiniChart } from "./charts-lazy";
 import { NetWorthInfoPopover } from "./net-worth-info-popover";
 import { NetWorthBreakdownDisclosure } from "./net-worth-breakdown-disclosure";
@@ -87,7 +88,18 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
  */
 export async function NetWorthHero() {
   const data = await loadNetWorthHeroData();
-  if (!data) return null;
+  if (!data) {
+    // `data` is only ever null here from the catch block in
+    // loadNetWorthHeroData() — a real fetch error, not a "no net worth
+    // data yet" state (which the app treats as ฿0, still a valid
+    // breakdown). getLocale()/getDictionary() are safe to call
+    // independently even when the failure was inside getProfile() itself —
+    // getLocale() falls back to the locale cookie or the Thai default,
+    // no DB call required.
+    const locale = await getLocale();
+    const dict = getDictionary(locale);
+    return <InlineLoadError message={dict.common.somethingWentWrong} />;
+  }
 
   const { dict, breakdown, change, hasHistory, chartData } = data;
   const isNegative = breakdown.netWorthCents < 0;

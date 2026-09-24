@@ -9,6 +9,7 @@ import { getLocale } from "@/i18n/server";
 import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { InlineLoadError } from "@/components/shared/inline-load-error";
 import { GoalProgressRing } from "./charts-lazy";
 import type { FinancialGoal } from "@/types/database";
 import { ChevronRight } from "lucide-react";
@@ -79,7 +80,15 @@ async function loadGoalProgressData(): Promise<GoalProgressData | null> {
  */
 export async function GoalProgressCard() {
   const data = await loadGoalProgressData();
-  if (!data) return null;
+  if (!data) {
+    // Only reached from the catch block above — distinct from the
+    // legitimate "no goals yet" state (topGoal: null), which is a
+    // different, non-null return just below. getLocale()/getDictionary()
+    // are safe here even if the failure was inside getProfile() itself.
+    const locale = await getLocale();
+    const dict = getDictionary(locale);
+    return <InlineLoadError message={dict.common.somethingWentWrong} />;
+  }
 
   const { dict, topGoal, progress, remaining, schedule } = data;
 
