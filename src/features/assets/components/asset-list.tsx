@@ -7,6 +7,7 @@ import { AssetForm } from "./asset-form";
 import { AssetCard } from "./asset-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyAccountsIllustration } from "@/components/illustrations";
+import { InfoPopover } from "@/components/shared/info-popover";
 
 export async function AssetList() {
   const [assets, accounts, profile] = await Promise.all([getAssets(), getAccounts(), getProfile()]);
@@ -26,7 +27,11 @@ export async function AssetList() {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <p className="text-sm font-medium">{dict.assets.title}</p>
+          <InfoPopover label={dict.assets.whatIsThis} explanation={dict.assets.explanation} />
+        </div>
         <AssetForm accounts={accounts} />
       </div>
       <div className="grid gap-3">

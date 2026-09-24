@@ -365,6 +365,8 @@
       "business": "Business",
       "other": "Other"
     },
+    "whatIsThis": "What is an asset?",
+    "explanation": "An asset is anything of value you own that isn't already tracked through a linked account — like gold, a house or condo, a car or motorcycle, an investment, or other valuables. Recording these gives you a more accurate net worth.",
     "emptyTitle": "No assets yet",
     "emptyState": "Add assets not already tracked by an account, like gold, property, or a vehicle.",
     "deleteConfirm": "Delete this asset?",
