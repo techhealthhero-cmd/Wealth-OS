@@ -36,8 +36,14 @@ const BAR_COLOR_CLASS: Record<string, string> = {
 };
 
 function ProgressBar({ percent, status }: { percent: number; status: string }) {
+  // bg-foreground/10 (a relative darkening), not bg-muted — this renders
+  // inside both the "soft" Current Month card (below) and the plain
+  // default Category Budgets card, and bg-muted resolves to the EXACT same
+  // color as a soft Card's own background, making the track invisible
+  // there (the same bug found and fixed on the Emergency Fund card
+  // earlier). A proportional overlay stays visible against either.
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
       <div
         className={`h-full rounded-full ${BAR_COLOR_CLASS[status]}`}
         style={{ width: `${Math.min(100, percent)}%` }}
@@ -63,7 +69,12 @@ export function BudgetView({ summary, categories, month }: { summary: BudgetSumm
 
   return (
     <div className="space-y-4">
-      <Card>
+      {/* "soft" — this page's hero stat, but not the app-wide "single most
+          important figure" tier (that's reserved for Net Worth); a gentle
+          secondary elevation over plain default reads as "the important
+          card on this page" without over-using the strongest tier (see
+          card.tsx's own doc comment). */}
+      <Card variant="soft">
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{t("budget.currentMonth")}</CardTitle>
           <div className="flex items-center gap-2">

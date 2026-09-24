@@ -36,8 +36,14 @@ const BAR_CLASS: Record<string, string> = {
 };
 
 function ProgressBar({ percent, status }: { percent: number; status: string }) {
+  // bg-foreground/10 (a relative darkening), not bg-muted — this renders
+  // inside both a plain default Card (below, quarter summaries) and a
+  // "soft" Card (above, the metric grid), and bg-muted resolves to the
+  // EXACT same color as a soft Card's own background, making the track
+  // invisible there (the same bug found and fixed on the Emergency Fund
+  // card earlier). A proportional overlay stays visible against either.
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
       <div className={`h-full rounded-full ${BAR_CLASS[status]}`} style={{ width: `${Math.min(100, percent)}%` }} />
     </div>
   );
@@ -70,9 +76,11 @@ export function MoneyYearView({
         <MoneyYearForm year={year} trigger={<Button variant="ghost" size="sm">{t("common.edit")}</Button>} />
       </div>
 
+      {/* "soft" — one of several equally-weighted annual metrics, none the
+          page's single hero figure (see card.tsx's own doc comment). */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {metrics.map((metric) => (
-          <Card key={metric.key}>
+          <Card key={metric.key} variant="soft">
             <CardContent className="space-y-2 pt-6">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">{t(`moneyYear.metrics.${metric.key}`)}</p>

@@ -132,14 +132,18 @@ export function ForecastView({ startingState, scenarios, defaultAssumptions }: F
         />
       </div>
 
-      <Card>
+      {/* "highlight" — this is the single hero number of /plan/forecast, the
+          same role Net Worth plays on the dashboard (see card.tsx's own
+          doc comment: "reserved for the single most important figure on a
+          page"). Nothing else on this page competes for that role. */}
+      <Card variant="highlight">
         <CardHeader>
-          <CardTitle className="text-base">{t("forecast.projectedNetWorth")}</CardTitle>
+          <CardTitle className="text-base text-primary-foreground">{t("forecast.projectedNetWorth")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <ForecastChart data={chartData} hasWhatIf={Boolean(whatIfResult)} monthLabel={monthLabel} />
+          <ForecastChart data={chartData} hasWhatIf={Boolean(whatIfResult)} monthLabel={monthLabel} tone="highlight" />
           <div className="mt-2 flex justify-between text-sm">
-            <span className="text-muted-foreground">
+            <span className="text-primary-foreground/70">
               {monthLabel(horizonMonths)}: {formatMoney(finalMonth?.netWorthCents ?? 0)}
             </span>
             {finalWhatIfMonth ? (

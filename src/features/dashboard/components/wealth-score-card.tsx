@@ -25,8 +25,13 @@ export function WealthScoreCard({ computation }: { computation: WealthScoreCompu
   const [expanded, setExpanded] = useState(false);
   const { result, actions, hasNetWorthHistory, hasIncomeHistory } = computation;
 
+  // "soft" — one of several important-but-secondary dashboard stats
+  // sharing the hero row with the already-"highlight"-treated Net Worth
+  // card; giving this the same strongest tier too would dilute the
+  // one-hero hierarchy that tier exists to create (see card.tsx's own
+  // doc comment).
   return (
-    <Card className="col-span-2 lg:col-span-1">
+    <Card variant="soft" className="col-span-2 lg:col-span-1">
       <CardContent className="space-y-1 pt-6">
         <p className="text-sm text-muted-foreground">{t("dashboard2.wealthScore")}</p>
         <p className="text-2xl font-bold">

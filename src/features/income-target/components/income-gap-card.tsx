@@ -19,18 +19,24 @@ export function IncomeGapCard({ gap, averageMonthlyIncomeCents }: { gap: IncomeG
     );
   }
 
+  // "highlight" — this is the single hero number of /earn and
+  // /earn/income (see card.tsx's own doc comment: "reserved for the
+  // single most important figure on a page"), only once there's a real
+  // target/gap number to show — the "no target set" case above stays
+  // plain default, same reasoning as net-worth-hero.tsx demoting to
+  // default when there's no positive headline to highlight.
   return (
-    <Card>
+    <Card variant="highlight">
       <CardContent className="space-y-2 pt-6">
-        <p className="text-sm font-medium text-muted-foreground">{t("earn.gap.title")}</p>
+        <p className="text-sm font-medium text-primary-foreground/70">{t("earn.gap.title")}</p>
         {gap.achieved ? (
-          <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">{t("earn.gap.achieved")}</p>
+          <p className="text-lg font-semibold text-[#7FD6B2]">{t("earn.gap.achieved")}</p>
         ) : (
-          <p className="text-2xl font-bold">
+          <p className="text-2xl font-bold text-primary-foreground">
             {t("earn.gap.remaining")} {formatMoney(gap.gapCents ?? 0)} {t("earn.gap.perMonth")}
           </p>
         )}
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-primary-foreground/60">
           {formatMoney(averageMonthlyIncomeCents)} / {formatMoney(gap.targetMonthlyIncomeCents ?? 0)}
         </p>
       </CardContent>

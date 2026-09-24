@@ -29,26 +29,29 @@ export function DebtPlannerView({ liabilities, result }: DebtPlannerViewProps) {
 
   return (
     <div className="space-y-4">
+      {/* "soft" — 4 equally-weighted stats, none the page's single hero
+          figure, so the secondary-emphasis tier fits better than the
+          strongest one (see card.tsx's own doc comment). */}
       <div className="grid grid-cols-2 gap-3">
-        <Card>
+        <Card variant="soft">
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">{t("debtPlanner.monthsToDebtFree")}</p>
             <p className="text-xl font-semibold">{result.totalMonths ?? "—"}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="soft">
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">{t("debtPlanner.monthlyRequirement")}</p>
             <p className="text-xl font-semibold">{formatMoney(result.monthlyDebtRequirementCents)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="soft">
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">{t("debtPlanner.totalInterestPaid")}</p>
             <p className="text-xl font-semibold text-destructive">{formatMoney(result.totalInterestPaidCents)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="soft">
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">{t("debtPlanner.interestSaved")}</p>
             <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">

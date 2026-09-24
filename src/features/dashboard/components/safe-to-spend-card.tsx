@@ -15,7 +15,7 @@ export function SafeToSpendCard({ computation }: { computation: SafeToSpendCompu
 
   if (!computation.hasCompleteData || !computation.result) {
     return (
-      <Card className="col-span-2 lg:col-span-1">
+      <Card variant="soft" className="col-span-2 lg:col-span-1">
         <CardContent className="space-y-1 pt-6">
           <p className="text-sm text-muted-foreground">{t("dashboard2.safeToSpend")}</p>
           <p className="text-sm text-muted-foreground">{t("safeToSpend.incompleteDataHint")}</p>
@@ -35,8 +35,11 @@ export function SafeToSpendCard({ computation }: { computation: SafeToSpendCompu
     [t("safeToSpend.mandatoryCommitments"), -result.breakdown.mandatoryCommitmentsCents],
   ];
 
+  // "soft" — one of several important-but-secondary dashboard stats
+  // sharing the hero row with the already-"highlight"-treated Net Worth
+  // card; see wealth-score-card.tsx's identical reasoning.
   return (
-    <Card className="col-span-2 lg:col-span-1">
+    <Card variant="soft" className="col-span-2 lg:col-span-1">
       <CardContent className="space-y-1 pt-6">
         <p className="text-sm text-muted-foreground">{t("dashboard2.safeToSpend")}</p>
         <p className="text-2xl font-bold">{formatMoney(result.todayCents)}</p>
