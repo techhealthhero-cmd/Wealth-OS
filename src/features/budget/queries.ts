@@ -64,11 +64,17 @@ const getBudgetSummaryCached = cache(async (monthKey: string): Promise<BudgetSum
   const budget = await getBudgetForMonth(monthKey);
   if (!budget) return null;
 
-  const categories = await getBudgetCategories(budget.id);
-
   const from = monthKey;
   const to = toLocalDateString(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0));
-  const transactions = await getTransactions({ from, to });
+  // Perf audit finding: these two only depend on `budget` (already
+  // resolved above), not on each other — were awaited sequentially instead
+  // of in parallel. This function is itself reused by WealthOverview,
+  // getSafeToSpend(), and getLifeStageAndPriorities(), so the extra
+  // latency was paid on most dashboard-adjacent pages.
+  const [categories, transactions] = await Promise.all([
+    getBudgetCategories(budget.id),
+    getTransactions({ from, to }),
+  ]);
 
   const spentCents = calculateExpenses(transactions);
   const spendingByCategory = calculateSpendingByCategory(transactions).map((s) => ({

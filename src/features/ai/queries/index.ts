@@ -35,7 +35,22 @@ export async function getConversation(id: string, userId: string): Promise<AICon
   return data;
 }
 
-/** Oldest-first, for chronological chat rendering. `userId` filtered explicitly for the same reason as `getConversation` above. */
+const MESSAGES_SAFETY_LIMIT = 200;
+
+/**
+ * Oldest-first, for chronological chat rendering. `userId` filtered
+ * explicitly for the same reason as `getConversation` above.
+ *
+ * Perf audit finding: this restored a user's ENTIRE conversation history
+ * on every page load, unlike `getConversations()` above it (already capped
+ * at `.limit(50)`). Capped to the most recent `MESSAGES_SAFETY_LIMIT`
+ * turns — queried newest-first with a limit, then reversed back to
+ * chronological order in JS, since a plain ascending `.limit()` would keep
+ * the OLDEST messages instead of the most recent ones. A generous ceiling
+ * (won't visibly affect any real conversation today), not a full
+ * pagination UI — that's a separate, bigger feature for a long-running
+ * conversation, this is just a safety net against the unbounded case.
+ */
 export async function getMessages(conversationId: string, userId: string): Promise<AIMessageRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -43,9 +58,10 @@ export async function getMessages(conversationId: string, userId: string): Promi
     .select("*")
     .eq("conversation_id", conversationId)
     .eq("user_id", userId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false })
+    .limit(MESSAGES_SAFETY_LIMIT);
   if (error) throwDbError(error, "ai.getMessages", "Failed to load messages");
-  return data ?? [];
+  return (data ?? []).reverse();
 }
 
 /**
