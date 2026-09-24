@@ -16,7 +16,6 @@ import type { TransactionWithRelations } from "@/features/transactions/queries";
 import { deleteTransaction } from "@/features/transactions/actions";
 import { asTrigger } from "@/lib/as-trigger";
 import { formatMoneyFromDecimal } from "@/lib/financial/money";
-import { formatFriendlyDate } from "@/lib/transaction-ui";
 import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -96,11 +95,7 @@ export function TransactionRow({
         <p className="truncate font-medium leading-tight">{title}</p>
         <p className="mt-1 flex items-center gap-1 truncate text-sm text-muted-foreground">
           <Wallet className="h-3 w-3 shrink-0" aria-hidden="true" />
-          {accountLabel} ·{" "}
-          {formatFriendlyDate(transaction.transaction_date, locale, {
-            today: t("transactions.today"),
-            yesterday: t("transactions.yesterday"),
-          })}
+          {accountLabel}
         </p>
       </div>
     </>
