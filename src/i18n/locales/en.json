@@ -247,6 +247,8 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "latestEntry": "Latest entry: {date}",
+    "loadMore": "Load more",
+    "loadingMore": "Loading...",
     "uncategorized": "Uncategorized",
     "quickRepeat": "Quick repeat",
     "quickRepeatHint": "Tap to prefill a new form. Always review before saving.",

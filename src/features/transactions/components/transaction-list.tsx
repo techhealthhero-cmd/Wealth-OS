@@ -6,7 +6,7 @@ import { getProfile } from "@/features/profile/queries";
 import {
   getLatestTransactionDate,
   getQuickRepeatCandidates,
-  getTransactions,
+  getTransactionsPage,
   type TransactionFilters,
 } from "@/features/transactions/queries";
 import { getDictionary } from "@/i18n/dictionaries";
@@ -14,20 +14,25 @@ import { getLocale } from "@/i18n/server";
 import { formatFriendlyDate } from "@/lib/transaction-ui";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyTransactionsIllustration } from "@/components/illustrations";
-import { TransactionRow } from "./transaction-row";
+import { TransactionListBody } from "./transaction-list-body";
 import { TransactionFilters as TransactionFiltersBar } from "./transaction-filters";
 import { QuickAdd } from "./quick-add";
 import { QuickRepeat } from "./quick-repeat";
 import { ExportTransactionsButton } from "./export-button";
 import { ExportReportButton } from "@/features/reports/components/export-report-button";
-import { Card, CardContent } from "@/components/ui/card";
 
 export async function TransactionList({ filters }: { filters: TransactionFilters }) {
   const isDefaultView =
     !filters.search && !filters.type && !filters.accountId && !filters.categoryId && !filters.hasNotes;
-  const [transactions, accounts, categories, profile, quickRepeatCandidates, latestTransactionDate] =
+  const [{ transactions, hasMore }, accounts, categories, profile, quickRepeatCandidates, latestTransactionDate] =
     await Promise.all([
-      getTransactions(filters),
+      // Perf audit finding: this page previously fetched a user's ENTIRE
+      // transaction history on every visit (getTransactions(filters) with
+      // no limit) — the highest-traffic data page in the app, unbounded.
+      // Only the first page renders server-side now; TransactionListBody
+      // (a client component) fetches further pages on demand via the
+      // loadMoreTransactions() Server Action.
+      getTransactionsPage(filters),
       getAccounts({ includeArchived: true }),
       getCategories(),
       getProfile(),
@@ -91,19 +96,14 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
           />
         )
       ) : (
-        <Card>
-          <CardContent className="py-2">
-            {transactions.map((transaction) => (
-              <TransactionRow
-                key={transaction.id}
-                transaction={transaction}
-                accounts={accounts}
-                categories={categories}
-                defaultDetailsOpen={filters.hasNotes}
-              />
-            ))}
-          </CardContent>
-        </Card>
+        <TransactionListBody
+          initialTransactions={transactions}
+          initialHasMore={hasMore}
+          filters={filters}
+          accounts={accounts}
+          categories={categories}
+          defaultDetailsOpen={filters.hasNotes}
+        />
       )}
     </div>
   );

@@ -8,6 +8,12 @@ import { buildTransactionSchema, buildTransferSchema } from "@/lib/validation/tr
 import { friendlyDbError } from "@/lib/db-error";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
+import {
+  getTransactionsPage,
+  TRANSACTIONS_PAGE_SIZE,
+  type TransactionFilters,
+  type TransactionsPage,
+} from "@/features/transactions/queries";
 
 export interface ActionResult {
   error?: string;
@@ -319,4 +325,27 @@ export async function updateTransfer(
   return {
     error: friendlyDbError(error, "updateTransfer", dict.transactions.updateFailed),
   };
+}
+
+export type LoadMoreTransactionsResult = TransactionsPage | { error: string };
+
+/**
+ * Perf audit finding: /money/transactions previously fetched a user's ENTIRE
+ * history on every visit. The list now renders only the first
+ * TRANSACTIONS_PAGE_SIZE rows server-side; this action fetches subsequent
+ * pages on demand from a "Load more" tap. `filters` never carries `limit`/
+ * `offset` from the caller — those are this action's own concern (matches
+ * getTransactionsPage()'s signature), so a client can't request an
+ * arbitrarily large page.
+ */
+export async function loadMoreTransactions(
+  filters: Omit<TransactionFilters, "limit" | "offset">,
+  offset: number
+): Promise<LoadMoreTransactionsResult> {
+  const dict = await getRequestDictionary();
+  try {
+    return await getTransactionsPage(filters, offset, TRANSACTIONS_PAGE_SIZE);
+  } catch {
+    return { error: dict.common.somethingWentWrong };
+  }
 }

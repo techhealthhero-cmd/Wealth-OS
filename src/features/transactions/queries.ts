@@ -23,6 +23,8 @@ export interface TransactionFilters {
   search?: string;
   hasNotes?: boolean;
   limit?: number;
+  /** Only meaningful together with `limit` — see `fetchTransactions`. */
+  offset?: number;
 }
 
 const SELECT_WITH_RELATIONS = `
@@ -72,7 +74,10 @@ async function fetchTransactions(filters: TransactionFilters): Promise<Transacti
     }
   }
   if (filters.hasNotes) query = query.not("notes", "is", null).neq("notes", "");
-  if (filters.limit) query = query.limit(filters.limit);
+  if (filters.limit) {
+    const offset = filters.offset ?? 0;
+    query = query.range(offset, offset + filters.limit - 1);
+  }
 
   const { data, error } = await query;
   if (error) throwDbError(error, "transactions.fetchTransactions", "Failed to load transactions");
@@ -93,6 +98,40 @@ const fetchTransactionsCached = cache((filtersKey: string): Promise<TransactionW
 export function getTransactions(filters: TransactionFilters = {}): Promise<TransactionWithRelations[]> {
   const filtersKey = JSON.stringify(filters, Object.keys(filters).sort());
   return fetchTransactionsCached(filtersKey);
+}
+
+export const TRANSACTIONS_PAGE_SIZE = 50;
+
+export interface TransactionsPage {
+  transactions: TransactionWithRelations[];
+  hasMore: boolean;
+}
+
+/**
+ * Perf audit finding: /money/transactions (the app's highest-traffic data
+ * page) called plain `getTransactions(filters)` with no limit at all —
+ * every visit fetched and 4-way-joined a user's ENTIRE transaction
+ * history. This is the paginated variant it now uses instead.
+ *
+ * Deliberately bypasses `fetchTransactionsCached` — that cache exists to
+ * dedupe the SAME filter combination requested by several components
+ * within one render pass (e.g. the current month's range, requested by 6+
+ * dashboard queries); a "load more" click is a distinct, one-off fetch for
+ * a NEW offset, not something that benefits from or should share that
+ * cache. Fetches one row past the page size to detect `hasMore` without a
+ * separate `COUNT(*)` query (cheaper — a plain indexed range scan vs. a
+ * full aggregate over every row matching the filters).
+ */
+export async function getTransactionsPage(
+  filters: Omit<TransactionFilters, "limit" | "offset">,
+  offset = 0,
+  limit: number = TRANSACTIONS_PAGE_SIZE
+): Promise<TransactionsPage> {
+  const rows = await fetchTransactions({ ...filters, limit: limit + 1, offset });
+  return {
+    transactions: rows.slice(0, limit),
+    hasMore: rows.length > limit,
+  };
 }
 
 /**
