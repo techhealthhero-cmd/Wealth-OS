@@ -61,13 +61,21 @@ export function EmergencyFundView({
 
   return (
     <div className="space-y-4">
-      <Card>
+      {/* "soft" (pale mint) rather than "highlight" (deep green) — this is
+          the page's one hero stat (same role as Net Worth on the dashboard),
+          but unlike Net Worth the number here is never a "bad news" value to
+          contrast against, so the calmer secondary-emphasis tier reads as a
+          fitting "safety net" tone without implying good/bad news either
+          way. Progress track uses bg-card (white) instead of the usual
+          bg-muted, since bg-muted resolves to the exact same color as this
+          card's own bg-secondary and would otherwise be invisible. */}
+      <Card variant="soft">
         <CardContent className="space-y-3 pt-6 text-center">
           <p className="text-sm text-muted-foreground">{t("emergencyFund.monthsProtected")}</p>
           <p className="text-3xl font-bold">
             {monthsProtected.toFixed(1)} <span className="text-lg font-normal text-muted-foreground">{t("emergencyFund.months")}</span>
           </p>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-card">
             <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
           </div>
           <div className="grid grid-cols-3 gap-2 text-center text-sm">
