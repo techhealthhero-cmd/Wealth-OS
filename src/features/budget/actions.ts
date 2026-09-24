@@ -8,6 +8,7 @@ import { buildBudgetCategorySchema, buildBudgetSchema } from "@/lib/validation/b
 import { friendlyDbError } from "@/lib/db-error";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
+import { trackEvent } from "@/lib/analytics";
 
 export interface ActionResult {
   error?: string;
@@ -43,6 +44,11 @@ export async function createBudget(_prev: ActionResult | undefined, formData: Fo
   } = await supabase.auth.getUser();
   if (!user) return { error: dict.common.pleaseLogin };
 
+  const { count: existingBudgetCount } = await supabase
+    .from("budgets")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
   const { error } = await supabase.from("budgets").insert({
     ...parsed.data,
     notes: parsed.data.notes || null,
@@ -54,6 +60,8 @@ export async function createBudget(_prev: ActionResult | undefined, formData: Fo
     const message = error.code === "23505" ? dict.budget.duplicateMonth : dict.budget.createFailed;
     return { error: friendlyDbError(error, "createBudget", message) };
   }
+
+  if ((existingBudgetCount ?? 0) === 0) trackEvent("first_budget_created", user.id);
 
   revalidatePath("/money/budget");
   revalidatePath("/dashboard");

@@ -18,12 +18,18 @@ import { getXpReward } from "@/lib/financial/xp";
  * server-side action files, same as before) rather than a `"use server"`
  * one removes the otherwise-unenforced public entry point entirely,
  * without changing behavior for any legitimate caller.
+ *
+ * Returns whether XP was actually awarded (`false` on the dedupe no-op) —
+ * callers that also fire a `mission_completed` analytics event use this to
+ * avoid over-firing it on a redundant re-completion call (e.g. a double
+ * click, or an idempotent retry), same "once per real occurrence" guarantee
+ * this function already gives XP itself.
  */
 export async function awardXpOnce(
   userId: string,
   eventType: Parameters<typeof getXpReward>[0],
   relatedId: string | null
-): Promise<void> {
+): Promise<boolean> {
   const supabase = await createClient();
 
   if (relatedId) {
@@ -34,7 +40,7 @@ export async function awardXpOnce(
       .eq("event_type", eventType)
       .eq("related_id", relatedId)
       .maybeSingle();
-    if (existing) return;
+    if (existing) return false;
   }
 
   await supabase.from("xp_events").insert({
@@ -43,4 +49,5 @@ export async function awardXpOnce(
     xp_amount: getXpReward(eventType),
     related_id: relatedId,
   });
+  return true;
 }

@@ -14,6 +14,7 @@ import {
   type TransactionFilters,
   type TransactionsPage,
 } from "@/features/transactions/queries";
+import { trackEvent } from "@/lib/analytics";
 
 export interface ActionResult {
   error?: string;
@@ -101,6 +102,17 @@ export async function createTransaction(
 
   const clientRequestId = readClientRequestId(formData);
 
+  // Existence check (not an exact count) — this runs on every save, unlike
+  // goals/accounts' one-time-ish creation, so a plain "does at least one
+  // row already exist" is cheaper than a full COUNT(*) for something only
+  // ever compared against zero.
+  const { data: existingTransaction } = await supabase
+    .from("transactions")
+    .select("id")
+    .eq("user_id", user.id)
+    .limit(1);
+  const isFirstTransaction = (existingTransaction?.length ?? 0) === 0;
+
   const basePayload = {
     ...parsed.data,
     description: parsed.data.description || null,
@@ -119,6 +131,7 @@ export async function createTransaction(
     .insert({ ...basePayload, client_request_id: clientRequestId });
 
   if (!error) {
+    if (isFirstTransaction) trackEvent("first_transaction_created", user.id);
     revalidatePath("/money/transactions");
     revalidatePath("/dashboard");
     return { success: true };

@@ -8,6 +8,7 @@ import { buildAccountSchema, buildUpdateAccountSchema } from "@/lib/validation/a
 import { friendlyDbError } from "@/lib/db-error";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
+import { trackEvent } from "@/lib/analytics";
 
 export interface ActionResult {
   error?: string;
@@ -71,6 +72,11 @@ export async function createAccount(
   if (error) {
     return { error: friendlyDbError(error, "createAccount", dict.accounts.createFailed) };
   }
+
+  // Reuses the sort_order count above — same "count already fetched for
+  // another reason doubles as the first-of-its-kind check" pattern as
+  // goals/actions.ts's createGoal().
+  if ((count ?? 0) === 0) trackEvent("first_account_created", user.id);
 
   revalidatePath("/money/accounts");
   revalidatePath("/dashboard");

@@ -7,6 +7,7 @@ import { getWealthMissionInputs } from "@/features/engagement/queries";
 import { awardXpOnce } from "@/features/engagement/xp";
 import { generateWealthMissionCandidates, isMissionAutoCompletable } from "@/lib/financial/wealth-missions";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-categories";
+import { trackEvent } from "@/lib/analytics";
 import type { MissionStatus } from "@/types/database";
 
 export interface ActionResult {
@@ -69,7 +70,9 @@ export async function syncWealthMissionsData(): Promise<ActionResult> {
         .select("id")
         .single();
       if (!insertError && inserted && autoCompleted) {
-        await awardXpOnce(user.id, "mission_completed", inserted.id);
+        if (await awardXpOnce(user.id, "mission_completed", inserted.id)) {
+          trackEvent("mission_completed", user.id);
+        }
       }
       continue;
     }
@@ -88,7 +91,9 @@ export async function syncWealthMissionsData(): Promise<ActionResult> {
       .eq("user_id", user.id);
 
     if (autoCompleted && existing.status !== "completed") {
-      await awardXpOnce(user.id, "mission_completed", existing.id);
+      if (await awardXpOnce(user.id, "mission_completed", existing.id)) {
+        trackEvent("mission_completed", user.id);
+      }
     }
   }
 
@@ -118,7 +123,9 @@ export async function updateWealthMissionStatus(missionId: string, status: Missi
   if (error) return { error: "Failed to update mission" };
 
   if (status === "completed") {
-    await awardXpOnce(user.id, "mission_completed", missionId);
+    if (await awardXpOnce(user.id, "mission_completed", missionId)) {
+      trackEvent("mission_completed", user.id);
+    }
   }
 
   revalidatePath("/missions");

@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { EarnIllustration } from "@/components/illustrations";
 import { getFeatureLimit } from "@/lib/billing/entitlements";
 import { LockedFeatureCard } from "@/features/billing/components/locked-feature-card";
+import { trackEvent } from "@/lib/analytics";
 
 export async function OpportunityList() {
   const [ranked, missions, profile, opportunitiesMax] = await Promise.all([
@@ -32,6 +33,15 @@ export async function OpportunityList() {
   const opportunityIdsWithMissions = new Set(missions.map((m) => m.related_opportunity_id).filter(Boolean));
   const visible = opportunitiesMax !== null ? ranked.slice(0, opportunitiesMax) : ranked;
   const hiddenCount = ranked.length - visible.length;
+
+  // No existing "opportunity viewed" state to check against — reuses the
+  // already-fetched `missions` list as a proxy (same "an already-computed
+  // adjacent value is a reasonable proxy for a true first-time" pattern
+  // /api/ai/chat/route.ts uses for first_ai_message_sent): a user with zero
+  // income missions anywhere has, in practice, never meaningfully engaged
+  // with an opportunity before, since starting a mission is the natural
+  // next action after viewing one.
+  if (profile && missions.length === 0) trackEvent("first_income_opportunity_viewed", profile.user_id);
 
   return (
     <div className="grid gap-3">
