@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChevronDown } from "lucide-react";
 
 import {
@@ -17,8 +16,8 @@ import {
 } from "@/lib/financial/forecast";
 import { useTranslation } from "@/i18n/client";
 import { formatMoney } from "@/lib/financial/money";
-import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { ForecastScenarioForm } from "./forecast-scenario-form";
+import { ForecastChart } from "./charts-lazy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,7 +38,6 @@ type WhatIf = "saveMore" | "incomeUp" | "extraDebt" | "buyCar" | "rentUp" | "los
 
 export function ForecastView({ startingState, scenarios, defaultAssumptions }: ForecastViewProps) {
   const { t, locale } = useTranslation();
-  const reducedMotion = usePrefersReducedMotion();
   const [selectedId, setSelectedId] = useState(scenarios[0]?.row.id ?? null);
   const [whatIf, setWhatIf] = useState<WhatIf>(null);
   const [showAssumptions, setShowAssumptions] = useState(false);
@@ -139,42 +137,7 @@ export function ForecastView({ startingState, scenarios, defaultAssumptions }: F
           <CardTitle className="text-base">{t("forecast.projectedNetWorth")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-              <XAxis
-                dataKey="month"
-                tickFormatter={monthLabel}
-                tickLine={false}
-                axisLine={{ stroke: "var(--border)" }}
-                tick={{ fontSize: 11 }}
-              />
-              <YAxis hide />
-              <Tooltip labelFormatter={(m) => monthLabel(Number(m))} formatter={(value) => formatMoney(Number(value))} />
-              <Line
-                type="monotone"
-                dataKey="netWorth"
-                stroke="var(--color-chart-1)"
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={!reducedMotion}
-                animationDuration={650}
-                animationEasing="ease-out"
-              />
-              {whatIfResult ? (
-                <Line
-                  type="monotone"
-                  dataKey="whatIfNetWorth"
-                  stroke="var(--color-chart-2)"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  dot={false}
-                  isAnimationActive={!reducedMotion}
-                  animationDuration={650}
-                  animationEasing="ease-out"
-                />
-              ) : null}
-            </LineChart>
-          </ResponsiveContainer>
+          <ForecastChart data={chartData} hasWhatIf={Boolean(whatIfResult)} monthLabel={monthLabel} />
           <div className="mt-2 flex justify-between text-sm">
             <span className="text-muted-foreground">
               {monthLabel(horizonMonths)}: {formatMoney(finalMonth?.netWorthCents ?? 0)}

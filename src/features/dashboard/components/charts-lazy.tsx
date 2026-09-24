@@ -17,11 +17,11 @@ import { Skeleton } from "@/components/ui/skeleton";
  * boundary, so `dashboard/page.tsx` (a Server Component) can still import
  * from here with a plain static import and get the lazy behavior for free.
  *
- * `forecast-view.tsx`/`net-worth-view.tsx` also use Recharts but mix chart
- * and non-chart UI in one monolithic component — splitting those cleanly
- * would mean a larger refactor to extract a chart-only subcomponent first;
- * deferred as a follow-up rather than risked here (see PROJECT_STATUS.md
- * Known Limitations).
+ * `forecast-view.tsx`/`net-worth-view.tsx` also use Recharts — each has its
+ * own sibling `charts-lazy.tsx` (in `features/forecast/components/` and
+ * `features/net-worth/components/` respectively) following this exact same
+ * pattern, since extracting their chart-only subcomponent first meant they
+ * couldn't share this file directly.
  */
 const ChartSkeleton = () => <Skeleton className="h-[240px] w-full rounded-lg" />;
 

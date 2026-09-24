@@ -1,14 +1,12 @@
 "use client";
 
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-
 import type { NetWorthSnapshot } from "@/types/database";
 import type { NetWorthBreakdown } from "@/features/net-worth/queries";
 import { useTranslation } from "@/i18n/client";
 import { formatMoney, formatMoneyFromDecimal, parseMoneyToCents } from "@/lib/financial/money";
 import { calculateNetWorthChange } from "@/lib/financial/net-worth";
-import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NetWorthHistoryChart } from "./charts-lazy";
 
 interface NetWorthViewProps {
   breakdown: NetWorthBreakdown;
@@ -17,7 +15,6 @@ interface NetWorthViewProps {
 
 export function NetWorthView({ breakdown, snapshots }: NetWorthViewProps) {
   const { t, locale } = useTranslation();
-  const reducedMotion = usePrefersReducedMotion();
 
   const previousSnapshot = snapshots.length >= 2 ? snapshots[snapshots.length - 2] : null;
   const change = calculateNetWorthChange(
@@ -79,23 +76,7 @@ export function NetWorthView({ breakdown, snapshots }: NetWorthViewProps) {
               {t("netWorth.noHistoryYet")}
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-                <XAxis dataKey="date" tickLine={false} axisLine={{ stroke: "var(--border)" }} tick={{ fontSize: 11 }} />
-                <YAxis hide />
-                <Tooltip formatter={(value) => formatMoney(Number(value))} />
-                <Line
-                  type="monotone"
-                  dataKey="netWorth"
-                  stroke="var(--color-chart-1)"
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={!reducedMotion}
-                  animationDuration={650}
-                  animationEasing="ease-out"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <NetWorthHistoryChart data={chartData} />
           )}
         </CardContent>
       </Card>
