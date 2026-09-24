@@ -6,6 +6,7 @@ import {
   calculateGoalScheduleStatus,
   calculateProjectedCompletionDate,
   calculateRequiredMonthlyContribution,
+  hasJustReachedGoal,
 } from "@/lib/financial/goals";
 
 describe("calculateGoalProgress", () => {
@@ -85,6 +86,32 @@ describe("calculateProjectedCompletionDate", () => {
     const projected = calculateProjectedCompletionDate(0, 100000, 100000, jan31);
     expect(projected).not.toBeNull();
     expect(projected!.getMonth()).toBe(1); // February (0-indexed)
+  });
+});
+
+describe("hasJustReachedGoal", () => {
+  it("true when a save crosses from below 100% to at/above it", () => {
+    expect(hasJustReachedGoal(900000, 1000000, 1000000, 1000000)).toBe(true);
+  });
+
+  it("true when saving exceeds the target, not just meets it", () => {
+    expect(hasJustReachedGoal(900000, 1000000, 1200000, 1000000)).toBe(true);
+  });
+
+  it("false when re-saving an already-achieved goal (no re-fire)", () => {
+    expect(hasJustReachedGoal(1000000, 1000000, 1500000, 1000000)).toBe(false);
+  });
+
+  it("false when still below target after the save", () => {
+    expect(hasJustReachedGoal(500000, 1000000, 900000, 1000000)).toBe(false);
+  });
+
+  it("true for a brand-new goal created already at/past its target (no prior state, 0/0 passed in)", () => {
+    expect(hasJustReachedGoal(0, 0, 1000000, 1000000)).toBe(true);
+  });
+
+  it("false for a brand-new goal created below its target", () => {
+    expect(hasJustReachedGoal(0, 0, 500000, 1000000)).toBe(false);
   });
 });
 

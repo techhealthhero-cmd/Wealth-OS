@@ -442,6 +442,7 @@
     "monthlyContribution": "เงินสมทบต่อเดือน",
     "linkedAccount": "เชื่อมโยงกับบัญชี (ไม่บังคับ)",
     "status": "สถานะ",
+    "reachedToast": "ยินดีด้วย คุณไปถึงเป้าหมายนี้แล้ว!",
     "types": {
       "emergency_fund": "เงินสำรองฉุกเฉิน",
       "travel": "ท่องเที่ยว",

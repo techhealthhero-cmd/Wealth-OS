@@ -27,6 +27,26 @@ export function calculateAmountRemaining(currentCents: number, targetCents: numb
 }
 
 /**
+ * Whether saving just crossed the goal's 100% line for the first time — the
+ * one moment `CelebrationBadge` is reserved for (see its own doc comment),
+ * distinct from a routine save. Only true on the actual crossing: re-saving
+ * an already-achieved goal (previous progress already 100) never re-fires
+ * it, and a brand-new goal created already at/past its target counts (no
+ * prior state means `previousCurrentCents`/`previousTargetCents` should be
+ * passed as 0, which naturally yields `previousProgress = 0`).
+ */
+export function hasJustReachedGoal(
+  previousCurrentCents: number,
+  previousTargetCents: number,
+  currentCents: number,
+  targetCents: number
+): boolean {
+  const previousProgress = calculateGoalProgress(previousCurrentCents, previousTargetCents);
+  const newProgress = calculateGoalProgress(currentCents, targetCents);
+  return previousProgress < 100 && newProgress >= 100;
+}
+
+/**
  * Required monthly contribution to reach the target by targetDate.
  * Returns null when there's nothing left to save, or when the target date
  * has already passed (no valid number of future months to spread it over —

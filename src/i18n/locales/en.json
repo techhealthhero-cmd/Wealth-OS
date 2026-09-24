@@ -442,6 +442,7 @@
     "monthlyContribution": "Monthly contribution",
     "linkedAccount": "Linked account (optional)",
     "status": "Status",
+    "reachedToast": "Congratulations — you've reached this goal!",
     "types": {
       "emergency_fund": "Emergency Fund",
       "travel": "Travel",

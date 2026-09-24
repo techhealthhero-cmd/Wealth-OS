@@ -1,9 +1,12 @@
 "use client";
 
 import { cloneElement, useActionState, useEffect, useState, type ReactElement } from "react";
+import { toast } from "sonner";
 
 import { createGoal, updateGoal } from "@/features/goals/actions";
 import { GOAL_PRIORITIES, GOAL_TYPES } from "@/lib/validation/goal";
+import { hasJustReachedGoal } from "@/lib/financial/goals";
+import { parseMoneyToCents } from "@/lib/financial/money";
 import { useTranslation } from "@/i18n/client";
 import type { Account, FinancialGoal } from "@/types/database";
 import { Button } from "@/components/ui/button";
@@ -17,8 +20,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { CelebrationBadge } from "@/components/illustrations";
 import { useMinimizableFormActions } from "@/components/shared/minimizable-form-context";
 import { MinimizableFormShell } from "@/components/shared/minimizable-form-shell";
+
+/** Never throws on a half-typed amount — mirrors transaction-form.tsx's `safeAmountCents`. */
+function safeCents(raw: string): number {
+  if (!raw || Number.isNaN(Number(raw))) return 0;
+  try {
+    return parseMoneyToCents(raw);
+  } catch {
+    return 0;
+  }
+}
 
 const NO_LINK = "__none__";
 
@@ -107,6 +121,8 @@ function GoalFormFields({ goal, accounts, title, onOpenChange }: GoalFormFieldsP
   const { t } = useTranslation();
   const { close: closeMinimizable } = useMinimizableFormActions();
   const [linkedAccountId, setLinkedAccountId] = useState(goal?.linked_account_id ?? NO_LINK);
+  const [targetAmount, setTargetAmount] = useState(goal?.target_amount ?? "");
+  const [currentAmount, setCurrentAmount] = useState(goal?.current_amount ?? "0");
 
   const action = goal ? updateGoal.bind(null, goal.id) : createGoal;
   const [state, formAction, isPending] = useActionState(action, undefined);
@@ -117,7 +133,23 @@ function GoalFormFields({ goal, accounts, title, onOpenChange }: GoalFormFieldsP
   }
 
   useEffect(() => {
-    if (state?.success) handleClose();
+    if (!state?.success) return;
+
+    // Reserved specifically for this moment — see CelebrationBadge's own
+    // doc comment ("a future bigger milestone moment: goal reached, net
+    // worth milestone"), distinct from the routine-save toast every other
+    // form skips entirely.
+    const justReached = hasJustReachedGoal(
+      goal ? safeCents(goal.current_amount) : 0,
+      goal ? safeCents(goal.target_amount) : 0,
+      safeCents(currentAmount),
+      safeCents(targetAmount)
+    );
+    if (justReached) {
+      toast.success(t("goals.reachedToast"), { icon: <CelebrationBadge /> });
+    }
+
+    handleClose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
@@ -159,7 +191,8 @@ function GoalFormFields({ goal, accounts, title, onOpenChange }: GoalFormFieldsP
               type="number"
               step="any"
               min="0"
-              defaultValue={goal?.target_amount ?? ""}
+              value={targetAmount}
+              onChange={(e) => setTargetAmount(e.target.value)}
               required
             />
           </div>
@@ -171,7 +204,8 @@ function GoalFormFields({ goal, accounts, title, onOpenChange }: GoalFormFieldsP
               type="number"
               step="any"
               min="0"
-              defaultValue={goal?.current_amount ?? "0"}
+              value={currentAmount}
+              onChange={(e) => setCurrentAmount(e.target.value)}
             />
           </div>
         </div>
