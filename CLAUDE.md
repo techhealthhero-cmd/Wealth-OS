@@ -466,6 +466,15 @@ save. That heuristic is a bridge, not the design — see its own doc comment
 in `src/features/transactions/actions.ts` for its known limitations, and
 remove it once migration 0012 is confirmed applied everywhere this app runs.
 
+**Status update (2026-09-25, doc-accuracy correction):** this has already
+happened — `findRecentDuplicateTransaction` and its two `42703`/`42883`
+fallback branches were removed from `src/features/transactions/actions.ts`
+once migration 0012 was confirmed applied to production (see "Deployment
+status" below). A fresh grep confirms zero references anywhere in `src/`.
+The paragraph above is kept as historical design context (why the bridge
+existed, what it protected against), not a description of the current
+code.
+
 **Deployment status (verified 2026-09-17, not assumed):** migration 0012
 is live and verified on **staging** (`eovyvlesdgygjqrrvpas`) — confirmed
 against the real database: same-key retry produces exactly one row,
@@ -506,10 +515,11 @@ actually points at) as of 2026-09-17.
    now return successfully — confirmed present.
 
 **The heuristic fallback in `src/features/transactions/actions.ts` has
-NOT been removed yet**, even though production is now migrated — it's
-safe to remove now (see `PROJECT_STATUS.md`'s "Next Task"), but doing so
-is a separate code change this session didn't make unprompted. The
-production-scoped access token used for the push should be **deleted**
+since been removed** (2026-09-25, production-hardening pass) — it was
+safe to remove once production was confirmed migrated, and a later
+session did so; `PROJECT_STATUS.md` reflects this as done, not a "Next
+Task" anymore. The production-scoped access token used for the push
+should be **deleted**
 from the Supabase dashboard (Account → Access Tokens) once this work is
 confirmed done, since it was a broad, short-lived, single-purpose grant.
 
@@ -523,10 +533,12 @@ Every current caller (`transactions/actions.ts`'s primary path,
 `null`), so they always resolve to the new, idempotency-aware overload —
 the old one is verified dormant, not silently in use. Only
 `transactions/actions.ts`'s own pre-migration fallback branch deliberately
-omits the parameter (by design, to detect an unmigrated database). Dropping
-the old overload was considered and intentionally deferred — out of this
-pass's scope — since it would need its own migration and isn't required
-for correctness today.
+omits the parameter (by design, to detect an unmigrated database — since
+removed, see the status note above). Dropping the old overload was
+considered and intentionally deferred at the time — out of that pass's
+scope. **Update (2026-09-25):** migration `0020_drop_dormant_create_
+transfer_overload.sql` now does this — written, not yet applied to any
+database from that session; needs `supabase db push`.
 
 ---
 
