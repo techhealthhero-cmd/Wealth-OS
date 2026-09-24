@@ -39,6 +39,27 @@ const TYPE_ICONS: Record<TransactionType, React.ElementType> = {
   transfer: ArrowLeftRight,
 };
 
+/**
+ * Reported: every row's icon circle was the same neutral gray regardless of
+ * type, hard to scan at a glance. Colors the same 3 icon-shape groups
+ * TYPE_ICONS already defines (never color alone per transaction-ui.ts's own
+ * "never distinguished by color alone" rule — the icon shape already
+ * differs between groups, this only adds a second, reinforcing cue): money
+ * in (income/refund) emerald, money out (expense/debt_payment) rose,
+ * between-own-accounts (transfer/savings_transfer/investment_allocation)
+ * sky — matches the bg-X-100/dark:bg-X-950 badge convention already used
+ * elsewhere (e.g. goal-progress-card.tsx's SCHEDULE_BADGE_CLASS).
+ */
+const TYPE_ICON_BG_CLASS: Record<TransactionType, string> = {
+  income: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
+  refund: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
+  expense: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400",
+  debt_payment: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400",
+  transfer: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400",
+  savings_transfer: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400",
+  investment_allocation: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400",
+};
+
 const CREDIT_TYPES: TransactionType[] = ["income", "refund"];
 
 interface TransactionRowProps {
@@ -82,7 +103,12 @@ export function TransactionRow({
 
   const rowContent = (
     <>
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
+      <div
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+          TYPE_ICON_BG_CLASS[transaction.type]
+        )}
+      >
         <Icon className="h-4 w-4" aria-hidden="true" />
       </div>
       <div className="min-w-0">
