@@ -95,6 +95,31 @@ export function getTransactions(filters: TransactionFilters = {}): Promise<Trans
   return fetchTransactionsCached(filtersKey);
 }
 
+/**
+ * Reported: a user tracking expenses daily has no way to tell where they
+ * left off — e.g. logged through the 18th, comes back a few days later,
+ * and has to scroll/guess which date to resume from. Deliberately
+ * UNFILTERED (ignores whatever search/type/account/category the list view
+ * currently has active) — "where did I leave off" means the latest date
+ * across every real transaction, not just a filtered subset, or the
+ * answer would be misleading whenever a filter happens to be active.
+ * `transaction_date` (the date the money actually moved), not
+ * `created_at` (when the row was saved) — matches the user's own framing
+ * ("entered data through the 18th"), and is what every other date-based
+ * view in this app already keys off.
+ */
+export async function getLatestTransactionDate(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("transaction_date")
+    .order("transaction_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throwDbError(error, "transactions.getLatestTransactionDate", "Failed to load latest transaction date");
+  return data?.transaction_date ?? null;
+}
+
 export interface QuickRepeatCandidate {
   type: Exclude<TransactionType, "transfer">;
   accountId: string;

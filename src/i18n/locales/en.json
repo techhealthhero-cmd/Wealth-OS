@@ -246,6 +246,7 @@
     },
     "today": "Today",
     "yesterday": "Yesterday",
+    "latestEntry": "Latest entry: {date}",
     "uncategorized": "Uncategorized",
     "quickRepeat": "Quick repeat",
     "quickRepeatHint": "Tap to prefill a new form. Always review before saving.",
