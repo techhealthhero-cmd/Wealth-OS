@@ -138,7 +138,6 @@ export type NotificationType =
   | "upcoming_bill"
   | "budget_near_limit"
   | "budget_exceeded"
-  | "recurring_payment_due"
   | "subscription_detected"
   | "goal_milestone"
   | "emergency_fund_milestone"
@@ -828,7 +827,6 @@ export interface Database {
           upcoming_bill: boolean;
           budget_near_limit: boolean;
           budget_exceeded: boolean;
-          recurring_payment_due: boolean;
           subscription_detected: boolean;
           goal_milestone: boolean;
           emergency_fund_milestone: boolean;

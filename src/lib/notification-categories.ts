@@ -11,7 +11,6 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationType[] = [
   "upcoming_bill",
   "budget_near_limit",
   "budget_exceeded",
-  "recurring_payment_due",
   "subscription_detected",
   "goal_milestone",
   "emergency_fund_milestone",

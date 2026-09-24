@@ -1,0 +1,23 @@
+-- =============================================================================
+-- WEALTH OS — Migration 0020: drop the dormant 6-parameter
+-- `create_transfer` overload
+--
+-- `0012_transaction_idempotency.sql` redefined `create_transfer` with a new
+-- 7th parameter (`p_client_request_id`). `create or replace function` does
+-- NOT replace a function whose parameter list changed — it adds a second
+-- overload — so the original 6-parameter version from `0001_init.sql` has
+-- existed alongside the new one on every database this migration has
+-- applied to since. Confirmed dormant, not just theoretically unused:
+-- every current caller (`transactions/actions.ts`, `recurring/actions.ts`)
+-- explicitly passes `p_client_request_id` (even as `null`), so they always
+-- resolve to the 7-parameter overload. Already flagged as a deferred
+-- hygiene item in PROJECT_STATUS.md's own "Next Task" list — not required
+-- for correctness, purely cleanup so only one `create_transfer` exists
+-- going forward.
+--
+-- Exact original signature, copied from `0001_init.sql` — `drop function`
+-- identifies an overload by parameter TYPES only (defaults don't matter
+-- here), so this drops precisely the old one and leaves the 7-parameter
+-- version (0012's) untouched.
+-- =============================================================================
+drop function if exists public.create_transfer(uuid, uuid, numeric, date, text, text);
