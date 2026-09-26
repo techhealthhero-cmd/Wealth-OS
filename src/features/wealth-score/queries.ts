@@ -1,6 +1,7 @@
 import "server-only";
 
-import { createClient } from "@/lib/supabase/server";
+import { captureError } from "@/lib/observability";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { getTransactions, getCurrentMonthRange } from "@/features/transactions/queries";
 import { getLiabilities } from "@/features/liabilities/queries";
 import { getGoals } from "@/features/goals/queries";
@@ -160,13 +161,11 @@ export async function ensureTodaysWealthScore(): Promise<WealthScoreComputation>
 }
 
 export async function storeWealthScore(result: WealthScoreResult): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return;
+  const supabase = await createClient();
 
-  await supabase.from("wealth_scores").insert({
+  const { error } = await supabase.from("wealth_scores").insert({
     user_id: user.id,
     total_score: result.totalScore,
     cash_flow_score: result.cashFlowScore,
@@ -178,4 +177,18 @@ export async function storeWealthScore(result: WealthScoreResult): Promise<void>
     goal_progress_score: result.goalProgressScore,
     calculation_version: WEALTH_SCORE_CALCULATION_VERSION,
   });
+  // Never throws — a failed history write must not break the dashboard,
+  // which already has the freshly-computed score to show regardless (see
+  // ensureTodaysWealthScore()'s own doc comment: the score is always
+  // computed fresh, this insert is only for the historical trend). Same
+  // "make a previously-silent failure visible instead of vanishing"
+  // reasoning as net-worth's recordTodaysNetWorthSnapshot().
+  if (error) {
+    captureError(new Error(error.message), {
+      route: "wealth-score.storeWealthScore",
+      operation: "insert_wealth_score",
+      userId: user.id,
+      extra: { code: error.code ?? "" },
+    });
+  }
 }

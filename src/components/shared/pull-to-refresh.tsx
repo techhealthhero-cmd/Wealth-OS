@@ -27,6 +27,21 @@ const PULL_DAMPING = 0.5;
 // preventDefault().
 const PULL_START_THRESHOLD_PX = 10;
 
+// Reported: reopening the app (or switching back to it after backgrounding)
+// often showed stale/incomplete data, sometimes requiring several force-
+// quit-and-reopen cycles. Root cause: mobile browsers/PWAs frequently
+// SUSPEND a backgrounded tab rather than truly reloading it, so the
+// already-rendered React tree (and whatever it fetched last time — possibly
+// mid-load or from before a redeploy) is simply what's still on screen when
+// the user returns; nothing tells Next.js to refetch. `visibilitychange` ->
+// `router.refresh()` is the standard fix, reusing the exact same "refetch
+// the current route's Server Component data, no full reload, no client
+// state lost" mechanism the pull gesture below already uses. Gated to only
+// fire after being hidden at least this long — a brief app-switcher glance
+// (checking a notification, answering a call) shouldn't trigger a refetch
+// the user won't perceive as needed, only a genuine "was away for a while."
+const MIN_HIDDEN_MS_BEFORE_REFRESH = 30_000;
+
 /**
  * Custom pull-to-refresh for the installed-PWA app shell. `display:
  * "standalone"` (manifest.ts) means the OS/browser's own native
@@ -61,6 +76,27 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
     pullDistanceRef.current = value;
     setPullDistance(value);
   }
+
+  useEffect(() => {
+    let hiddenAt: number | null = document.visibilityState === "hidden" ? Date.now() : null;
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
+      // Just became visible again.
+      if (hiddenAt !== null && Date.now() - hiddenAt >= MIN_HIDDEN_MS_BEFORE_REFRESH) {
+        startTransition(() => {
+          router.refresh();
+        });
+      }
+      hiddenAt = null;
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [router]);
 
   useEffect(() => {
     const el = containerRef.current;

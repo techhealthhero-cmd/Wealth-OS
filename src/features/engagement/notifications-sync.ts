@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { getUpcomingBills } from "@/features/recurring/queries";
 import { getBudgetSummary } from "@/features/budget/queries";
 import { getPendingSubscriptions } from "@/features/subscriptions/queries";
@@ -58,11 +58,9 @@ function translate(dict: Dictionary, key: string): string {
  * translation lookup at read time.
  */
 export async function syncNotifications(): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return;
+  const supabase = await createClient();
 
   const profile = await getProfile();
   const locale = await getLocale(profile?.preferred_language);

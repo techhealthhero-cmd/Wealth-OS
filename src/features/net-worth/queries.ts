@@ -1,8 +1,9 @@
 import "server-only";
 import { cache } from "react";
 import { throwDbError } from "@/lib/db-error";
+import { captureError } from "@/lib/observability";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { getAccounts } from "@/features/accounts/queries";
 import { getAssets } from "@/features/assets/queries";
 import { getLiabilities } from "@/features/liabilities/queries";
@@ -85,14 +86,12 @@ export async function getNetWorthSnapshotsSince(monthsBack: number): Promise<Net
  * for Day 2, without needing a separate cron job.
  */
 export async function recordTodaysNetWorthSnapshot(breakdown: NetWorthResult): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return;
+  const supabase = await createClient();
 
   const today = toLocalDateString(new Date());
-  await supabase.from("net_worth_snapshots").upsert(
+  const { error } = await supabase.from("net_worth_snapshots").upsert(
     {
       user_id: user.id,
       snapshot_date: today,
@@ -102,6 +101,24 @@ export async function recordTodaysNetWorthSnapshot(breakdown: NetWorthResult): P
     },
     { onConflict: "user_id,snapshot_date" }
   );
+  // Reported: "not enough history yet" kept recurring on the dashboard even
+  // for accounts with real history — this write previously failed silently
+  // on any error (a transient blip, a rate limit on the auth check above),
+  // so a snapshot that should exist for "today" sometimes just never got
+  // created, and every subsequent load kept re-attempting (and possibly
+  // re-failing) the exact same way with no record of it ever happening.
+  // Never throws — a failed background snapshot must not break the page
+  // that's already showing the user their (correctly computed, unaffected)
+  // current net worth — but it's now at least visible for debugging instead
+  // of vanishing.
+  if (error) {
+    captureError(new Error(error.message), {
+      route: "net-worth.recordTodaysNetWorthSnapshot",
+      operation: "upsert_snapshot",
+      userId: user.id,
+      extra: { code: error.code ?? "" },
+    });
+  }
 }
 
 /**
@@ -112,11 +129,9 @@ export async function recordTodaysNetWorthSnapshot(breakdown: NetWorthResult): P
  * doesn't issue a redundant write on every load.
  */
 export async function ensureTodaysNetWorthSnapshot(breakdown: NetWorthResult): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return;
+  const supabase = await createClient();
 
   const today = toLocalDateString(new Date());
   const { data: latest } = await supabase

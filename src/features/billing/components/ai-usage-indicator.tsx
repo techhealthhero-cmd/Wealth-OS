@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/server";
 import { getAIUsageStatus } from "@/lib/billing/ai-usage";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { getDictionary } from "@/i18n/dictionaries";
@@ -15,10 +15,7 @@ import { getProfile } from "@/features/profile/queries";
  * component has no other reason to ever be used outside it).
  */
 export async function AIUsageIndicator() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
 
   const [usage, entitlements, profile] = await Promise.all([getAIUsageStatus(user.id), getEntitlements(), getProfile()]);

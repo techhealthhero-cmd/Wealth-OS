@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/server";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -19,10 +19,7 @@ import { canUseFeature, FEATURES } from "@/lib/billing/entitlements";
 export const metadata: Metadata = { title: "AI Money Coach — Wealth OS" };
 
 export default async function AICoachPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const [profile, snapshot, priority, insights, healthCheck, initialChat, historyEnabled] = await Promise.all([
     getProfile(),
