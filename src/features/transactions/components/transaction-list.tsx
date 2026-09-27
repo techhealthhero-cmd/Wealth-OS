@@ -1,4 +1,4 @@
-import { History } from "lucide-react";
+import { CircleAlert, History } from "lucide-react";
 
 import { getAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
@@ -47,6 +47,32 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
 
   return (
     <div className="space-y-4">
+      <aside
+        aria-labelledby="weekly-transaction-reminder-title"
+        className="rounded-xl border border-amber-500/25 bg-amber-50/70 p-4 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100"
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
+            <CircleAlert className="size-5" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 space-y-3">
+            <div className="space-y-1">
+              <h2 id="weekly-transaction-reminder-title" className="font-heading font-medium">
+                {dict.transactions.weeklyReminderTitle}
+              </h2>
+              <p className="text-sm leading-relaxed text-amber-900/80 dark:text-amber-100/75">
+                {dict.transactions.weeklyReminderDescription}
+              </p>
+            </div>
+            <ul className="grid gap-2 text-sm leading-relaxed sm:grid-cols-3">
+              <li>{dict.transactions.weeklyReminderIncome}</li>
+              <li>{dict.transactions.weeklyReminderExpense}</li>
+              <li>{dict.transactions.weeklyReminderTransfer}</li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+
       {latestTransactionDate ? (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <History className="size-3.5 shrink-0" aria-hidden="true" />
