@@ -1,4 +1,4 @@
-import { CircleAlert, History } from "lucide-react";
+import { ChevronDown, CircleAlert, CircleCheck, History } from "lucide-react";
 
 import { getAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
@@ -12,6 +12,7 @@ import {
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { formatFriendlyDate } from "@/lib/transaction-ui";
+import { calculateWeeklyCheckInStatus } from "@/lib/financial/streaks";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyTransactionsIllustration } from "@/components/illustrations";
 import { TransactionListBody } from "./transaction-list-body";
@@ -45,22 +46,73 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 
+  const weeklyStatus = calculateWeeklyCheckInStatus(
+    latestTransactionDate ? new Date(latestTransactionDate) : null
+  );
+  const statusText =
+    latestTransactionDate === null
+      ? dict.transactions.weeklyReminderStatusNever
+      : weeklyStatus.isDoneThisWeek
+        ? dict.transactions.weeklyReminderStatusDone
+        : (weeklyStatus.pendingDays === 1
+            ? dict.transactions.weeklyReminderStatusPendingOne
+            : dict.transactions.weeklyReminderStatusPendingOther
+          ).replace("{days}", String(weeklyStatus.pendingDays));
+  const isUpToDate = latestTransactionDate !== null && weeklyStatus.isDoneThisWeek;
+
+  const activeAccountNames = accounts.filter((a) => !a.is_archived).map((a) => a.name);
+  const accountsList = new Intl.ListFormat(locale === "th" ? "th" : "en", {
+    style: "long",
+    type: "conjunction",
+  }).format(activeAccountNames);
+
   return (
     <div className="space-y-4">
       <aside
         aria-labelledby="weekly-transaction-reminder-title"
-        className="rounded-xl border border-amber-500/25 bg-amber-50/70 p-4 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100"
+        className={
+          isUpToDate
+            ? "rounded-xl border border-emerald-500/25 bg-emerald-50/70 p-4 text-emerald-950 dark:bg-emerald-950/20 dark:text-emerald-100"
+            : "rounded-xl border border-amber-500/25 bg-amber-50/70 p-4 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100"
+        }
       >
         <div className="flex items-start gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
-            <CircleAlert className="size-5" aria-hidden="true" />
+          <div
+            className={
+              isUpToDate
+                ? "flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                : "flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300"
+            }
+          >
+            {isUpToDate ? (
+              <CircleCheck className="size-5" aria-hidden="true" />
+            ) : (
+              <CircleAlert className="size-5" aria-hidden="true" />
+            )}
           </div>
           <div className="min-w-0 space-y-3">
             <div className="space-y-1">
-              <h2 id="weekly-transaction-reminder-title" className="font-heading font-medium">
-                {dict.transactions.weeklyReminderTitle}
-              </h2>
-              <p className="text-sm leading-relaxed text-amber-900/80 dark:text-amber-100/75">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h2 id="weekly-transaction-reminder-title" className="font-heading font-medium">
+                  {dict.transactions.weeklyReminderTitle}
+                </h2>
+                <span
+                  className={
+                    isUpToDate
+                      ? "text-xs font-medium text-emerald-700 dark:text-emerald-300"
+                      : "text-xs font-medium text-amber-700 dark:text-amber-300"
+                  }
+                >
+                  {statusText}
+                </span>
+              </div>
+              <p
+                className={
+                  isUpToDate
+                    ? "text-sm leading-relaxed text-emerald-900/80 dark:text-emerald-100/75"
+                    : "text-sm leading-relaxed text-amber-900/80 dark:text-amber-100/75"
+                }
+              >
                 {dict.transactions.weeklyReminderDescription}
               </p>
             </div>
@@ -69,6 +121,21 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
               <li>{dict.transactions.weeklyReminderExpense}</li>
               <li>{dict.transactions.weeklyReminderTransfer}</li>
             </ul>
+            <details className="group text-sm">
+              <summary className="flex cursor-pointer list-none items-center gap-1 font-medium underline-offset-2 hover:underline">
+                {dict.transactions.weeklyReminderHowToTitle}
+                <ChevronDown className="size-3.5 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+              </summary>
+              <ol className="mt-2 list-decimal space-y-1.5 pl-5 leading-relaxed">
+                <li>
+                  {activeAccountNames.length > 0
+                    ? dict.transactions.weeklyReminderStep1WithAccounts.replace("{accounts}", accountsList)
+                    : dict.transactions.weeklyReminderStep1NoAccounts}
+                </li>
+                <li>{dict.transactions.weeklyReminderStep2}</li>
+                <li>{dict.transactions.weeklyReminderStep3}</li>
+              </ol>
+            </details>
           </div>
         </div>
       </aside>

@@ -90,3 +90,35 @@ export function calculateTrackingDaysStreak(transactionDates: Date[], today: Dat
   }
   return streak;
 }
+
+export interface WeeklyCheckInStatus {
+  isDoneThisWeek: boolean;
+  /** Calendar days since the most recent recorded activity. Always 0 when `isDoneThisWeek` is true or when there has never been any activity — only meaningful (and only ever > 0) in the pending case. */
+  pendingDays: number;
+}
+
+/**
+ * Weekly check-in status for the transaction-list reminder banner, derived
+ * from just the single MOST RECENT activity date rather than a full
+ * activity list: if the latest date isn't in the current ISO week, nothing
+ * older can be either, so one date is enough to answer both "done this
+ * week?" and "how many days has it been?" — no extra query needed beyond
+ * what `getLatestTransactionDate()` already fetches.
+ *
+ * `null` (no activity ever recorded) is its own case: neither "done" nor a
+ * meaningful day count, so callers should show a distinct "never recorded"
+ * message rather than "pending 0 days".
+ */
+export function calculateWeeklyCheckInStatus(
+  latestActivityDate: Date | null,
+  today: Date = new Date()
+): WeeklyCheckInStatus {
+  if (!latestActivityDate) return { isDoneThisWeek: false, pendingDays: 0 };
+  if (isoWeekKey(latestActivityDate) === isoWeekKey(today)) {
+    return { isDoneThisWeek: true, pendingDays: 0 };
+  }
+  const pendingDays = Math.round(
+    (toDateOnly(today).getTime() - toDateOnly(latestActivityDate).getTime()) / 86400000
+  );
+  return { isDoneThisWeek: false, pendingDays };
+}

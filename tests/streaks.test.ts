@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateWeeklyStreak, calculateMonthlyReviewStreak, calculateTrackingDaysStreak } from "@/lib/financial/streaks";
+import {
+  calculateWeeklyStreak,
+  calculateMonthlyReviewStreak,
+  calculateTrackingDaysStreak,
+  calculateWeeklyCheckInStatus,
+} from "@/lib/financial/streaks";
 
 // A fixed Wednesday so week/month boundaries are unambiguous in every test.
 const TODAY = new Date(2026, 8, 16); // 2026-09-16
@@ -66,5 +71,22 @@ describe("calculateMonthlyReviewStreak — no punitive reset logic, just a count
 
   it("returns 0 with no review history — a neutral count, not a warning state", () => {
     expect(calculateMonthlyReviewStreak([], TODAY)).toBe(0);
+  });
+});
+
+describe("calculateWeeklyCheckInStatus", () => {
+  it("is done when the latest activity falls in the current week", () => {
+    expect(calculateWeeklyCheckInStatus(TODAY, TODAY)).toEqual({ isDoneThisWeek: true, pendingDays: 0 });
+    expect(calculateWeeklyCheckInStatus(daysAgo(2), TODAY)).toEqual({ isDoneThisWeek: true, pendingDays: 0 });
+  });
+
+  it("reports pending days since the latest activity when it falls before the current week", () => {
+    // TODAY is Wednesday 2026-09-16; daysAgo(7) is Wednesday of last week.
+    expect(calculateWeeklyCheckInStatus(daysAgo(7), TODAY)).toEqual({ isDoneThisWeek: false, pendingDays: 7 });
+    expect(calculateWeeklyCheckInStatus(daysAgo(20), TODAY)).toEqual({ isDoneThisWeek: false, pendingDays: 20 });
+  });
+
+  it("treats no activity ever as its own case, not a fake 0-day pending state", () => {
+    expect(calculateWeeklyCheckInStatus(null, TODAY)).toEqual({ isDoneThisWeek: false, pendingDays: 0 });
   });
 });
