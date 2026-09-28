@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import type { CSSProperties } from "react";
 
 import { NAV_ITEMS } from "./nav-items";
+import { useActiveNavIndex } from "./use-active-nav-index";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/client";
 
@@ -26,12 +26,9 @@ const GLOSSY_PRIMARY_BG =
   "radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.16), transparent 70%), var(--primary)";
 
 export function BottomNav() {
-  const pathname = usePathname();
+  const activeIndex = useActiveNavIndex();
   const { t } = useTranslation();
 
-  const activeIndex = NAV_ITEMS.findIndex(
-    (item) => pathname === item.matchPrefix || pathname.startsWith(`${item.matchPrefix}/`)
-  );
   // Some routes behind (app)/layout.tsx (e.g. /profile, /billing, /help)
   // don't belong to any of the 5 tabs — no bump/notch in that case, just a
   // plain pill, rather than defaulting to some arbitrary tab looking active.
