@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { NAV_ITEMS } from "./nav-items";
 import { useActiveNavIndex } from "./use-active-nav-index";
@@ -17,55 +17,25 @@ import type { Account, Category } from "@/types/database";
 const GLOSSY_PRIMARY_BG =
   "radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.16), transparent 70%), var(--primary)";
 
-// Requested (reference: "Menu Animation" notch bar): the bar's top edge dips
-// into a smooth U-shaped valley under the active tab, and the tab's icon
-// circle floats INSIDE that valley with a visible gap ring around it (the
-// page background shows through), instead of the old look where the circle
-// filled its cutout completely and read as one blob with the bar.
+// The bar's top edge dips into a smooth U-shaped valley around the
+// permanent center "+", whose circle floats inside it with a visible gap
+// ring (see nav-notch-path.ts). Tabs themselves no longer get a notch —
+// requested (2026-09-29, reference: dark pill with a light mint rounded
+// box behind the selected tab): the active tab is marked by that mint
+// highlight instead, while the "+" notch and circle stay exactly as they
+// were.
 const PREFERRED_NOTCH: NotchGeometry = { notchRadius: 26, centerY: 4, fillet: 16, minFillet: 5 };
 const CIRCLE_GAP_PX = 5;
 const BAR_CORNER_RADIUS_PX = 24;
 const NAV_PADDING_X_PX = 8; // keep in sync with the <nav>'s `px-2`
-const NOTCH_SLIDE_MS = 320;
-
-function easeInOutCubic(t: number) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-/**
- * Tweens a number toward `target` with requestAnimationFrame, so the notch
- * path (SVG geometry — not CSS-transitionable) and its floating circle slide
- * between tabs together from one shared value. Jumps instantly on first
- * value, when the target disappears/appears, or under reduced motion.
- */
-function useTweenedNumber(target: number | null): number | null {
-  const [value, setValue] = useState<number | null>(target);
-  const valueRef = useRef<number | null>(target);
-
-  useEffect(() => {
-    const from = valueRef.current;
-    const reduceMotion =
-      typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (target === null || from === null || reduceMotion || from === target) {
-      valueRef.current = target;
-      setValue(target);
-      return;
-    }
-    let frame = 0;
-    const start = performance.now();
-    const step = (now: number) => {
-      const t = Math.min((now - start) / NOTCH_SLIDE_MS, 1);
-      const next = from + (target - from) * easeInOutCubic(t);
-      valueRef.current = next;
-      setValue(next);
-      if (t < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [target]);
-
-  return value;
-}
+// Mint highlight: inset so it never touches the "+" notch's shoulders or
+// the bar's rounded ends.
+const HIGHLIGHT_INSET_X_PX = 4;
+const HIGHLIGHT_INSET_Y_PX = 4;
+// A light mint derived from the theme (primary-foreground tinted with a
+// little primary), so it follows light/dark mode instead of a hard-coded hex.
+const MINT_HIGHLIGHT_BG =
+  "linear-gradient(180deg, color-mix(in oklab, var(--primary-foreground) 96%, var(--primary)), color-mix(in oklab, var(--primary-foreground) 82%, var(--primary)))";
 
 export function BottomNav({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
   const activeIndex = useActiveNavIndex();
@@ -102,19 +72,16 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
   const slotWidth = innerWidth / totalSlots;
   const slotCenterX = (slot: number) => NAV_PADDING_X_PX + (slot + 0.5) * slotWidth;
 
-  // Routes that belong to no tab (e.g. /profile, /help) get no active notch —
-  // only the permanent "+" one — rather than faking an active tab.
+  // Routes that belong to no tab (e.g. /profile, /help) get no highlight
+  // rather than faking an active tab.
   const hasActiveTab = activeIndex !== -1;
-  const ActiveIcon = hasActiveTab ? NAV_ITEMS[activeIndex].icon : null;
-  const activeTargetX = size && hasActiveTab ? slotCenterX(tabIndexToSlot(activeIndex)) : null;
-  const activeX = useTweenedNumber(activeTargetX);
+  const activeX = size && hasActiveTab ? slotCenterX(tabIndexToSlot(activeIndex)) : null;
   const centerX = size ? slotCenterX(centerSlotIndex) : null;
 
-  // Shrinks on narrow phones so the "+" notch and a neighbouring active-tab
-  // notch never overlap (see fitNotchToSlot).
+  // Shrinks on very narrow phones only (see fitNotchToSlot).
   const notch = size ? fitNotchToSlot(PREFERRED_NOTCH, slotWidth) : PREFERRED_NOTCH;
   const circleRadius = notch.notchRadius - CIRCLE_GAP_PX;
-  const notchXs = [centerX, activeX].filter((x): x is number => x !== null);
+  const notchXs = centerX !== null ? [centerX] : [];
   const barPath = size ? buildNotchedBarPath(size.width, size.height, BAR_CORNER_RADIUS_PX, notchXs, notch) : null;
 
   const circleStyle = (x: number) => ({
@@ -185,20 +152,35 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
             <Link
               key={item.key}
               href={item.href}
+              // `relative z-10`: paints above the sliding mint highlight.
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium transition-colors duration-(--motion-normal) ease-(--ease-standard)",
-                active ? "font-semibold text-primary-foreground" : "text-primary-foreground/70"
+                "relative z-10 flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium transition-colors duration-(--motion-normal) ease-(--ease-standard)",
+                active ? "font-semibold text-primary" : "text-primary-foreground/80"
               )}
               aria-current={active ? "page" : undefined}
             >
-              {/* The active tab's own icon is invisible, not removed — its
-                  space keeps the label centered; the icon actually seen is
-                  the one in the floating circle inside the notch. */}
-              <item.icon className={cn("h-5 w-5", active && "opacity-0")} aria-hidden="true" />
+              <item.icon className="h-5 w-5" aria-hidden="true" />
               <span>{t(`nav.${item.key}`)}</span>
             </Link>
           );
         })}
+
+        {/* Mint highlight behind the active tab (reference design). One
+            element that slides between tabs via a plain CSS transition on
+            `left`, rather than a per-tab background that would just blink. */}
+        {activeX !== null ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute rounded-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_2px_8px_rgba(0,0,0,0.12)] transition-[left] duration-(--motion-normal) ease-(--ease-standard) motion-reduce:transition-none"
+            style={{
+              left: activeX - slotWidth / 2 + HIGHLIGHT_INSET_X_PX,
+              width: slotWidth - HIGHLIGHT_INSET_X_PX * 2,
+              top: HIGHLIGHT_INSET_Y_PX,
+              bottom: HIGHLIGHT_INSET_Y_PX,
+              background: MINT_HIGHLIGHT_BG,
+            }}
+          />
+        ) : null}
 
         {/* Permanent center "+" circle, floating in its own notch (it's an
             action, not a destination — never tied to route match). The real
@@ -210,15 +192,6 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
             style={circleStyle(centerX)}
           >
             <span className="text-2xl leading-none font-medium text-primary-foreground">+</span>
-          </div>
-        ) : null}
-        {ActiveIcon && activeX !== null ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute flex items-center justify-center rounded-full shadow-card"
-            style={circleStyle(activeX)}
-          >
-            <ActiveIcon className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
           </div>
         ) : null}
       </nav>
