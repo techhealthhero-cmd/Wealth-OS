@@ -22,11 +22,7 @@ const GLOSSY_PRIMARY_BG =
 // circle floats INSIDE that valley with a visible gap ring around it (the
 // page background shows through), instead of the old look where the circle
 // filled its cutout completely and read as one blob with the bar.
-// centerY 12: with the icon-only bar (uniform 64px, icons centered at
-// 32px), the circle sits mostly INSIDE its valley with only its top cap
-// (~9px) above the bar — balanced against the other icons instead of
-// hanging off the top edge, and closer to the reference.
-const PREFERRED_NOTCH: NotchGeometry = { notchRadius: 26, centerY: 12, fillet: 16, minFillet: 5 };
+const PREFERRED_NOTCH: NotchGeometry = { notchRadius: 26, centerY: 4, fillet: 16, minFillet: 5 };
 const CIRCLE_GAP_PX = 5;
 const BAR_CORNER_RADIUS_PX = 24;
 const NAV_PADDING_X_PX = 8; // keep in sync with the <nav>'s `px-2`
@@ -147,7 +143,7 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
         //
         // `opacity-95` (requested): applied to the whole <nav> as one group
         // so the bar and the floating circles fade together evenly.
-        className="isolate relative mx-auto flex max-w-md items-center justify-between px-2 py-1 opacity-95"
+        className="isolate relative mx-auto flex max-w-md items-center justify-between px-2 py-1.5 opacity-95"
         aria-label="Primary"
       >
         {/* Bar background: an SVG path with the notches cut into its top
@@ -189,20 +185,17 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
             <Link
               key={item.key}
               href={item.href}
-              // Requested: icon-only bar (reference design has no labels).
-              // The visible text is gone, so the name moves to aria-label —
-              // screen readers and e2e role queries still get "หน้าแรก" etc.
-              aria-label={t(`nav.${item.key}`)}
               className={cn(
-                "flex h-14 flex-1 items-center justify-center rounded-2xl transition-colors duration-(--motion-normal) ease-(--ease-standard)",
-                active ? "text-primary-foreground" : "text-primary-foreground/70 hover:text-primary-foreground"
+                "flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium transition-colors duration-(--motion-normal) ease-(--ease-standard)",
+                active ? "font-semibold text-primary-foreground" : "text-primary-foreground/70"
               )}
               aria-current={active ? "page" : undefined}
             >
-              {/* The active tab's own icon is invisible, not removed — the
-                  icon actually seen is the one in the floating circle inside
-                  the notch; keeping this one keeps every cell the same size. */}
-              <item.icon className={cn("h-6 w-6", active && "opacity-0")} aria-hidden="true" />
+              {/* The active tab's own icon is invisible, not removed — its
+                  space keeps the label centered; the icon actually seen is
+                  the one in the floating circle inside the notch. */}
+              <item.icon className={cn("h-5 w-5", active && "opacity-0")} aria-hidden="true" />
+              <span>{t(`nav.${item.key}`)}</span>
             </Link>
           );
         })}
