@@ -1,4 +1,6 @@
 import { getAccounts } from "@/features/accounts/queries";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
+import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -11,12 +13,21 @@ import { EmptyAccountsIllustration } from "@/components/illustrations";
 import { Plus } from "lucide-react";
 
 export async function AccountList() {
-  const [allAccounts, profile] = await Promise.all([
-    getAccounts({ includeArchived: true }),
+  const [profile, privacy] = await Promise.all([
     getProfile(),
+    getAccountPrivacyState(),
   ]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
+
+  // Do not fetch account rows at all while privacy mode is locked. This is
+  // intentionally stronger than visually blurring real values: names and
+  // balances are absent from the rendered payload and browser DOM.
+  if (privacy.enabled && !privacy.isUnlocked) {
+    return <AccountPrivacyPlaceholder privacy={privacy} copy={dict.accountPrivacy} />;
+  }
+
+  const allAccounts = await getAccounts({ includeArchived: true });
 
   const activeAccounts = allAccounts.filter((a) => !a.is_archived);
   const archivedAccounts = allAccounts.filter((a) => a.is_archived);

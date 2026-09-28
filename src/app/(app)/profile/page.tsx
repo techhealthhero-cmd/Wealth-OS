@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { AiFabSettingsCard } from "@/components/layout/ai-fab-settings-card";
+import { AccountPrivacySettingsCard } from "@/features/account-privacy/components/account-privacy-settings-card";
+import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 import { BookOpenCheck, ChevronRight, Compass } from "lucide-react";
 
 export const metadata: Metadata = { title: "Profile — Wealth OS" };
@@ -23,7 +25,11 @@ export default async function ProfilePage() {
   // (app)/layout.tsx already redirects unauthenticated users before this
   // page renders at all, so `!profile` here is a rare defensive case, not
   // the normal signed-out path.
-  const [profile, entitlements] = await Promise.all([getProfile(), getEntitlements()]);
+  const [profile, entitlements, accountPrivacy] = await Promise.all([
+    getProfile(),
+    getEntitlements(),
+    getAccountPrivacyState(),
+  ]);
   if (!profile) redirect("/login");
 
   const locale = await getLocale(profile.preferred_language);
@@ -98,6 +104,8 @@ export default async function ProfilePage() {
           </Button>
         </CardContent>
       </Card>
+
+      <AccountPrivacySettingsCard privacy={accountPrivacy} />
 
       <Card>
         <CardHeader>

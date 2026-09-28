@@ -31,6 +31,8 @@ export type AccountType =
   | "investment"
   | "other";
 
+export type AccountPrivacyDisplayStyle = "blur" | "unavailable" | "empty" | "custom";
+
 export type TransactionType =
   | "income"
   | "expense"
@@ -211,6 +213,25 @@ export interface Database {
           Omit<Database["public"]["Tables"]["profiles"]["Row"], "id" | "created_at" | "updated_at">
         > & { user_id: string };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Row"]>;
+      };
+      account_privacy_settings: {
+        Row: {
+          user_id: string;
+          enabled: boolean;
+          display_style: AccountPrivacyDisplayStyle;
+          custom_message: string | null;
+          pin_hash: string | null;
+          unlock_token_hash: string | null;
+          unlocked_until: string | null;
+          failed_attempts: number;
+          locked_until: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["account_privacy_settings"]["Row"], "created_at" | "updated_at">> & {
+          user_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["account_privacy_settings"]["Row"]>;
       };
       accounts: {
         Row: {
@@ -963,6 +984,32 @@ export interface Database {
       };
     };
     Functions: {
+      get_account_privacy_state: {
+        Args: { p_unlock_token?: string | null };
+        Returns: {
+          enabled: boolean;
+          display_style: AccountPrivacyDisplayStyle;
+          custom_message: string | null;
+          pin_configured: boolean;
+          is_unlocked: boolean;
+          unlocked_until: string | null;
+          locked_until: string | null;
+        }[];
+      };
+      configure_account_privacy: {
+        Args: {
+          p_enabled: boolean;
+          p_display_style: AccountPrivacyDisplayStyle;
+          p_custom_message: string | null;
+          p_pin: string;
+        };
+        Returns: void;
+      };
+      unlock_account_privacy: {
+        Args: { p_pin: string; p_unlock_token: string };
+        Returns: "unlocked" | "invalid_pin" | "temporarily_locked" | "not_configured";
+      };
+      lock_account_privacy: { Args: Record<string, never>; Returns: void };
       create_transfer: {
         Args: {
           p_from_account_id: string;
