@@ -813,6 +813,7 @@
   "aiCoach": {
     "title": "AI Money Coach",
     "subtitle": "Your personal financial assistant",
+    "openFullPage": "Open full page",
     "emptyTitle": "Start chatting with the AI Money Coach",
     "emptyState": "Ask anything about your finances, like the examples below.",
     "inputPlaceholder": "Type a question about your finances...",

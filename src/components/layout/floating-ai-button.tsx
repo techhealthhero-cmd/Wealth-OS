@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { AI_NAV_ITEM } from "./nav-items";
+import { AiAssistantSheet } from "@/features/ai/components/ai-assistant-sheet";
 
 const BUTTON_SIZE_PX = 56;
 const EDGE_MARGIN_PX = 12;
@@ -68,11 +69,17 @@ function defaultPosition(): Position {
  * during SSR; rendering at a guessed position first and jumping after
  * hydration would be a visible flash, so this simply doesn't render until it
  * knows where it actually belongs.
+ *
+ * Requested again: tapping should open a floating chat widget over the
+ * current page ("หน้าต่างลอยขึ้นมา") instead of navigating to /ai — see
+ * AiAssistantSheet. The full /ai page still exists (reachable from the
+ * sheet's own "open full page" link, or the desktop sidebar) for its extra
+ * cards the quick overlay doesn't include.
  */
 export function FloatingAiButton() {
-  const router = useRouter();
   const pathname = usePathname();
   const [position, setPosition] = useState<Position | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const positionRef = useRef<Position>({ x: 0, y: 0 });
   const dragStateRef = useRef<{
     pointerId: number;
@@ -144,10 +151,8 @@ export function FloatingAiButton() {
     dragStateRef.current = null;
 
     if (!drag.moved) {
-      // A real tap, not a drag — AssistiveTouch itself opens its menu on
-      // tap without moving; this app has one destination, so go straight
-      // there instead of an intermediate menu.
-      router.push(AI_NAV_ITEM.href);
+      // A real tap, not a drag — opens the chat overlay in place.
+      setSheetOpen(true);
       return;
     }
 
@@ -165,27 +170,35 @@ export function FloatingAiButton() {
     persist(snapped);
   }
 
-  // Avoids cluttering the AI chat screen with a shortcut to itself.
+  // Avoids cluttering the AI chat screen with a shortcut to itself. The
+  // sheet still renders regardless (a fragment sibling, not nested inside
+  // this check) so it can finish closing correctly even if something
+  // navigated away from under it while open.
   const onAiPage = pathname === AI_NAV_ITEM.matchPrefix || pathname.startsWith(`${AI_NAV_ITEM.matchPrefix}/`);
-  if (onAiPage || !AI_NAV_ITEM.enabled || !position) return null;
+  const showButton = !onAiPage && AI_NAV_ITEM.enabled && position;
 
   return (
-    <button
-      type="button"
-      aria-label="AI"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      className="fixed z-40 flex size-14 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg md:hidden"
-      style={{
-        left: position.x,
-        top: position.y,
-        background:
-          "radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.16), transparent 70%), var(--primary)",
-      }}
-    >
-      <AI_NAV_ITEM.icon className="h-6 w-6" aria-hidden="true" />
-    </button>
+    <>
+      {showButton ? (
+        <button
+          type="button"
+          aria-label="AI"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className="fixed z-40 flex size-14 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg md:hidden"
+          style={{
+            left: position.x,
+            top: position.y,
+            background:
+              "radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.16), transparent 70%), var(--primary)",
+          }}
+        >
+          <AI_NAV_ITEM.icon className="h-6 w-6" aria-hidden="true" />
+        </button>
+      ) : null}
+      <AiAssistantSheet open={sheetOpen} onOpenChange={setSheetOpen} />
+    </>
   );
 }
