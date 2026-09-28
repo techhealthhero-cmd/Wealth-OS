@@ -113,15 +113,14 @@ export function QuickAdd({ accounts, categories, variant = "inline" }: QuickAddP
               variant === "nav-center" ? (
                 // Invisible on purpose — BottomNav renders the actual
                 // visible raised "+" circle above this exact spot; this is
-                // only the real click target, sized like a normal nav cell
-                // so its tap area matches its neighboring tabs.
+                // only the real click target, sized exactly like a nav cell
+                // (icon-only, h-14) so its tap area matches its neighbours.
                 <button
                   type="button"
-                  className="flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium"
+                  className="flex h-14 flex-1 items-center justify-center rounded-2xl"
                   aria-label={t("dashboard.quickAdd")}
                 >
-                  <Plus className="h-5 w-5 opacity-0" aria-hidden="true" />
-                  <span className="invisible">+</span>
+                  <Plus className="h-6 w-6 opacity-0" aria-hidden="true" />
                 </button>
               ) : (
                 <Button>
