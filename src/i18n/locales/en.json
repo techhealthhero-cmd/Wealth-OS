@@ -814,6 +814,42 @@
     "title": "AI Money Coach",
     "subtitle": "Your personal financial assistant",
     "openFullPage": "Open full page",
+    "panelStatus": "Ready to help with your financial data",
+    "overlayGreetingTitle": "Hi {name}! 👋",
+    "overlayGreeting": "I can help you review your finances, plan ahead, and analyze your data. What can I help with today?",
+    "overlayInputPlaceholder": "Ask anything...",
+    "voiceInput": "Speak your question",
+    "voiceStop": "Stop listening",
+    "quickActionsTitle": "Start with this",
+    "quickActions": {
+      "monthSummary": { "title": "This month's spending summary", "description": "See your income vs. expenses" },
+      "analyzeSpending": { "title": "Analyze spending", "description": "Which category is highest" },
+      "setGoal": { "title": "Set a savings goal", "description": "Plan out your savings" },
+      "calculateGoal": { "title": "Calculate a goal", "description": "e.g. how many years to save ฿1M" },
+      "reduceIdeas": { "title": "Ideas to cut spending", "description": "Suggestions tailored to you" },
+      "trendAnalysis": { "title": "Analyze trends", "description": "Forecast the next 3-6 months" }
+    },
+    "examplesTitle": "Example questions",
+    "examplesRefresh": "Refresh",
+    "shortcutSummarizePage": "Summarize",
+    "shortcutAttachFile": "Attach file",
+    "shortcutReadReceipt": "Read receipt",
+    "readReceiptPrompt": "This is my receipt — please help record it as an expense.",
+    "summarizePagePrompt": "Please summarize my overall financial situation right now.",
+    "tabs": {
+      "chat": "Chat",
+      "summary": "Summary",
+      "analyze": "Analyze",
+      "tools": "Tools"
+    },
+    "toolsTab": {
+      "debt": "Debt payoff plan",
+      "emergencyFund": "Emergency fund",
+      "netWorth": "Net worth",
+      "goals": "Financial goals"
+    },
+    "summaryTabEmpty": "No summary available yet",
+    "analyzeTabEmpty": "No notable insights right now",
     "emptyTitle": "Start chatting with the AI Money Coach",
     "emptyState": "Ask anything about your finances, like the examples below.",
     "inputPlaceholder": "Type a question about your finances...",
@@ -1619,6 +1655,7 @@
         "description": "A financial assistant you can talk to about anything — it only ever answers from your real data, never guesses.",
         "items": [
           { "emoji": "💬", "title": "Ask anything about money", "description": "Like \"did I overspend this month?\" — the AI pulls your real data to answer." },
+          { "emoji": "🫧", "title": "Floating AI button on every page", "description": "Tap the floating AI button (drag it anywhere) to open the assistant over the current page — Chat · Summary · Analyze · Tools tabs, one-tap starter cards, and voice input where your browser supports it. Tap the button again to close." },
           { "emoji": "📷", "title": "Attach a photo", "description": "Attach a screenshot or photo — like a form field you don't understand — and the AI can explain it (never saved, used only for that one reply)." },
           { "emoji": "✨", "title": "Daily insights", "description": "Short, useful observations about your financial habits." },
           { "emoji": "🔢", "title": "Monthly message limit", "description": "Free: 15 · Plus: 150 · Pro: 500 messages per month." }

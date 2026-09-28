@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { AI_NAV_ITEM } from "./nav-items";
-import { AiAssistantSheet } from "@/features/ai/components/ai-assistant-sheet";
+import { X } from "lucide-react";
+
+import { AiAssistantPanel } from "@/features/ai/components/ai-assistant-panel";
 
 const BUTTON_SIZE_PX = 56;
 const EDGE_MARGIN_PX = 12;
@@ -72,9 +74,10 @@ function defaultPosition(): Position {
  *
  * Requested again: tapping should open a floating chat widget over the
  * current page ("หน้าต่างลอยขึ้นมา") instead of navigating to /ai — see
- * AiAssistantSheet. The full /ai page still exists (reachable from the
- * sheet's own "open full page" link, or the desktop sidebar) for its extra
- * cards the quick overlay doesn't include.
+ * AiAssistantPanel, which floats next to this button. While it's open the
+ * button stays above the panel's backdrop with a small "×" badge, and a tap
+ * closes it again. The full /ai page still exists (the panel's "open full
+ * page" link, or the desktop sidebar).
  */
 export function FloatingAiButton() {
   const pathname = usePathname();
@@ -88,6 +91,10 @@ export function FloatingAiButton() {
     originX: number;
     originY: number;
     moved: boolean;
+    // Captured at press time: the panel's own outside-press handling may
+    // close it before pointerup fires, which would otherwise make this tap
+    // immediately re-open it.
+    wasOpen: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -128,6 +135,7 @@ export function FloatingAiButton() {
       originX: positionRef.current.x,
       originY: positionRef.current.y,
       moved: false,
+      wasOpen: sheetOpen,
     };
   }
 
@@ -151,8 +159,8 @@ export function FloatingAiButton() {
     dragStateRef.current = null;
 
     if (!drag.moved) {
-      // A real tap, not a drag — opens the chat overlay in place.
-      setSheetOpen(true);
+      // A real tap, not a drag — toggles the chat overlay in place.
+      setSheetOpen(!drag.wasOpen);
       return;
     }
 
@@ -176,6 +184,10 @@ export function FloatingAiButton() {
   // navigated away from under it while open.
   const onAiPage = pathname === AI_NAV_ITEM.matchPrefix || pathname.startsWith(`${AI_NAV_ITEM.matchPrefix}/`);
   const showButton = !onAiPage && AI_NAV_ITEM.enabled && position;
+  const anchor = useMemo(
+    () => (position ? { x: position.x, y: position.y, size: BUTTON_SIZE_PX } : null),
+    [position]
+  );
 
   return (
     <>
@@ -183,11 +195,14 @@ export function FloatingAiButton() {
         <button
           type="button"
           aria-label="AI"
+          aria-expanded={sheetOpen}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="fixed z-40 flex size-14 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg md:hidden"
+          className={`fixed flex size-14 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg md:hidden ${
+            sheetOpen ? "z-[60] ring-4 ring-primary/25" : "z-40"
+          }`}
           style={{
             left: position.x,
             top: position.y,
@@ -196,9 +211,21 @@ export function FloatingAiButton() {
           }}
         >
           <AI_NAV_ITEM.icon className="h-6 w-6" aria-hidden="true" />
+          {sheetOpen ? (
+            <span
+              aria-hidden="true"
+              className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full border bg-background text-foreground shadow-sm"
+            >
+              <X className="size-3" strokeWidth={3} />
+            </span>
+          ) : null}
         </button>
       ) : null}
-      <AiAssistantSheet open={sheetOpen} onOpenChange={setSheetOpen} />
+      <AiAssistantPanel
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        anchor={anchor}
+      />
     </>
   );
 }

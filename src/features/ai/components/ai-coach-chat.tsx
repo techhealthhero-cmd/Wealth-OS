@@ -2,7 +2,30 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUp, Check, Copy, History, ImagePlus, Lock, MessageSquarePlus, Search, X } from "lucide-react";
+import {
+  ArrowUp,
+  BarChart3,
+  Calculator,
+  Camera,
+  Check,
+  ChevronRight,
+  Copy,
+  FileText,
+  History,
+  ImagePlus,
+  Lightbulb,
+  Lock,
+  MessageSquarePlus,
+  Mic,
+  Paperclip,
+  RefreshCw,
+  Search,
+  SendHorizontal,
+  Target,
+  TrendingUp,
+  Upload,
+  X,
+} from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 
@@ -54,7 +77,99 @@ const SUGGESTED_PROMPT_KEYS = [
   "financialProgressQuestion",
 ] as const;
 
+// Requested: match a reference floating-widget design's "start with this"
+// card grid — each card sends its own title as the chat message rather than
+// needing a second dedicated prompt string per card, one less dictionary
+// key to keep in sync per entry.
+const QUICK_ACTION_CARDS = [
+  { key: "monthSummary", icon: FileText, tone: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
+  { key: "analyzeSpending", icon: BarChart3, tone: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  { key: "setGoal", icon: Target, tone: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
+  { key: "calculateGoal", icon: Calculator, tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+  { key: "reduceIdeas", icon: Lightbulb, tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  { key: "trendAnalysis", icon: TrendingUp, tone: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+] as const;
+
+const EXAMPLE_QUESTIONS_COUNT = 4;
+
+function pickRandomKeys<T>(keys: readonly T[], count: number): T[] {
+  const shuffled = [...keys].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
 const TEXTAREA_MAX_HEIGHT_PX = 160;
+
+// Minimal shape of the Web Speech API's recognizer — not in TS's DOM lib,
+// and only exposed as `webkitSpeechRecognition` on Safari/Chrome.
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+
+function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
+/**
+ * Overlay mic button: browser speech-to-text into the input box (the user
+ * still reviews and sends it). `supported` is false wherever the browser has
+ * no recognizer — the mic button is then hidden rather than shown dead.
+ */
+function useSpeechInput(locale: string, onTranscript: (text: string) => void) {
+  const [supported, setSupported] = React.useState(false);
+  const [listening, setListening] = React.useState(false);
+  const recognitionRef = React.useRef<SpeechRecognitionLike | null>(null);
+  const onTranscriptRef = React.useRef(onTranscript);
+  React.useEffect(() => {
+    onTranscriptRef.current = onTranscript;
+  });
+
+  React.useEffect(() => {
+    // Only knowable on the client, after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSupported(getSpeechRecognitionCtor() !== null);
+    return () => recognitionRef.current?.stop();
+  }, []);
+
+  function toggle() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) return;
+    const recognition = new Ctor();
+    recognition.lang = locale === "th" ? "th-TH" : "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.onresult = (event) => {
+      const text = Array.from(event.results)
+        .map((result) => result[0]?.transcript ?? "")
+        .join("");
+      onTranscriptRef.current(text);
+    };
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+    }
+  }
+
+  return { supported, listening, toggle };
+}
 
 // The model naturally writes markdown (**bold**, numbered lists) — this
 // used to render as literal, unrendered "**" characters in the chat bubble
@@ -241,15 +356,32 @@ export function AICoachChat({
   initialConversationId,
   initialMessages,
   historyEnabled = false,
+  variant = "page",
+  displayName,
 }: {
   initialConversationId?: string;
   initialMessages?: ChatMessage[];
   /** Plus+ gate (FEATURES.AI_CHAT_HISTORY), resolved server-side by the page — this component never re-checks entitlement itself, same as every other client component in this app that receives an `entitled`-shaped prop. */
   historyEnabled?: boolean;
+  /**
+   * "overlay" adds the floating-widget-specific extras requested to match a
+   * reference design: a personalized greeting bubble, a "start with this"
+   * quick-action card grid, a shuffleable example-questions list, and
+   * below-input shortcuts (summarize/attach/read receipt). The full /ai
+   * page keeps its existing simpler empty state (`"page"`, the default) —
+   * this is additive, not a replacement, so that page's behavior is
+   * unchanged.
+   */
+  variant?: "page" | "overlay";
+  /** Only used by the "overlay" variant's greeting ("Hi {name}!"). */
+  displayName?: string | null;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages ?? []);
+  const [exampleKeys, setExampleKeys] = React.useState(() =>
+    pickRandomKeys(SUGGESTED_PROMPT_KEYS, EXAMPLE_QUESTIONS_COUNT)
+  );
   const [input, setInput] = React.useState("");
   const [conversationId, setConversationId] = React.useState<string | undefined>(initialConversationId);
   const [isSending, setIsSending] = React.useState(false);
@@ -259,6 +391,8 @@ export function AICoachChat({
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const speech = useSpeechInput(locale, (text) => setInput(text));
   // "Stick to bottom" while streaming, but stop following the moment the
   // user scrolls away — a reply can run to many paragraphs, and locking
   // the page to the newest token means the user can never read up while
@@ -268,14 +402,18 @@ export function AICoachChat({
   const NEAR_BOTTOM_PX = 120;
 
   React.useEffect(() => {
+    // Overlay scrolls inside its own panel, the /ai page scrolls the window.
+    const area = variant === "overlay" ? scrollAreaRef.current : null;
     function handleScroll() {
-      const distanceFromBottom =
-        document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+      const distanceFromBottom = area
+        ? area.scrollHeight - area.scrollTop - area.clientHeight
+        : document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
       stickToBottomRef.current = distanceFromBottom < NEAR_BOTTOM_PX;
     }
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    const target: HTMLElement | Window = area ?? window;
+    target.addEventListener("scroll", handleScroll, { passive: true });
+    return () => target.removeEventListener("scroll", handleScroll);
+  }, [variant]);
 
   React.useEffect(() => {
     if (stickToBottomRef.current) {
@@ -494,33 +632,109 @@ export function AICoachChat({
     </Button>
   );
 
+  const isOverlay = variant === "overlay";
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className={isOverlay ? "flex min-h-0 flex-1 flex-col" : "flex flex-col gap-3"}>
+      {/* Overlay: this wrapper is the panel's own scroll area (input stays
+          pinned below it, like the reference design). Page: `contents`, so
+          the /ai page's layout is exactly what it was before. */}
+      <div
+        ref={isOverlay ? scrollAreaRef : undefined}
+        className={isOverlay ? "flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3" : "contents"}
+      >
       {historyOpen ? <ChatHistoryPanel onSelectConversation={(id) => void loadConversation(id)} onClose={() => setHistoryOpen(false)} /> : null}
 
       {messages.length === 0 ? (
-        <Card className="rounded-2xl">
-          <CardContent className="flex flex-col items-center gap-3 pt-8 pb-8 text-center">
-            <AICoachIllustration size={120} />
-            <p className="font-medium">{t("aiCoach.emptyTitle")}</p>
-            <p className="max-w-sm text-sm text-muted-foreground">{t("aiCoach.emptyState")}</p>
-            <div className="mt-2 flex flex-wrap justify-center gap-2">
-              {SUGGESTED_PROMPT_KEYS.map((key) => (
-                <Button
-                  key={key}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full text-xs"
-                  onClick={() => void sendMessage(t(`aiCoach.suggestedPrompts.${key}`))}
-                >
-                  {t(`aiCoach.suggestedPrompts.${key}`)}
-                </Button>
-              ))}
+        variant === "overlay" ? (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start gap-2.5">
+              <AICoachIllustration size={44} className="shrink-0" />
+              <div className="min-w-0 rounded-2xl rounded-tl-md bg-muted px-3.5 py-2.5 text-sm/6">
+                <p className="font-semibold">
+                  {t("aiCoach.overlayGreetingTitle").replace(" {name}", displayName ? ` ${displayName}` : "")}
+                </p>
+                <p className="text-foreground/90">{t("aiCoach.overlayGreeting")}</p>
+              </div>
             </div>
-            {!historyOpen ? <div className="mt-1">{historyButton}</div> : null}
-          </CardContent>
-        </Card>
+
+            <div>
+              <p className="mb-2 text-sm font-medium">{t("aiCoach.quickActionsTitle")}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {QUICK_ACTION_CARDS.map(({ key, icon: Icon, tone }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => void sendMessage(t(`aiCoach.quickActions.${key}.title`))}
+                    className="flex min-w-0 items-center gap-2 rounded-xl border bg-card p-2 text-left shadow-xs transition-colors hover:bg-accent/50"
+                  >
+                    <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", tone)}>
+                      <Icon className="size-4" aria-hidden="true" />
+                    </span>
+                    <span className="flex min-w-0 flex-col">
+                      <span className="text-xs font-semibold leading-snug">{t(`aiCoach.quickActions.${key}.title`)}</span>
+                      <span className="text-[11px] leading-snug text-muted-foreground">
+                        {t(`aiCoach.quickActions.${key}.description`)}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">{t("aiCoach.examplesTitle")}</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="-mr-2 h-7 text-foreground"
+                  onClick={() => setExampleKeys(pickRandomKeys(SUGGESTED_PROMPT_KEYS, EXAMPLE_QUESTIONS_COUNT))}
+                >
+                  <RefreshCw className="mr-1 size-3.5" aria-hidden="true" />
+                  {t("aiCoach.examplesRefresh")}
+                </Button>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {exampleKeys.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => void sendMessage(t(`aiCoach.suggestedPrompts.${key}`))}
+                    className="flex items-center justify-between gap-2 rounded-full border px-3.5 py-2 text-left text-[13px] hover:bg-accent/50"
+                  >
+                    <span className="min-w-0">{t(`aiCoach.suggestedPrompts.${key}`)}</span>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Card className="rounded-2xl">
+            <CardContent className="flex flex-col items-center gap-3 pt-8 pb-8 text-center">
+              <AICoachIllustration size={120} />
+              <p className="font-medium">{t("aiCoach.emptyTitle")}</p>
+              <p className="max-w-sm text-sm text-muted-foreground">{t("aiCoach.emptyState")}</p>
+              <div className="mt-2 flex flex-wrap justify-center gap-2">
+                {SUGGESTED_PROMPT_KEYS.map((key) => (
+                  <Button
+                    key={key}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs"
+                    onClick={() => void sendMessage(t(`aiCoach.suggestedPrompts.${key}`))}
+                  >
+                    {t(`aiCoach.suggestedPrompts.${key}`)}
+                  </Button>
+                ))}
+              </div>
+              {!historyOpen ? <div className="mt-1">{historyButton}</div> : null}
+            </CardContent>
+          </Card>
+        )
       ) : (
         <div className="flex flex-col gap-4.5" role="log" aria-live="polite" aria-label={t("aiCoach.title")}>
           <div className="flex justify-end gap-1">
@@ -597,7 +811,118 @@ export function AICoachChat({
           </Button>
         </div>
       ) : null}
+      </div>
 
+      {isOverlay ? (
+        <div className="shrink-0 border-t bg-popover px-3 pt-2.5 pb-3">
+          <form onSubmit={handleSubmit} className="flex items-end gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ALLOWED_IMAGE_TYPES.join(",")}
+              onChange={handleFileSelect}
+              hidden
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={t("aiCoach.attachImage")}
+              disabled={isSending}
+              className="mb-0.5 shrink-0 rounded-full text-muted-foreground"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="size-5" aria-hidden="true" />
+            </Button>
+            <InputGroup className="h-auto min-h-10 flex-1 items-end rounded-[22px] px-0.5 py-0.5">
+              <InputGroupTextarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  const el = e.target;
+                  el.style.height = "auto";
+                  el.style.height = `${Math.min(el.scrollHeight, TEXTAREA_MAX_HEIGHT_PX)}px`;
+                }}
+                placeholder={speech.listening ? t("aiCoach.voiceStop") : t("aiCoach.overlayInputPlaceholder")}
+                aria-label={t("aiCoach.inputPlaceholder")}
+                disabled={isSending}
+                className="min-h-9 py-2 pl-3 text-[15px]/6"
+                rows={1}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void sendMessage(input);
+                  }
+                }}
+              />
+              {speech.supported ? (
+                <InputGroupAddon align="inline-end" className="pr-1.5 pb-1.25">
+                  <InputGroupButton
+                    type="button"
+                    aria-label={speech.listening ? t("aiCoach.voiceStop") : t("aiCoach.voiceInput")}
+                    aria-pressed={speech.listening}
+                    disabled={isSending}
+                    size="icon-sm"
+                    variant="ghost"
+                    className={cn("rounded-full", speech.listening ? "animate-pulse bg-primary/10 text-primary" : "text-muted-foreground")}
+                    onClick={() => speech.toggle()}
+                  >
+                    <Mic className="size-4.5" aria-hidden="true" />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              ) : null}
+            </InputGroup>
+            <Button
+              type="submit"
+              size="icon"
+              aria-label={t("aiCoach.send")}
+              disabled={isSending || (!input.trim() && !pendingImage)}
+              className="mb-0.5 size-10 shrink-0 rounded-full"
+            >
+              <SendHorizontal className="size-4.5" aria-hidden="true" />
+            </Button>
+          </form>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-full px-2 text-xs"
+              disabled={isSending}
+              onClick={() => void sendMessage(t("aiCoach.summarizePagePrompt"))}
+            >
+              <FileText className="mr-1 size-3.5" aria-hidden="true" />
+              {t("aiCoach.shortcutSummarizePage")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-full px-2 text-xs"
+              disabled={isSending}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="mr-1 size-3.5" aria-hidden="true" />
+              {t("aiCoach.shortcutAttachFile")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-full px-2 text-xs"
+              disabled={isSending}
+              onClick={() => {
+                setInput(t("aiCoach.readReceiptPrompt"));
+                fileInputRef.current?.click();
+              }}
+            >
+              <Camera className="mr-1 size-3.5" aria-hidden="true" />
+              {t("aiCoach.shortcutReadReceipt")}
+            </Button>
+          </div>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit}>
         <input
           ref={fileInputRef}
@@ -664,6 +989,7 @@ export function AICoachChat({
           </InputGroupAddon>
         </InputGroup>
       </form>
+      )}
       {confirmDialog}
     </div>
   );
