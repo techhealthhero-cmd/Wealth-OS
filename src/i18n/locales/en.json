@@ -66,6 +66,10 @@
   },
   "aiFab": {
     "settingsTitle": "Floating AI button",
+    "showButton": "Show floating AI button",
+    "showButtonOnHint": "Tap it to open the AI assistant from any page.",
+    "showButtonOffHint": "Hidden. AI is still available on the AI Money Coach page.",
+    "openAiPage": "Open AI Money Coach",
     "idleOpacity": "Idle opacity",
     "idleOpacityHint": "Fades the AI button after 3 seconds untouched; it's fully visible again the moment you touch it (saved on this device only)."
   },
@@ -1661,7 +1665,7 @@
         "items": [
           { "emoji": "💬", "title": "Ask anything about money", "description": "Like \"did I overspend this month?\" — the AI pulls your real data to answer." },
           { "emoji": "🫧", "title": "Floating AI button on every page", "description": "Tap the floating AI button (drag it anywhere) to open the assistant over the current page — Chat · Summary · Analyze · Tools tabs, one-tap starter cards, and voice input where your browser supports it. Tap the button again to close." },
-          { "emoji": "🌫️", "title": "Adjust the AI button's opacity", "description": "Settings → Floating AI button → Idle opacity (15–100%, default 40%). The button fades after 3 seconds untouched, like iPhone's AssistiveTouch." },
+          { "emoji": "🌫️", "title": "Adjust the AI button's opacity", "description": "Settings → Floating AI button → Idle opacity (15–100%, default 40%). The button fades after 3 seconds untouched, like iPhone's AssistiveTouch. You can also hide the button with the \"Show floating AI button\" switch on the same card." },
           { "emoji": "📷", "title": "Attach a photo", "description": "Attach a screenshot or photo — like a form field you don't understand — and the AI can explain it (never saved, used only for that one reply)." },
           { "emoji": "✨", "title": "Daily insights", "description": "Short, useful observations about your financial habits." },
           { "emoji": "🔢", "title": "Monthly message limit", "description": "Free: 15 · Plus: 150 · Pro: 500 messages per month." }

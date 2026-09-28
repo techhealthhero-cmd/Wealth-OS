@@ -5,7 +5,17 @@ import {
   AI_FAB_IDLE_OPACITY_MAX,
   AI_FAB_IDLE_OPACITY_MIN,
   clampIdleOpacity,
+  parseEnabled,
 } from "@/components/layout/ai-fab-preferences";
+
+describe("parseEnabled", () => {
+  it("shows the button unless it was explicitly switched off", () => {
+    expect(parseEnabled(null)).toBe(true);
+    expect(parseEnabled("true")).toBe(true);
+    expect(parseEnabled("false")).toBe(false);
+    expect(parseEnabled("garbage")).toBe(true);
+  });
+});
 
 describe("clampIdleOpacity", () => {
   it("keeps values inside the AssistiveTouch-style 15â€“100% range", () => {

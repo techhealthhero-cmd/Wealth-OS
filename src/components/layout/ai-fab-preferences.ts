@@ -78,3 +78,59 @@ function getSnapshot(): number {
 export function useAiFabIdleOpacity(): number {
   return useSyncExternalStore(subscribe, getSnapshot, () => AI_FAB_IDLE_OPACITY_DEFAULT);
 }
+
+/**
+ * Show/hide the floating AI button entirely (Settings toggle). Same
+ * per-device storage + live-broadcast pattern as idle opacity above. Hiding
+ * it never removes AI access — /ai stays reachable from the desktop sidebar
+ * and the Settings card's own link.
+ */
+const ENABLED_STORAGE_KEY = "wealth-os:ai-fab-enabled";
+const ENABLED_CHANGE_EVENT = "wealth-os:ai-fab-enabled-change";
+let enabledMemoryValue: boolean | null = null;
+
+export function parseEnabled(raw: string | null): boolean {
+  // Anything other than an explicit "false" (incl. nothing stored) = shown,
+  // so the button stays on by default for new and existing users.
+  return raw !== "false";
+}
+
+function readEnabled(): boolean {
+  try {
+    return parseEnabled(localStorage.getItem(ENABLED_STORAGE_KEY));
+  } catch {
+    return true;
+  }
+}
+
+export function setAiFabEnabled(enabled: boolean) {
+  try {
+    localStorage.setItem(ENABLED_STORAGE_KEY, String(enabled));
+  } catch {
+    // Storage unavailable — still applies for this page view.
+  }
+  window.dispatchEvent(new CustomEvent(ENABLED_CHANGE_EVENT, { detail: enabled }));
+}
+
+function subscribeEnabled(onChange: () => void) {
+  function handleCustom(e: Event) {
+    enabledMemoryValue = (e as CustomEvent<boolean>).detail;
+    onChange();
+  }
+  function handleStorage(e: StorageEvent) {
+    if (e.key === ENABLED_STORAGE_KEY) {
+      enabledMemoryValue = null;
+      onChange();
+    }
+  }
+  window.addEventListener(ENABLED_CHANGE_EVENT, handleCustom);
+  window.addEventListener("storage", handleStorage);
+  return () => {
+    window.removeEventListener(ENABLED_CHANGE_EVENT, handleCustom);
+    window.removeEventListener("storage", handleStorage);
+  };
+}
+
+export function useAiFabEnabled(): boolean {
+  return useSyncExternalStore(subscribeEnabled, () => enabledMemoryValue ?? readEnabled(), () => true);
+}

@@ -7,7 +7,7 @@ import { AI_NAV_ITEM } from "./nav-items";
 import { X } from "lucide-react";
 
 import { AiAssistantPanel } from "@/features/ai/components/ai-assistant-panel";
-import { useAiFabIdleOpacity } from "./ai-fab-preferences";
+import { useAiFabEnabled, useAiFabIdleOpacity } from "./ai-fab-preferences";
 
 const BUTTON_SIZE_PX = 56;
 const EDGE_MARGIN_PX = 12;
@@ -88,6 +88,7 @@ export function FloatingAiButton() {
   const [position, setPosition] = useState<Position | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const idleOpacity = useAiFabIdleOpacity();
+  const fabEnabled = useAiFabEnabled();
   const [active, setActive] = useState(true);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const positionRef = useRef<Position>({ x: 0, y: 0 });
@@ -207,7 +208,8 @@ export function FloatingAiButton() {
   // this check) so it can finish closing correctly even if something
   // navigated away from under it while open.
   const onAiPage = pathname === AI_NAV_ITEM.matchPrefix || pathname.startsWith(`${AI_NAV_ITEM.matchPrefix}/`);
-  const showButton = !onAiPage && AI_NAV_ITEM.enabled && position;
+  // `fabEnabled`: Settings → floating AI button on/off toggle.
+  const showButton = fabEnabled && !onAiPage && AI_NAV_ITEM.enabled && position;
   const anchor = useMemo(
     () => (position ? { x: position.x, y: position.y, size: BUTTON_SIZE_PX } : null),
     [position]
