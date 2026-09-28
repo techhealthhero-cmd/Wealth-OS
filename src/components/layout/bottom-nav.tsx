@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { CSSProperties } from "react";
 
 import { NAV_ITEMS } from "./nav-items";
 import { cn } from "@/lib/utils";
@@ -10,6 +11,16 @@ import { useTranslation } from "@/i18n/client";
 export function BottomNav() {
   const pathname = usePathname();
   const { t } = useTranslation();
+
+  const activeIndex = NAV_ITEMS.findIndex(
+    (item) => pathname === item.matchPrefix || pathname.startsWith(`${item.matchPrefix}/`)
+  );
+  // Some routes behind (app)/layout.tsx (e.g. /profile, /billing, /help)
+  // don't belong to any of the 5 tabs — no bump/notch in that case, just a
+  // plain pill, rather than defaulting to some arbitrary tab looking active.
+  const hasActive = activeIndex !== -1;
+  const bumpXPercent = ((hasActive ? activeIndex : 0) + 0.5) * (100 / NAV_ITEMS.length);
+  const ActiveIcon = hasActive ? NAV_ITEMS[activeIndex].icon : null;
 
   return (
     // Floating pill treatment: inset from the screen edges and elevated with
@@ -42,27 +53,91 @@ export function BottomNav() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 backdrop-blur-lg [-webkit-mask-image:linear-gradient(to_top,black_55%,transparent_100%)] [mask-image:linear-gradient(to_top,black_55%,transparent_100%)]"
       />
+      {/* "Bump" nav (reference: a solid pill whose active tab pokes up out of
+          the bar as a raised circle, with the bar's own top edge curving
+          smoothly down into a valley on either side of it — a liquid/blob
+          look, not a separate floating button). Two pieces make this work:
+          1) `mask-image` punches a circular hole in the bar's own top edge,
+             centered on the active tab (`var(--bump-x)`) — this alone
+             creates the "valley" dip on both sides.
+          2) The floating circle below (same solid color, positioned to
+             overlap that hole from above) reads as the "hill" rising out of
+             it — since both are the identical fill color, the seam between
+             them is invisible and the two curves read as one continuous
+             wave, exactly like the reference.
+          `--bump-x` is a `@property`-registered percentage (see globals.css)
+          specifically so both consumers (the mask's gradient center and the
+          circle's `left`) can be driven by ONE transitioning value — they
+          move in lockstep with a single `transition: --bump-x ...` instead
+          of needing two separately-tuned animations that could drift out of
+          sync. */}
       <nav
-        className="mx-auto flex max-w-md items-center justify-between rounded-3xl bg-background/95 px-1 py-1.5 shadow-card backdrop-blur supports-[backdrop-filter]:bg-background/80"
+        // `isolate` matters, not just decoration: `relative` alone doesn't
+        // give this element its own stacking context, so the background
+        // layer's `-z-10` below would otherwise escape to the fixed
+        // wrapper's context (which DOES have a z-index) and render behind
+        // nearly the whole page instead of just behind this nav's own icons/
+        // bump — verified via a forced local render: the bar vanished
+        // entirely (bump/icons floated with no pill visible) until this was
+        // added.
+        className="isolate relative mx-auto flex max-w-md items-center justify-between px-1 py-1.5"
+        style={
+          {
+            "--bump-x": `${bumpXPercent}%`,
+            transition: "--bump-x var(--motion-normal) var(--ease-standard)",
+          } as CSSProperties
+        }
         aria-label="Primary"
       >
-        {NAV_ITEMS.map((item) => {
-          const active = pathname === item.matchPrefix || pathname.startsWith(`${item.matchPrefix}/`);
+        {/* Bar background lives on its own layer, separate from the items/
+            bump below — `mask-image` clips an element's ENTIRE rendered
+            output, descendants included, not just its own background. Put
+            it on `<nav>` itself and the mask would cut the bump (a child)
+            out of existence right where it's supposed to show, along with
+            any icon/label that happened to fall under the hole — exactly
+            what happened before this was split out (verified via a forced
+            local render: the cutout appeared but the bump/icon never did).
+            As a sibling instead, the mask only ever touches this one
+            background div; the items row and the bump paint on top of it,
+            fully unaffected. */}
+        <div
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 -z-10 rounded-3xl bg-primary shadow-card",
+            hasActive &&
+              "[-webkit-mask-image:radial-gradient(circle_27px_at_var(--bump-x)_0,transparent_26px,black_29px)] [mask-image:radial-gradient(circle_27px_at_var(--bump-x)_0,transparent_26px,black_29px)]"
+          )}
+        />
+        {NAV_ITEMS.map((item, index) => {
+          const active = index === activeIndex;
           return (
             <Link
               key={item.key}
               href={item.href}
               className={cn(
                 "flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium transition-colors duration-(--motion-normal) ease-(--ease-standard)",
-                active ? "text-primary" : "text-muted-foreground"
+                active ? "font-semibold text-primary-foreground" : "text-primary-foreground/70"
               )}
               aria-current={active ? "page" : undefined}
             >
-              <item.icon className="h-5 w-5" aria-hidden="true" />
+              {/* The active tab's own icon is invisible, not removed — its
+                  layout space keeps the label centered under where the icon
+                  would be; the icon actually seen is the floating one below,
+                  raised out of the bar. */}
+              <item.icon className={cn("h-5 w-5", active && "opacity-0")} aria-hidden="true" />
               <span>{t(`nav.${item.key}`)}</span>
             </Link>
           );
         })}
+        {hasActive && ActiveIcon ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-6 flex size-14 -translate-x-1/2 items-center justify-center rounded-full bg-primary shadow-card"
+            style={{ left: "var(--bump-x)" }}
+          >
+            <ActiveIcon className="h-6 w-6 text-primary-foreground" aria-hidden="true" />
+          </div>
+        ) : null}
       </nav>
     </div>
   );

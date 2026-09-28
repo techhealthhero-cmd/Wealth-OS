@@ -200,6 +200,23 @@
 }
 
 /*
+ * Typed as an animatable custom property (not a plain --var) specifically so
+ * BottomNav's "bump" indicator can transition smoothly: an unregistered
+ * custom property change is a hard cut (browsers don't know how to
+ * interpolate an arbitrary string), but a `<percentage>`-typed one lets a
+ * plain `transition: --bump-x ...` tween it frame-by-frame — and everything
+ * that reads it via `var(--bump-x)` (the bar's mask-image cutout position
+ * AND the floating icon circle's `left`) repaints from that same
+ * interpolated value each frame, so the notch and the icon move in lockstep
+ * without needing two separately-synced transitions.
+ */
+@property --bump-x {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 10%;
+}
+
+/*
  * Progressive dashboard reveal (opacity + small translateY, per section) —
  * a one-shot entrance, never a looping effect. `animation-fill-mode:
  * backwards` holds the 0%-frame state before the (staggered) delay elapses,
