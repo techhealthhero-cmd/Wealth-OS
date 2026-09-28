@@ -129,7 +129,13 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
         // bump — verified via a forced local render: the bar vanished
         // entirely (bump/icons floated with no pill visible) until this was
         // added.
-        className="isolate relative mx-auto flex max-w-md items-center justify-between px-1 py-1.5"
+        //
+        // `opacity-80`: requested to match the floating AI button at 80%
+        // idle opacity. Applied to the whole <nav> (not per-piece) on
+        // purpose — CSS opacity composites the element as one group first,
+        // so the bar and the raised bumps fade together and their overlap
+        // doesn't show a darker seam, which per-element alpha would.
+        className="isolate relative mx-auto flex max-w-md items-center justify-between px-1 py-1.5 opacity-80"
         style={
           {
             "--bump-x": `${bumpXPercent}%`,
