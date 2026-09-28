@@ -104,43 +104,50 @@ export async function NetWorthHero() {
   const { dict, breakdown, change, hasHistory, chartData } = data;
   const isNegative = breakdown.netWorthCents < 0;
 
+  // Requested (2026-09-29): the hero is ALWAYS the green card. It used to
+  // drop to a plain white card with a large red number whenever net worth
+  // was negative — which read as an alarm, against UX_GUIDELINES.md's
+  // "never shame" coaching tone. A negative figure is still unmistakable
+  // (minus sign + soft rose on green), just not styled as a warning.
   return (
     <ClickableCard href="/money/net-worth" ariaLabel={dict.netWorth.currentNetWorth}>
-      <Card variant={isNegative ? "default" : "highlight"} className="card-interactive rounded-3xl transition-opacity hover:opacity-90">
-        <CardContent className="space-y-4 pt-6">
+      <Card
+        variant="highlight"
+        className="card-interactive relative overflow-hidden rounded-3xl transition-opacity hover:opacity-90"
+        style={{
+          background:
+            "radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,0.14), transparent 55%), linear-gradient(145deg, var(--primary), color-mix(in oklab, var(--primary) 72%, black))",
+        }}
+      >
+        {/* Soft decorative glow, purely visual. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-16 -bottom-20 size-56 rounded-full bg-[#7FD6B2]/10 blur-2xl"
+        />
+        <CardContent className="relative space-y-4 pt-6">
           <div className="space-y-1">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-1">
-                <p className={isNegative ? "text-sm text-muted-foreground" : "text-sm text-primary-foreground/70"}>
-                  {dict.netWorth.currentNetWorth}
-                </p>
+                <p className="text-sm text-primary-foreground/75">{dict.netWorth.currentNetWorth}</p>
                 <NetWorthInfoPopover
                   label={dict.netWorth.whatIsThis}
                   explanation={dict.netWorth.explanation}
-                  tone={isNegative ? "default" : "on-dark"}
+                  tone="on-dark"
                 />
               </div>
-              {!isNegative ? (
-                <p className="max-w-36 text-right text-xs leading-relaxed text-primary-foreground/60">
-                  {dict.netWorth.tagline}
-                </p>
-              ) : null}
+              <p className="max-w-36 text-right text-xs leading-relaxed text-primary-foreground/60">
+                {dict.netWorth.tagline}
+              </p>
             </div>
             <AnimatedNumber
               value={breakdown.netWorthCents}
               formatAs="money"
-              className={`block break-all text-[clamp(2rem,10vw,3.75rem)] font-bold leading-none tracking-tight tabular-nums ${isNegative ? "text-destructive" : ""}`}
+              className={`block break-all text-[clamp(2rem,10vw,3.75rem)] font-bold leading-none tracking-tight tabular-nums ${isNegative ? "text-rose-200" : "text-primary-foreground"}`}
             />
             {hasHistory ? (
               <span
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                  isNegative
-                    ? change.changeCents >= 0
-                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                      : "bg-rose-500/10 text-rose-700 dark:text-rose-400"
-                    : change.changeCents >= 0
-                      ? "bg-primary-foreground/15 text-[#7FD6B2]"
-                      : "bg-primary-foreground/15 text-rose-300"
+                className={`inline-flex items-center gap-1 rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium ${
+                  change.changeCents >= 0 ? "text-[#7FD6B2]" : "text-rose-200"
                 }`}
               >
                 {change.changeCents >= 0 ? (
@@ -156,18 +163,14 @@ export async function NetWorthHero() {
                 {dict.netWorth.monthlyChange}
               </span>
             ) : (
-              <p className={isNegative ? "text-sm text-muted-foreground" : "text-sm text-primary-foreground/60"}>
-                {dict.netWorth.noHistoryYet}
-              </p>
+              <p className="text-sm text-primary-foreground/60">{dict.netWorth.noHistoryYet}</p>
             )}
           </div>
 
           {chartData.length >= 2 ? (
             <div className="space-y-1">
-              <p className={isNegative ? "text-xs text-muted-foreground" : "text-xs text-primary-foreground/60"}>
-                {dict.netWorth.last6Months}
-              </p>
-              <NetWorthMiniChart data={chartData} tone={isNegative ? "default" : "highlight"} />
+              <p className="text-xs text-primary-foreground/60">{dict.netWorth.last6Months}</p>
+              <NetWorthMiniChart data={chartData} tone="highlight" />
             </div>
           ) : null}
 
@@ -177,7 +180,7 @@ export async function NetWorthHero() {
             viewDetailsLabel={dict.dashboard2.viewDetails}
             assetsLabel={dict.netWorth.totalAssets}
             liabilitiesLabel={dict.netWorth.totalLiabilities}
-            tone={isNegative ? "default" : "on-dark"}
+            tone="on-dark"
           />
         </CardContent>
       </Card>
