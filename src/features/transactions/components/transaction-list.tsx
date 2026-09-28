@@ -68,6 +68,14 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
 
   return (
     <div className="space-y-4">
+      {/* Moved here from the dashboard's floating "+" (which overlapped the
+          bottom nav's rightmost tab after the nav's floating-pill redesign,
+          and duplicated the row of income/expense/transfer tiles already on
+          that page) — this is the actual "add a transaction" screen, a more
+          natural home for it. The row/inline QuickAdd instances further down
+          this page stay as they were; this is the one additional floating
+          instance. */}
+      <QuickAdd accounts={accounts} categories={categories} />
       <aside
         aria-labelledby="weekly-transaction-reminder-title"
         className={

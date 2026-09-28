@@ -245,8 +245,6 @@ export default async function DashboardPage() {
           </div>
         </DashboardDetailsToggle>
       </div>
-
-      <QuickAdd accounts={data.accounts} categories={data.categories} />
     </div>
   );
 }

@@ -104,7 +104,18 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
               variant === "floating" ? (
                 <Button
                   size="icon"
-                  className="fixed bottom-20 right-4 z-40 h-14 w-14 rounded-full shadow-lg md:bottom-6"
+                  // bottom-20 (80px) matched the old edge-to-edge bottom
+                  // nav; the nav's floating-pill redesign made the bar
+                  // itself taller (see bottom-nav.tsx) and moved every
+                  // page's own content clearance from pb-24 to pb-28 (112px)
+                  // to match. Matching that same 112px here (rather than
+                  // reusing the smaller +1rem bump used elsewhere) is
+                  // deliberate: the pill's own top edge sits at ~103px from
+                  // the screen bottom (pt-2 + pill height + safe-area-aware
+                  // bottom padding — see bottom-nav.tsx's own measurements),
+                  // so bottom-24 (96px) would still have clipped a few
+                  // pixels into it; bottom-28 clears it with a real gap.
+                  className="fixed bottom-28 right-4 z-40 h-14 w-14 rounded-full shadow-lg md:bottom-6"
                   aria-label={t("dashboard.quickAdd")}
                 >
                   <Plus className="h-6 w-6" aria-hidden="true" />
