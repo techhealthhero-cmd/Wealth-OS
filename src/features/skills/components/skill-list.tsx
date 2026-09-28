@@ -5,11 +5,10 @@ import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { SkillForm } from "./skill-form";
-import { SkillCard } from "./skill-card";
+import { SkillMap } from "./skill-map";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EarnIllustration } from "@/components/illustrations";
-import { Award, BriefcaseBusiness, Plus, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BarChart3, Crown, Shield } from "lucide-react";
 import { calculateSkillProgress } from "@/lib/skills/progress";
 
 export async function SkillList() {
@@ -52,68 +51,60 @@ export async function SkillList() {
     progress: calculateSkillProgress(workCountByCategory.get(skill.category) ?? 0),
   }));
   const totalCompletedWork = completedMissions.length;
-  const highestLevel = Math.max(...skillProgress.map(({ progress }) => progress.level));
+  const rankProgress = calculateSkillProgress(totalCompletedWork);
+  const rankNumber = String(rankProgress.level).padStart(2, "0");
+  const nextRankText = rankProgress.nextLevel
+    ? dict.earn.skills.nextRank
+        .replace("{count}", String(rankProgress.workUntilNextLevel))
+        .replace("{rank}", String(rankProgress.nextLevel).padStart(2, "0"))
+    : dict.earn.skills.maxRank;
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#e5f4ec_0%,#f4f7f3_58%,#eef2ed_100%)] p-5 ring-1 ring-primary/8 dark:bg-[linear-gradient(135deg,rgba(45,107,82,0.28)_0%,rgba(22,33,27,0.92)_65%)] sm:p-6">
-        <div className="pointer-events-none absolute -right-8 -top-10 size-36 rounded-full border-[18px] border-white/45 dark:border-white/5" />
-        <div className="pointer-events-none absolute bottom-3 right-28 size-3 rounded-full bg-primary/15" />
-        <div className="relative flex items-start gap-4">
-          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[0_10px_24px_-14px_rgba(31,77,62,0.75)]">
-            <Award className="size-7" strokeWidth={1.8} aria-hidden="true" />
+      <section className="relative overflow-hidden rounded-3xl bg-primary p-5 text-primary-foreground shadow-card sm:p-6">
+        <div className="pointer-events-none absolute -left-10 -top-20 size-48 rounded-full border-[34px] border-white/[0.035]" />
+        <div className="pointer-events-none absolute -bottom-24 right-8 size-56 rounded-full border-[38px] border-white/[0.035]" />
+        <div className="relative flex items-center gap-4 sm:gap-5">
+          <div className="relative flex size-16 shrink-0 items-center justify-center sm:size-20">
+            <Shield className="absolute inset-0 size-full fill-white/10 text-[#9de0bf]" strokeWidth={1.5} aria-hidden="true" />
+            <Crown className="absolute -top-2 size-4 fill-[#d7f3e5] text-[#d7f3e5] sm:size-5" strokeWidth={1.5} aria-hidden="true" />
+            <BarChart3 className="relative size-7 text-white sm:size-8" strokeWidth={2} aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary/75">
-                  <Sparkles className="size-3.5" aria-hidden="true" />
-                  {dict.earn.skills.skillCollectionEyebrow}
-                </p>
-                <h2 className="mt-1 text-xl font-semibold leading-tight">{dict.earn.skills.skillCollectionTitle}</h2>
-                <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                  {dict.earn.skills.skillCollectionDescription}
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-white/70 sm:text-sm">{dict.earn.skills.incomeBuilderRank}</p>
+                <p className="mt-0.5 text-2xl font-semibold leading-none sm:text-3xl">
+                  {dict.earn.skills.rankLabel.replace("{rank}", rankNumber)}
                 </p>
               </div>
-              <SkillForm
-                trigger={
-                  <Button size="sm" className="rounded-full px-4">
-                    <Plus className="size-4" aria-hidden="true" />
-                    {dict.earn.skills.addSkill}
-                  </Button>
-                }
+              <div className="shrink-0 text-right">
+                <p className="text-xl font-semibold sm:text-2xl">{totalCompletedWork}</p>
+                <p className="text-[10px] text-white/65 sm:text-xs">{dict.earn.skills.completedWorkCount}</p>
+              </div>
+            </div>
+            <div
+              className="mt-3 h-2 overflow-hidden rounded-full bg-white/15"
+              role="progressbar"
+              aria-label={dict.earn.skills.rankProgress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={rankProgress.progressPercent}
+            >
+              <div
+                className="h-full rounded-full bg-[#bcebd2] transition-[width] duration-(--motion-value) ease-(--ease-emphasized)"
+                style={{ width: `${rankProgress.progressPercent}%` }}
               />
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-foreground/5 dark:bg-white/8">
-                <Sparkles className="size-3.5 text-primary" aria-hidden="true" />
-                {skills.length} {dict.earn.skills.skillsCount}
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-foreground/5 dark:bg-white/8">
-                <BriefcaseBusiness className="size-3.5 text-primary" aria-hidden="true" />
-                {totalCompletedWork} {dict.earn.skills.completedWorkCount}
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-foreground/5 dark:bg-white/8">
-                <Award className="size-3.5 text-primary" aria-hidden="true" />
-                {dict.earn.skills.highestLevel.replace("{level}", String(highestLevel))}
-              </div>
+            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-white/65 sm:text-xs">
+              <span>{nextRankText}</span>
+              <span>{skills.length} {dict.earn.skills.skillsCount}</span>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h3 className="font-semibold">{dict.earn.skills.yourSkills}</h3>
-          <p className="text-xs text-muted-foreground">{dict.earn.skills.progressHint}</p>
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {skillProgress.map(({ skill, progress }) => (
-          <SkillCard key={skill.id} skill={skill} progress={progress} />
-        ))}
-      </div>
+      <SkillMap items={skillProgress} />
     </div>
   );
 }

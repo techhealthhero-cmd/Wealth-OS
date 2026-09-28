@@ -5,6 +5,7 @@ import {
   BadgeDollarSign,
   Calculator,
   Camera,
+  ChevronRight,
   Clapperboard,
   Code2,
   Dumbbell,
@@ -29,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { SkillProgress } from "@/lib/skills/progress";
+import { cn } from "@/lib/utils";
 
 const CATEGORY_ICONS: Record<SkillCategory, LucideIcon> = {
   web_development: Code2,
@@ -62,7 +64,15 @@ const CATEGORY_STYLES: Record<SkillCategory, string> = {
   other: "bg-[#f0f1ef] text-[#66706a] dark:bg-[#252a27] dark:text-[#aab3ad]",
 };
 
-export function SkillCard({ skill, progress }: { skill: UserSkill; progress: SkillProgress }) {
+export function SkillCard({
+  skill,
+  progress,
+  variant = "list",
+}: {
+  skill: UserSkill;
+  progress: SkillProgress;
+  variant?: "grid" | "list";
+}) {
   const { t } = useTranslation();
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
@@ -74,9 +84,82 @@ export function SkillCard({ skill, progress }: { skill: UserSkill; progress: Ski
         .replace("{level}", String(progress.nextLevel))
     : t("earn.skills.maxLevel");
 
+  const actionMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        {...asTrigger(
+          <Button variant="ghost" size="icon" className="-mr-2 -mt-2 size-9 rounded-full" aria-label={t("common.moreActions")}>
+            <MoreVertical className="size-4" aria-hidden="true" />
+          </Button>
+        )}
+      />
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setEditOpen(true)}>{t("common.edit")}</DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          disabled={isPending}
+          onClick={async () => {
+            if (!(await confirm(t("earn.skills.deleteConfirm"), { destructive: true }))) return;
+            startTransition(async () => {
+              await deleteSkill(skill.id);
+            });
+          }}
+        >
+          {t("common.delete")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
-    <Card className="relative gap-0 overflow-visible rounded-3xl py-0">
-      <CardContent className="p-4 sm:p-5">
+    <>
+      <Card className={cn("relative gap-0 overflow-visible rounded-3xl py-0", variant === "grid" && "min-w-0")}>
+        {variant === "grid" ? (
+          <CardContent className="flex min-h-64 flex-col p-3.5 sm:p-4">
+            <div className="flex min-w-0 items-start justify-between gap-1">
+              <div className="min-w-0">
+                <p className="line-clamp-2 text-sm font-semibold leading-snug sm:text-base">{skill.skill_name}</p>
+                <p className="mt-0.5 truncate text-[10px] text-muted-foreground sm:text-xs">
+                  {t(`earn.skills.categories.${skill.category}`)}
+                </p>
+              </div>
+              {actionMenu}
+            </div>
+
+            <div className="flex flex-1 flex-col justify-center">
+              <div
+                className="relative mx-auto flex size-24 items-center justify-center rounded-full p-1.5 sm:size-28 sm:p-[7px]"
+                style={{
+                  background: `conic-gradient(var(--primary) ${progress.progressPercent * 3.6}deg, color-mix(in oklch, var(--primary) 10%, transparent) 0deg)`,
+                }}
+                role="progressbar"
+                aria-label={t("earn.skills.levelProgress")}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress.progressPercent}
+              >
+                <div className="flex size-full items-center justify-center rounded-full bg-card p-1.5">
+                  <div className={`flex size-full items-center justify-center rounded-full ${CATEGORY_STYLES[skill.category]}`}>
+                    <Icon className="size-8 sm:size-9" strokeWidth={1.65} aria-hidden="true" />
+                  </div>
+                </div>
+                <span className="absolute -bottom-1 rounded-full bg-card px-3 py-1 text-[11px] font-bold shadow-card ring-1 ring-foreground/5">
+                  Lv. {progress.level}
+                </span>
+              </div>
+
+              <p className="mt-3 text-center text-sm font-medium">
+                {progress.completedWorkCount} {t("earn.skills.workUnit")}
+              </p>
+            </div>
+
+            <div className="mt-2 flex items-center justify-center gap-1 border-t pt-2 text-center text-[11px] text-muted-foreground sm:text-xs">
+              <span>{nextLevelText}</span>
+              {progress.nextLevel ? <ChevronRight className="size-3.5 shrink-0" aria-hidden="true" /> : null}
+            </div>
+          </CardContent>
+        ) : (
+          <CardContent className="p-4 sm:p-5">
         <div className="flex items-start gap-3.5">
           <div className={`relative flex size-16 shrink-0 items-center justify-center rounded-2xl ${CATEGORY_STYLES[skill.category]}`}>
             <div className="absolute inset-1 rounded-xl border border-current/10" />
@@ -94,30 +177,7 @@ export function SkillCard({ skill, progress }: { skill: UserSkill; progress: Ski
                   {t(`earn.skills.categories.${skill.category}`)} · {t(`earn.skills.proficiencyLevels.${skill.proficiency_level}`)}
                 </p>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  {...asTrigger(
-                    <Button variant="ghost" size="icon" className="-mr-2 -mt-2 size-9 rounded-full" aria-label={t("common.moreActions")}>
-                      <MoreVertical className="size-4" aria-hidden="true" />
-                    </Button>
-                  )}
-                />
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setEditOpen(true)}>{t("common.edit")}</DropdownMenuItem>
-                  <DropdownMenuItem
-                    variant="destructive"
-                    disabled={isPending}
-                    onClick={async () => {
-                      if (!(await confirm(t("earn.skills.deleteConfirm"), { destructive: true }))) return;
-                      startTransition(async () => {
-                        await deleteSkill(skill.id);
-                      });
-                    }}
-                  >
-                    {t("common.delete")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {actionMenu}
             </div>
           </div>
         </div>
@@ -157,9 +217,11 @@ export function SkillCard({ skill, progress }: { skill: UserSkill; progress: Ski
             </span>
           ) : null}
         </div>
-      </CardContent>
+          </CardContent>
+        )}
+      </Card>
       <SkillForm skill={skill} trigger={null} open={editOpen} onOpenChange={setEditOpen} />
       {confirmDialog}
-    </Card>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { calculateSkillProgress } from "@/lib/skills/progress";
+import { parseSkillViewMode } from "@/lib/skills/view-mode";
 
 describe("calculateSkillProgress", () => {
   it("starts a new skill at level one", () => {
@@ -23,5 +24,14 @@ describe("calculateSkillProgress", () => {
     expect(calculateSkillProgress(25)).toMatchObject({ level: 5, progressPercent: 100, nextLevel: null });
     expect(calculateSkillProgress(-4)).toMatchObject({ level: 1, completedWorkCount: 0 });
     expect(calculateSkillProgress(4.9)).toMatchObject({ level: 2, completedWorkCount: 4 });
+  });
+});
+
+describe("parseSkillViewMode", () => {
+  it("keeps a saved list preference and otherwise defaults to the grid", () => {
+    expect(parseSkillViewMode("list")).toBe("list");
+    expect(parseSkillViewMode("grid")).toBe("grid");
+    expect(parseSkillViewMode("unexpected")).toBe("grid");
+    expect(parseSkillViewMode(null)).toBe("grid");
   });
 });
