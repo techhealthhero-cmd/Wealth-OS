@@ -18,9 +18,10 @@ const CHANGE_EVENT = "wealth-os:ai-fab-idle-opacity-change";
 
 export const AI_FAB_IDLE_OPACITY_MIN = 15;
 export const AI_FAB_IDLE_OPACITY_MAX = 100;
-// 100 = never fades, i.e. exactly the button's behavior before this setting
-// existed; users opt in to fading from Settings.
-export const AI_FAB_IDLE_OPACITY_DEFAULT = 100;
+// Requested: match iPhone AssistiveTouch's own default (40%) out of the box.
+// Applies to anyone who hasn't moved the slider yet (nothing stored); a
+// value a user already chose is kept as-is.
+export const AI_FAB_IDLE_OPACITY_DEFAULT = 40;
 
 export function clampIdleOpacity(value: number): number {
   if (!Number.isFinite(value)) return AI_FAB_IDLE_OPACITY_DEFAULT;
