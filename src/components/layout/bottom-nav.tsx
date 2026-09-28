@@ -153,13 +153,25 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
               key={item.key}
               href={item.href}
               // `relative z-10`: paints above the sliding mint highlight.
+              // Pressing compresses the whole target quickly, then the
+              // overshooting release curve gives it a soft, springy button
+              // feel. The inset shade supplies depth without changing the
+              // existing notch/highlight geometry.
               className={cn(
-                "relative z-10 flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium transition-colors duration-(--motion-normal) ease-(--ease-standard)",
-                active ? "font-semibold text-primary" : "text-primary-foreground/80"
+                "group/nav-item relative z-10 flex flex-1 touch-manipulation select-none flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium",
+                "transform-gpu transition-[transform,box-shadow,background-color,color,filter] duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]",
+                "active:translate-y-0.5 active:scale-[0.94] active:brightness-95 active:shadow-[inset_0_3px_7px_rgba(0,0,0,0.2)] active:duration-75 active:ease-out",
+                "motion-reduce:transform-none motion-reduce:transition-colors",
+                active
+                  ? "font-semibold text-primary active:bg-primary/10"
+                  : "text-primary-foreground/80 active:bg-primary-foreground/10"
               )}
               aria-current={active ? "page" : undefined}
             >
-              <item.icon className="h-5 w-5" aria-hidden="true" />
+              <item.icon
+                className="h-5 w-5 transition-transform duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-active/nav-item:scale-90 group-active/nav-item:duration-75 motion-reduce:transform-none"
+                aria-hidden="true"
+              />
               <span>{t(`nav.${item.key}`)}</span>
             </Link>
           );
