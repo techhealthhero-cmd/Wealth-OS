@@ -25,7 +25,23 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { key: "money", href: "/money/transactions", matchPrefix: "/money", icon: Wallet, enabled: true },
   { key: "plan", href: "/plan/goals", matchPrefix: "/plan", icon: Target, enabled: FEATURES.plan },
   { key: "earn", href: "/earn", matchPrefix: "/earn", icon: TrendingUp, enabled: FEATURES.earn },
-  { key: "ai", href: "/ai", matchPrefix: "/ai", icon: Sparkles, enabled: FEATURES.ai },
 ];
 
+/**
+ * The 4 tabs that live IN the bottom nav bar row. AI used to be a 5th tab
+ * here too, but moved out to its own draggable floating button (see
+ * FloatingAiButton) — requested so it behaves like iOS's AssistiveTouch
+ * (drag it anywhere, tap to open) instead of competing for a fixed slot in
+ * an already-tight 5-item bar. `AI_NAV_ITEM` below is what that floating
+ * button uses instead of a row slot.
+ */
 export const NAV_ITEMS: NavItem[] = ALL_NAV_ITEMS.filter((item) => item.enabled);
+
+/** Still gated by the same feature flag the row-based tab used to be. */
+export const AI_NAV_ITEM: NavItem = {
+  key: "ai",
+  href: "/ai",
+  matchPrefix: "/ai",
+  icon: Sparkles,
+  enabled: FEATURES.ai,
+};

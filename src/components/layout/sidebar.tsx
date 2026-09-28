@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { NAV_ITEMS } from "./nav-items";
+import { NAV_ITEMS, AI_NAV_ITEM } from "./nav-items";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/client";
 import { BrandMark } from "@/components/illustrations";
+
+// Desktop has none of the mobile bottom nav's space constraints that moved
+// AI out to its own draggable floating button there — the sidebar keeps AI
+// as a normal link, in its original position at the end.
+const SIDEBAR_ITEMS = AI_NAV_ITEM.enabled ? [...NAV_ITEMS, AI_NAV_ITEM] : NAV_ITEMS;
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -19,7 +24,7 @@ export function Sidebar() {
         <span className="text-sidebar-foreground">Wealth OS</span>
       </div>
       <nav className="flex flex-1 flex-col gap-1">
-        {NAV_ITEMS.map((item) => {
+        {SIDEBAR_ITEMS.map((item) => {
           const active = pathname === item.matchPrefix || pathname.startsWith(`${item.matchPrefix}/`);
           return (
             <Link

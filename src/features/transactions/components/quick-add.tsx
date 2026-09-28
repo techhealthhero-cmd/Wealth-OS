@@ -23,13 +23,22 @@ type QuickAddDialog = "expense" | "income" | "transfer" | null;
 interface QuickAddProps {
   accounts: Account[];
   categories: Category[];
-  /** "row" is 3 always-visible tiles (income/expense/transfer) instead of one button behind a dropdown menu — same dialogs underneath. */
-  variant?: "floating" | "inline" | "row";
+  /**
+   * "row" is 3 always-visible tiles (income/expense/transfer) instead of
+   * one button behind a dropdown menu — same dialogs underneath.
+   * "nav-center" renders an invisible-content trigger sized to fill a
+   * bottom-nav cell — BottomNav draws the actual visible raised "+" circle
+   * itself (same treatment as its tab bumps) and layers this underneath it
+   * as the real click target, so the two move as one piece instead of a
+   * separately-positioned floating button drifting out of sync with the
+   * nav's own layout.
+   */
+  variant?: "nav-center" | "inline" | "row";
 }
 
 type PendingSwitch = { dialog: Exclude<QuickAddDialog, null>; amount: string } | null;
 
-export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAddProps) {
+export function QuickAdd({ accounts, categories, variant = "inline" }: QuickAddProps) {
   const { t } = useTranslation();
   const [activeDialog, setActiveDialog] = useState<QuickAddDialog>(null);
   const [carryOverAmount, setCarryOverAmount] = useState<string | undefined>(undefined);
@@ -101,25 +110,19 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
         <DropdownMenu>
           <DropdownMenuTrigger
             {...asTrigger(
-              variant === "floating" ? (
-                <Button
-                  size="icon"
-                  // bottom-20 (80px) matched the old edge-to-edge bottom
-                  // nav; the nav's floating-pill redesign made the bar
-                  // itself taller (see bottom-nav.tsx) and moved every
-                  // page's own content clearance from pb-24 to pb-28 (112px)
-                  // to match. Matching that same 112px here (rather than
-                  // reusing the smaller +1rem bump used elsewhere) is
-                  // deliberate: the pill's own top edge sits at ~103px from
-                  // the screen bottom (pt-2 + pill height + safe-area-aware
-                  // bottom padding — see bottom-nav.tsx's own measurements),
-                  // so bottom-24 (96px) would still have clipped a few
-                  // pixels into it; bottom-28 clears it with a real gap.
-                  className="fixed bottom-28 right-4 z-40 h-14 w-14 rounded-full shadow-lg md:bottom-6"
+              variant === "nav-center" ? (
+                // Invisible on purpose — BottomNav renders the actual
+                // visible raised "+" circle above this exact spot; this is
+                // only the real click target, sized like a normal nav cell
+                // so its tap area matches its neighboring tabs.
+                <button
+                  type="button"
+                  className="flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium"
                   aria-label={t("dashboard.quickAdd")}
                 >
-                  <Plus className="h-6 w-6" aria-hidden="true" />
-                </Button>
+                  <Plus className="h-5 w-5 opacity-0" aria-hidden="true" />
+                  <span className="invisible">+</span>
+                </button>
               ) : (
                 <Button>
                   <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -128,7 +131,7 @@ export function QuickAdd({ accounts, categories, variant = "floating" }: QuickAd
               )
             )}
           />
-          <DropdownMenuContent align="end" side={variant === "floating" ? "top" : "bottom"}>
+          <DropdownMenuContent align="center" side={variant === "nav-center" ? "top" : "bottom"}>
             <DropdownMenuItem onClick={() => openDialog("expense")}>
               <TrendingDown className="mr-2 h-4 w-4" aria-hidden="true" />
               {t("transactions.types.expense")}

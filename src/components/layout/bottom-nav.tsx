@@ -7,6 +7,8 @@ import { NAV_ITEMS } from "./nav-items";
 import { useActiveNavIndex } from "./use-active-nav-index";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/client";
+import { QuickAdd } from "@/features/transactions/components/quick-add";
+import type { Account, Category } from "@/types/database";
 
 // Requested: a subtle glossy/lit-from-above sheen on the pill instead of a
 // completely flat fill (reference: a photo of a capsule with a soft
@@ -25,16 +27,47 @@ import { useTranslation } from "@/i18n/client";
 const GLOSSY_PRIMARY_BG =
   "radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.16), transparent 70%), var(--primary)";
 
-export function BottomNav() {
+const CUTOUT_RADIUS_PX = 27;
+
+function cutoutAt(xPercent: number): string {
+  return `radial-gradient(circle ${CUTOUT_RADIUS_PX}px at ${xPercent}% 0, transparent ${CUTOUT_RADIUS_PX - 1}px, black ${CUTOUT_RADIUS_PX + 2}px)`;
+}
+
+export function BottomNav({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
   const activeIndex = useActiveNavIndex();
   const { t } = useTranslation();
 
+  // Requested: a permanently-raised "+" (quick add income/expense/transfer)
+  // in the CENTER of the bar, with the 4 real tabs split 2-and-2 on either
+  // side of it — AI moved out to its own draggable floating button (see
+  // FloatingAiButton) to make room. The bar therefore has one more visual
+  // slot than there are tabs; `centerSlotIndex` is where the "+" sits, and
+  // every tab at or after it shifts one slot right to make room.
+  const totalSlots = NAV_ITEMS.length + 1;
+  const centerSlotIndex = Math.floor(NAV_ITEMS.length / 2);
+  const slotXPercent = (slot: number) => (slot + 0.5) * (100 / totalSlots);
+  function tabIndexToSlot(tabIndex: number): number {
+    return tabIndex < centerSlotIndex ? tabIndex : tabIndex + 1;
+  }
+
   // Some routes behind (app)/layout.tsx (e.g. /profile, /billing, /help)
-  // don't belong to any of the 5 tabs — no bump/notch in that case, just a
-  // plain pill, rather than defaulting to some arbitrary tab looking active.
-  const hasActive = activeIndex !== -1;
-  const bumpXPercent = ((hasActive ? activeIndex : 0) + 0.5) * (100 / NAV_ITEMS.length);
-  const ActiveIcon = hasActive ? NAV_ITEMS[activeIndex].icon : null;
+  // don't belong to any of the 4 tabs — no tab bump/notch in that case
+  // (the permanent center "+" bump still shows), rather than defaulting
+  // some arbitrary tab to look active.
+  const hasActiveTab = activeIndex !== -1;
+  const activeSlot = hasActiveTab ? tabIndexToSlot(activeIndex) : null;
+  const bumpXPercent = activeSlot !== null ? slotXPercent(activeSlot) : 0;
+  const ActiveIcon = hasActiveTab ? NAV_ITEMS[activeIndex].icon : null;
+
+  // Two independent cutouts composited into one mask: the "+" button's own
+  // bump is permanent (always at centerSlotIndex), the active tab's bump
+  // slides between the remaining slots (or doesn't exist at all on a
+  // non-tab page) — `mask-image` supports multiple comma-separated layers
+  // exactly like `background-image`, and the default `add` compositing
+  // unions their transparent holes rather than needing anything special.
+  const maskImage = hasActiveTab
+    ? `${cutoutAt(slotXPercent(centerSlotIndex))}, ${cutoutAt(bumpXPercent)}`
+    : cutoutAt(slotXPercent(centerSlotIndex));
 
   return (
     // Floating pill treatment: inset from the screen edges and elevated with
@@ -84,7 +117,9 @@ export function BottomNav() {
           circle's `left`) can be driven by ONE transitioning value — they
           move in lockstep with a single `transition: --bump-x ...` instead
           of needing two separately-tuned animations that could drift out of
-          sync. */}
+          sync. The "+" button's own cutout/bump reuses the identical
+          mechanism but at a fixed position — see the mask/slot comments
+          above. */}
       <nav
         // `isolate` matters, not just decoration: `relative` alone doesn't
         // give this element its own stacking context, so the background
@@ -116,15 +151,22 @@ export function BottomNav() {
             fully unaffected. */}
         <div
           aria-hidden="true"
-          className={cn(
-            "absolute inset-0 -z-10 rounded-3xl shadow-card",
-            hasActive &&
-              "[-webkit-mask-image:radial-gradient(circle_27px_at_var(--bump-x)_0,transparent_26px,black_29px)] [mask-image:radial-gradient(circle_27px_at_var(--bump-x)_0,transparent_26px,black_29px)]"
-          )}
-          style={{ background: GLOSSY_PRIMARY_BG }}
+          className="absolute inset-0 -z-10 rounded-3xl shadow-card"
+          style={
+            {
+              background: GLOSSY_PRIMARY_BG,
+              WebkitMaskImage: maskImage,
+              maskImage,
+            } as CSSProperties
+          }
         />
-        {NAV_ITEMS.map((item, index) => {
-          const active = index === activeIndex;
+        {Array.from({ length: totalSlots }, (_, slot) => {
+          if (slot === centerSlotIndex) {
+            return <QuickAdd key="quick-add" accounts={accounts} categories={categories} variant="nav-center" />;
+          }
+          const tabIndex = slot < centerSlotIndex ? slot : slot - 1;
+          const item = NAV_ITEMS[tabIndex];
+          const active = tabIndex === activeIndex;
           return (
             <Link
               key={item.key}
@@ -144,7 +186,18 @@ export function BottomNav() {
             </Link>
           );
         })}
-        {hasActive && ActiveIcon ? (
+        {/* Permanent center "+" bump — always raised, never tied to route
+            match (it's an action, not a destination). */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-6 flex size-14 -translate-x-1/2 items-center justify-center rounded-full shadow-card"
+          style={{ left: `${slotXPercent(centerSlotIndex)}%`, background: GLOSSY_PRIMARY_BG }}
+        >
+          <span className="text-2xl leading-none font-medium text-primary-foreground" aria-hidden="true">
+            +
+          </span>
+        </div>
+        {hasActiveTab && ActiveIcon ? (
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-6 flex size-14 -translate-x-1/2 items-center justify-center rounded-full shadow-card"

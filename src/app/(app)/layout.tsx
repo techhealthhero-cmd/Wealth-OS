@@ -2,12 +2,15 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { getProfile } from "@/features/profile/queries";
+import { getAccounts } from "@/features/accounts/queries";
+import { getCategories } from "@/features/categories/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { I18nProvider } from "@/i18n/client";
 import { logNav } from "@/lib/dev-diagnostics";
 import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { FloatingAiButton } from "@/components/layout/floating-ai-button";
 import { Header } from "@/components/layout/header";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { PlanBadge } from "@/features/billing/components/plan-badge";
@@ -47,7 +50,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/onboarding");
   }
 
-  const locale = await getLocale(profile.preferred_language);
+  // Fetched here (not inside BottomNav itself, a Client Component) so the
+  // nav's new permanent center "+" can open the same expense/income/
+  // transfer dialogs QuickAdd already uses elsewhere — both cached via
+  // React's `cache()` (see those queries' own doc comments), so a page that
+  // also calls them with the same arguments (e.g. dashboard's `getAccounts()`
+  // with no options) dedupes against this call instead of re-querying.
+  const [locale, accounts, categories] = await Promise.all([
+    getLocale(profile.preferred_language),
+    getAccounts(),
+    getCategories(),
+  ]);
   const dict = getDictionary(locale);
 
   return (
@@ -85,12 +98,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-8">
               <PullToRefresh>{children}</PullToRefresh>
             </main>
-            <BottomNav />
+            <BottomNav accounts={accounts} categories={categories} />
           </div>
         </div>
         {/* Outside `main` so its fixed-position pill/panel is never affected
             by any ancestor transform/overflow. */}
         <MinimizableFormHost />
+        <FloatingAiButton />
       </MinimizableFormProvider>
       <Toaster position="top-center" />
     </I18nProvider>
