@@ -51,7 +51,8 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: { code?: string; 
   }
 
   /** No-op chain method — real Supabase narrows returned columns, this fake always returns full rows. Exists so `.insert(...).select("id").single()` chains type-check and run. */
-  select(_columns?: string): this {
+  select(columns?: string): this {
+    void columns;
     return this;
   }
 
