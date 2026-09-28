@@ -28,10 +28,19 @@ export function BottomNav() {
           makes the blur itself fade in gradually toward the bottom instead,
           which is what actually reads as "frosted." Purely decorative
           (aria-hidden) and non-interactive so it never blocks taps on the
-          content peeking through the gaps around the pill. */}
+          content peeking through the gaps around the pill.
+          Reported again: an earlier version extended this well above the
+          nav's own box (`-top-28`) so it could reach content a bit further
+          up the page — but on a real page that meant it also blurred
+          legitimate cards that just happened to scroll near the bottom
+          (e.g. the "Next Best Action" card), which reads as a bug, not a
+          nice fade. Confined to `inset-0` (exactly the nav wrapper's own
+          box — the pill plus its immediate top/bottom padding) instead, so
+          only the area actually behind/around the bar fades, never content
+          above it. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 -top-28 bottom-0 -z-10 backdrop-blur-lg [-webkit-mask-image:linear-gradient(to_top,black_45%,transparent_100%)] [mask-image:linear-gradient(to_top,black_45%,transparent_100%)]"
+        className="pointer-events-none absolute inset-0 -z-10 backdrop-blur-lg [-webkit-mask-image:linear-gradient(to_top,black_55%,transparent_100%)] [mask-image:linear-gradient(to_top,black_55%,transparent_100%)]"
       />
       <nav
         className="mx-auto flex max-w-md items-center justify-between rounded-3xl bg-background/95 px-1 py-1.5 shadow-card backdrop-blur supports-[backdrop-filter]:bg-background/80"
