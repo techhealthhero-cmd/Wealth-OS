@@ -28,6 +28,23 @@ import { Button } from "@/components/ui/button";
 const MAX_AUTO_RETRIES = 3;
 const RETRY_DELAYS_MS = [800, 2000, 4000];
 
+// A distinct failure mode from the transient-network one above: the app was
+// left open/backgrounded (very common for an installed PWA) across a new
+// deploy, so the JS still running in the tab references chunk filenames
+// (content-hashed) that the CDN no longer serves once the new deployment
+// replaced them — any lazy-loaded chunk/dynamic import then 404s. `reset()`
+// only re-renders the existing React tree; it can't fix this because the
+// stale JS is still what's running. Only a real navigation (hard reload)
+// re-fetches the current HTML/JS and resolves it. Matches both the classic
+// webpack "ChunkLoadError" and the newer "Failed to fetch dynamically
+// imported module" wording browsers use for ESM-style dynamic imports.
+const CHUNK_LOAD_ERROR_PATTERN = /ChunkLoadError|Loading (chunk|CSS chunk)|fetch dynamically imported module/i;
+// Guards against a reload loop if the server is genuinely down (a hard
+// reload would just hit the same broken deploy and throw again forever) —
+// one reload attempt per browser session is enough to recover from a stale
+// chunk; anything beyond that falls through to the normal retry/manual UI.
+const CHUNK_RELOAD_SESSION_KEY = "wealth-os:error-boundary-chunk-reload";
+
 // Module-level, not component state/refs — a first implementation using a
 // useRef counter was found (via a real forced-error QA test, see this
 // commit) to retry forever, never settling: Next.js does not guarantee this
@@ -79,6 +96,12 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
       route: "app-error-boundary",
       extra: { digest: error.digest ?? null, autoRetryAttempt: autoRetryCount },
     });
+
+    if (CHUNK_LOAD_ERROR_PATTERN.test(error.message) && !sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY)) {
+      sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, "1");
+      window.location.reload();
+      return;
+    }
 
     if (autoRetryCount >= MAX_AUTO_RETRIES) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
