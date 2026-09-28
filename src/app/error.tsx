@@ -38,11 +38,43 @@ const RETRY_DELAYS_MS = [800, 2000, 4000];
 // webpack "ChunkLoadError" and the newer "Failed to fetch dynamically
 // imported module" wording browsers use for ESM-style dynamic imports.
 const CHUNK_LOAD_ERROR_PATTERN = /ChunkLoadError|Loading (chunk|CSS chunk)|fetch dynamically imported module/i;
+// Same root cause, different symptom (reported 2026-09-28: error screen
+// appeared on /profile while the PWA stayed open across several deploys in
+// one evening): the old JS calls a Server Action by an ID the new
+// deployment no longer has, and Next's client throws "Server Action ... was
+// not found on the server". Also only fixable by a hard reload.
+const STALE_SERVER_ACTION_PATTERN = /was not found on the server|Failed to find Server Action/i;
+function isStaleDeploymentError(message: string): boolean {
+  return CHUNK_LOAD_ERROR_PATTERN.test(message) || STALE_SERVER_ACTION_PATTERN.test(message);
+}
 // Guards against a reload loop if the server is genuinely down (a hard
-// reload would just hit the same broken deploy and throw again forever) —
-// one reload attempt per browser session is enough to recover from a stale
-// chunk; anything beyond that falls through to the normal retry/manual UI.
+// reload would just hit the same broken deploy and throw again forever).
+// Originally "one reload per browser session" — but an installed PWA can
+// live through several deploys in one session, and every deploy after the
+// first then fell straight through to the manual error screen. Now a
+// timestamp: at most one stale-deploy reload per cooldown window, so each
+// new deploy gets its own recovery while a reload that immediately fails
+// again (within the window) still settles into the retry/manual UI.
 const CHUNK_RELOAD_SESSION_KEY = "wealth-os:error-boundary-chunk-reload";
+const STALE_RELOAD_COOLDOWN_MS = 60_000;
+
+function canReloadForStaleDeploy(): boolean {
+  try {
+    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY));
+    return !Number.isFinite(last) || Date.now() - last > STALE_RELOAD_COOLDOWN_MS;
+  } catch {
+    return false;
+  }
+}
+
+function markStaleDeployReload() {
+  try {
+    sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(Date.now()));
+  } catch {
+    // Storage unavailable — canReloadForStaleDeploy() then returns false
+    // next time, which is the safe (no-loop) direction.
+  }
+}
 
 // Module-level, not component state/refs — a first implementation using a
 // useRef counter was found (via a real forced-error QA test, see this
@@ -96,8 +128,8 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
       extra: { digest: error.digest ?? null, autoRetryAttempt: autoRetryCount },
     });
 
-    if (CHUNK_LOAD_ERROR_PATTERN.test(error.message) && !sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY)) {
-      sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, "1");
+    if (isStaleDeploymentError(error.message) && canReloadForStaleDeploy()) {
+      markStaleDeployReload();
       window.location.reload();
       return;
     }
@@ -153,6 +185,12 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
       <div className="space-y-1">
         <h1 className="text-lg font-semibold">เกิดข้อผิดพลาดบางอย่าง</h1>
         <p className="text-sm text-muted-foreground">Something went wrong. Please try again.</p>
+        {/* Production hides error text (see doc comment above), but an
+            opaque digest is safe to show and lets a reported screenshot be
+            matched to the server log entry. */}
+        {error.digest ? (
+          <p className="text-xs text-muted-foreground/70">รหัสข้อผิดพลาด / Error code: {error.digest}</p>
+        ) : null}
       </div>
       {process.env.NODE_ENV !== "production" ? (
         <pre className="max-w-lg overflow-x-auto rounded-lg bg-muted p-3 text-left text-xs text-muted-foreground">
