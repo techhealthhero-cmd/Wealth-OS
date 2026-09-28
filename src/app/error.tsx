@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 import { captureError } from "@/lib/observability";
 import { Button } from "@/components/ui/button";
@@ -170,7 +169,32 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
         >
           ลองใหม่ / Retry
         </Button>
-        <Button variant="outline" nativeButton={false} render={<Link href="/dashboard" />}>
+        {/* Reported: pressing this did nothing when the same error recurred
+            (e.g. after Retry exhausted its budget). Cause: <Link> is a
+            client-side transition — if the destination throws the identical
+            error again, the module-level autoRetryCount/lastErrorKey above
+            (deliberately NOT reset by navigation, see that comment) is
+            already exhausted, so the new error boundary instance settles
+            immediately with no visible feedback, reading as "the button did
+            nothing." A real navigation sidesteps this: `window.location`
+            reloads the JS module fresh (autoRetryCount/lastErrorKey reset to
+            their initial values) and re-sends everything (cookies, a fresh
+            server render) — the best chance of actually recovering, not just
+            of retrying with the same client state that may itself be part
+            of the problem (see the chunk-load-error handling above, same
+            reasoning). */}
+        <Button
+          variant="outline"
+          onClick={() => {
+            // A hard navigation is intentional here, not an oversight —
+            // router.push()/<Link> are client-side transitions too, so
+            // they'd hit the exact same stale-module-state bug this fix
+            // addresses (see the comment above). window.location.href is
+            // the one navigation method that actually reloads fresh.
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+            window.location.href = "/dashboard";
+          }}
+        >
           กลับหน้าหลัก / Home
         </Button>
       </div>
