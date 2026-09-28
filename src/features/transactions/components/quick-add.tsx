@@ -87,8 +87,10 @@ export function QuickAdd({ accounts, categories, variant = "inline" }: QuickAddP
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {(
             [
-              { dialog: "income" as const, icon: CirclePlus, tone: "mint" as const, label: t("transactions.types.income") },
+              // Requested (2026-09-29): expense first — it's the most
+              // frequent entry, so it gets the leading tile.
               { dialog: "expense" as const, icon: CircleMinus, tone: "rose" as const, label: t("transactions.types.expense") },
+              { dialog: "income" as const, icon: CirclePlus, tone: "mint" as const, label: t("transactions.types.income") },
               { dialog: "transfer" as const, icon: ArrowLeftRight, tone: "lavender" as const, label: t("transactions.types.transfer") },
             ]
           ).map((item) => (
