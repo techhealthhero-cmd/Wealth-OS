@@ -7,12 +7,12 @@ import { ProfileForm } from "@/features/profile/components/profile-form";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { AiFabSettingsCard } from "@/components/layout/ai-fab-settings-card";
-import { ChevronRight, Compass } from "lucide-react";
+import { BookOpenCheck, ChevronRight, Compass } from "lucide-react";
 
 export const metadata: Metadata = { title: "Profile — Wealth OS" };
 
@@ -70,6 +70,31 @@ export default async function ProfilePage() {
               {dict.help.title}
             </span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card variant="soft">
+        <CardHeader>
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <BookOpenCheck className="size-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <CardTitle className="text-base">{dict.incomeRankGuide.settingsTitle}</CardTitle>
+              <CardDescription>{dict.incomeRankGuide.settingsDescription}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Button
+            nativeButton={false}
+            render={<Link href="/help/income-rank" />}
+            variant="outline"
+            className="w-full justify-between bg-card"
+          >
+            {dict.incomeRankGuide.openGuide}
+            <ChevronRight className="size-4" aria-hidden="true" />
           </Button>
         </CardContent>
       </Card>

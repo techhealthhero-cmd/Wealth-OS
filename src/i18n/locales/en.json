@@ -1714,6 +1714,47 @@
       "cancelFailed": "Couldn't complete that action. Please try again."
     }
   },
+  "incomeRankGuide": {
+    "settingsTitle": "Income XP & Rank guide",
+    "settingsDescription": "Learn how XP is awarded, how Ranks unlock, and how progress is counted",
+    "openGuide": "Read guide",
+    "eyebrow": "Income progression system",
+    "title": "How XP and Rank work",
+    "subtitle": "Every mission you complete becomes long-term progress and moves you toward a higher Rank",
+    "overviewTitle": "First: Rank and Skill Level are different",
+    "rankConceptTitle": "Income Rank",
+    "rankConceptDescription": "Measures your overall income-building experience using XP from every mission. Higher-impact missions help you grow faster.",
+    "skillConceptTitle": "Skill Level",
+    "skillConceptDescription": "Measures each skill separately using completed work, so every skill progresses independently in your Skill Map.",
+    "xpRulesTitle": "How you earn XP",
+    "xpRulesDescription": "XP is weighted by a mission's impact, so not every mission awards the same amount.",
+    "xpRules": [
+      {
+        "title": "Complete an income mission",
+        "description": "Mark a mission complete on the Earn page and its XP will be recorded automatically."
+      },
+      {
+        "title": "Higher-impact missions earn more",
+        "description": "Actions closer to real income, such as closing a client or asking for a referral, award more XP than preparation tasks."
+      },
+      {
+        "title": "Each mission awards XP once",
+        "description": "Undoing and completing the same mission again will not add more XP, so Rank reflects genuine progress."
+      }
+    ],
+    "missionXpTitle": "XP awarded by mission",
+    "missionXpDescription": "This table reads directly from the rules currently used by the system.",
+    "xpUnit": "XP",
+    "rankRoadmapTitle": "Rank roadmap",
+    "rankRoadmapDescription": "XP from every mission is combined to unlock your next Rank.",
+    "startsAt": "Starts at {xp} XP",
+    "protectionTitle": "Your Rank never drops",
+    "protectionDescription": "XP and Rank are a permanent record of progress. Once earned, XP is not removed even if you undo a mission later.",
+    "tipTitle": "Want to Rank up faster?",
+    "tipDescription": "Choose missions that create real outcomes, keep goals realistic for your available time, and build consistency instead of duplicating missions for points.",
+    "viewRank": "View my Rank",
+    "backToSettings": "Back to settings"
+  },
   "help": {
     "navLabel": "How to use",
     "title": "How to use WEALTH OS",
