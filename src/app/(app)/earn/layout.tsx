@@ -9,7 +9,7 @@ export default async function EarnLayout({ children }: { children: React.ReactNo
   const dict = getDictionary(locale);
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4 pb-28">
       <div>
         <h1 className="text-2xl font-semibold">{dict.nav.earn}</h1>
         <p className="text-sm text-muted-foreground">{dict.earn.subtitle}</p>

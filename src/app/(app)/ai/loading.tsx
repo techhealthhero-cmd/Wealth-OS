@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 /** Nav/perf audit: same rationale as money/transactions/loading.tsx — "AI" previously had no loading shell either. */
 export default function AICoachLoading() {
   return (
-    <div className="mx-auto max-w-2xl space-y-4 pb-24">
+    <div className="mx-auto max-w-2xl space-y-4 pb-28">
       <div className="space-y-1.5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-4 w-56" />

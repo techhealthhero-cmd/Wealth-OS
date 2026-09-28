@@ -59,7 +59,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5 pb-[calc(6rem+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
+    <div className="mx-auto w-full max-w-6xl space-y-5 pb-[calc(7rem+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
       <div className="hidden min-w-0 md:block">
         {/* UX guidelines #6 (Home hierarchy): greeting/context leads the
             page, ahead of the section title — a personal "hello" reads

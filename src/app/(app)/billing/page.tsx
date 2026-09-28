@@ -39,7 +39,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
   const showCanceledNotice = checkout === "canceled";
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 pb-24">
+    <div className="mx-auto max-w-lg space-y-4 pb-28">
       <div>
         <h1 className="text-2xl font-semibold">{dict.billing.title}</h1>
         <p className="text-sm text-muted-foreground">{dict.billing.subtitle}</p>

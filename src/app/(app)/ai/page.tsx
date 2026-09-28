@@ -34,7 +34,7 @@ export default async function AICoachPage() {
   const dict = getDictionary(locale);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 pb-24">
+    <div className="mx-auto max-w-2xl space-y-4 pb-28">
       <div>
         <h1 className="text-lg font-semibold">{dict.aiCoach.title}</h1>
         <p className="text-sm text-muted-foreground">{dict.aiCoach.subtitle}</p>

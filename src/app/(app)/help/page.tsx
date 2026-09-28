@@ -39,7 +39,7 @@ export default async function HelpPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 pb-28">
       <div className="space-y-3 text-center">
         <WelcomeIllustration size={104} className="mx-auto" />
         <h1 className="font-heading text-2xl font-bold text-balance">{help.title}</h1>

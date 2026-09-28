@@ -18,7 +18,7 @@ export default async function PricingPage() {
   if (user) trackEvent("pricing_viewed", user.id, { currentPlan: entitlements.plan });
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-24">
+    <div className="mx-auto max-w-4xl space-y-6 pb-28">
       <div className="text-center">
         <h1 className="text-2xl font-semibold">{dict.billing.pricing.title}</h1>
         <p className="mx-auto max-w-md text-sm text-muted-foreground">{dict.billing.pricing.subtitle}</p>

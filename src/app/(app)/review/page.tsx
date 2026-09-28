@@ -35,7 +35,7 @@ export default async function ReviewPage() {
   const [snapshot, existing] = await Promise.all([buildMonthlyReviewSnapshot(year, month), getMonthlyReview(year, month)]);
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4 pb-28">
       <div>
         <h1 className="text-2xl font-semibold">{dict.monthlyReview.title}</h1>
         <p className="text-sm text-muted-foreground">{dict.monthlyReview.subtitle}</p>
