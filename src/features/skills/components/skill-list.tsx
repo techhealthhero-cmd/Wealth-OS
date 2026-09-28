@@ -1,22 +1,25 @@
 import { getUserSkills } from "@/features/skills/queries";
-import { getIncomeMissions } from "@/features/income-missions/queries";
+import { getIncomeMissions, getIncomeRankXpEvents } from "@/features/income-missions/queries";
 import { getOpportunityCatalog } from "@/features/opportunities/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { SkillForm } from "./skill-form";
 import { SkillMap } from "./skill-map";
+import { IncomeRankCard } from "./income-rank-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EarnIllustration } from "@/components/illustrations";
-import { BarChart3, Crown, Shield } from "lucide-react";
 import { calculateSkillProgress } from "@/lib/skills/progress";
+import { calculateIncomeRank, type IncomeRankBreakdownItem } from "@/lib/skills/income-rank";
+import type { MissionType } from "@/types/database";
 
 export async function SkillList() {
-  const [skills, profile, missions, opportunities] = await Promise.all([
+  const [skills, profile, missions, opportunities, incomeRankEvents] = await Promise.all([
     getUserSkills(),
     getProfile(),
     getIncomeMissions(),
     getOpportunityCatalog(),
+    getIncomeRankXpEvents(),
   ]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
@@ -50,59 +53,38 @@ export async function SkillList() {
     skill,
     progress: calculateSkillProgress(workCountByCategory.get(skill.category) ?? 0),
   }));
-  const totalCompletedWork = completedMissions.length;
-  const rankProgress = calculateSkillProgress(totalCompletedWork);
-  const rankNumber = String(rankProgress.level).padStart(2, "0");
-  const nextRankText = rankProgress.nextLevel
-    ? dict.earn.skills.nextRank
-        .replace("{count}", String(rankProgress.workUntilNextLevel))
-        .replace("{rank}", String(rankProgress.nextLevel).padStart(2, "0"))
-    : dict.earn.skills.maxRank;
+  const rankProgress = calculateIncomeRank(
+    incomeRankEvents.reduce((total, event) => total + event.xp_amount, 0)
+  );
+  const missionTypeById = new Map(missions.map((mission) => [mission.id, mission.mission_type]));
+  const breakdownByType = new Map<MissionType, IncomeRankBreakdownItem>();
+
+  for (const event of incomeRankEvents) {
+    if (!event.related_id) continue;
+    const missionType = missionTypeById.get(event.related_id);
+    if (!missionType) continue;
+    const current = breakdownByType.get(missionType) ?? {
+      missionType,
+      completedCount: 0,
+      xpEarned: 0,
+    };
+    current.completedCount += 1;
+    current.xpEarned += event.xp_amount;
+    breakdownByType.set(missionType, current);
+  }
+
+  const rankBreakdown = [...breakdownByType.values()].sort((a, b) => b.xpEarned - a.xpEarned);
+  const closedClientCount = breakdownByType.get("close_client")?.completedCount ?? 0;
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-3xl bg-primary p-5 text-primary-foreground shadow-card sm:p-6">
-        <div className="pointer-events-none absolute -left-10 -top-20 size-48 rounded-full border-[34px] border-white/[0.035]" />
-        <div className="pointer-events-none absolute -bottom-24 right-8 size-56 rounded-full border-[38px] border-white/[0.035]" />
-        <div className="relative flex items-center gap-4 sm:gap-5">
-          <div className="relative flex size-16 shrink-0 items-center justify-center sm:size-20">
-            <Shield className="absolute inset-0 size-full fill-white/10 text-[#9de0bf]" strokeWidth={1.5} aria-hidden="true" />
-            <Crown className="absolute -top-2 size-4 fill-[#d7f3e5] text-[#d7f3e5] sm:size-5" strokeWidth={1.5} aria-hidden="true" />
-            <BarChart3 className="relative size-7 text-white sm:size-8" strokeWidth={2} aria-hidden="true" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-white/70 sm:text-sm">{dict.earn.skills.incomeBuilderRank}</p>
-                <p className="mt-0.5 text-2xl font-semibold leading-none sm:text-3xl">
-                  {dict.earn.skills.rankLabel.replace("{rank}", rankNumber)}
-                </p>
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="text-xl font-semibold sm:text-2xl">{totalCompletedWork}</p>
-                <p className="text-[10px] text-white/65 sm:text-xs">{dict.earn.skills.completedWorkCount}</p>
-              </div>
-            </div>
-            <div
-              className="mt-3 h-2 overflow-hidden rounded-full bg-white/15"
-              role="progressbar"
-              aria-label={dict.earn.skills.rankProgress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={rankProgress.progressPercent}
-            >
-              <div
-                className="h-full rounded-full bg-[#bcebd2] transition-[width] duration-(--motion-value) ease-(--ease-emphasized)"
-                style={{ width: `${rankProgress.progressPercent}%` }}
-              />
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-white/65 sm:text-xs">
-              <span>{nextRankText}</span>
-              <span>{skills.length} {dict.earn.skills.skillsCount}</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <IncomeRankCard
+        progress={rankProgress}
+        breakdown={rankBreakdown}
+        completedMissionCount={incomeRankEvents.length}
+        closedClientCount={closedClientCount}
+        skillCount={skills.length}
+      />
 
       <SkillMap items={skillProgress} />
     </div>

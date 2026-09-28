@@ -28,9 +28,13 @@ import { getXpReward } from "@/lib/financial/xp";
 export async function awardXpOnce(
   userId: string,
   eventType: Parameters<typeof getXpReward>[0],
-  relatedId: string | null
+  relatedId: string | null,
+  xpAmountOverride?: number
 ): Promise<boolean> {
   const supabase = await createClient();
+  const xpAmount = xpAmountOverride ?? getXpReward(eventType);
+
+  if (!Number.isInteger(xpAmount) || xpAmount <= 0) return false;
 
   if (relatedId) {
     const { data: existing } = await supabase
@@ -43,11 +47,12 @@ export async function awardXpOnce(
     if (existing) return false;
   }
 
-  await supabase.from("xp_events").insert({
+  const { error } = await supabase.from("xp_events").insert({
     user_id: userId,
     event_type: eventType,
-    xp_amount: getXpReward(eventType),
+    xp_amount: xpAmount,
     related_id: relatedId,
   });
+  if (error) return false;
   return true;
 }

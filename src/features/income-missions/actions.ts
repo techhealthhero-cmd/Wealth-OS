@@ -9,6 +9,8 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { generateMissionSequence } from "@/lib/financial/income-missions";
 import type { MissionStatus } from "@/types/database";
+import { awardXpOnce } from "@/features/engagement/xp";
+import { getIncomeMissionXpReward } from "@/lib/skills/income-rank";
 
 export interface ActionResult {
   error?: string;
@@ -73,6 +75,16 @@ export async function updateMissionStatus(missionId: string, status: MissionStat
   } = await supabase.auth.getUser();
   if (!user) return { error: dict.common.pleaseLogin };
 
+  const { data: mission, error: fetchError } = await supabase
+    .from("income_missions")
+    .select("mission_type")
+    .eq("id", missionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (fetchError || !mission) {
+    return { error: friendlyDbError(fetchError ?? { message: "not found" }, "updateMissionStatus", dict.earn.missions.saveFailed) };
+  }
+
   const { error } = await supabase
     .from("income_missions")
     .update({ status })
@@ -80,8 +92,18 @@ export async function updateMissionStatus(missionId: string, status: MissionStat
     .eq("user_id", user.id);
   if (error) return { error: friendlyDbError(error, "updateMissionStatus", dict.earn.missions.saveFailed) };
 
+  if (status === "completed") {
+    await awardXpOnce(
+      user.id,
+      "income_mission_completed",
+      missionId,
+      getIncomeMissionXpReward(mission.mission_type)
+    );
+  }
+
   revalidatePath("/earn");
   revalidatePath("/earn/missions");
+  revalidatePath("/earn/skills");
   return { success: true };
 }
 
@@ -96,7 +118,7 @@ export async function incrementMissionProgress(missionId: string, targetQuantity
 
   const { data: mission, error: fetchError } = await supabase
     .from("income_missions")
-    .select("progress_quantity")
+    .select("progress_quantity, mission_type")
     .eq("id", missionId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -112,7 +134,17 @@ export async function incrementMissionProgress(missionId: string, targetQuantity
     .eq("user_id", user.id);
   if (error) return { error: friendlyDbError(error, "incrementMissionProgress", dict.earn.missions.saveFailed) };
 
+  if (status === "completed") {
+    await awardXpOnce(
+      user.id,
+      "income_mission_completed",
+      missionId,
+      getIncomeMissionXpReward(mission.mission_type)
+    );
+  }
+
   revalidatePath("/earn");
   revalidatePath("/earn/missions");
+  revalidatePath("/earn/skills");
   return { success: true };
 }
