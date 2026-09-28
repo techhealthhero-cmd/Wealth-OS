@@ -130,12 +130,12 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
         // entirely (bump/icons floated with no pill visible) until this was
         // added.
         //
-        // `opacity-90`: requested (first 80% to match the floating AI button,
-        // then tuned to 90%). Applied to the whole <nav> (not per-piece) on
+        // `opacity-95`: requested (first 80% to match the floating AI button,
+        // then tuned to 95%). Applied to the whole <nav> (not per-piece) on
         // purpose — CSS opacity composites the element as one group first,
         // so the bar and the raised bumps fade together and their overlap
         // doesn't show a darker seam, which per-element alpha would.
-        className="isolate relative mx-auto flex max-w-md items-center justify-between px-1 py-1.5 opacity-90"
+        className="isolate relative mx-auto flex max-w-md items-center justify-between px-1 py-1.5 opacity-95"
         style={
           {
             "--bump-x": `${bumpXPercent}%`,
