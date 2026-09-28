@@ -16,7 +16,7 @@ import { captureError } from "@/lib/observability";
  * either. Inline styles only, so this page is the one part of the app that
  * never depends on anything else in the app succeeding first.
  */
-export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   useEffect(() => {
     captureError(error, { route: "root-error-boundary", extra: { digest: error.digest ?? null } });
   }, [error]);
@@ -59,7 +59,9 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             </pre>
           ) : null}
           <button
-            onClick={() => reset()}
+            // retry() re-fetches from the server; reset() would only
+            // re-render the same failed client tree (see error.tsx).
+            onClick={() => retry()}
             style={{
               padding: "8px 16px",
               borderRadius: 8,

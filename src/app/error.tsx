@@ -109,7 +109,20 @@ let autoRetryCount = 0;
  * more than strict production-parity in the one place that's guaranteed to
  * only ever appear when something has already gone wrong.
  */
-export default function ErrorBoundary({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function ErrorBoundary({
+  error,
+  retry,
+}: {
+  error: Error & { digest?: string };
+  // Next 16.3+: re-FETCHES the segment from the server and re-renders it.
+  // Reported (2026-09-29, digest 2692698782 on Home): the auto-retries
+  // below used `reset()`, which per Next's own docs only re-renders the
+  // existing client tree WITHOUT re-fetching — so for a server-side render
+  // error (anything with a digest) every retry replayed the same failed
+  // payload and could never recover. `retry()` actually asks the server
+  // again.
+  retry: () => void;
+}) {
   // Always true on the true first render — see the module-level comment
   // above for why the actual counter lives outside the component. The
   // effect below is what keeps this in sync with that counter on every
@@ -135,6 +148,16 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
     }
 
     if (autoRetryCount >= MAX_AUTO_RETRIES) {
+      // Requested: recover on its own rather than leaving the user on the
+      // error screen. One full page reload as a last resort (fresh HTML,
+      // JS, cookies), sharing the stale-deploy cooldown so a genuinely
+      // broken server can never cause a reload loop — within the cooldown
+      // this falls through to the manual Retry/Home screen instead.
+      if (canReloadForStaleDeploy()) {
+        markStaleDeployReload();
+        window.location.reload();
+        return;
+      }
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAutoRetrying(false);
       return;
@@ -148,7 +171,7 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
       if (firedOnce) return;
       firedOnce = true;
       autoRetryCount += 1;
-      reset();
+      retry();
     };
 
     const timer = setTimeout(retryNow, delay);
@@ -202,7 +225,7 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
         <Button
           onClick={() => {
             autoRetryCount = 0;
-            reset();
+            retry();
           }}
         >
           ลองใหม่ / Retry
