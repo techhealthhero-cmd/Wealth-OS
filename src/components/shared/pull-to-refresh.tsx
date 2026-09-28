@@ -69,11 +69,32 @@ const AXIS_LOCK_THRESHOLD_PX = 10;
  * this check, swiping to see money/liabilities/etc. in an overflowing tab
  * strip would instead navigate away from the page halfway through the
  * gesture.
+ *
+ * Reported: swipe-nav didn't work ANYWHERE on the money page, not just over
+ * the tab strip. Root cause: `scrollWidth > clientWidth` alone doesn't mean
+ * an element is actually touch-scrollable — an element with `overflow-x:
+ * hidden` (e.g. `<main>`'s own `overflow-x-hidden` in (app)/layout.tsx) and
+ * an oversized descendant shows that exact same mismatch, but can never
+ * respond to a touch-drag (there's nothing to scroll to; the overflow is
+ * just clipped, not reachable) — confirmed by reproducing it locally
+ * (a plain 600px-wide child inside a 368px `overflow-x:hidden` parent
+ * reports `scrollWidth: 600, clientWidth: 368` despite being firmly
+ * non-scrollable). This app has hit exactly this class of bug before (see
+ * the "Mobile overflow fix" comment in (app)/layout.tsx re: wide flex
+ * descendants needing `min-w-0`) — if any such descendant exists anywhere
+ * on a page, the scrollWidth mismatch alone would make nearly every touch
+ * point on that whole page look like "inside a horizontal scroller" to the
+ * old version of this check. Requiring the computed `overflow-x` to
+ * actually be `auto`/`scroll` (the only values a touch-drag can act on)
+ * excludes only genuine scroll containers.
  */
 function isInsideHorizontalScroller(target: EventTarget | null, boundary: HTMLElement): boolean {
   let node = target instanceof Element ? target : null;
   while (node && node !== boundary) {
-    if (node.scrollWidth > node.clientWidth + 1) return true;
+    if (node.scrollWidth > node.clientWidth + 1) {
+      const overflowX = getComputedStyle(node).overflowX;
+      if (overflowX === "auto" || overflowX === "scroll") return true;
+    }
     node = node.parentElement;
   }
   return false;
