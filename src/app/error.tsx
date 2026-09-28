@@ -18,8 +18,15 @@ import { Button } from "@/components/ui/button";
 // infinite) — after MAX_AUTO_RETRIES this still falls back to the same
 // manual Retry/Home buttons as before, so a genuinely broken page settles
 // into a stable, actionable state instead of retrying forever.
-const MAX_AUTO_RETRIES = 2;
-const RETRY_DELAYS_MS = [800, 2000];
+// Reported again (2026-09-28): still appeared intermittently right on a
+// cold app open (PWA just relaunched from the home screen/lock screen).
+// The original 2-retry/2.8s budget assumed a brief server-side blip, but a
+// cold open can also race the device's own network radio reconnecting —
+// that can take longer than 2.8s on a slow handoff. Widened the budget and
+// (below) added an 'online' listener so a retry fires the instant
+// connectivity actually returns, instead of only on the fixed timer.
+const MAX_AUTO_RETRIES = 3;
+const RETRY_DELAYS_MS = [800, 2000, 4000];
 
 // Module-level, not component state/refs — a first implementation using a
 // useRef counter was found (via a real forced-error QA test, see this
@@ -81,12 +88,29 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
 
     setAutoRetrying(true);
     const delay = RETRY_DELAYS_MS[autoRetryCount] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
-    const timer = setTimeout(() => {
+
+    let firedOnce = false;
+    const retryNow = () => {
+      if (firedOnce) return;
+      firedOnce = true;
       autoRetryCount += 1;
       reset();
-    }, delay);
+    };
 
-    return () => clearTimeout(timer);
+    const timer = setTimeout(retryNow, delay);
+    // On a cold app open the device's network radio may still be
+    // reconnecting when the failing request fired — waiting out the rest
+    // of a fixed delay wastes retry budget that connectivity itself
+    // already resolved. Retry as soon as the browser reports 'online';
+    // the timer above remains as a backstop for browsers that don't fire
+    // this event reliably.
+    window.addEventListener("online", retryNow);
+
+    return () => {
+      firedOnce = true;
+      clearTimeout(timer);
+      window.removeEventListener("online", retryNow);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error]);
 
