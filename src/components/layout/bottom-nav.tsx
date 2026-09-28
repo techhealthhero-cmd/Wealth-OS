@@ -20,6 +20,19 @@ export function BottomNav() {
     <div
       className="fixed inset-x-0 bottom-0 z-30 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden"
     >
+      {/* Progressive "frosted glass" fade behind the pill (reported: content
+          scrolled underneath the floating nav looked sharp right up to its
+          edge, unlike a reference app where it blurs/fades out gradually as
+          it nears the bar). A backdrop-blur alone would apply uniformly and
+          look like a hard-edged blurred rectangle; the mask-image gradient
+          makes the blur itself fade in gradually toward the bottom instead,
+          which is what actually reads as "frosted." Purely decorative
+          (aria-hidden) and non-interactive so it never blocks taps on the
+          content peeking through the gaps around the pill. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -top-28 bottom-0 -z-10 backdrop-blur-lg [-webkit-mask-image:linear-gradient(to_top,black_45%,transparent_100%)] [mask-image:linear-gradient(to_top,black_45%,transparent_100%)]"
+      />
       <nav
         className="mx-auto flex max-w-md items-center justify-between rounded-3xl bg-background/95 px-1 py-1.5 shadow-card backdrop-blur supports-[backdrop-filter]:bg-background/80"
         aria-label="Primary"
