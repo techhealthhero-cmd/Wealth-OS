@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { AiFabSettingsCard } from "@/components/layout/ai-fab-settings-card";
 import { ChevronRight, Compass } from "lucide-react";
 
 export const metadata: Metadata = { title: "Profile — Wealth OS" };
@@ -84,6 +85,8 @@ export default async function ProfilePage() {
           <ThemeToggle />
         </CardContent>
       </Card>
+
+      <AiFabSettingsCard />
 
       <ProfileForm profile={profile} />
     </div>

@@ -7,6 +7,7 @@ import { AI_NAV_ITEM } from "./nav-items";
 import { X } from "lucide-react";
 
 import { AiAssistantPanel } from "@/features/ai/components/ai-assistant-panel";
+import { useAiFabIdleOpacity } from "./ai-fab-preferences";
 
 const BUTTON_SIZE_PX = 56;
 const EDGE_MARGIN_PX = 12;
@@ -17,6 +18,9 @@ const EDGE_MARGIN_PX = 12;
 // distance since this button is small and meant to feel tap-first.
 const TAP_MAX_MOVEMENT_PX = 8;
 const STORAGE_KEY = "wealth-os:ai-fab-position";
+// Same idea as AssistiveTouch: untouched for this long → fade to the
+// user's idle opacity (Settings → floating AI button).
+const IDLE_DELAY_MS = 3000;
 
 interface Position {
   x: number;
@@ -83,6 +87,9 @@ export function FloatingAiButton() {
   const pathname = usePathname();
   const [position, setPosition] = useState<Position | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const idleOpacity = useAiFabIdleOpacity();
+  const [active, setActive] = useState(true);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const positionRef = useRef<Position>({ x: 0, y: 0 });
   const dragStateRef = useRef<{
     pointerId: number;
@@ -116,6 +123,19 @@ export function FloatingAiButton() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  function scheduleIdle() {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = setTimeout(() => setActive(false), IDLE_DELAY_MS);
+  }
+
+  // Start the idle countdown on mount, and again whenever the panel closes.
+  useEffect(() => {
+    if (!sheetOpen) scheduleIdle();
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [sheetOpen]);
+
   function persist(pos: Position) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(pos));
@@ -127,6 +147,9 @@ export function FloatingAiButton() {
 
   function handlePointerDown(e: React.PointerEvent<HTMLButtonElement>) {
     if (!positionRef.current) return;
+    // Touched → fully visible again, and stays so until released + idle.
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    setActive(true);
     e.currentTarget.setPointerCapture(e.pointerId);
     dragStateRef.current = {
       pointerId: e.pointerId,
@@ -157,6 +180,7 @@ export function FloatingAiButton() {
     const drag = dragStateRef.current;
     if (!drag || drag.pointerId !== e.pointerId) return;
     dragStateRef.current = null;
+    scheduleIdle();
 
     if (!drag.moved) {
       // A real tap, not a drag — toggles the chat overlay in place.
@@ -200,12 +224,13 @@ export function FloatingAiButton() {
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className={`fixed flex size-14 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg md:hidden ${
+          className={`fixed flex size-14 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg transition-opacity duration-500 md:hidden ${
             sheetOpen ? "z-[60] ring-4 ring-primary/25" : "z-40"
           }`}
           style={{
             left: position.x,
             top: position.y,
+            opacity: sheetOpen || active ? 1 : idleOpacity / 100,
             background:
               "radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.16), transparent 70%), var(--primary)",
           }}
