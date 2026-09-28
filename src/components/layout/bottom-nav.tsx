@@ -8,6 +8,23 @@ import { NAV_ITEMS } from "./nav-items";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/client";
 
+// Requested: a subtle glossy/lit-from-above sheen on the pill instead of a
+// completely flat fill (reference: a photo of a capsule with a soft
+// highlight streak across it). A literal diagonal linear-gradient was
+// considered and rejected — the bar and the floating bump are two SEPARATE
+// elements, and a gradient computed per-element restarts at each one's own
+// box, so it would show a hard visible seam exactly where the bump overlaps
+// the bar (breaking the "one continuous blob" look the notch depends on).
+// A radial highlight anchored above BOTH elements' own top edge instead
+// reads as "one light source from above" without needing pixel-perfect
+// alignment between them — applied identically to the bar and the bump so
+// they stay visually one piece. Also deliberately restrained (14% white,
+// fades out by 70%) — GRAPHICS_PLAN.md's flat, no-gradient/glow button
+// system was a deliberate earlier decision; this is a narrow, explicit
+// exception for this one component, not a reversal of that rule elsewhere.
+const GLOSSY_PRIMARY_BG =
+  "radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.16), transparent 70%), var(--primary)";
+
 export function BottomNav() {
   const pathname = usePathname();
   const { t } = useTranslation();
@@ -103,10 +120,11 @@ export function BottomNav() {
         <div
           aria-hidden="true"
           className={cn(
-            "absolute inset-0 -z-10 rounded-3xl bg-primary shadow-card",
+            "absolute inset-0 -z-10 rounded-3xl shadow-card",
             hasActive &&
               "[-webkit-mask-image:radial-gradient(circle_27px_at_var(--bump-x)_0,transparent_26px,black_29px)] [mask-image:radial-gradient(circle_27px_at_var(--bump-x)_0,transparent_26px,black_29px)]"
           )}
+          style={{ background: GLOSSY_PRIMARY_BG }}
         />
         {NAV_ITEMS.map((item, index) => {
           const active = index === activeIndex;
@@ -132,8 +150,8 @@ export function BottomNav() {
         {hasActive && ActiveIcon ? (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-6 flex size-14 -translate-x-1/2 items-center justify-center rounded-full bg-primary shadow-card"
-            style={{ left: "var(--bump-x)" }}
+            className="pointer-events-none absolute -top-6 flex size-14 -translate-x-1/2 items-center justify-center rounded-full shadow-card"
+            style={{ left: "var(--bump-x)", background: GLOSSY_PRIMARY_BG }}
           >
             <ActiveIcon className="h-6 w-6 text-primary-foreground" aria-hidden="true" />
           </div>
