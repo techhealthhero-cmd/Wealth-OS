@@ -21,6 +21,20 @@ export function toLocalDateString(date: Date): string {
 }
 
 /**
+ * "Today" as YYYY-MM-DD in a specific IANA time zone — for SERVER code,
+ * where the process runs in UTC (Vercel) and `toLocalDateString(new Date())`
+ * would give the UTC calendar day, not the user's (Thailand is UTC+7).
+ */
+export function todayInTimeZone(timeZone = "Asia/Bangkok", now: Date = new Date()): string {
+  try {
+    // en-CA formats as YYYY-MM-DD.
+    return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  } catch {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  }
+}
+
+/**
  * Adds `months` to `date`, clamping to the last real day of the resulting
  * month when the original day doesn't exist there (e.g. Jan 31 + 1 month ->
  * Feb 28/29, never a silent overflow into March). Mirrors the same

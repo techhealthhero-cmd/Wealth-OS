@@ -13,8 +13,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { TransactionForm } from "./transaction-form";
+import { TransactionForm, type TransactionPrefill } from "./transaction-form";
 import { TransferForm } from "./transfer-form";
+import { QuickCaptureSheet } from "@/features/capture/components/quick-capture-sheet";
 import { asTrigger } from "@/lib/as-trigger";
 import { useTranslation } from "@/i18n/client";
 
@@ -43,11 +44,16 @@ export function QuickAdd({ accounts, categories, variant = "inline" }: QuickAddP
   const [activeDialog, setActiveDialog] = useState<QuickAddDialog>(null);
   const [carryOverAmount, setCarryOverAmount] = useState<string | undefined>(undefined);
   const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch>(null);
+  const [captureOpen, setCaptureOpen] = useState(false);
+  // Set only by Quick Capture's "manual entry" hand-off; any other open
+  // clears it so an unrelated later open never inherits captured values.
+  const [manualPrefill, setManualPrefill] = useState<TransactionPrefill | null>(null);
 
   // A fresh, direct open (FAB / dropdown item / tile) must never inherit an
   // amount left over from an earlier, unrelated switch.
   function openDialog(dialog: Exclude<QuickAddDialog, null>) {
     setCarryOverAmount(undefined);
+    setManualPrefill(null);
     setActiveDialog(dialog);
   }
 
@@ -66,6 +72,7 @@ export function QuickAdd({ accounts, categories, variant = "inline" }: QuickAddP
   // actually landed, via the effect below reacting on the NEXT render —
   // two separate commits, so ordering between forms never matters.
   function requestSwitch(dialog: Exclude<QuickAddDialog, null>, amount: string) {
+    setManualPrefill(null);
     setPendingSwitch({ dialog, amount });
     setActiveDialog(null);
   }
@@ -108,32 +115,34 @@ export function QuickAdd({ accounts, categories, variant = "inline" }: QuickAddP
             </button>
           ))}
         </div>
+      ) : variant === "nav-center" ? (
+        // The center "+" now opens Quick Capture ("capture first, organize
+        // later") instead of the Expense/Income/Transfer menu — that menu's
+        // three options all remain inside the sheet (manual entry, income,
+        // transfer). Invisible on purpose — BottomNav renders the visible
+        // raised "+" circle above this exact spot; this is only the real
+        // click target, sized like a normal nav cell.
+        <button
+          type="button"
+          onClick={() => setCaptureOpen(true)}
+          className="flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium"
+          aria-label={t("capture.title")}
+          aria-haspopup="dialog"
+        >
+          <Plus className="h-5 w-5 opacity-0" aria-hidden="true" />
+          <span className="invisible">+</span>
+        </button>
       ) : (
         <DropdownMenu>
           <DropdownMenuTrigger
             {...asTrigger(
-              variant === "nav-center" ? (
-                // Invisible on purpose — BottomNav renders the actual
-                // visible raised "+" circle above this exact spot; this is
-                // only the real click target, sized like a normal nav cell
-                // so its tap area matches its neighboring tabs.
-                <button
-                  type="button"
-                  className="flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium"
-                  aria-label={t("dashboard.quickAdd")}
-                >
-                  <Plus className="h-5 w-5 opacity-0" aria-hidden="true" />
-                  <span className="invisible">+</span>
-                </button>
-              ) : (
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                  {t("dashboard.quickAdd")}
-                </Button>
-              )
+              <Button>
+                <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                {t("dashboard.quickAdd")}
+              </Button>
             )}
           />
-          <DropdownMenuContent align="center" side={variant === "nav-center" ? "top" : "bottom"}>
+          <DropdownMenuContent align="center" side="bottom">
             <DropdownMenuItem onClick={() => openDialog("expense")}>
               <TrendingDown className="mr-2 h-4 w-4" aria-hidden="true" />
               {t("transactions.types.expense")}
@@ -154,7 +163,7 @@ export function QuickAdd({ accounts, categories, variant = "inline" }: QuickAddP
         defaultType="expense"
         accounts={accounts}
         categories={categories}
-        prefill={{ amount: carryOverAmount }}
+        prefill={manualPrefill ?? { amount: carryOverAmount }}
         onSwitchToTransfer={(amount) => requestSwitch("transfer", amount)}
         trigger={null}
         open={activeDialog === "expense"}
@@ -178,6 +187,21 @@ export function QuickAdd({ accounts, categories, variant = "inline" }: QuickAddP
         open={activeDialog === "transfer"}
         onOpenChange={(open) => setActiveDialog(open ? "transfer" : null)}
       />
+      {variant === "nav-center" ? (
+        <QuickCaptureSheet
+          open={captureOpen}
+          onOpenChange={setCaptureOpen}
+          accounts={accounts}
+          categories={categories}
+          onManual={(prefill) => {
+            setManualPrefill(prefill);
+            setCarryOverAmount(undefined);
+            setActiveDialog("expense");
+          }}
+          onIncome={() => openDialog("income")}
+          onTransfer={() => openDialog("transfer")}
+        />
+      ) : null}
     </>
   );
 }

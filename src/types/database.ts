@@ -147,7 +147,10 @@ export type NotificationType =
   | "ai_checkin"
   | "priority_alert";
 
-export type TransactionSource = "manual" | "seed" | "import" | "recurring";
+export type TransactionSource = "manual" | "seed" | "import" | "recurring" | "quick_text" | "voice" | "receipt";
+/** Daily Inbox state (migration 0021). */
+export type TransactionReviewStatus = "confirmed" | "needs_review";
+export type CaptureConfidence = "high" | "medium" | "low";
 
 export type AssetType =
   | "cash"
@@ -276,6 +279,13 @@ export interface Database {
           is_recurring: boolean;
           source: TransactionSource;
           client_request_id: string | null;
+          // Migration 0021 (Quick Capture). Optional in this type on purpose:
+          // a database where 0021 isn't applied yet returns rows without
+          // them, and every reader must treat "missing" as the pre-0021
+          // meaning (confirmed / no confidence / no reference).
+          review_status?: TransactionReviewStatus;
+          ai_confidence?: CaptureConfidence | null;
+          reference?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -820,6 +830,21 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["detected_subscriptions"]["Row"]>;
       };
+      merchant_category_preferences: {
+        Row: {
+          id: string;
+          user_id: string;
+          merchant_normalized: string;
+          category_id: string;
+          usage_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["merchant_category_preferences"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; merchant_normalized: string; category_id: string };
+        Update: Partial<Database["public"]["Tables"]["merchant_category_preferences"]["Row"]>;
+      };
       notification_preferences: {
         Row: {
           id: string;
@@ -996,6 +1021,7 @@ export type WealthMission = Database["public"]["Tables"]["wealth_missions"]["Row
 export type XPEvent = Database["public"]["Tables"]["xp_events"]["Row"];
 export type RecurringTransaction = Database["public"]["Tables"]["recurring_transactions"]["Row"];
 export type DetectedSubscription = Database["public"]["Tables"]["detected_subscriptions"]["Row"];
+export type MerchantCategoryPreference = Database["public"]["Tables"]["merchant_category_preferences"]["Row"];
 export type NotificationPreferences = Database["public"]["Tables"]["notification_preferences"]["Row"];
 export type FinancialNotification = Database["public"]["Tables"]["financial_notifications"]["Row"];
 export type MonthlyReview = Database["public"]["Tables"]["monthly_reviews"]["Row"];

@@ -50,6 +50,8 @@ const serverEnvSchema = clientEnvSchema.extend({
   STAGING_SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   AI_API_KEY: z.string().optional(),
   AI_MODEL: z.string().optional(),
+  /** "1" = Quick Capture receipt/slip scanning returns a clearly-labelled mock result instead of calling the AI provider (dev/demo only). */
+  CAPTURE_OCR_MOCK: z.string().optional(),
   // Day 7 billing (Stripe). All optional — getBillingProvider() returns null
   // when unset, the same "not configured is a real, expected state" pattern
   // as AI_API_KEY/getAIProvider(). Never read client-side. The SAME
@@ -165,6 +167,7 @@ export function getServerEnv() {
     STAGING_SUPABASE_SERVICE_ROLE_KEY: process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY,
     AI_API_KEY: process.env.AI_API_KEY,
     AI_MODEL: process.env.AI_MODEL,
+    CAPTURE_OCR_MOCK: process.env.CAPTURE_OCR_MOCK,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     STRIPE_PRICE_ID_PLUS: process.env.STRIPE_PRICE_ID_PLUS,

@@ -39,6 +39,7 @@ import { Message, MessageContent, MessageFooter } from "@/components/ui/message"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group";
 import { AICoachIllustration } from "@/components/illustrations";
 import { useConfirmDialog } from "@/components/shared/confirm-dialog";
+import { useSpeechInput } from "@/lib/speech/use-speech-input";
 import type { AIConversation, AIMessageRow } from "@/types/database";
 
 interface ChatMessage {
@@ -98,78 +99,6 @@ function pickRandomKeys<T>(keys: readonly T[], count: number): T[] {
 }
 
 const TEXTAREA_MAX_HEIGHT_PX = 160;
-
-// Minimal shape of the Web Speech API's recognizer — not in TS's DOM lib,
-// and only exposed as `webkitSpeechRecognition` on Safari/Chrome.
-interface SpeechRecognitionLike {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onend: (() => void) | null;
-  onerror: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-}
-type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
-
-function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
-
-/**
- * Overlay mic button: browser speech-to-text into the input box (the user
- * still reviews and sends it). `supported` is false wherever the browser has
- * no recognizer — the mic button is then hidden rather than shown dead.
- */
-function useSpeechInput(locale: string, onTranscript: (text: string) => void) {
-  const [supported, setSupported] = React.useState(false);
-  const [listening, setListening] = React.useState(false);
-  const recognitionRef = React.useRef<SpeechRecognitionLike | null>(null);
-  const onTranscriptRef = React.useRef(onTranscript);
-  React.useEffect(() => {
-    onTranscriptRef.current = onTranscript;
-  });
-
-  React.useEffect(() => {
-    // Only knowable on the client, after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSupported(getSpeechRecognitionCtor() !== null);
-    return () => recognitionRef.current?.stop();
-  }, []);
-
-  function toggle() {
-    if (listening) {
-      recognitionRef.current?.stop();
-      return;
-    }
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) return;
-    const recognition = new Ctor();
-    recognition.lang = locale === "th" ? "th-TH" : "en-US";
-    recognition.interimResults = true;
-    recognition.continuous = false;
-    recognition.onresult = (event) => {
-      const text = Array.from(event.results)
-        .map((result) => result[0]?.transcript ?? "")
-        .join("");
-      onTranscriptRef.current(text);
-    };
-    recognition.onend = () => setListening(false);
-    recognition.onerror = () => setListening(false);
-    recognitionRef.current = recognition;
-    try {
-      recognition.start();
-      setListening(true);
-    } catch {
-      setListening(false);
-    }
-  }
-
-  return { supported, listening, toggle };
-}
 
 // The model naturally writes markdown (**bold**, numbered lists) — this
 // used to render as literal, unrendered "**" characters in the chat bubble

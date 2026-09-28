@@ -15,6 +15,7 @@ import {
   type TransactionsPage,
 } from "@/features/transactions/queries";
 import { trackEvent } from "@/lib/analytics";
+import { learnMerchantCategory } from "@/features/capture/learning";
 
 export interface ActionResult {
   error?: string;
@@ -185,6 +186,19 @@ export async function updateTransaction(
       error: friendlyDbError(error, "updateTransaction", dict.transactions.updateFailed),
     };
   }
+
+  // Quick Capture (migration 0021): editing a transaction in the full form
+  // is the user reviewing it, so it leaves the Daily Inbox, and its
+  // merchant → category pairing is remembered for next time. Both are
+  // best-effort — a database without 0021 simply ignores the first, and
+  // learning never fails the edit.
+  await supabase
+    .from("transactions")
+    .update({ review_status: "confirmed" })
+    .eq("id", transactionId)
+    .eq("user_id", user.id)
+    .eq("review_status", "needs_review");
+  await learnMerchantCategory(user.id, parsed.data.merchant || parsed.data.description || null, parsed.data.category_id ?? null);
 
   revalidatePath("/money/transactions");
   revalidatePath("/dashboard");

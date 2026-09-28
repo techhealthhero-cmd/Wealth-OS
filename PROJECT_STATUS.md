@@ -6,7 +6,25 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-09-16
+Last updated: 2026-09-29
+
+## Quick Capture ("capture first, organize later") — 2026-09-29
+
+**Built and tested; migration `0021_quick_capture.sql` is written but NOT yet applied to any database** (needs `supabase db push` — a production DDL step the user runs, see the 0012/0013 deployment story in CLAUDE.md). Until it's applied the feature still works: saves fall back to the pre-0021 row shape (source `manual`, no review status), learning silently no-ops, and the Daily Inbox simply doesn't render.
+
+- **Entry point:** the bottom-nav center "+" now opens a Quick Capture bottom sheet (`src/features/capture/components/quick-capture-sheet.tsx`) instead of the Expense/Income/Transfer dropdown. Manual entry ("กรอกแบบละเอียด", the unchanged full `TransactionForm`, now prefilled incl. date), Income and Transfer are all still inside the sheet. The Home Expense/Income/Transfer tiles are unchanged.
+- **Text parsing:** deterministic, client-side, zero AI cost — `src/lib/capture/transaction-parser.ts` + `keywords.ts`. Amount (Thai digits, commas, decimals, `k`/`พัน`, currency-marked number preferred, brand digits like "7-11"/"3BB" never read as the amount), account (name mention → payment-method hints → first active account, matching the manual form's default), date (วันนี้/เมื่อวาน/yesterday), merchant brands, category (learned preference → keyword dictionary → "Other"), confidence high/medium/low. Live preview updates as the user types; ✓ saves.
+- **Voice:** `src/lib/speech/use-speech-input.ts` — provider interface, browser Web Speech API implementation (shared with the AI chat mic, which now uses it too), dev mock via `NEXT_PUBLIC_SPEECH_MOCK=1`. Speech → text → same parser → same preview.
+- **Receipt / payment slip:** `scanReceipt` server action → `ReceiptParser` interface (`src/features/capture/lib/receipt-parser.ts`): Claude vision via the existing `AIProvider` when `AI_API_KEY` is set, `MockReceiptParser` when `CAPTURE_OCR_MOCK=1`, otherwise "not enabled — fill it in yourself". Image downscaled to JPEG client-side, processed in memory only (never stored or logged), metered as 1 AI message, burst rate-limited. Model output is validated/normalized (`receipt-normalize.ts`: Buddhist-era years, placeholder strings, confidence capped when fields are missing). Never auto-saved — the user always taps ✓.
+- **Daily Inbox:** Home card (`daily-inbox-card.tsx`) listing today's quick captures + anything `needs_review`; one-tap ✓, one-tap category fix (also confirms), full edit, "confirm all". Hidden when empty.
+- **Category learning:** `merchant_category_preferences` (per user, normalized merchant → category, usage count). Written when a capture is confirmed, an inbox item is confirmed/corrected, or a transaction is edited in the full form (`updateTransaction` now also marks it reviewed). Server-only helper (`src/features/capture/learning.ts`) — deliberately not a server action.
+- **Recurring detection:** after a save, the existing `detectSubscriptions()` runs on that merchant's history; a toast offers "ตั้งเป็นรายจ่ายประจำ" (creates via the existing `createRecurringTransaction`) / "ไม่ใช่" (remembered in `detected_subscriptions` as dismissed). Never auto-created.
+- **Duplicate protection:** before saving a scanned slip — same reference, or same amount ±1 day with a similar merchant → "รายการนี้อาจถูกบันทึกแล้ว" with view existing / save anyway. Idempotency on every capture save uses the existing `client_request_id` mechanism.
+- **Migration 0021:** `transactions.source` gains `quick_text`/`voice`/`receipt`; new `review_status` (`confirmed` default | `needs_review`), `ai_confidence`, `reference`; new `merchant_category_preferences` table with RLS + a same-user-or-system category ownership trigger. Needs-review items are real transactions — they count toward balances and dashboards immediately; review only confirms details.
+- **Tests:** 54 new (parser incl. every required example sentence and edge case, receipt normalization, draft mapping, and the server actions against an in-memory Supabase fake — incl. idempotent retry, pre-0021 fallback, no-learning-from-guesses, cross-user confirm blocked, duplicate matching, recurring suggest/dismiss). 621/621 passing; typecheck, lint, production build clean.
+- **Visual QA:** the sheet, preview card (confident / guessed / no amount / failed scan) and Daily Inbox were rendered with sample data at 390px in a real browser, no console errors. **Not yet exercised end-to-end against a real database with a signed-in user** (that needs 0021 applied first).
+
+## Repository Note
 
 ## Current Phase
 

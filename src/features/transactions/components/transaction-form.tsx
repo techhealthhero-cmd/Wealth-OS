@@ -60,6 +60,8 @@ export interface TransactionPrefill {
   categoryId?: string | null;
   accountId?: string;
   merchant?: string | null;
+  /** YYYY-MM-DD — e.g. a Quick Capture "เมื่อวาน" or a scanned slip's date. */
+  date?: string;
 }
 
 interface TransactionFormProps {
@@ -181,7 +183,7 @@ function TransactionFormFields({
     // was used last has been removed for exactly that reason.
     transaction?.account_id ?? prefill?.accountId ?? accounts.find((a) => !a.is_archived)?.id ?? accounts[0]?.id
   );
-  const [dateValue, setDateValue] = useState(transaction?.transaction_date ?? todayISO());
+  const [dateValue, setDateValue] = useState(transaction?.transaction_date ?? prefill?.date ?? todayISO());
   // One idempotency key per intended submit attempt (see CLAUDE.md
   // "TRANSACTION IDEMPOTENCY"): generated once when this form instance
   // mounts, resent unchanged on every retry of the SAME attempt, and

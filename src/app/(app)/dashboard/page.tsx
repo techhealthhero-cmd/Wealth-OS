@@ -13,6 +13,7 @@ import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboar
 import { IncomeVsExpenseChart, SpendingByCategoryChart, MonthlyDonutCard } from "@/features/dashboard/components/charts-lazy";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { QuickAdd } from "@/features/transactions/components/quick-add";
+import { DailyInboxSection } from "@/features/capture/components/daily-inbox-section";
 import { EmptyState } from "@/components/shared/empty-state";
 import { WelcomeIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,14 @@ export default async function DashboardPage() {
       <div className="motion-reveal motion-reveal-2">
         <QuickAdd accounts={data.accounts} categories={data.categories} variant="row" />
       </div>
+
+      {/* Quick Capture's Daily Inbox — today's captures + anything still
+          needing review. Renders nothing when empty, so Home stays calm.
+          No fallback skeleton: it's usually absent, and a flashing
+          placeholder for a card that then doesn't appear would be noise. */}
+      <Suspense fallback={null}>
+        <DailyInboxSection categories={data.categories} accounts={data.accounts} />
+      </Suspense>
 
       <div className="motion-reveal motion-reveal-3">
         <MonthlyDonutCard
