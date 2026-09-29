@@ -89,6 +89,11 @@ export function detectSubscriptions(transactions: SubscriptionTransactionInput[]
 
     const gapVariance = gaps.length > 0 ? Math.max(...gaps.map((g) => Math.abs(g - avgGap))) : 0;
     const gapConsistent = gapVariance <= band.toleranceDays;
+    // Two observations provide only one interval, so the best we can do is a
+    // low-confidence suggestion. With 3+ observations there are multiple
+    // intervals: if those intervals disagree, an average that happens to
+    // land near 7/14/30 days is not a recurring cadence and must be rejected.
+    if (gaps.length >= 2 && !gapConsistent) continue;
 
     const amounts = sorted.map((t) => t.amountCents);
     const estimatedAmountCents = median(amounts);
@@ -97,9 +102,9 @@ export function detectSubscriptions(transactions: SubscriptionTransactionInput[]
     if (!amountConsistent) continue; // wildly different amounts from the same merchant is more likely coincidence than a subscription
 
     let confidence: SubscriptionConfidence;
-    if (sorted.length >= 4 && gapConsistent) {
+    if (sorted.length >= 4) {
       confidence = "high";
-    } else if (sorted.length >= 3 && gapConsistent) {
+    } else if (sorted.length >= 3) {
       confidence = "medium";
     } else {
       confidence = "low";

@@ -22,6 +22,20 @@ describe("detectSubscriptions — monthly recurring merchant", () => {
     expect(results[0].estimatedAmountCents).toBe(35000);
     expect(results[0].occurrenceCount).toBe(4);
   });
+
+  it.each([
+    ["Netflix", 41900],
+    ["Rent", 750000],
+    ["Internet", 59900],
+  ])("detects the required monthly example: %s", (merchant, amountCents) => {
+    const results = detectSubscriptions([
+      { merchant, amountCents, date: d(2026, 6, 5) },
+      { merchant, amountCents, date: d(2026, 7, 5) },
+      { merchant, amountCents, date: d(2026, 8, 5) },
+    ]);
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ merchant, estimatedAmountCents: amountCents, frequency: "monthly" });
+  });
 });
 
 describe("detectSubscriptions — weekly recurring merchant", () => {
@@ -78,6 +92,24 @@ describe("detectSubscriptions — false positive resistance", () => {
     const transactions = [
       { merchant: "", amountCents: 10000, date: d(2026, 8, 1) },
       { merchant: "", amountCents: 10000, date: d(2026, 9, 1) },
+    ];
+    expect(detectSubscriptions(transactions)).toEqual([]);
+  });
+
+  it("does not combine the same amount from different merchants", () => {
+    const transactions = [
+      { merchant: "Netflix", amountCents: 41900, date: d(2026, 7, 1) },
+      { merchant: "Internet", amountCents: 41900, date: d(2026, 8, 1) },
+      { merchant: "Rent", amountCents: 41900, date: d(2026, 9, 1) },
+    ];
+    expect(detectSubscriptions(transactions)).toEqual([]);
+  });
+
+  it("rejects irregular timing even when the average accidentally looks monthly", () => {
+    const transactions = [
+      { merchant: "Irregular Shop", amountCents: 50000, date: d(2026, 1, 1) },
+      { merchant: "Irregular Shop", amountCents: 50000, date: d(2026, 1, 10) },
+      { merchant: "Irregular Shop", amountCents: 50000, date: d(2026, 3, 2) },
     ];
     expect(detectSubscriptions(transactions)).toEqual([]);
   });
