@@ -50,6 +50,17 @@ export type TransactionType =
   | "savings_transfer"
   | "investment_allocation";
 
+export type TransactionImportBatchStatus = "draft" | "ready" | "confirmed" | "rolled_back";
+export type TransactionImportRowStatus =
+  | "pending"
+  | "ready"
+  | "needs_review"
+  | "duplicate"
+  | "error"
+  | "imported"
+  | "skipped"
+  | "rolled_back";
+
 export type CategoryType = "income" | "expense" | "both";
 
 export type IncomeSourceType =
@@ -334,6 +345,51 @@ export interface Database {
           amount: string | number;
         };
         Update: Partial<Database["public"]["Tables"]["transactions"]["Row"]>;
+      };
+      transaction_import_batches: {
+        Row: {
+          id: string;
+          user_id: string;
+          account_id: string;
+          filename: string;
+          content_hash: string;
+          status: TransactionImportBatchStatus;
+          header_mapping: Record<string, string | null>;
+          row_count: number;
+          imported_count: number;
+          skipped_count: number;
+          review_count: number;
+          error_count: number;
+          confirmed_at: string | null;
+          rolled_back_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["transaction_import_batches"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; account_id: string; filename: string; content_hash: string };
+        Update: Partial<Database["public"]["Tables"]["transaction_import_batches"]["Row"]>;
+      };
+      transaction_import_rows: {
+        Row: {
+          id: string;
+          batch_id: string;
+          user_id: string;
+          row_number: number;
+          raw_data: Record<string, string>;
+          normalized_data: Record<string, unknown> | null;
+          status: TransactionImportRowStatus;
+          error_code: string | null;
+          fingerprint: string | null;
+          existing_transaction_id: string | null;
+          transaction_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["transaction_import_rows"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; batch_id: string; row_number: number; raw_data: Record<string, string> };
+        Update: Partial<Database["public"]["Tables"]["transaction_import_rows"]["Row"]>;
       };
       tags: {
         Row: {
@@ -1200,6 +1256,19 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["transactions"]["Row"];
       };
+      confirm_statement_import: {
+        Args: { p_batch_id: string };
+        Returns: {
+          imported_count: number;
+          skipped_count: number;
+          review_count: number;
+          error_count: number;
+        }[];
+      };
+      rollback_statement_import: {
+        Args: { p_batch_id: string };
+        Returns: number;
+      };
     };
   };
 }
@@ -1208,6 +1277,8 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
 export type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
+export type TransactionImportBatch = Database["public"]["Tables"]["transaction_import_batches"]["Row"];
+export type TransactionImportRow = Database["public"]["Tables"]["transaction_import_rows"]["Row"];
 export type Tag = Database["public"]["Tables"]["tags"]["Row"];
 export type Budget = Database["public"]["Tables"]["budgets"]["Row"];
 export type BudgetCategory = Database["public"]["Tables"]["budget_categories"]["Row"];
