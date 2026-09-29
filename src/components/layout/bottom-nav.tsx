@@ -11,31 +11,24 @@ import { useTranslation } from "@/i18n/client";
 import { QuickAdd } from "@/features/transactions/components/quick-add";
 import type { Account, Category } from "@/types/database";
 
-// Requested: a subtle glossy/lit-from-above sheen instead of a completely
-// flat fill. Restrained on purpose (GRAPHICS_PLAN.md's flat button system
-// is the default elsewhere; this component is a narrow, explicit exception).
-const GLOSSY_PRIMARY_BG =
-  "radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.16), transparent 70%), var(--primary)";
+// "Classic FAB" style (requested 2026-09-30, reference image): a deep,
+// near-black green bar with a soft top sheen, a brighter glossy green "+"
+// floating in the notch, and the active tab marked only by bright white
+// icon + label (no highlight box). Colors are derived from --primary so
+// they follow the theme instead of hard-coded brand hexes.
+const BAR_BASE = "color-mix(in oklab, var(--primary) 62%, #07100d)";
+const FAB_BG =
+  "radial-gradient(120% 70% at 50% -10%, rgba(255,255,255,0.3), transparent 65%), linear-gradient(180deg, color-mix(in oklab, var(--primary) 65%, #5fb88a), var(--primary))";
+// Fallback before the first measurement (plain rounded bar, no notch).
+const BAR_FALLBACK_BG = `radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.12), transparent 70%), ${BAR_BASE}`;
 
 // The bar's top edge dips into a smooth U-shaped valley around the
 // permanent center "+", whose circle floats inside it with a visible gap
-// ring (see nav-notch-path.ts). Tabs themselves no longer get a notch —
-// requested (2026-09-29, reference: dark pill with a light mint rounded
-// box behind the selected tab): the active tab is marked by that mint
-// highlight instead, while the "+" notch and circle stay exactly as they
-// were.
-const PREFERRED_NOTCH: NotchGeometry = { notchRadius: 26, centerY: 4, fillet: 16, minFillet: 5 };
+// ring (see nav-notch-path.ts). fitNotchToSlot shrinks it on narrow phones.
+const PREFERRED_NOTCH: NotchGeometry = { notchRadius: 30, centerY: 2, fillet: 16, minFillet: 5 };
 const CIRCLE_GAP_PX = 5;
 const BAR_CORNER_RADIUS_PX = 24;
 const NAV_PADDING_X_PX = 8; // keep in sync with the <nav>'s `px-2`
-// Mint highlight: inset so it never touches the "+" notch's shoulders or
-// the bar's rounded ends.
-const HIGHLIGHT_INSET_X_PX = 4;
-const HIGHLIGHT_INSET_Y_PX = 4;
-// A light mint derived from the theme (primary-foreground tinted with a
-// little primary), so it follows light/dark mode instead of a hard-coded hex.
-const MINT_HIGHLIGHT_BG =
-  "linear-gradient(180deg, color-mix(in oklab, var(--primary-foreground) 96%, var(--primary)), color-mix(in oklab, var(--primary-foreground) 82%, var(--primary)))";
 
 export function BottomNav({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
   const activeIndex = useActiveNavIndex();
@@ -64,18 +57,11 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
   // 4 real tabs split 2-and-2 around it; AI lives in its own floating button.
   const totalSlots = NAV_ITEMS.length + 1;
   const centerSlotIndex = Math.floor(NAV_ITEMS.length / 2);
-  function tabIndexToSlot(tabIndex: number): number {
-    return tabIndex < centerSlotIndex ? tabIndex : tabIndex + 1;
-  }
 
   const innerWidth = size ? size.width - NAV_PADDING_X_PX * 2 : 0;
   const slotWidth = innerWidth / totalSlots;
   const slotCenterX = (slot: number) => NAV_PADDING_X_PX + (slot + 0.5) * slotWidth;
 
-  // Routes that belong to no tab (e.g. /profile, /help) get no highlight
-  // rather than faking an active tab.
-  const hasActiveTab = activeIndex !== -1;
-  const activeX = size && hasActiveTab ? slotCenterX(tabIndexToSlot(activeIndex)) : null;
   const centerX = size ? slotCenterX(centerSlotIndex) : null;
 
   // Shrinks on very narrow phones only (see fitNotchToSlot).
@@ -89,7 +75,7 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
     top: notch.centerY - circleRadius,
     width: circleRadius * 2,
     height: circleRadius * 2,
-    background: GLOSSY_PRIMARY_BG,
+    background: FAB_BG,
   });
 
   return (
@@ -119,25 +105,25 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
         {barPath && size ? (
           <svg
             aria-hidden="true"
-            className="absolute inset-0 -z-10 overflow-visible drop-shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            className="absolute inset-0 -z-10 overflow-visible drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]"
             width={size.width}
             height={size.height}
             viewBox={`0 0 ${size.width} ${size.height}`}
           >
             <defs>
               <radialGradient id="bottom-nav-sheen" cx="50%" cy="-20%" r="120%" fx="50%" fy="-20%">
-                <stop offset="0%" stopColor="white" stopOpacity="0.16" />
+                <stop offset="0%" stopColor="white" stopOpacity="0.12" />
                 <stop offset="70%" stopColor="white" stopOpacity="0" />
               </radialGradient>
             </defs>
-            <path d={barPath} fill="var(--primary)" />
+            <path d={barPath} style={{ fill: BAR_BASE }} />
             <path d={barPath} fill="url(#bottom-nav-sheen)" />
           </svg>
         ) : (
           <div
             aria-hidden="true"
             className="absolute inset-0 -z-10 rounded-3xl shadow-card"
-            style={{ background: GLOSSY_PRIMARY_BG }}
+            style={{ background: BAR_FALLBACK_BG }}
           />
         )}
 
@@ -152,19 +138,16 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
             <Link
               key={item.key}
               href={item.href}
-              // `relative z-10`: paints above the sliding mint highlight.
               // Pressing compresses the whole target quickly, then the
               // overshooting release curve gives it a soft, springy button
               // feel. The inset shade supplies depth without changing the
-              // existing notch/highlight geometry.
+              // existing notch geometry.
               className={cn(
                 "group/nav-item relative z-10 flex flex-1 touch-manipulation select-none flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium",
                 "transform-gpu transition-[transform,box-shadow,background-color,color,filter] duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]",
                 "active:translate-y-0.5 active:scale-[0.94] active:brightness-95 active:shadow-[inset_0_3px_7px_rgba(0,0,0,0.2)] active:duration-75 active:ease-out",
                 "motion-reduce:transform-none motion-reduce:transition-colors",
-                active
-                  ? "font-semibold text-primary active:bg-primary/10"
-                  : "text-primary-foreground/80 active:bg-primary-foreground/10"
+                active ? "font-semibold text-white active:bg-white/10" : "text-white/55 active:bg-white/10"
               )}
               aria-current={active ? "page" : undefined}
             >
@@ -177,33 +160,16 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
           );
         })}
 
-        {/* Mint highlight behind the active tab (reference design). One
-            element that slides between tabs via a plain CSS transition on
-            `left`, rather than a per-tab background that would just blink. */}
-        {activeX !== null ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute rounded-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_2px_8px_rgba(0,0,0,0.12)] transition-[left] duration-(--motion-normal) ease-(--ease-standard) motion-reduce:transition-none"
-            style={{
-              left: activeX - slotWidth / 2 + HIGHLIGHT_INSET_X_PX,
-              width: slotWidth - HIGHLIGHT_INSET_X_PX * 2,
-              top: HIGHLIGHT_INSET_Y_PX,
-              bottom: HIGHLIGHT_INSET_Y_PX,
-              background: MINT_HIGHLIGHT_BG,
-            }}
-          />
-        ) : null}
-
         {/* Permanent center "+" circle, floating in its own notch (it's an
             action, not a destination — never tied to route match). The real
             click target is QuickAdd's invisible trigger underneath. */}
         {centerX !== null ? (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute flex items-center justify-center rounded-full shadow-card"
+            className="pointer-events-none absolute flex items-center justify-center rounded-full border border-white/25 shadow-[0_8px_18px_-4px_color-mix(in_oklab,var(--primary)_70%,transparent),inset_0_1px_0_rgba(255,255,255,0.35)]"
             style={circleStyle(centerX)}
           >
-            <span className="text-2xl leading-none font-medium text-primary-foreground">+</span>
+            <span className="text-3xl leading-none font-light text-white">+</span>
           </div>
         ) : null}
       </nav>
