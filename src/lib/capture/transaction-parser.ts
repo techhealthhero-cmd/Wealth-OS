@@ -233,8 +233,12 @@ export function suggestCategory(
   const validIds = new Set(ctx.categories.filter((c) => c.type === type || c.type === "both").map((c) => c.id));
   const lower = normalizeText(text).toLowerCase();
 
-  // 1) learned — exact merchant key first, then any learned key present in the text
-  const keys = [merchant ? normalizeMerchant(merchant) : null, normalizeMerchant(text)].filter(Boolean) as string[];
+  // 1) learned — exact merchant key first, then any learned key present in the text.
+  // Stored keys are normalizeMerchant() output, so the text is searched in that
+  // same normalized form — searching raw text missed any key whose punctuation
+  // was stripped ("TEST_WEALTHOS_QX" → "testwealthosqx", "Joe's" → "joes").
+  const normalizedText = normalizeMerchant(text);
+  const keys = [merchant ? normalizeMerchant(merchant) : null, normalizedText].filter(Boolean) as string[];
   for (const key of keys) {
     const pref = ctx.merchantPreferences.find((p) => p.merchant_normalized === key && validIds.has(p.category_id));
     if (pref) return { categoryId: pref.category_id, source: "learned" };
@@ -242,7 +246,7 @@ export function suggestCategory(
   const learnedInText = ctx.merchantPreferences
     .filter((p) => validIds.has(p.category_id) && p.merchant_normalized.length >= 3)
     .sort((a, b) => b.merchant_normalized.length - a.merchant_normalized.length)
-    .find((p) => findKeyword(lower, p.merchant_normalized));
+    .find((p) => findKeyword(normalizedText, p.merchant_normalized));
   if (learnedInText) return { categoryId: learnedInText.category_id, source: "learned" };
 
   // 2) keywords
@@ -323,7 +327,10 @@ function cleanDescription(text: string): string | null {
         : new RegExp(escaped, "g");
     out = out.replace(pattern, " ");
   }
-  out = out.replace(/[฿,.:;!?()"'+]/g, " ").replace(/\s+/g, " ").trim();
+  // Apostrophes stay ("Joe's Diner"): turning them into a space here made the
+  // learned key "joe s diner" while normalizeMerchant() of the typed text
+  // gives "joes diner", so the preference never matched again.
+  out = out.replace(/[฿,.:;!?()"+]/g, " ").replace(/\s+/g, " ").trim();
   for (const verb of LEADING_VERBS) {
     if (out.toLowerCase().startsWith(verb) && out.length > verb.length) {
       out = out.slice(verb.length).trim();

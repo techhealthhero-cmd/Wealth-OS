@@ -199,6 +199,48 @@ describe("category learning", () => {
   });
 });
 
+// Regression (Phase 1.5 live E2E): a preference learned for a merchant whose
+// name contains punctuation normalizeMerchant() strips was saved correctly but
+// never re-applied, because the lookup searched the raw text. These tests
+// mirror the real round trip: the first capture's merchant/description is
+// normalized exactly like learning.ts does, then the next capture must pick it up.
+describe("category learning — learn → suggest round trip", () => {
+  function learnedKey(firstCapture: string) {
+    const first = parseCaptureText(firstCapture, CTX);
+    return normalizeMerchant(first.merchant ?? first.description ?? "");
+  }
+
+  function suggestAfterLearning(firstCapture: string, nextCapture: string) {
+    const ctx = { ...CTX, merchantPreferences: [{ merchant_normalized: learnedKey(firstCapture), category_id: "cat-food" }] };
+    return parseCaptureText(nextCapture, ctx);
+  }
+
+  it.each([
+    ["normal Thai", "ร้านป้าแดง 60", "ร้านป้าแดง 45", 4500],
+    ["Thai with a space", "ป้า แดง 60", "ป้า แดง 45", 4500],
+    ["underscore", "TEST_WEALTHOS_QX 57", "TEST_WEALTHOS_QX 67", 6700],
+    ["hyphen", "TEST-WEALTHOS-QX 57", "TEST-WEALTHOS-QX 67", 6700],
+    ["apostrophe", "Joe's Diner 90", "Joe's Diner 250", 25000],
+    ["unicode apostrophe", "Joe’s Diner 90", "Joe’s Diner 250", 25000],
+    ["apostrophe learned, unicode apostrophe typed", "Joe's Diner 90", "Joe’s Diner 250", 25000],
+  ])("%s: learned Food is suggested next time", (_label, firstCapture, nextCapture, cents) => {
+    const r = suggestAfterLearning(firstCapture, nextCapture);
+    expect(r.amountCents).toBe(cents);
+    expect(r.categoryId).toBe("cat-food");
+    expect(r.categorySource).toBe("learned");
+    expect(r.confidence).toBe("high");
+  });
+
+  it("the merchant text survives into the saved description", () => {
+    expect(parseCaptureText("Joe's Diner 250", CTX).description).toBe("Joe's Diner");
+  });
+
+  it("a learned key does not leak into an unrelated merchant", () => {
+    const r = suggestAfterLearning("TEST_WEALTHOS_QX 57", "TEST_WEALTHOS_QZ 67");
+    expect(r.categorySource).toBe("fallback");
+  });
+});
+
 describe("extractAmount", () => {
   it("prefers a number with a currency marker", () => {
     expect(extractAmount("ข้าว 2 จาน 120 บาท")?.cents).toBe(12000);
