@@ -120,6 +120,8 @@
     "offline": "You're offline. Your entry is still here, save again once you're back online.",
     "scanInvalid": "Only JPG, PNG or WebP images are supported.",
     "scanTooLarge": "This image is too large. Retake it showing just the slip, or enter it yourself.",
+    "aiAssisting": "AI is reading this sentence…",
+    "aiAssisted": "✨ AI helped read this sentence — check before saving",
     "scanUnavailable": "Automatic slip reading isn't enabled yet. Enter the details yourself.",
     "scanFailed": "Couldn't read the slip. Enter the details yourself.",
     "scanRateLimited": "Too many scans in a short time. Wait a moment and try again.",

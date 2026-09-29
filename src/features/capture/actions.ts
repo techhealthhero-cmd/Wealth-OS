@@ -27,6 +27,12 @@ import { learnMerchantCategory } from "./learning";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { CaptureMerchantPreference } from "@/lib/capture/transaction-parser";
 import { SCAN_ACCEPTED_TYPES, SCAN_MAX_UPLOAD_BYTES } from "@/lib/capture/scan-upload";
+import {
+  AI_ASSIST_MAX_TEXT,
+  buildAIParseSystemPrompt,
+  normalizeAIParseOutput,
+  type AIParseFields,
+} from "@/lib/capture/ai-fallback";
 
 const PG_UNIQUE_VIOLATION = "23505";
 const PG_UNDEFINED_COLUMN = "42703";
@@ -432,5 +438,63 @@ export async function scanReceipt(formData: FormData): Promise<ReceiptScanResult
     // Never include the image or its contents in logs.
     captureError(error, { route: "capture.scanReceipt", operation: "parse_receipt" });
     return { status: "failed", message: dict.capture.scanFailed };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// hybrid parsing — AI fallback for sentences the rules can't fully read
+// ---------------------------------------------------------------------------
+
+export type CaptureAssistResult =
+  | { status: "ok"; fields: AIParseFields | null }
+  | { status: "unavailable" | "limit" | "invalid" | "failed" };
+
+/**
+ * One AI reading of a Quick Capture sentence. Only called by the client for
+ * sentences `needsAIAssist()` flags — simple ones never reach this. The
+ * result is a SUGGESTION validated against the user's own text
+ * (normalizeAIParseOutput) and merged client-side; nothing is saved here.
+ * Metered like one AI Money Coach message; burst rate-limited.
+ */
+export async function assistCaptureParse(text: string): Promise<CaptureAssistResult> {
+  const input = typeof text === "string" ? text.replace(/\s+/g, " ").trim() : "";
+  if (!input || input.length > AI_ASSIST_MAX_TEXT) return { status: "invalid" };
+
+  const { timezone } = await getRequestContext();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "invalid" };
+
+  const provider = getAIProvider();
+  if (!provider) return { status: "unavailable" };
+
+  const burst = await checkRateLimit(`capture-assist:user:${user.id}`, { windowSeconds: 60, maxRequests: 10 });
+  if (!burst.allowed) return { status: "limit" };
+  const usage = await getAIUsageStatus(user.id);
+  if (usage.limitReached) return { status: "limit" };
+
+  // RLS limits this to system categories + the user's own.
+  const { data: categories } = await supabase.from("categories").select("id, name_th, name_en, type, icon, is_system");
+  const today = todayInTimeZone(timezone);
+
+  try {
+    const result = await provider.generate({
+      system: buildAIParseSystemPrompt(today, categories ?? []),
+      maxTokens: 300,
+      messages: [{ role: "user", content: input }],
+    });
+    await supabase.from("ai_usage_log").insert({
+      user_id: user.id,
+      model: result.model,
+      input_tokens: result.usage.inputTokens,
+      output_tokens: result.usage.outputTokens,
+    });
+    return { status: "ok", fields: normalizeAIParseOutput(result.content, { text: input, today, categories: categories ?? [] }) };
+  } catch (error) {
+    // Never log the sentence itself — it's the user's financial data.
+    captureError(error, { route: "capture.assistCaptureParse", operation: "ai_parse" });
+    return { status: "failed" };
   }
 }

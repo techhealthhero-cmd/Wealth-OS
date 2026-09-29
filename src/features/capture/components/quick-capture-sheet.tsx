@@ -18,17 +18,20 @@ import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import {
   defaultAccountId,
   matchAccount,
+  normalizeText,
   parseCaptureText,
   suggestCategory,
   type CaptureMerchantPreference,
   type ParseContext,
 } from "@/lib/capture/transaction-parser";
 import { buildCaptureSaveInput, type CaptureDraft } from "@/lib/capture/draft";
+import { mergeAIParse, needsAIAssist, type AIParseFields } from "@/lib/capture/ai-fallback";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { TransactionPrefill } from "@/features/transactions/components/transaction-form";
 import { deleteTransaction } from "@/features/transactions/actions";
 import { createRecurringTransaction } from "@/features/recurring/actions";
 import {
+  assistCaptureParse,
   checkCaptureDuplicate,
   dismissRecurringSuggestion,
   getCapturePreferences,
@@ -55,6 +58,10 @@ type ReceiptState =
   | { status: "idle" }
   | { status: "scanning"; previewUrl: string }
   | { status: "done"; previewUrl: string; extraction: ReceiptExtraction | null; message: string | null; mock?: boolean };
+
+/** Pause after typing before an AI pass, and a hard per-open cap, so one capture can never fan out into many model calls. */
+const AI_ASSIST_DEBOUNCE_MS = 1200;
+const AI_ASSIST_MAX_PER_OPEN = 3;
 
 function centsToPrefillAmount(cents: number | null) {
   return cents === null ? undefined : (cents / 100).toString();
@@ -90,6 +97,13 @@ export function QuickCaptureSheet({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLInputElement>(null);
+  // Hybrid parsing: validated AI readings keyed by normalized sentence. A key
+  // is claimed before its request starts, so re-renders, retyping the same
+  // text or a failed call never trigger a second request for it.
+  const [aiReadings, setAiReadings] = useState<Record<string, AIParseFields | null>>({});
+  const [aiPendingKey, setAiPendingKey] = useState<string | null>(null);
+  const aiRequestedRef = useRef<Set<string>>(new Set());
+  const aiCallsRef = useRef(0);
 
   const speech = useSpeechInput(locale, (transcript) => {
     setTextSource("voice");
@@ -116,9 +130,39 @@ export function QuickCaptureSheet({
     [accounts, categories, preferences]
   );
 
+  // Fresh per-open AI budget.
+  useEffect(() => {
+    if (open) aiCallsRef.current = 0;
+  }, [open]);
+
+  const textKey = normalizeText(text);
+  const localParsed = useMemo(() => (textKey ? parseCaptureText(textKey, ctx) : null), [textKey, ctx]);
+  const aiReading = aiReadings[textKey] ?? null;
+
+  // One AI pass only for sentences the rules could not fully read (never for
+  // "ข้าว 80 cash"-style input), after the user pauses, max 3 per open.
+  useEffect(() => {
+    if (!open || !localParsed || receipt.status !== "idle" || speech.listening) return;
+    if (aiRequestedRef.current.has(textKey) || aiCallsRef.current >= AI_ASSIST_MAX_PER_OPEN) return;
+    if (!needsAIAssist(textKey, localParsed)) return;
+    const key = textKey;
+    const timer = setTimeout(() => {
+      aiRequestedRef.current.add(key);
+      aiCallsRef.current += 1;
+      setAiPendingKey(key);
+      assistCaptureParse(key)
+        .then((res) => {
+          if (res.status === "ok") setAiReadings((prev) => ({ ...prev, [key]: res.fields }));
+        })
+        .catch(() => {})
+        .finally(() => setAiPendingKey((k) => (k === key ? null : k)));
+    }, AI_ASSIST_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [open, textKey, localParsed, receipt.status, speech.listening]);
+
   const textDraft: CaptureDraft | null = useMemo(() => {
-    if (!text.trim()) return null;
-    const parsed = parseCaptureText(text, ctx);
+    if (!localParsed) return null;
+    const parsed = aiReading ? mergeAIParse(textKey, localParsed, aiReading, ctx) : localParsed;
     return {
       type: parsed.type,
       amountCents: parsed.amountCents,
@@ -133,7 +177,7 @@ export function QuickCaptureSheet({
       categoryConfirmedByUser: false,
       ...overrides,
     };
-  }, [text, ctx, textSource, overrides]);
+  }, [localParsed, aiReading, textKey, ctx, textSource, overrides]);
 
   const activeDraft = receipt.status !== "idle" ? receiptDraft : textDraft;
 
@@ -548,6 +592,18 @@ export function QuickCaptureSheet({
               saving={saving}
               saveLabel={receipt.status !== "idle" ? t("capture.correct") : t("capture.save")}
               duplicate={duplicate}
+              notice={
+                receipt.status !== "idle" ? undefined : aiPendingKey === textKey ? (
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                    {t("capture.aiAssisting")}
+                  </p>
+                ) : aiReading ? (
+                  <p className="text-xs text-muted-foreground" aria-live="polite">
+                    {t("capture.aiAssisted")}
+                  </p>
+                ) : undefined
+              }
             />
           ) : null}
 

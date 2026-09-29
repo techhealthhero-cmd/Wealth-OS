@@ -53,7 +53,7 @@ export interface ParseContext {
   today: string;
 }
 
-export type CategorySource = "learned" | "keyword" | "fallback";
+export type CategorySource = "learned" | "keyword" | "ai" | "fallback";
 export type AccountSource = "matched" | "default";
 
 export interface ParsedCapture {
