@@ -36,8 +36,8 @@ export const getAccounts = cache(async (options?: { includeArchived?: boolean })
 
 /**
  * Accounts safe to pass into UI trees. When privacy mode is locked this
- * strips names, institutions and balances on the server, so inspecting the
- * browser or opening a picker cannot reveal the original values.
+ * strips balances on the server, while retaining account names so forms
+ * remain understandable and usable.
  *
  * Keep getAccounts() for server-side financial calculations; use this
  * function whenever account rows are rendered or passed to a Client

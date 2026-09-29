@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   isAccountPrivacyRedacted,
-  redactAccountRelationsForPrivacy,
   redactAccountsForPrivacy,
 } from "@/features/account-privacy/account-redaction";
 import {
@@ -28,19 +27,18 @@ const account = {
 } as Account;
 
 describe("account privacy redaction", () => {
-  it("removes account identity and balances while privacy is locked", () => {
+  it("removes balances but keeps account identity while privacy is locked", () => {
     const [redacted] = redactAccountsForPrivacy([account], FAIL_CLOSED_ACCOUNT_PRIVACY_STATE);
 
     expect(redacted).toMatchObject({
       id: account.id,
-      name: "•••• 1",
-      institution: null,
+      name: "Secret savings",
+      institution: "Secret Bank",
       opening_balance: "0",
       current_balance: "0",
       __privacyRedacted: true,
       __privacyIndex: 1,
     });
-    expect(JSON.stringify(redacted)).not.toContain("Secret");
     expect(JSON.stringify(redacted)).not.toContain("9876.54");
     expect(isAccountPrivacyRedacted(redacted)).toBe(true);
   });
@@ -59,21 +57,5 @@ describe("account privacy redaction", () => {
     });
 
     expect(visible).toBe(account);
-  });
-
-  it("removes duplicated account names from joined transaction rows", () => {
-    const redactedAccounts = redactAccountsForPrivacy([account], FAIL_CLOSED_ACCOUNT_PRIVACY_STATE);
-    const [transaction] = redactAccountRelationsForPrivacy([
-      {
-        account: { id: account.id, name: account.name },
-        from_account: { id: account.id, name: account.name },
-        to_account: { id: "missing-account", name: "Another secret" },
-      },
-    ], redactedAccounts);
-
-    expect(transaction.account?.name).toBe("•••• 1");
-    expect(transaction.from_account?.name).toBe("•••• 1");
-    expect(transaction.to_account?.name).toBe("••••");
-    expect(JSON.stringify(transaction)).not.toContain("secret");
   });
 });

@@ -16,8 +16,6 @@ import {
 } from "@/features/transactions/queries";
 import { trackEvent } from "@/lib/analytics";
 import { learnMerchantCategory } from "@/features/capture/learning";
-import { getDisplayAccounts } from "@/features/accounts/queries";
-import { redactAccountRelationsForPrivacy } from "@/features/account-privacy/account-redaction";
 
 export interface ActionResult {
   error?: string;
@@ -373,14 +371,7 @@ export async function loadMoreTransactions(
 ): Promise<LoadMoreTransactionsResult> {
   const dict = await getRequestDictionary();
   try {
-    const [page, accounts] = await Promise.all([
-      getTransactionsPage(filters, offset, TRANSACTIONS_PAGE_SIZE),
-      getDisplayAccounts({ includeArchived: true }),
-    ]);
-    return {
-      ...page,
-      transactions: redactAccountRelationsForPrivacy(page.transactions, accounts),
-    };
+    return await getTransactionsPage(filters, offset, TRANSACTIONS_PAGE_SIZE);
   } catch {
     return { error: dict.common.somethingWentWrong };
   }

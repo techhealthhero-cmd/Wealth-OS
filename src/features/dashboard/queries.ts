@@ -1,7 +1,6 @@
 import "server-only";
 
 import { getDisplayAccounts } from "@/features/accounts/queries";
-import { redactAccountRelationsForPrivacy } from "@/features/account-privacy/account-redaction";
 import { getCategories } from "@/features/categories/queries";
 import { getCurrentMonthRange, getTransactions } from "@/features/transactions/queries";
 import { toLocalDateString } from "@/lib/date";
@@ -127,7 +126,7 @@ export function getDashboardData() {
     }),
     accounts,
     categories,
-    recentTransactions: redactAccountRelationsForPrivacy(recentTransactions, accounts),
+    recentTransactions,
     hasAnyData: accounts.length > 0 || monthTransactions.length > 0,
   };
   });

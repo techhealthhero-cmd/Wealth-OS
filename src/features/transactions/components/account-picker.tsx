@@ -75,11 +75,11 @@ export function AccountPicker({ name, accounts, value, onValueChange, id }: Acco
                   <span className="truncate pl-6 text-xs text-muted-foreground">{account.institution}</span>
                 ) : null}
               </span>
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {isAccountPrivacyRedacted(account)
-                  ? t("accountPrivacy.hiddenBalance")
-                  : formatMoneyFromDecimal(account.current_balance, account.currency_code)}
-              </span>
+              {!isAccountPrivacyRedacted(account) ? (
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {formatMoneyFromDecimal(account.current_balance, account.currency_code)}
+                </span>
+              ) : null}
             </span>
           </SelectItem>
         ))}

@@ -21,12 +21,11 @@ import { QuickAdd } from "./quick-add";
 import { QuickRepeat } from "./quick-repeat";
 import { ExportTransactionsButton } from "./export-button";
 import { ExportReportButton } from "@/features/reports/components/export-report-button";
-import { redactAccountRelationsForPrivacy } from "@/features/account-privacy/account-redaction";
 
 export async function TransactionList({ filters }: { filters: TransactionFilters }) {
   const isDefaultView =
     !filters.search && !filters.type && !filters.accountId && !filters.categoryId && !filters.hasNotes;
-  const [{ transactions: rawTransactions, hasMore }, accounts, categories, profile, quickRepeatCandidates, latestTransactionDate] =
+  const [{ transactions, hasMore }, accounts, categories, profile, quickRepeatCandidates, latestTransactionDate] =
     await Promise.all([
       // Perf audit finding: this page previously fetched a user's ENTIRE
       // transaction history on every visit (getTransactions(filters) with
@@ -44,7 +43,6 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
       // above, and always answers "where did I actually leave off."
       getLatestTransactionDate(),
     ]);
-  const transactions = redactAccountRelationsForPrivacy(rawTransactions, accounts);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 

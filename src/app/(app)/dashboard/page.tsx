@@ -220,11 +220,11 @@ export default async function DashboardPage() {
                     {data.accounts.slice(0, 3).map((account) => (
                       <li key={account.id} className="flex items-center justify-between text-sm">
                         <span>{account.name}</span>
-                        <span className="font-medium">
-                          {isAccountPrivacyRedacted(account)
-                            ? dict.accountPrivacy.hiddenBalance
-                            : formatMoneyFromDecimal(account.current_balance, account.currency_code)}
-                        </span>
+                        {!isAccountPrivacyRedacted(account) ? (
+                          <span className="font-medium">
+                            {formatMoneyFromDecimal(account.current_balance, account.currency_code)}
+                          </span>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
