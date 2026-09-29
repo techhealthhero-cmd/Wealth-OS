@@ -1,5 +1,5 @@
 import { getAssets } from "@/features/assets/queries";
-import { getAccounts } from "@/features/accounts/queries";
+import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -10,7 +10,7 @@ import { EmptyAccountsIllustration } from "@/components/illustrations";
 import { InfoPopover } from "@/components/shared/info-popover";
 
 export async function AssetList() {
-  const [assets, accounts, profile] = await Promise.all([getAssets(), getAccounts(), getProfile()]);
+  const [assets, accounts, profile] = await Promise.all([getAssets(), getDisplayAccounts(), getProfile()]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 

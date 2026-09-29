@@ -23,8 +23,11 @@ async function getPrivacyMessages() {
 }
 
 function refreshPrivacyViews() {
-  revalidatePath("/profile");
-  revalidatePath("/money/accounts");
+  // Privacy affects every account-aware surface (including the shared
+  // Quick Add in the app layout), so purge the whole client cache. A
+  // page-only refresh could leave a previously visited form holding real
+  // account names and balances after the user has just locked them.
+  revalidatePath("/", "layout");
 }
 
 export async function configureAccountPrivacy(

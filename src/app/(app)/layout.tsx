@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { getProfile } from "@/features/profile/queries";
-import { getAccounts } from "@/features/accounts/queries";
+import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -54,11 +54,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // nav's new permanent center "+" can open the same expense/income/
   // transfer dialogs QuickAdd already uses elsewhere — both cached via
   // React's `cache()` (see those queries' own doc comments), so a page that
-  // also calls them with the same arguments (e.g. dashboard's `getAccounts()`
+  // also calls them with the same arguments (e.g. dashboard's display-safe
+  // account query)
   // with no options) dedupes against this call instead of re-querying.
   const [locale, accounts, categories] = await Promise.all([
     getLocale(profile.preferred_language),
-    getAccounts(),
+    getDisplayAccounts(),
     getCategories(),
   ]);
   const dict = getDictionary(locale);

@@ -7,6 +7,8 @@ import { getLocale } from "@/i18n/server";
 import { getTransactions } from "@/features/transactions/queries";
 import { transactionsToCsv } from "@/features/transactions/export";
 import { requireFeature, FEATURES } from "@/lib/billing/entitlements";
+import { getDisplayAccounts } from "@/features/accounts/queries";
+import { redactAccountRelationsForPrivacy } from "@/features/account-privacy/account-redaction";
 
 /**
  * Pro-only CSV export of the signed-in user's full transaction history.
@@ -33,8 +35,12 @@ export async function GET() {
     return Response.json({ error: dict.export.lockedDescription }, { status: 403 });
   }
 
-  const transactions = await getTransactions({});
-  const csv = transactionsToCsv(transactions, dict, locale);
+  const [transactions, accounts] = await Promise.all([
+    getTransactions({}),
+    getDisplayAccounts({ includeArchived: true }),
+  ]);
+  const safeTransactions = redactAccountRelationsForPrivacy(transactions, accounts);
+  const csv = transactionsToCsv(safeTransactions, dict, locale);
   // UTF-8 BOM so Excel (still the most common CSV consumer) detects the
   // encoding correctly and doesn't mangle Thai text into question marks.
   const bom = "﻿";

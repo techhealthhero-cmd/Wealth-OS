@@ -1,6 +1,7 @@
 import "server-only";
 
-import { getAccounts } from "@/features/accounts/queries";
+import { getDisplayAccounts } from "@/features/accounts/queries";
+import { redactAccountRelationsForPrivacy } from "@/features/account-privacy/account-redaction";
 import { getCategories } from "@/features/categories/queries";
 import { getCurrentMonthRange, getTransactions } from "@/features/transactions/queries";
 import { toLocalDateString } from "@/lib/date";
@@ -86,7 +87,7 @@ export function getDashboardData() {
     // behind the "show more details" toggle (full history at
     // /money/transactions), not a 5-item list rendered by default.
     getTransactions({ limit: 3 }),
-    getAccounts(),
+    getDisplayAccounts(),
     getCategories(),
   ]);
 
@@ -126,7 +127,7 @@ export function getDashboardData() {
     }),
     accounts,
     categories,
-    recentTransactions,
+    recentTransactions: redactAccountRelationsForPrivacy(recentTransactions, accounts),
     hasAnyData: accounts.length > 0 || monthTransactions.length > 0,
   };
   });

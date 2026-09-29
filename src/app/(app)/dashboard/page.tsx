@@ -27,6 +27,7 @@ import { NextBestActionCard } from "@/features/ai/components/next-best-action-ca
 import { InsightCards } from "@/features/ai/components/insight-card";
 import { EngagementSummaryCard } from "@/features/engagement/components/engagement-summary-card";
 import { ArrowRight } from "lucide-react";
+import { isAccountPrivacyRedacted } from "@/features/account-privacy/account-redaction";
 
 export const metadata: Metadata = { title: "Dashboard — Wealth OS" };
 
@@ -220,7 +221,9 @@ export default async function DashboardPage() {
                       <li key={account.id} className="flex items-center justify-between text-sm">
                         <span>{account.name}</span>
                         <span className="font-medium">
-                          {formatMoneyFromDecimal(account.current_balance, account.currency_code)}
+                          {isAccountPrivacyRedacted(account)
+                            ? dict.accountPrivacy.hiddenBalance
+                            : formatMoneyFromDecimal(account.current_balance, account.currency_code)}
                         </span>
                       </li>
                     ))}

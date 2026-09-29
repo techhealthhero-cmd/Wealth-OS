@@ -1,6 +1,6 @@
 import { ChevronDown, CircleAlert, CircleCheck, History } from "lucide-react";
 
-import { getAccounts } from "@/features/accounts/queries";
+import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
 import { getProfile } from "@/features/profile/queries";
 import {
@@ -21,11 +21,12 @@ import { QuickAdd } from "./quick-add";
 import { QuickRepeat } from "./quick-repeat";
 import { ExportTransactionsButton } from "./export-button";
 import { ExportReportButton } from "@/features/reports/components/export-report-button";
+import { redactAccountRelationsForPrivacy } from "@/features/account-privacy/account-redaction";
 
 export async function TransactionList({ filters }: { filters: TransactionFilters }) {
   const isDefaultView =
     !filters.search && !filters.type && !filters.accountId && !filters.categoryId && !filters.hasNotes;
-  const [{ transactions, hasMore }, accounts, categories, profile, quickRepeatCandidates, latestTransactionDate] =
+  const [{ transactions: rawTransactions, hasMore }, accounts, categories, profile, quickRepeatCandidates, latestTransactionDate] =
     await Promise.all([
       // Perf audit finding: this page previously fetched a user's ENTIRE
       // transaction history on every visit (getTransactions(filters) with
@@ -34,7 +35,7 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
       // (a client component) fetches further pages on demand via the
       // loadMoreTransactions() Server Action.
       getTransactionsPage(filters),
-      getAccounts({ includeArchived: true }),
+      getDisplayAccounts({ includeArchived: true }),
       getCategories(),
       getProfile(),
       isDefaultView ? getQuickRepeatCandidates() : Promise.resolve([]),
@@ -43,6 +44,7 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
       // above, and always answers "where did I actually leave off."
       getLatestTransactionDate(),
     ]);
+  const transactions = redactAccountRelationsForPrivacy(rawTransactions, accounts);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 

@@ -1,5 +1,5 @@
 import { getRecurringTransactions } from "@/features/recurring/queries";
-import { getAccounts } from "@/features/accounts/queries";
+import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
@@ -12,7 +12,7 @@ import { EmptyTransactionsIllustration } from "@/components/illustrations";
 export async function RecurringTransactionList() {
   const [recurring, accounts, categories, profile] = await Promise.all([
     getRecurringTransactions(),
-    getAccounts(),
+    getDisplayAccounts(),
     getCategories(),
     getProfile(),
   ]);

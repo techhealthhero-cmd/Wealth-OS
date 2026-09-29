@@ -3,6 +3,7 @@
 import type { Account } from "@/types/database";
 import { ACCOUNT_TYPE_EMOJI } from "@/lib/transaction-ui";
 import { formatMoneyFromDecimal } from "@/lib/financial/money";
+import { isAccountPrivacyRedacted } from "@/features/account-privacy/account-redaction";
 import { useTranslation } from "@/i18n/client";
 import {
   Select,
@@ -75,7 +76,9 @@ export function AccountPicker({ name, accounts, value, onValueChange, id }: Acco
                 ) : null}
               </span>
               <span className="shrink-0 text-xs text-muted-foreground">
-                {formatMoneyFromDecimal(account.current_balance, account.currency_code)}
+                {isAccountPrivacyRedacted(account)
+                  ? t("accountPrivacy.hiddenBalance")
+                  : formatMoneyFromDecimal(account.current_balance, account.currency_code)}
               </span>
             </span>
           </SelectItem>

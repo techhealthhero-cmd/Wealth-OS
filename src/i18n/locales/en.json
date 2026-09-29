@@ -262,9 +262,9 @@
   },
   "accountPrivacy": {
     "title": "Account data privacy",
-    "description": "Hide real account names and balances from people looking at your screen. Real data is not sent to the Accounts page while it is locked.",
+    "description": "Hide real account names, institutions, and balances everywhere in the app. This data is not sent to the screen while locked.",
     "enabled": "Turn on privacy mode",
-    "enabledDescription": "When enabled, Accounts shows a cover screen until you unlock it with your PIN in Settings.",
+    "enabledDescription": "When enabled, every page and income/expense form uses protected account details until you unlock with your PIN in Settings.",
     "active": "Protected",
     "inactive": "Off",
     "displayStyle": "What to show while locked",
@@ -303,7 +303,8 @@
     "invalidPin": "That PIN is incorrect",
     "tooManyAttempts": "Too many incorrect attempts. Wait 5 minutes and try again.",
     "saveFailed": "Could not save privacy settings. Please try again.",
-    "unlockFailed": "Could not unlock your data. Please try again."
+    "unlockFailed": "Could not unlock your data. Please try again.",
+    "hiddenBalance": "••••••"
   },
   "export": {
     "exportCsv": "Export CSV",

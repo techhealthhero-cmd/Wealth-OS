@@ -1,5 +1,5 @@
 import { getLiabilities } from "@/features/liabilities/queries";
-import { getAccounts } from "@/features/accounts/queries";
+import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyAccountsIllustration } from "@/components/illustrations";
 
 export async function LiabilityList() {
-  const [liabilities, accounts, profile] = await Promise.all([getLiabilities(), getAccounts(), getProfile()]);
+  const [liabilities, accounts, profile] = await Promise.all([getLiabilities(), getDisplayAccounts(), getProfile()]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
   // Only active credit_card accounts are offered as a link target — see

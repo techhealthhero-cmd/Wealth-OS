@@ -4,6 +4,11 @@ import { throwDbError } from "@/lib/db-error";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Account } from "@/types/database";
+import { getAccountPrivacyState } from "@/features/account-privacy/queries";
+import {
+  redactAccountsForPrivacy,
+  type PrivacySafeAccount,
+} from "@/features/account-privacy/account-redaction";
 
 /**
  * Wrapped in React's `cache()` (audit finding, mirrors `getProfile()`'s
@@ -28,6 +33,25 @@ export const getAccounts = cache(async (options?: { includeArchived?: boolean })
   if (error) throwDbError(error, "accounts.getAccounts", "Failed to load accounts");
   return data ?? [];
 });
+
+/**
+ * Accounts safe to pass into UI trees. When privacy mode is locked this
+ * strips names, institutions and balances on the server, so inspecting the
+ * browser or opening a picker cannot reveal the original values.
+ *
+ * Keep getAccounts() for server-side financial calculations; use this
+ * function whenever account rows are rendered or passed to a Client
+ * Component.
+ */
+export const getDisplayAccounts = cache(
+  async (options?: { includeArchived?: boolean }): Promise<PrivacySafeAccount[]> => {
+    const [accounts, privacy] = await Promise.all([
+      getAccounts(options),
+      getAccountPrivacyState(),
+    ]);
+    return redactAccountsForPrivacy(accounts, privacy);
+  }
+);
 
 export async function getAccount(id: string): Promise<Account | null> {
   const supabase = await createClient();
