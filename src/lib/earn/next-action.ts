@@ -1,0 +1,112 @@
+import type {
+  NextAction,
+  NextActionInput,
+  NextActionKind,
+  NextActionResult,
+} from "@/lib/earn/types";
+
+export const NEXT_ACTION_RULES_VERSION = "earn-next-action-v1";
+
+const KEYS: Record<NextActionKind, { titleKey: string; reasonKey: string; ctaKey: string }> = {
+  complete_diagnostic: keySet("completeDiagnostic"),
+  choose_income_path: keySet("chooseIncomePath"),
+  initialize_income_path: keySet("initializeIncomePath"),
+  record_mission_result: keySet("recordMissionResult"),
+  continue_mission: keySet("continueMission"),
+  record_income: keySet("recordIncome"),
+  improve_cashflow: keySet("improveCashflow"),
+  build_resilience: keySet("buildResilience"),
+  grow_income: keySet("growIncome"),
+  optimize_scale: keySet("optimizeScale"),
+  review_freedom_plan: keySet("reviewFreedomPlan"),
+};
+
+function keySet(name: string) {
+  return {
+    titleKey: `earn.nextAction.${name}.title`,
+    reasonKey: `earn.nextAction.${name}.reason`,
+    ctaKey: `earn.nextAction.${name}.cta`,
+  };
+}
+function action(
+  actionKind: NextActionKind,
+  references: Partial<Pick<NextAction, "pathId" | "projectId" | "missionId" | "estimatedMinutes">> = {}
+): NextAction {
+  return {
+    actionKind,
+    ...KEYS[actionKind],
+    estimatedMinutes: references.estimatedMinutes ?? null,
+    pathId: references.pathId ?? null,
+    projectId: references.projectId ?? null,
+    missionId: references.missionId ?? null,
+    rulesVersion: NEXT_ACTION_RULES_VERSION,
+  };
+}
+
+/** Resolve deterministic candidates in strict product-priority order. */
+export function resolveNextAction(input: NextActionInput): NextActionResult {
+  const candidates: NextAction[] = [];
+
+  if (input.assessmentStatus !== "completed" || input.stage.stage === "unknown") {
+    candidates.push(action("complete_diagnostic", { estimatedMinutes: 3 }));
+  }
+
+  if (input.activePaths.length === 0) {
+    candidates.push(action("choose_income_path", { estimatedMinutes: 5 }));
+  }
+
+  const uninitializedPath = input.activePaths.find((path) => !path.initialized);
+  if (uninitializedPath) {
+    candidates.push(action("initialize_income_path", { pathId: uninitializedPath.id, estimatedMinutes: 5 }));
+  }
+
+  const pendingResult = input.pendingMissionResults[0];
+  if (pendingResult) {
+    candidates.push(action("record_mission_result", {
+      pathId: pendingResult.pathId,
+      projectId: pendingResult.projectId,
+      missionId: pendingResult.id,
+      estimatedMinutes: 3,
+    }));
+  }
+
+  const mission = input.activeMissions[0];
+  if (mission) {
+    candidates.push(action("continue_mission", {
+      pathId: mission.pathId,
+      projectId: mission.projectId,
+      missionId: mission.id,
+      estimatedMinutes: mission.estimatedMinutes,
+    }));
+  }
+
+  const unrecordedIncome = input.unrecordedIncome[0];
+  if (unrecordedIncome) {
+    candidates.push(action("record_income", {
+      pathId: unrecordedIncome.pathId,
+      projectId: unrecordedIncome.projectId,
+      estimatedMinutes: 2,
+    }));
+  }
+
+  const stageAction: Record<typeof input.stage.stage, NextActionKind> = {
+    unknown: "complete_diagnostic",
+    survive: "improve_cashflow",
+    cashflow: "improve_cashflow",
+    stability: "build_resilience",
+    grow: "grow_income",
+    scale: "optimize_scale",
+    freedom: "review_freedom_plan",
+  };
+  candidates.push(action(stageAction[input.stage.stage]));
+
+  const uniqueCandidates = candidates.filter(
+    (candidate, index) => candidates.findIndex((item) => item.actionKind === candidate.actionKind) === index
+  );
+
+  return {
+    primary: uniqueCandidates[0],
+    secondary: uniqueCandidates.slice(1, 3),
+    rulesVersion: NEXT_ACTION_RULES_VERSION,
+  };
+}

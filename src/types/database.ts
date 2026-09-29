@@ -21,6 +21,14 @@
  */
 
 import type { PlanId, SubscriptionStatus as BillingSubscriptionStatus } from "@/lib/billing/plans";
+import type {
+  EarnStage,
+  FinancialFactSource,
+  IncomePathStatus,
+  IncomePathType,
+  MissionCategory,
+  SkillEvidenceDimension,
+} from "@/lib/earn/types";
 
 export type AccountType =
   | "cash"
@@ -708,6 +716,70 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["income_plans"]["Row"]>;
       };
+      earn_assessments: {
+        Row: {
+          id: string;
+          user_id: string;
+          rules_version: string;
+          answers: Record<string, unknown>;
+          calculated_stage: EarnStage;
+          reason_codes: string[];
+          essential_expenses_amount: string;
+          essential_expenses_currency: string;
+          essential_expenses_source: FinancialFactSource;
+          completed_at: string;
+          created_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["earn_assessments"]["Row"], "id" | "created_at">
+        > & {
+          user_id: string;
+          rules_version: string;
+          answers: Record<string, unknown>;
+          calculated_stage: EarnStage;
+          reason_codes: string[];
+          essential_expenses_amount: string | number;
+          essential_expenses_currency: string;
+          essential_expenses_source: FinancialFactSource;
+          completed_at: string;
+        };
+        Update: never;
+      };
+      income_paths: {
+        Row: {
+          id: string;
+          user_id: string;
+          path_type: IncomePathType;
+          title: string;
+          status: IncomePathStatus;
+          roadmap_template_version: string;
+          current_roadmap_step_key: string | null;
+          initialized_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["income_paths"]["Row"], "id" | "created_at" | "updated_at">
+        > & {
+          user_id: string;
+          path_type: IncomePathType;
+          title: string;
+          roadmap_template_version: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["income_paths"]["Row"]>;
+      };
+      income_path_skills: {
+        Row: {
+          user_id: string;
+          income_path_id: string;
+          user_skill_id: string;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["income_path_skills"]["Row"], "created_at"> & {
+          created_at?: string;
+        };
+        Update: never;
+      };
       user_skills: {
         Row: {
           id: string;
@@ -779,12 +851,17 @@ export interface Database {
           id: string;
           user_id: string;
           related_opportunity_id: string | null;
+          income_path_id: string | null;
           title: string;
           description: string | null;
           mission_type: MissionType;
+          mission_category: MissionCategory | null;
+          roadmap_step_key: string | null;
           target_quantity: string | null;
           progress_quantity: string;
           status: MissionStatus;
+          result_required: boolean;
+          completed_at: string | null;
           sequence_order: number;
           due_date: string | null;
           estimated_minutes: number | null;
@@ -796,6 +873,46 @@ export interface Database {
           Omit<Database["public"]["Tables"]["income_missions"]["Row"], "id" | "created_at" | "updated_at">
         > & { user_id: string; title: string; mission_type: MissionType };
         Update: Partial<Database["public"]["Tables"]["income_missions"]["Row"]>;
+      };
+      income_mission_results: {
+        Row: {
+          id: string;
+          user_id: string;
+          income_mission_id: string;
+          outcome_data: Record<string, unknown>;
+          notes: string | null;
+          recorded_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["income_mission_results"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; income_mission_id: string };
+        Update: Partial<Database["public"]["Tables"]["income_mission_results"]["Row"]>;
+      };
+      skill_evidence: {
+        Row: {
+          id: string;
+          user_id: string;
+          user_skill_id: string;
+          income_path_id: string | null;
+          income_mission_id: string | null;
+          dimension: SkillEvidenceDimension;
+          evidence_type: string;
+          description: string | null;
+          metadata: Record<string, unknown>;
+          occurred_at: string;
+          created_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["skill_evidence"]["Row"], "id" | "created_at">
+        > & {
+          user_id: string;
+          user_skill_id: string;
+          dimension: SkillEvidenceDimension;
+          evidence_type: string;
+        };
+        Update: never;
       };
       wealth_missions: {
         Row: {
@@ -1111,10 +1228,15 @@ export type AIMessageRow = Database["public"]["Tables"]["ai_messages"]["Row"];
 export type AIUsageLog = Database["public"]["Tables"]["ai_usage_log"]["Row"];
 export type IncomeSource = Database["public"]["Tables"]["income_sources"]["Row"];
 export type IncomePlan = Database["public"]["Tables"]["income_plans"]["Row"];
+export type EarnAssessment = Database["public"]["Tables"]["earn_assessments"]["Row"];
+export type IncomePath = Database["public"]["Tables"]["income_paths"]["Row"];
+export type IncomePathSkill = Database["public"]["Tables"]["income_path_skills"]["Row"];
 export type UserSkill = Database["public"]["Tables"]["user_skills"]["Row"];
 export type IncomeTarget = Database["public"]["Tables"]["income_targets"]["Row"];
 export type IncomeOpportunity = Database["public"]["Tables"]["income_opportunities"]["Row"];
 export type IncomeMission = Database["public"]["Tables"]["income_missions"]["Row"];
+export type IncomeMissionResult = Database["public"]["Tables"]["income_mission_results"]["Row"];
+export type SkillEvidence = Database["public"]["Tables"]["skill_evidence"]["Row"];
 export type WealthMission = Database["public"]["Tables"]["wealth_missions"]["Row"];
 export type XPEvent = Database["public"]["Tables"]["xp_events"]["Row"];
 export type RecurringTransaction = Database["public"]["Tables"]["recurring_transactions"]["Row"];
