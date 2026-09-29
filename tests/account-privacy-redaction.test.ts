@@ -42,6 +42,10 @@ describe("account privacy redaction", () => {
     });
     expect(JSON.stringify(redacted)).not.toContain("9876.54");
     expect(isAccountPrivacyRedacted(redacted)).toBe(true);
+    // Privacy is presentation-only: it must never mutate the financial row
+    // used by calculations or persisted in the database.
+    expect(account.current_balance).toBe("9876.54");
+    expect(account.opening_balance).toBe("1234.56");
   });
 
   it("keeps real account data when privacy is disabled", () => {

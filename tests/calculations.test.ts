@@ -130,6 +130,38 @@ describe("calculateAccountBalance", () => {
     const txns = [{ ...rent, account_id: "acc-other" }];
     expect(calculateAccountBalance("1000.00", "acc-1", txns)).toBe(100000);
   });
+
+  it("preserves the capture financial invariants through create, edit and delete", () => {
+    const openingA = "1000.00";
+    const openingB = "500.00";
+    const income = { type: "income" as const, amount: "200.00", account_id: "acc-a" };
+    const expense = { type: "expense" as const, amount: "100.00", account_id: "acc-a" };
+
+    expect(calculateAccountBalance(openingA, "acc-a", [expense])).toBe(90000);
+    expect(calculateAccountBalance(openingA, "acc-a", [income])).toBe(120000);
+
+    const beforeTransfer = [income, expense];
+    const transfer = {
+      type: "transfer" as const,
+      amount: "300.00",
+      from_account_id: "acc-a",
+      to_account_id: "acc-b",
+    };
+    const withTransfer = [...beforeTransfer, transfer];
+    const totalBefore =
+      calculateAccountBalance(openingA, "acc-a", beforeTransfer) +
+      calculateAccountBalance(openingB, "acc-b", beforeTransfer);
+    const totalAfter =
+      calculateAccountBalance(openingA, "acc-a", withTransfer) +
+      calculateAccountBalance(openingB, "acc-b", withTransfer);
+    expect(totalAfter).toBe(totalBefore);
+
+    const editedExpense = { ...expense, amount: "150.00" };
+    expect(calculateAccountBalance(openingA, "acc-a", [income, editedExpense])).toBe(105000);
+
+    // Deleting means the row is absent when the database trigger recomputes.
+    expect(calculateAccountBalance(openingA, "acc-a", [])).toBe(100000);
+  });
 });
 
 describe("calculateSpendingByCategory", () => {
