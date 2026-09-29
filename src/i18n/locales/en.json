@@ -1382,8 +1382,20 @@
       "dueDate": "Due date",
       "estimatedTime": "Estimated time",
       "estimatedMinutes": "minutes",
-      "impact": "Impact",
-      "saveFailed": "Failed to save the mission. Please try again.",
+    "impact": "Impact",
+    "historyTitle": "Mission history",
+    "historySummary": "{active} active · {completed} completed",
+    "filters": {
+      "active": "Active",
+      "completed": "Completed",
+      "all": "All"
+    },
+    "noActiveTitle": "You're all caught up",
+    "noActiveDescription": "Open Completed to revisit missions you've already finished.",
+    "noCompletedTitle": "No completed missions yet",
+    "noCompletedDescription": "Missions you complete will be saved here.",
+    "completedOn": "Completed {date}",
+    "saveFailed": "Failed to save the mission. Please try again.",
       "emptyTitle": "No missions yet",
       "emptyState": "Choose an income opportunity to start building your missions",
       "statuses": {

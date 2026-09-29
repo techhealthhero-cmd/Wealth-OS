@@ -1382,8 +1382,20 @@
       "dueDate": "กำหนดเสร็จ",
       "estimatedTime": "เวลาโดยประมาณ",
       "estimatedMinutes": "นาที",
-      "impact": "ผลกระทบ",
-      "saveFailed": "บันทึกภารกิจไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+    "impact": "ผลกระทบ",
+    "historyTitle": "ประวัติภารกิจ",
+    "historySummary": "กำลังทำ {active} · สำเร็จแล้ว {completed}",
+    "filters": {
+      "active": "กำลังทำ",
+      "completed": "สำเร็จแล้ว",
+      "all": "ทั้งหมด"
+    },
+    "noActiveTitle": "ทำภารกิจปัจจุบันครบแล้ว",
+    "noActiveDescription": "เปิดแท็บสำเร็จแล้วเพื่อย้อนดูภารกิจที่ผ่านมา",
+    "noCompletedTitle": "ยังไม่มีภารกิจที่สำเร็จ",
+    "noCompletedDescription": "เมื่อทำภารกิจสำเร็จ ภารกิจจะถูกเก็บไว้ที่นี่",
+    "completedOn": "สำเร็จเมื่อ {date}",
+    "saveFailed": "บันทึกภารกิจไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
       "emptyTitle": "ยังไม่มีภารกิจ",
       "emptyState": "เลือกโอกาสสร้างรายได้เพื่อเริ่มสร้างภารกิจของคุณ",
       "statuses": {

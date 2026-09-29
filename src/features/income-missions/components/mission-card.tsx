@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { CheckCircle2 } from "lucide-react";
 
 import type { IncomeMission } from "@/types/database";
 import { updateMissionStatus, incrementMissionProgress } from "@/features/income-missions/actions";
@@ -18,7 +19,7 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
 };
 
 export function MissionCard({ mission }: { mission: IncomeMission }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [isPending, startTransition] = useTransition();
 
   const targetQuantity = mission.target_quantity !== null ? Number(mission.target_quantity) : null;
@@ -26,7 +27,7 @@ export function MissionCard({ mission }: { mission: IncomeMission }) {
   const isDone = mission.status === "completed" || mission.status === "skipped";
 
   return (
-    <Card>
+    <Card className={mission.status === "completed" ? "bg-emerald-50/45 ring-emerald-700/10 dark:bg-emerald-950/15" : undefined}>
       <CardContent className="space-y-2 py-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -54,6 +55,15 @@ export function MissionCard({ mission }: { mission: IncomeMission }) {
           <span>
             {t("earn.missions.impact")}: {t(`earn.missions.impactLevels.${mission.impact_level}`)}
           </span>
+          {mission.status === "completed" ? (
+            <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="size-3.5" aria-hidden="true" />
+              {t("earn.missions.completedOn").replace(
+                "{date}",
+                new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { dateStyle: "medium" }).format(new Date(mission.updated_at))
+              )}
+            </span>
+          ) : null}
         </div>
 
         {!isDone ? (
