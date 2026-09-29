@@ -70,6 +70,50 @@ describe("normalizeReceiptDate", () => {
     expect(normalizeReceiptDate("29/09/2026", TODAY)).toBeNull();
     expect(normalizeReceiptDate("2019-01-01", TODAY)).toBeNull();
   });
+
+  // Regression (Phase 3 live scans): the model sometimes returns the date as
+  // printed on a Thai slip instead of YYYY-MM-DD, and it was being dropped.
+  it("reads Thai month-name dates as printed on slips", () => {
+    expect(normalizeReceiptDate("28 ก.ย. 69", TODAY)).toBe("2026-09-28");
+    expect(normalizeReceiptDate("28 ก.ย. 2569", TODAY)).toBe("2026-09-28");
+    expect(normalizeReceiptDate("28 กันยายน 2569", TODAY)).toBe("2026-09-28");
+    expect(normalizeReceiptDate("1 ม.ค. 69", TODAY)).toBe("2026-01-01");
+    expect(normalizeReceiptDate("28 ก.ย. 2026", TODAY)).toBe("2026-09-28");
+    expect(normalizeReceiptDate("28ก.ย.69", TODAY)).toBe("2026-09-28");
+  });
+
+  it("still rejects unknown month names, future Thai dates and ambiguous numeric dates", () => {
+    expect(normalizeReceiptDate("28 ก.ข. 69", TODAY)).toBeNull();
+    expect(normalizeReceiptDate("30 พ.ย. 69", TODAY)).toBeNull();
+    expect(normalizeReceiptDate("31 ก.ย. 69", TODAY)).toBeNull();
+    expect(normalizeReceiptDate("29/09/2026", TODAY)).toBeNull();
+  });
+});
+
+describe("receipt confidence when the date is unreadable", () => {
+  it("keeps high when a Thai-printed date is readable", () => {
+    const r = normalizeReceiptModelOutput(
+      '{"is_payment_document":true,"amount":249,"date":"28 ก.ย. 69","time":"14:02","merchant":"ร้านข้าวมันไก่","payment_method":"K PLUS","reference":"016273140212BTF08421","confidence":"high"}',
+      TODAY
+    );
+    expect(r.date).toBe("2026-09-28");
+    expect(r.confidence).toBe("high");
+  });
+
+  it("downgrades high to medium when the date can't be read (live blurry-slip reply)", () => {
+    const r = normalizeReceiptModelOutput(
+      '```json {"is_payment_document": true, "amount": 249.00, "date": "30 พ.ย. 69", "time": "14:02", "merchant": "ร้านข้าวมันไก่ เฮียเล้ง", "payment_method": "K PLUS", "reference": "016273140212BTF08421", "confidence": "high"} ```',
+      TODAY
+    );
+    expect(r.amountCents).toBe(24900);
+    expect(r.date).toBeNull();
+    expect(r.confidence).toBe("medium");
+  });
+
+  it("a missing date also downgrades high", () => {
+    const r = normalizeReceiptModelOutput('{"amount":115,"date":null,"merchant":"7-ELEVEN","confidence":"high"}', TODAY);
+    expect(r.confidence).toBe("medium");
+  });
 });
 
 const DRAFT: CaptureDraft = {
