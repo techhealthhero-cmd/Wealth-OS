@@ -29,6 +29,11 @@ export interface SegmentedTabItem {
  * lookup) and animated via `transform: translateX()` + `width`, matching
  * this app's existing "animate transform/opacity, not layout properties"
  * convention (see globals.css's motion-system comment).
+ *
+ * Visual style: underline tabs (plain text labels over a hairline track,
+ * the active tab marked by a sliding primary-colored bar) — replaced the
+ * earlier pill style on request. With 8 Money tabs the row overflows on
+ * mobile, so the active tab is also scrolled into view on navigation.
  */
 export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
   const pathname = usePathname();
@@ -45,6 +50,7 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
     }
 
     measure();
+    tabRefs.current[activeIndex]?.scrollIntoView({ block: "nearest", inline: "nearest" });
     // Web fonts can still be settling on first paint, shifting tab widths
     // a frame late — one more measurement after layout catches that.
     const raf = requestAnimationFrame(measure);
@@ -56,12 +62,12 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
   }, [activeIndex, tabs.length]);
 
   return (
-    <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-      <div className="relative inline-flex w-max gap-1 rounded-full bg-muted/70 p-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]">
+    <nav className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+      <div className="relative flex min-w-max gap-1 border-b border-border">
         {indicator ? (
           <span
             aria-hidden="true"
-            className="absolute inset-y-1 left-0 rounded-full bg-background shadow-md ring-1 ring-black/5 transition-[transform,width] duration-(--motion-normal) ease-(--ease-standard)"
+            className="absolute -bottom-px left-0 h-[3px] rounded-full bg-primary transition-[transform,width] duration-(--motion-normal) ease-(--ease-standard)"
             style={{ width: indicator.width, transform: `translateX(${indicator.left}px)` }}
           />
         ) : null}
@@ -71,12 +77,13 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
             <Link
               key={tab.href}
               href={tab.href}
+              aria-current={active ? "page" : undefined}
               ref={(el) => {
                 tabRefs.current[i] = el;
               }}
               className={cn(
-                "relative z-10 shrink-0 whitespace-nowrap rounded-full px-3.5 py-2 text-sm transition-colors duration-(--motion-normal) ease-(--ease-standard)",
-                active ? "font-semibold text-foreground" : "font-medium text-muted-foreground hover:text-foreground"
+                "relative shrink-0 whitespace-nowrap px-3.5 pb-3 pt-2 text-sm transition-colors duration-(--motion-normal) ease-(--ease-standard) focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                active ? "font-semibold text-primary" : "font-medium text-muted-foreground hover:text-foreground"
               )}
             >
               {tab.label}
@@ -84,6 +91,6 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }
