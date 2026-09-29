@@ -32,8 +32,8 @@ export interface SegmentedTabItem {
  * this app's existing "animate transform/opacity, not layout properties"
  * convention (see globals.css's motion-system comment).
  *
- * Visual style: "modern" icon tabs — a floating card holding icon-over-label
- * tabs, the active one marked by a sliding soft primary-gradient tile (went
+ * Visual style: "modern" icon tabs — a faintly mint-tinted card holding
+ * icon-over-label tabs, the active one a sliding solid-green tile (went
  * pill → underline → this, each on request). With 8 Money tabs the row
  * overflows on mobile, so the active tab is also scrolled into view.
  */
@@ -64,13 +64,20 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
   }, [activeIndex, tabs.length]);
 
   return (
-    <nav className="overflow-x-auto rounded-3xl bg-card p-1.5 shadow-[0_4px_20px_-6px_rgba(0,0,0,0.08)] ring-1 ring-border/60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <nav className="overflow-x-auto rounded-3xl bg-linear-to-b from-card to-primary/4 p-1.5 shadow-[0_6px_24px_-10px_color-mix(in_oklab,var(--primary)_35%,transparent)] ring-1 ring-primary/10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="relative flex min-w-max gap-1">
         {indicator ? (
+          // Same solid-primary + top sheen as the bottom nav bar, so the
+          // active section tab reads as part of one navigation family.
           <span
             aria-hidden="true"
-            className="absolute inset-y-0 left-0 rounded-2xl bg-linear-to-b from-primary/15 to-primary/5 ring-1 ring-primary/10 transition-[transform,width] duration-(--motion-normal) ease-(--ease-standard)"
-            style={{ width: indicator.width, transform: `translateX(${indicator.left}px)` }}
+            className="absolute inset-y-0 left-0 rounded-2xl shadow-[0_6px_14px_-6px_color-mix(in_oklab,var(--primary)_70%,transparent)] transition-[transform,width] duration-(--motion-normal) ease-(--ease-standard)"
+            style={{
+              width: indicator.width,
+              transform: `translateX(${indicator.left}px)`,
+              background:
+                "radial-gradient(120% 70% at 50% -10%, rgba(255,255,255,0.22), transparent 70%), var(--primary)",
+            }}
           />
         ) : null}
         {tabs.map((tab, i) => {
@@ -86,10 +93,16 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
               }}
               className={cn(
                 "relative flex min-w-18 shrink-0 flex-col items-center gap-1 whitespace-nowrap rounded-2xl px-3 py-2 text-xs transition-colors duration-(--motion-normal) ease-(--ease-standard) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                active ? "font-semibold text-primary" : "font-medium text-muted-foreground hover:text-foreground"
+                active ? "font-semibold text-primary-foreground" : "font-medium text-muted-foreground hover:text-foreground"
               )}
             >
-              {Icon ? <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" /> : null}
+              {Icon ? (
+                <Icon
+                  className={cn("size-5", !active && "text-primary/70")}
+                  strokeWidth={active ? 2.25 : 1.75}
+                  aria-hidden="true"
+                />
+              ) : null}
               {tab.label}
             </Link>
           );
