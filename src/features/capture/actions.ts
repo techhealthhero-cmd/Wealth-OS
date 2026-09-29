@@ -27,6 +27,7 @@ import { learnMerchantCategory } from "./learning";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { CaptureMerchantPreference } from "@/lib/capture/transaction-parser";
 import { SCAN_ACCEPTED_TYPES, SCAN_MAX_UPLOAD_BYTES } from "@/lib/capture/scan-upload";
+import { isUndecidedCategory } from "@/lib/capture/inbox";
 import {
   AI_ASSIST_MAX_TEXT,
   buildAIParseSystemPrompt,
@@ -300,7 +301,20 @@ export async function confirmInboxTransaction(
     };
   }
 
-  await learnMerchantCategory(user.id, data.merchant || data.description, data.category_id);
+  // Learn only from a real choice: a category the user just picked, or one
+  // that isn't the parser's blind "Other" fallback. Confirming a guessed
+  // "Other" as-is must not teach it — the merchant would then come back as
+  // a confident, auto-confirmed "Other" forever and never reach review.
+  let learnable = categoryId !== undefined;
+  if (!learnable && data.category_id) {
+    const { data: category } = await supabase
+      .from("categories")
+      .select("id, name_en, is_system")
+      .eq("id", data.category_id)
+      .maybeSingle();
+    learnable = Boolean(category) && !isUndecidedCategory(data.category_id, category ? [category] : []);
+  }
+  if (learnable) await learnMerchantCategory(user.id, data.merchant || data.description, data.category_id);
   revalidateMoney();
   return { success: true };
 }

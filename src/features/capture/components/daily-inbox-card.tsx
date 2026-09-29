@@ -15,6 +15,7 @@ import { CategoryPicker } from "@/features/transactions/components/category-pick
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { confirmInboxTransaction } from "@/features/capture/actions";
 import type { DailyInbox, InboxTransaction } from "@/features/capture/queries";
+import { canBulkConfirm, inboxReviewReasons } from "@/lib/capture/inbox";
 
 /** The full form edits a Transaction row — fill the columns the inbox query doesn't select with neutral values. */
 function toEditableTransaction(item: InboxTransaction): Transaction {
@@ -89,6 +90,16 @@ function InboxItem({
             </span>
             <ChevronDown className="size-3 shrink-0" aria-hidden="true" />
           </button>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {inboxReviewReasons(item, categories).map((reason) => (
+              <span
+                key={reason}
+                className="rounded-md border border-dashed border-amber-400/70 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300"
+              >
+                {t(`capture.inbox.reason.${reason}`)}
+              </span>
+            ))}
+          </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
             {formatFriendlyDate(item.transaction_date, locale, { today: t("capture.today"), yesterday: t("capture.yesterday") })}
             {item.account_name ? ` · ${item.account_name}` : ""}
@@ -162,6 +173,9 @@ export function DailyInboxCard({
   const [confirmingAll, startConfirmAll] = useTransition();
 
   const pending = inbox.items.filter((i) => i.review_status === "needs_review" && !confirmedIds.has(i.id));
+  // Only complete items may be bulk-confirmed; undecided categories need a pick.
+  const bulkConfirmable = pending.filter((i) => canBulkConfirm(i, categories));
+  const needsPick = pending.length - bulkConfirmable.length;
   const confirmedToday = inbox.items.filter(
     (i) => i.transaction_date === inbox.today && (i.review_status === "confirmed" || confirmedIds.has(i.id))
   );
@@ -172,7 +186,7 @@ export function DailyInboxCard({
 
   function confirmAll() {
     startConfirmAll(async () => {
-      for (const item of pending) {
+      for (const item of bulkConfirmable) {
         const res = await confirmInboxTransaction(item.id);
         if (res.success) markConfirmed(item.id);
         else {
@@ -198,10 +212,12 @@ export function DailyInboxCard({
               </p>
             </div>
           </div>
-          {pending.length >= 2 ? (
+          {pending.length >= 2 && bulkConfirmable.length > 0 ? (
             <Button type="button" size="sm" variant="outline" onClick={confirmAll} disabled={confirmingAll}>
               <Check className="mr-1 size-3.5" aria-hidden="true" />
-              {t("capture.inbox.confirmAll")}
+              {bulkConfirmable.length === pending.length
+                ? t("capture.inbox.confirmAll")
+                : t("capture.inbox.confirmReady").replace("{count}", String(bulkConfirmable.length))}
             </Button>
           ) : null}
         </div>
@@ -220,6 +236,10 @@ export function DailyInboxCard({
             </span>
           )}
         </div>
+
+        {needsPick > 0 && pending.length >= 2 ? (
+          <p className="text-xs text-muted-foreground">{t("capture.inbox.needsPickHint").replace("{count}", String(needsPick))}</p>
+        ) : null}
 
         {pending.length > 0 ? (
           <ul className="space-y-2">

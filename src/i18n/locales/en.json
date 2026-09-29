@@ -138,6 +138,13 @@
       "allDone": "All reviewed",
       "confirm": "Confirm",
       "confirmAll": "Confirm all",
+      "confirmReady": "Confirm ready ({count})",
+      "needsPickHint": "{count} more still need a category — tap the category to pick one",
+      "reason": {
+        "category": "Category unsure",
+        "scan": "Slip only partly read — check date and shop",
+        "details": "Double-check the details"
+      },
       "aiSuggest": "AI suggests",
       "unknownMerchant": "Unknown merchant",
       "changeCategory": "Change category",

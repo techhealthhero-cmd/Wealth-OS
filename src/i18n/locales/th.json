@@ -138,6 +138,13 @@
       "allDone": "ตรวจครบแล้ว",
       "confirm": "ยืนยัน",
       "confirmAll": "ยืนยันทั้งหมด",
+      "confirmReady": "ยืนยันที่พร้อม ({count})",
+      "needsPickHint": "อีก {count} รายการยังไม่มีหมวด แตะหมวดเพื่อเลือก",
+      "reason": {
+        "category": "หมวดหมู่ไม่แน่ใจ",
+        "scan": "AI อ่านสลิปได้ไม่ครบ ตรวจวันที่และร้าน",
+        "details": "ตรวจรายละเอียดอีกครั้ง"
+      },
       "aiSuggest": "AI แนะนำ",
       "unknownMerchant": "ไม่ระบุร้าน",
       "changeCategory": "เปลี่ยนหมวด",

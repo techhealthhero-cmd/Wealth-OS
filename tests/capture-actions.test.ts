@@ -287,6 +287,33 @@ describe("confirmInboxTransaction", () => {
     expect(db.merchant_category_preferences).toEqual([expect.objectContaining({ merchant_normalized: "grab", category_id: FOOD })]);
   });
 
+  // Regression (Phase C audit): a blind ✓ on a guessed "Other" used to be
+  // learned, so that merchant came back as a confident "Other" forever.
+  it("does NOT learn when a guessed 'Other' is confirmed as-is", async () => {
+    const OTHER = "33333333-3333-4333-8333-333333333333";
+    db.categories = [{ id: OTHER, name_en: "Other", is_system: true }];
+    await saveCapturedTransaction({ ...BASE, merchant: "ร้านป้าศรี", categoryId: OTHER, confidence: "medium", clientRequestId: key() });
+    const res = await confirmInboxTransaction(db.transactions[0].id as string);
+    expect(res.success).toBe(true);
+    expect(db.transactions[0].review_status).toBe("confirmed");
+    expect(db.merchant_category_preferences ?? []).toEqual([]);
+  });
+
+  it("still learns when an item with a real category is confirmed as-is", async () => {
+    db.categories = [{ id: FOOD, name_en: "Food & Dining", is_system: true }];
+    await saveCapturedTransaction({ ...BASE, merchant: "ร้านป้าศรี", categoryId: FOOD, confidence: "medium", clientRequestId: key() });
+    await confirmInboxTransaction(db.transactions[0].id as string);
+    expect(db.merchant_category_preferences).toEqual([expect.objectContaining({ merchant_normalized: "ร้านป้าศรี", category_id: FOOD })]);
+  });
+
+  it("learns an explicit pick, even of 'Other'", async () => {
+    const OTHER = "33333333-3333-4333-8333-333333333333";
+    db.categories = [{ id: OTHER, name_en: "Other", is_system: true }];
+    await saveCapturedTransaction({ ...BASE, merchant: "ร้านป้าศรี", categoryId: null, confidence: "medium", clientRequestId: key() });
+    await confirmInboxTransaction(db.transactions[0].id as string, OTHER);
+    expect(db.merchant_category_preferences).toEqual([expect.objectContaining({ category_id: OTHER })]);
+  });
+
   it("cannot confirm another user's transaction", async () => {
     db.transactions = [{ id: "other", user_id: "user-2", review_status: "needs_review" }];
     const res = await confirmInboxTransaction("other");
