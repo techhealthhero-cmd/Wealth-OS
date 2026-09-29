@@ -96,7 +96,7 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
         //
         // `opacity-95` (requested): applied to the whole <nav> as one group
         // so the bar and the floating circles fade together evenly.
-        className="isolate relative mx-auto flex max-w-md items-center justify-between px-2 py-1.5 opacity-95"
+        className="group/nav isolate relative mx-auto flex max-w-md items-center justify-between px-2 py-1.5 opacity-95"
         aria-label="Primary"
       >
         {/* Bar background: an SVG path with the notches cut into its top
@@ -166,10 +166,25 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
         {centerX !== null ? (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute flex items-center justify-center rounded-full border border-white/25 shadow-[0_8px_18px_-4px_color-mix(in_oklab,var(--primary)_70%,transparent),inset_0_1px_0_rgba(255,255,255,0.35)]"
+            // Soft press: while QuickAdd's trigger is :active the circle
+            // sinks (scale + 2px down), its glow tightens and an inner shade
+            // appears — quick ease-out going in, then an overshooting spring
+            // curve on release so it "bounces back" like a cushioned button.
+            className={cn(
+              "pointer-events-none absolute flex items-center justify-center rounded-full border border-white/25",
+              "shadow-[0_8px_18px_-4px_color-mix(in_oklab,var(--primary)_70%,transparent),inset_0_1px_0_rgba(255,255,255,0.35)]",
+              "transform-gpu transition-[transform,box-shadow,filter] duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]",
+              "group-has-[[data-fab-trigger]:active]/nav:translate-y-0.5 group-has-[[data-fab-trigger]:active]/nav:scale-[0.88] group-has-[[data-fab-trigger]:active]/nav:brightness-95",
+              "group-has-[[data-fab-trigger]:active]/nav:shadow-[0_3px_8px_-3px_color-mix(in_oklab,var(--primary)_70%,transparent),inset_0_3px_8px_rgba(0,0,0,0.25)]",
+              "group-has-[[data-fab-trigger]:active]/nav:duration-150 group-has-[[data-fab-trigger]:active]/nav:ease-out",
+              "group-has-[[data-fab-trigger]:focus-visible]/nav:ring-2 group-has-[[data-fab-trigger]:focus-visible]/nav:ring-white/70",
+              "motion-reduce:transition-none"
+            )}
             style={circleStyle(centerX)}
           >
-            <span className="text-3xl leading-none font-light text-white">+</span>
+            <span className="text-3xl leading-none font-light text-white transition-transform duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-has-[[data-fab-trigger]:active]/nav:scale-90 group-has-[[data-fab-trigger]:active]/nav:duration-150 motion-reduce:transition-none">
+              +
+            </span>
           </div>
         ) : null}
       </nav>

@@ -125,7 +125,12 @@ export function QuickAdd({ accounts, categories, variant = "inline" }: QuickAddP
         <button
           type="button"
           onClick={() => setCaptureOpen(true)}
-          className="flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium"
+          // `data-fab-trigger`: BottomNav's visible circle watches this
+          // button's :active state to play its press animation. The
+          // `before:` disc extends the hit area up over the part of the
+          // circle that floats above the bar, so the whole "+" is tappable.
+          data-fab-trigger=""
+          className="relative flex flex-1 touch-manipulation select-none flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium outline-none before:absolute before:-top-7 before:left-1/2 before:size-16 before:-translate-x-1/2 before:rounded-full"
           aria-label={t("capture.title")}
           aria-haspopup="dialog"
         >
