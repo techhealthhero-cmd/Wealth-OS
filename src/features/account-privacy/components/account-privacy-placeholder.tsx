@@ -11,11 +11,16 @@ export function AccountPrivacyPlaceholder({
 }: {
   privacy: AccountPrivacyState;
   copy: Dictionary["accountPrivacy"];
-  section?: "accounts" | "assets";
+  section?: "accounts" | "assets" | "generic";
 }) {
   const isAssets = section === "assets";
-  const blurMessage = isAssets ? copy.assetBlurMessage : copy.blurMessage;
-  const blurDescription = isAssets ? copy.assetBlurDescription : copy.blurDescription;
+  const isGeneric = section === "generic";
+  const blurMessage = isGeneric ? copy.genericProtectedTitle : isAssets ? copy.assetBlurMessage : copy.blurMessage;
+  const blurDescription = isGeneric
+    ? copy.genericProtectedDescription
+    : isAssets
+      ? copy.assetBlurDescription
+      : copy.blurDescription;
 
   if (privacy.displayStyle === "blur") {
     return (
@@ -50,14 +55,18 @@ export function AccountPrivacyPlaceholder({
   const presentation = privacy.displayStyle === "unavailable"
     ? {
         icon: CloudOff,
-        title: isAssets ? copy.assetUnavailableTitle : copy.unavailableTitle,
-        description: isAssets ? copy.assetUnavailableDescription : copy.unavailableDescription,
+        title: isGeneric ? copy.genericUnavailableTitle : isAssets ? copy.assetUnavailableTitle : copy.unavailableTitle,
+        description: isGeneric
+          ? copy.genericUnavailableDescription
+          : isAssets
+            ? copy.assetUnavailableDescription
+            : copy.unavailableDescription,
       }
     : privacy.displayStyle === "empty"
       ? {
           icon: isAssets ? Gem : WalletCards,
-          title: isAssets ? copy.assetEmptyTitle : copy.emptyTitle,
-          description: isAssets ? copy.assetEmptyDescription : copy.emptyDescription,
+          title: isGeneric ? copy.genericEmptyTitle : isAssets ? copy.assetEmptyTitle : copy.emptyTitle,
+          description: isGeneric ? copy.genericEmptyDescription : isAssets ? copy.assetEmptyDescription : copy.emptyDescription,
         }
       : { icon: CircleSlash2, title: privacy.customMessage || copy.customFallback, description: null };
   const Icon = presentation.icon;

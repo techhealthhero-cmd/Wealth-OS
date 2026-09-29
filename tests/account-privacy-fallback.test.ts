@@ -11,6 +11,10 @@ describe("account privacy fallback", () => {
       enabled: false,
       protectAccounts: true,
       protectAssets: false,
+      protectOverview: false,
+      protectActivity: false,
+      protectPlanning: false,
+      protectInsights: false,
       isUnlocked: true,
     });
   });
@@ -20,6 +24,10 @@ describe("account privacy fallback", () => {
       enabled: true,
       protectAccounts: true,
       protectAssets: true,
+      protectOverview: true,
+      protectActivity: true,
+      protectPlanning: true,
+      protectInsights: true,
       displayStyle: "unavailable",
       isUnlocked: false,
     });

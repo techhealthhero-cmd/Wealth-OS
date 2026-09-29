@@ -11,6 +11,8 @@ import { LockedFeatureCard } from "@/features/billing/components/locked-feature-
 import { MoneyYearCompareView } from "@/features/money-year/components/money-year-compare-view";
 import { EmptyState } from "@/components/shared/empty-state";
 import { WelcomeIllustration } from "@/components/illustrations";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export const metadata: Metadata = { title: "Compare Money Years — Wealth OS" };
 
@@ -18,6 +20,11 @@ export const metadata: Metadata = { title: "Compare Money Years — Wealth OS" }
 const MAX_YEARS_COMPARED = 5;
 
 export default async function MoneyYearComparePage() {
+  const privacyGate = await getPrivacyGate("planning");
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
+
   const profile = await getProfile();
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);

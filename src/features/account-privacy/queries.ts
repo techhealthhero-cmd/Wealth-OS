@@ -18,6 +18,10 @@ interface PrivacyStateRow {
   enabled: boolean;
   protect_accounts: boolean;
   protect_assets: boolean;
+  protect_overview: boolean;
+  protect_activity: boolean;
+  protect_planning: boolean;
+  protect_insights: boolean;
   display_style: AccountPrivacyDisplayStyle;
   custom_message: string | null;
   pin_configured: boolean;
@@ -59,6 +63,10 @@ export const getAccountPrivacyState = cache(async (): Promise<AccountPrivacyStat
     enabled: row.enabled,
     protectAccounts: row.protect_accounts,
     protectAssets: row.protect_assets,
+    protectOverview: row.protect_overview,
+    protectActivity: row.protect_activity,
+    protectPlanning: row.protect_planning,
+    protectInsights: row.protect_insights,
     displayStyle: row.display_style,
     customMessage: row.custom_message,
     pinConfigured: row.pin_configured,

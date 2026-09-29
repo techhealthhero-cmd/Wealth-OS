@@ -7,6 +7,7 @@ import {
 import {
   DEFAULT_ACCOUNT_PRIVACY_STATE,
   FAIL_CLOSED_ACCOUNT_PRIVACY_STATE,
+  isPrivacyLockedFor,
 } from "@/features/account-privacy/types";
 import type { Account } from "@/types/database";
 
@@ -67,5 +68,22 @@ describe("account privacy redaction", () => {
     });
 
     expect(visible).toBe(account);
+  });
+
+  it("locks only the selected Privacy Center sections", () => {
+    const privacy = {
+      ...FAIL_CLOSED_ACCOUNT_PRIVACY_STATE,
+      protectAccounts: false,
+      protectAssets: false,
+      protectOverview: false,
+      protectActivity: true,
+      protectPlanning: false,
+      protectInsights: true,
+    };
+
+    expect(isPrivacyLockedFor(privacy, "activity")).toBe(true);
+    expect(isPrivacyLockedFor(privacy, ["overview", "planning"])).toBe(false);
+    expect(isPrivacyLockedFor(privacy, ["overview", "insights"])).toBe(true);
+    expect(isPrivacyLockedFor({ ...privacy, isUnlocked: true }, "insights")).toBe(false);
   });
 });

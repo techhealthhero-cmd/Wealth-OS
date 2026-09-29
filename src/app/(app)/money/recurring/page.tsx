@@ -6,10 +6,17 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { UpcomingBillsCard } from "@/features/recurring/components/upcoming-bills-card";
 import { RecurringTransactionList } from "@/features/recurring/components/recurring-transaction-list";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export const metadata: Metadata = { title: "Recurring — Wealth OS" };
 
 export default async function MoneyRecurringPage() {
+  const privacyGate = await getPrivacyGate("activity");
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
+
   const [bills, profile] = await Promise.all([getUpcomingBills(), getProfile()]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);

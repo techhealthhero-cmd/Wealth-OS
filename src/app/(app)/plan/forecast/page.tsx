@@ -15,10 +15,17 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { WelcomeIllustration } from "@/components/illustrations";
 import { requireFeature, FEATURES } from "@/lib/billing/entitlements";
 import { LockedFeatureCard } from "@/features/billing/components/locked-feature-card";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export const metadata: Metadata = { title: "Forecast — Wealth OS" };
 
 export default async function ForecastPage() {
+  const privacyGate = await getPrivacyGate("planning");
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
+
   // requireFeature() doesn't depend on profile — perf audit finding: these
   // were sequential for no reason, each paying its own round-trip.
   const [profile, gate] = await Promise.all([getProfile(), requireFeature(FEATURES.FORECAST)]);

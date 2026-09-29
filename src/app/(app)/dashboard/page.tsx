@@ -28,10 +28,17 @@ import { InsightCards } from "@/features/ai/components/insight-card";
 import { EngagementSummaryCard } from "@/features/engagement/components/engagement-summary-card";
 import { ArrowRight } from "lucide-react";
 import { isAccountPrivacyRedacted } from "@/features/account-privacy/account-redaction";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export const metadata: Metadata = { title: "Dashboard — Wealth OS" };
 
 export default async function DashboardPage() {
+  const privacyGate = await getPrivacyGate(["overview", "activity", "planning", "insights"]);
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
+
   const [data, profile, priority, topInsight, incomeExpenseTrend] = await Promise.all([
     getDashboardData(),
     getProfile(),

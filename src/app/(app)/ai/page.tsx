@@ -15,10 +15,17 @@ import { FinancialSnapshotStrip } from "@/features/ai/components/financial-snaps
 import { AICoachChat } from "@/features/ai/components/ai-coach-chat";
 import { AIUsageIndicator } from "@/features/billing/components/ai-usage-indicator";
 import { canUseFeature, FEATURES } from "@/lib/billing/entitlements";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export const metadata: Metadata = { title: "AI Money Coach — Wealth OS" };
 
 export default async function AICoachPage() {
+  const privacyGate = await getPrivacyGate("insights");
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
+
   const user = await getAuthUser();
 
   const [profile, snapshot, priority, insights, healthCheck, initialChat, historyEnabled] = await Promise.all([

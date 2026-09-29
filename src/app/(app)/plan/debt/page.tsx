@@ -11,10 +11,17 @@ import { EmptyAccountsIllustration } from "@/components/illustrations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireFeature, FEATURES } from "@/lib/billing/entitlements";
 import { LockedFeatureCard } from "@/features/billing/components/locked-feature-card";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export const metadata: Metadata = { title: "Debt Planner — Wealth OS" };
 
 export default async function DebtPlannerPage() {
+  const privacyGate = await getPrivacyGate("planning");
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
+
   // requireFeature() doesn't depend on profile — perf audit finding: these
   // were sequential for no reason, each paying its own round-trip.
   const [profile, gate] = await Promise.all([getProfile(), requireFeature(FEATURES.DEBT_PLANNER)]);

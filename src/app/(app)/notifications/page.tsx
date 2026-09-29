@@ -7,10 +7,17 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { NotificationList } from "@/features/engagement/components/notification-list";
 import { NotificationPreferencesForm } from "@/features/engagement/components/notification-preferences-form";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export const metadata: Metadata = { title: "Notifications — Wealth OS" };
 
 export default async function NotificationsPage() {
+  const privacyGate = await getPrivacyGate("insights");
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
+
   await syncNotifications();
 
   const [notifications, preferences, profile] = await Promise.all([

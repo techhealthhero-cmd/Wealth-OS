@@ -7,6 +7,7 @@ import { getLocale } from "@/i18n/server";
 import { getTransactions } from "@/features/transactions/queries";
 import { transactionsToCsv } from "@/features/transactions/export";
 import { requireFeature, FEATURES } from "@/lib/billing/entitlements";
+import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 
 /**
  * Pro-only CSV export of the signed-in user's full transaction history.
@@ -27,6 +28,11 @@ export async function GET() {
   const profile = await getProfile();
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
+
+  const privacy = await getAccountPrivacyState();
+  if (privacy.enabled && !privacy.isUnlocked) {
+    return Response.json({ error: dict.accountPrivacy.exportLocked }, { status: 423 });
+  }
 
   const gate = await requireFeature(FEATURES.DATA_EXPORT);
   if (!gate.allowed) {

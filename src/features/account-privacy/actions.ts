@@ -41,13 +41,19 @@ export async function configureAccountPrivacy(
     enabled: formData.get("enabled"),
     protectAccounts: formData.get("protect_accounts"),
     protectAssets: formData.get("protect_assets"),
+    protectOverview: formData.get("protect_overview"),
+    protectActivity: formData.get("protect_activity"),
+    protectPlanning: formData.get("protect_planning"),
+    protectInsights: formData.get("protect_insights"),
     displayStyle: formData.get("display_style"),
     customMessage: formData.get("custom_message") ?? "",
     pin: formData.get("pin") ?? "",
     pinConfirmation: formData.get("pin_confirmation") ?? "",
   });
   if (!parsed.success) return { error: messages.invalidSettings };
-  if (parsed.data.enabled && !parsed.data.protectAccounts && !parsed.data.protectAssets) {
+  if (parsed.data.enabled && !parsed.data.protectAccounts && !parsed.data.protectAssets
+    && !parsed.data.protectOverview && !parsed.data.protectActivity
+    && !parsed.data.protectPlanning && !parsed.data.protectInsights) {
     return { error: messages.scopeRequired };
   }
 
@@ -67,6 +73,10 @@ export async function configureAccountPrivacy(
     p_enabled: parsed.data.enabled,
     p_protect_accounts: parsed.data.protectAccounts,
     p_protect_assets: parsed.data.protectAssets,
+    p_protect_overview: parsed.data.protectOverview,
+    p_protect_activity: parsed.data.protectActivity,
+    p_protect_planning: parsed.data.protectPlanning,
+    p_protect_insights: parsed.data.protectInsights,
     p_display_style: parsed.data.displayStyle,
     p_custom_message: parsed.data.customMessage,
     p_pin: parsed.data.pin,

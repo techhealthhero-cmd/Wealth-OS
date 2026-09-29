@@ -20,6 +20,8 @@ import { captureError } from "@/lib/observability";
 import { trackEvent } from "@/lib/analytics";
 import { checkRateLimit } from "@/lib/rate-limit";
 import type { AIImageMediaType, AIMessage, AIMessageImage } from "@/features/ai/types";
+import { getAccountPrivacyState } from "@/features/account-privacy/queries";
+import { isPrivacyLockedFor } from "@/features/account-privacy/types";
 
 const MAX_HISTORY_MESSAGES = 20;
 
@@ -40,6 +42,11 @@ export async function POST(request: Request) {
   const profile = await getProfile();
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
+
+  const privacy = await getAccountPrivacyState();
+  if (isPrivacyLockedFor(privacy, "insights")) {
+    return Response.json({ error: dict.accountPrivacy.protectedRequest }, { status: 423 });
+  }
 
   const body = await request.json().catch(() => null);
   const message = typeof body?.message === "string" ? body.message : "";

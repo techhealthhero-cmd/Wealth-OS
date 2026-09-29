@@ -10,6 +10,8 @@ import { BudgetView } from "@/features/budget/components/budget-view";
 import { MonthSelector } from "@/features/budget/components/month-selector";
 import { EmptyState } from "@/components/shared/empty-state";
 import { BudgetIllustration } from "@/components/illustrations";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export const metadata: Metadata = { title: "Budget — Wealth OS" };
 
@@ -18,6 +20,11 @@ interface BudgetPageProps {
 }
 
 export default async function BudgetPage({ searchParams }: BudgetPageProps) {
+  const privacyGate = await getPrivacyGate("activity");
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
+
   const params = await searchParams;
   const monthDate = params.month && /^\d{4}-\d{2}-\d{2}$/.test(params.month) ? new Date(`${params.month}T00:00:00`) : new Date();
   const monthKey = toMonthKey(monthDate);

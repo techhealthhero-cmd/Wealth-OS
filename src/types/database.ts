@@ -220,6 +220,10 @@ export interface Database {
           enabled: boolean;
           protect_accounts: boolean;
           protect_assets: boolean;
+          protect_overview: boolean;
+          protect_activity: boolean;
+          protect_planning: boolean;
+          protect_insights: boolean;
           display_style: AccountPrivacyDisplayStyle;
           custom_message: string | null;
           pin_hash: string | null;
@@ -992,6 +996,10 @@ export interface Database {
           enabled: boolean;
           protect_accounts: boolean;
           protect_assets: boolean;
+          protect_overview: boolean;
+          protect_activity: boolean;
+          protect_planning: boolean;
+          protect_insights: boolean;
           display_style: AccountPrivacyDisplayStyle;
           custom_message: string | null;
           pin_configured: boolean;
@@ -1005,6 +1013,10 @@ export interface Database {
           p_enabled: boolean;
           p_protect_accounts: boolean;
           p_protect_assets: boolean;
+          p_protect_overview: boolean;
+          p_protect_activity: boolean;
+          p_protect_planning: boolean;
+          p_protect_insights: boolean;
           p_display_style: AccountPrivacyDisplayStyle;
           p_custom_message: string | null;
           p_pin: string;

@@ -1,7 +1,18 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Eye, EyeOff, Gem, LockKeyhole, ShieldCheck, WalletCards } from "lucide-react";
+import {
+  Bot,
+  Eye,
+  EyeOff,
+  Gauge,
+  Gem,
+  LockKeyhole,
+  ReceiptText,
+  ShieldCheck,
+  Target,
+  WalletCards,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,9 +38,81 @@ export function AccountPrivacySettingsCard({ privacy }: { privacy: AccountPrivac
   const [enabled, setEnabled] = useState(privacy.enabled);
   const [protectAccounts, setProtectAccounts] = useState(privacy.protectAccounts);
   const [protectAssets, setProtectAssets] = useState(privacy.protectAssets);
+  const [protectOverview, setProtectOverview] = useState(privacy.protectOverview);
+  const [protectActivity, setProtectActivity] = useState(privacy.protectActivity);
+  const [protectPlanning, setProtectPlanning] = useState(privacy.protectPlanning);
+  const [protectInsights, setProtectInsights] = useState(privacy.protectInsights);
   const [displayStyle, setDisplayStyle] = useState<AccountPrivacyDisplayStyle>(privacy.displayStyle);
   const [settingsState, settingsAction, isSaving] = useActionState(configureAccountPrivacy, undefined);
   const [unlockState, unlockAction, isUnlocking] = useActionState(unlockAccountPrivacy, undefined);
+
+  if (privacy.enabled && !privacy.isUnlocked) {
+    return (
+      <Card variant="soft">
+        <CardHeader>
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <LockKeyhole className="size-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <CardTitle>{t("accountPrivacy.lockedCenterTitle")}</CardTitle>
+              <CardDescription>{t("accountPrivacy.lockedCenterDescription")}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form action={unlockAction} className="space-y-3">
+            <Input
+              name="pin"
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              placeholder="••••••"
+              aria-label={t("accountPrivacy.currentPin")}
+              className="bg-card text-center font-mono tracking-[0.4em]"
+              required
+            />
+            {unlockState?.error ? <p role="alert" className="text-sm text-destructive">{unlockState.error}</p> : null}
+            <Button type="submit" variant="outline" className="w-full bg-card" disabled={isUnlocking}>
+              <ShieldCheck aria-hidden="true" />
+              {isUnlocking ? t("common.loading") : t("accountPrivacy.verifyToManage")}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const scopeOptions = [
+    { key: "accounts", checked: protectAccounts, set: setProtectAccounts, icon: WalletCards },
+    { key: "assets", checked: protectAssets, set: setProtectAssets, icon: Gem },
+    { key: "overview", checked: protectOverview, set: setProtectOverview, icon: Gauge },
+    { key: "activity", checked: protectActivity, set: setProtectActivity, icon: ReceiptText },
+    { key: "planning", checked: protectPlanning, set: setProtectPlanning, icon: Target },
+    { key: "insights", checked: protectInsights, set: setProtectInsights, icon: Bot },
+  ] as const;
+
+  function applyStandardPreset() {
+    setEnabled(true);
+    setProtectAccounts(true);
+    setProtectAssets(true);
+    setProtectOverview(false);
+    setProtectActivity(false);
+    setProtectPlanning(false);
+    setProtectInsights(false);
+  }
+
+  function applyPublicPreset() {
+    setEnabled(true);
+    setProtectAccounts(true);
+    setProtectAssets(true);
+    setProtectOverview(true);
+    setProtectActivity(true);
+    setProtectPlanning(true);
+    setProtectInsights(true);
+  }
 
   return (
     <Card variant="soft">
@@ -54,6 +137,10 @@ export function AccountPrivacySettingsCard({ privacy }: { privacy: AccountPrivac
           <input type="hidden" name="enabled" value={enabled ? "true" : "false"} />
           <input type="hidden" name="protect_accounts" value={protectAccounts ? "true" : "false"} />
           <input type="hidden" name="protect_assets" value={protectAssets ? "true" : "false"} />
+          <input type="hidden" name="protect_overview" value={protectOverview ? "true" : "false"} />
+          <input type="hidden" name="protect_activity" value={protectActivity ? "true" : "false"} />
+          <input type="hidden" name="protect_planning" value={protectPlanning ? "true" : "false"} />
+          <input type="hidden" name="protect_insights" value={protectInsights ? "true" : "false"} />
 
           <div className="flex items-start gap-3 rounded-xl border bg-card p-3">
             <Checkbox
@@ -73,43 +160,35 @@ export function AccountPrivacySettingsCard({ privacy }: { privacy: AccountPrivac
           <fieldset className="space-y-2" disabled={!enabled}>
             <legend className="text-sm font-medium">{t("accountPrivacy.protectedSections")}</legend>
             <p className="text-xs text-muted-foreground">{t("accountPrivacy.protectedSectionsDescription")}</p>
+            <div className="grid grid-cols-2 gap-2 py-1">
+              <Button type="button" variant="outline" size="sm" onClick={applyStandardPreset} disabled={!enabled}>
+                {t("accountPrivacy.presets.standard")}
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={applyPublicPreset} disabled={!enabled}>
+                {t("accountPrivacy.presets.public")}
+              </Button>
+            </div>
             <div className="grid gap-2 sm:grid-cols-2">
-              <div className="flex items-start gap-3 rounded-xl border bg-card p-3 disabled:opacity-50">
-                <Checkbox
-                  id="privacy_protect_accounts"
-                  checked={protectAccounts}
-                  onCheckedChange={(checked) => setProtectAccounts(checked === true)}
-                  disabled={!enabled}
-                  className="mt-0.5"
-                />
-                <Label htmlFor="privacy_protect_accounts" className="min-w-0 cursor-pointer font-normal">
-                  <span className="flex items-center gap-2 font-medium text-foreground">
-                    <WalletCards className="size-4 text-primary" aria-hidden="true" />
-                    {t("accountPrivacy.sections.accounts")}
-                  </span>
-                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                    {t("accountPrivacy.sections.accountsDescription")}
-                  </span>
-                </Label>
-              </div>
-              <div className="flex items-start gap-3 rounded-xl border bg-card p-3 disabled:opacity-50">
-                <Checkbox
-                  id="privacy_protect_assets"
-                  checked={protectAssets}
-                  onCheckedChange={(checked) => setProtectAssets(checked === true)}
-                  disabled={!enabled}
-                  className="mt-0.5"
-                />
-                <Label htmlFor="privacy_protect_assets" className="min-w-0 cursor-pointer font-normal">
-                  <span className="flex items-center gap-2 font-medium text-foreground">
-                    <Gem className="size-4 text-primary" aria-hidden="true" />
-                    {t("accountPrivacy.sections.assets")}
-                  </span>
-                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                    {t("accountPrivacy.sections.assetsDescription")}
-                  </span>
-                </Label>
-              </div>
+              {scopeOptions.map(({ key, checked, set, icon: Icon }) => (
+                <div key={key} className="flex items-start gap-3 rounded-xl border bg-card p-3">
+                  <Checkbox
+                    id={`privacy_protect_${key}`}
+                    checked={checked}
+                    onCheckedChange={(value) => set(value === true)}
+                    disabled={!enabled}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor={`privacy_protect_${key}`} className="min-w-0 cursor-pointer font-normal">
+                    <span className="flex items-center gap-2 font-medium text-foreground">
+                      <Icon className="size-4 text-primary" aria-hidden="true" />
+                      {t(`accountPrivacy.sections.${key}`)}
+                    </span>
+                    <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                      {t(`accountPrivacy.sections.${key}Description`)}
+                    </span>
+                  </Label>
+                </div>
+              ))}
             </div>
           </fieldset>
 

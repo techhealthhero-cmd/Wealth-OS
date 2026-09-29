@@ -3,6 +3,8 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getConversations, searchMessages } from "@/features/ai/queries";
 import { requireFeature, FEATURES } from "@/lib/billing/entitlements";
+import { getAccountPrivacyState } from "@/features/account-privacy/queries";
+import { isPrivacyLockedFor } from "@/features/account-privacy/types";
 
 /**
  * Plus+-only AI chat history/search (FEATURES.AI_CHAT_HISTORY). Gated
@@ -18,6 +20,11 @@ export async function GET(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const privacy = await getAccountPrivacyState();
+  if (isPrivacyLockedFor(privacy, "insights")) {
+    return Response.json({ error: "Protected" }, { status: 423 });
+  }
 
   const gate = await requireFeature(FEATURES.AI_CHAT_HISTORY);
   if (!gate.allowed) return Response.json({ error: "Not available on your plan" }, { status: 403 });

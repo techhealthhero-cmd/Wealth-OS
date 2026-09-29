@@ -10,6 +10,8 @@ import { YearSelector } from "@/features/money-year/components/year-selector";
 import { CompareYearsButton } from "@/features/money-year/components/compare-years-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { WelcomeIllustration } from "@/components/illustrations";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export const metadata: Metadata = { title: "Money Year — Wealth OS" };
 
@@ -18,6 +20,11 @@ interface MoneyYearPageProps {
 }
 
 export default async function MoneyYearPage({ searchParams }: MoneyYearPageProps) {
+  const privacyGate = await getPrivacyGate("planning");
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
+
   const params = await searchParams;
   const year = params.year && /^\d{4}$/.test(params.year) ? Number(params.year) : new Date().getFullYear();
 

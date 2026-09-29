@@ -7,6 +7,7 @@ import { getLocale } from "@/i18n/server";
 import { getFinancialReportData } from "@/features/reports/queries";
 import { generateFinancialReportPdf } from "@/features/reports/pdf-report";
 import { requireFeature, FEATURES } from "@/lib/billing/entitlements";
+import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 
 /**
  * Pro-only PDF financial report (FEATURES.PDF_REPORT). Gated server-side
@@ -24,6 +25,11 @@ export async function GET() {
   const profile = await getProfile();
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
+
+  const privacy = await getAccountPrivacyState();
+  if (privacy.enabled && !privacy.isUnlocked) {
+    return Response.json({ error: dict.accountPrivacy.exportLocked }, { status: 423 });
+  }
 
   const gate = await requireFeature(FEATURES.PDF_REPORT);
   if (!gate.allowed) {

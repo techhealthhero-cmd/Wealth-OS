@@ -8,10 +8,17 @@ import { getLocale } from "@/i18n/server";
 import { NetWorthView } from "@/features/net-worth/components/net-worth-view";
 import { EmptyState } from "@/components/shared/empty-state";
 import { WelcomeIllustration } from "@/components/illustrations";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export const metadata: Metadata = { title: "Net Worth — Wealth OS" };
 
 export default async function NetWorthPage() {
+  const privacyGate = await getPrivacyGate(["overview", "accounts", "assets"]);
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
+
   const [breakdown, accounts, profile] = await Promise.all([
     getNetWorthBreakdown(),
     getAccounts(),
