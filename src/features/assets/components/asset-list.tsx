@@ -8,11 +8,21 @@ import { AssetCard } from "./asset-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyAccountsIllustration } from "@/components/illustrations";
 import { InfoPopover } from "@/components/shared/info-popover";
+import { getAccountPrivacyState } from "@/features/account-privacy/queries";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
 export async function AssetList() {
-  const [assets, accounts, profile] = await Promise.all([getAssets(), getDisplayAccounts(), getProfile()]);
+  const [profile, privacy] = await Promise.all([getProfile(), getAccountPrivacyState()]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
+
+  // Match the Accounts page's fail-closed behavior: while the Assets scope
+  // is protected, asset rows are not fetched or included in the RSC payload.
+  if (privacy.enabled && privacy.protectAssets && !privacy.isUnlocked) {
+    return <AccountPrivacyPlaceholder privacy={privacy} copy={dict.accountPrivacy} section="assets" />;
+  }
+
+  const [assets, accounts] = await Promise.all([getAssets(), getDisplayAccounts()]);
 
   if (assets.length === 0) {
     return (

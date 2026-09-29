@@ -24,7 +24,7 @@ export async function AccountList() {
   // Do not fetch account rows at all while privacy mode is locked. This is
   // intentionally stronger than visually blurring real values: names and
   // balances are absent from the rendered payload and browser DOM.
-  if (privacy.enabled && !privacy.isUnlocked) {
+  if (privacy.enabled && privacy.protectAccounts && !privacy.isUnlocked) {
     return <AccountPrivacyPlaceholder privacy={privacy} copy={dict.accountPrivacy} />;
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Gem, LockKeyhole, ShieldCheck, WalletCards } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ const DISPLAY_STYLES: AccountPrivacyDisplayStyle[] = ["blur", "unavailable", "em
 export function AccountPrivacySettingsCard({ privacy }: { privacy: AccountPrivacyState }) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(privacy.enabled);
+  const [protectAccounts, setProtectAccounts] = useState(privacy.protectAccounts);
+  const [protectAssets, setProtectAssets] = useState(privacy.protectAssets);
   const [displayStyle, setDisplayStyle] = useState<AccountPrivacyDisplayStyle>(privacy.displayStyle);
   const [settingsState, settingsAction, isSaving] = useActionState(configureAccountPrivacy, undefined);
   const [unlockState, unlockAction, isUnlocking] = useActionState(unlockAccountPrivacy, undefined);
@@ -50,6 +52,8 @@ export function AccountPrivacySettingsCard({ privacy }: { privacy: AccountPrivac
       <CardContent className="space-y-5">
         <form action={settingsAction} className="space-y-4">
           <input type="hidden" name="enabled" value={enabled ? "true" : "false"} />
+          <input type="hidden" name="protect_accounts" value={protectAccounts ? "true" : "false"} />
+          <input type="hidden" name="protect_assets" value={protectAssets ? "true" : "false"} />
 
           <div className="flex items-start gap-3 rounded-xl border bg-card p-3">
             <Checkbox
@@ -65,6 +69,49 @@ export function AccountPrivacySettingsCard({ privacy }: { privacy: AccountPrivac
               </span>
             </Label>
           </div>
+
+          <fieldset className="space-y-2" disabled={!enabled}>
+            <legend className="text-sm font-medium">{t("accountPrivacy.protectedSections")}</legend>
+            <p className="text-xs text-muted-foreground">{t("accountPrivacy.protectedSectionsDescription")}</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="flex items-start gap-3 rounded-xl border bg-card p-3 disabled:opacity-50">
+                <Checkbox
+                  id="privacy_protect_accounts"
+                  checked={protectAccounts}
+                  onCheckedChange={(checked) => setProtectAccounts(checked === true)}
+                  disabled={!enabled}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="privacy_protect_accounts" className="min-w-0 cursor-pointer font-normal">
+                  <span className="flex items-center gap-2 font-medium text-foreground">
+                    <WalletCards className="size-4 text-primary" aria-hidden="true" />
+                    {t("accountPrivacy.sections.accounts")}
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                    {t("accountPrivacy.sections.accountsDescription")}
+                  </span>
+                </Label>
+              </div>
+              <div className="flex items-start gap-3 rounded-xl border bg-card p-3 disabled:opacity-50">
+                <Checkbox
+                  id="privacy_protect_assets"
+                  checked={protectAssets}
+                  onCheckedChange={(checked) => setProtectAssets(checked === true)}
+                  disabled={!enabled}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="privacy_protect_assets" className="min-w-0 cursor-pointer font-normal">
+                  <span className="flex items-center gap-2 font-medium text-foreground">
+                    <Gem className="size-4 text-primary" aria-hidden="true" />
+                    {t("accountPrivacy.sections.assets")}
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                    {t("accountPrivacy.sections.assetsDescription")}
+                  </span>
+                </Label>
+              </div>
+            </div>
+          </fieldset>
 
           <div className="space-y-2">
             <Label htmlFor="account_privacy_style">{t("accountPrivacy.displayStyle")}</Label>

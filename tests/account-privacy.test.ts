@@ -17,12 +17,16 @@ describe("account privacy validation", () => {
   it("normalizes settings submitted by the privacy form", () => {
     expect(accountPrivacySettingsSchema.parse({
       enabled: "true",
+      protectAccounts: "true",
+      protectAssets: "true",
       displayStyle: "custom",
       customMessage: "  Not available  ",
       pin: "123456",
       pinConfirmation: "123456",
     })).toMatchObject({
       enabled: true,
+      protectAccounts: true,
+      protectAssets: true,
       displayStyle: "custom",
       customMessage: "Not available",
     });
@@ -31,6 +35,8 @@ describe("account privacy validation", () => {
   it("rejects unsupported cover styles and malformed unlock attempts", () => {
     expect(accountPrivacySettingsSchema.safeParse({
       enabled: "true",
+      protectAccounts: "true",
+      protectAssets: "false",
       displayStyle: "fake-bank",
       customMessage: "",
       pin: "123456",

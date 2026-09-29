@@ -2,6 +2,8 @@ import type { AccountPrivacyDisplayStyle } from "@/types/database";
 
 export interface AccountPrivacyState {
   enabled: boolean;
+  protectAccounts: boolean;
+  protectAssets: boolean;
   displayStyle: AccountPrivacyDisplayStyle;
   customMessage: string | null;
   pinConfigured: boolean;
@@ -12,6 +14,8 @@ export interface AccountPrivacyState {
 
 export const DEFAULT_ACCOUNT_PRIVACY_STATE: AccountPrivacyState = {
   enabled: false,
+  protectAccounts: true,
+  protectAssets: false,
   displayStyle: "blur",
   customMessage: null,
   pinConfigured: false,
@@ -21,9 +25,11 @@ export const DEFAULT_ACCOUNT_PRIVACY_STATE: AccountPrivacyState = {
 };
 
 // Privacy must fail closed. If the settings RPC is temporarily unavailable,
-// never fall through to fetching and rendering real account balances.
+// never fall through to fetching protected account or asset data.
 export const FAIL_CLOSED_ACCOUNT_PRIVACY_STATE: AccountPrivacyState = {
   enabled: true,
+  protectAccounts: true,
+  protectAssets: true,
   displayStyle: "unavailable",
   customMessage: null,
   pinConfigured: false,

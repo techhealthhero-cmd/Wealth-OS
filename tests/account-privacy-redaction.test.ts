@@ -58,4 +58,14 @@ describe("account privacy redaction", () => {
 
     expect(visible).toBe(account);
   });
+
+  it("keeps account balances visible when only the Assets scope is protected", () => {
+    const [visible] = redactAccountsForPrivacy([account], {
+      ...FAIL_CLOSED_ACCOUNT_PRIVACY_STATE,
+      protectAccounts: false,
+      protectAssets: true,
+    });
+
+    expect(visible).toBe(account);
+  });
 });

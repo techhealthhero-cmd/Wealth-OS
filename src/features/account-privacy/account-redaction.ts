@@ -24,7 +24,7 @@ export function redactAccountsForPrivacy(
   accounts: Account[],
   privacy: AccountPrivacyState
 ): PrivacySafeAccount[] {
-  if (!privacy.enabled || privacy.isUnlocked) return accounts;
+  if (!privacy.enabled || !privacy.protectAccounts || privacy.isUnlocked) return accounts;
 
   return accounts.map((account, index) => ({
     ...account,

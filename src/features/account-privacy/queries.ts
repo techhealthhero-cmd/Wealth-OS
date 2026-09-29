@@ -16,6 +16,8 @@ export const ACCOUNT_PRIVACY_COOKIE = "wealth_account_unlock";
 
 interface PrivacyStateRow {
   enabled: boolean;
+  protect_accounts: boolean;
+  protect_assets: boolean;
   display_style: AccountPrivacyDisplayStyle;
   custom_message: string | null;
   pin_configured: boolean;
@@ -55,6 +57,8 @@ export const getAccountPrivacyState = cache(async (): Promise<AccountPrivacyStat
 
   return {
     enabled: row.enabled,
+    protectAccounts: row.protect_accounts,
+    protectAssets: row.protect_assets,
     displayStyle: row.display_style,
     customMessage: row.custom_message,
     pinConfigured: row.pin_configured,

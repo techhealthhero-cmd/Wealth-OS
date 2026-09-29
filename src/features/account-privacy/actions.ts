@@ -39,12 +39,17 @@ export async function configureAccountPrivacy(
 
   const parsed = accountPrivacySettingsSchema.safeParse({
     enabled: formData.get("enabled"),
+    protectAccounts: formData.get("protect_accounts"),
+    protectAssets: formData.get("protect_assets"),
     displayStyle: formData.get("display_style"),
     customMessage: formData.get("custom_message") ?? "",
     pin: formData.get("pin") ?? "",
     pinConfirmation: formData.get("pin_confirmation") ?? "",
   });
   if (!parsed.success) return { error: messages.invalidSettings };
+  if (parsed.data.enabled && !parsed.data.protectAccounts && !parsed.data.protectAssets) {
+    return { error: messages.scopeRequired };
+  }
 
   const current = await getAccountPrivacyState();
   if ((parsed.data.enabled || current.pinConfigured) && !accountPrivacyPinSchema.safeParse(parsed.data.pin).success) {
@@ -60,6 +65,8 @@ export async function configureAccountPrivacy(
   const supabase = await createClient();
   const { error } = await supabase.rpc("configure_account_privacy", {
     p_enabled: parsed.data.enabled,
+    p_protect_accounts: parsed.data.protectAccounts,
+    p_protect_assets: parsed.data.protectAssets,
     p_display_style: parsed.data.displayStyle,
     p_custom_message: parsed.data.customMessage,
     p_pin: parsed.data.pin,

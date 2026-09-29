@@ -218,6 +218,8 @@ export interface Database {
         Row: {
           user_id: string;
           enabled: boolean;
+          protect_accounts: boolean;
+          protect_assets: boolean;
           display_style: AccountPrivacyDisplayStyle;
           custom_message: string | null;
           pin_hash: string | null;
@@ -988,6 +990,8 @@ export interface Database {
         Args: { p_unlock_token?: string | null };
         Returns: {
           enabled: boolean;
+          protect_accounts: boolean;
+          protect_assets: boolean;
           display_style: AccountPrivacyDisplayStyle;
           custom_message: string | null;
           pin_configured: boolean;
@@ -999,6 +1003,8 @@ export interface Database {
       configure_account_privacy: {
         Args: {
           p_enabled: boolean;
+          p_protect_accounts: boolean;
+          p_protect_assets: boolean;
           p_display_style: AccountPrivacyDisplayStyle;
           p_custom_message: string | null;
           p_pin: string;

@@ -1,4 +1,4 @@
-import { CircleSlash2, CloudOff, EyeOff, WalletCards } from "lucide-react";
+import { CircleSlash2, CloudOff, EyeOff, Gem, WalletCards } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -7,13 +7,19 @@ import type { AccountPrivacyState } from "../types";
 export function AccountPrivacyPlaceholder({
   privacy,
   copy,
+  section = "accounts",
 }: {
   privacy: AccountPrivacyState;
   copy: Dictionary["accountPrivacy"];
+  section?: "accounts" | "assets";
 }) {
+  const isAssets = section === "assets";
+  const blurMessage = isAssets ? copy.assetBlurMessage : copy.blurMessage;
+  const blurDescription = isAssets ? copy.assetBlurDescription : copy.blurDescription;
+
   if (privacy.displayStyle === "blur") {
     return (
-      <div className="relative space-y-3 overflow-hidden rounded-2xl" aria-label={copy.blurMessage}>
+      <div className="relative space-y-3 overflow-hidden rounded-2xl" aria-label={blurMessage}>
         <div className="space-y-3 blur-[7px] select-none" aria-hidden="true">
           {[0, 1, 2, 3].map((item) => (
             <Card key={item}>
@@ -33,8 +39,8 @@ export function AccountPrivacyPlaceholder({
         <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-[2px]">
           <div className="mx-6 rounded-2xl border bg-card/95 px-6 py-5 text-center shadow-lg">
             <EyeOff className="mx-auto size-7 text-primary" aria-hidden="true" />
-            <p className="mt-3 font-heading font-semibold">{copy.blurMessage}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{copy.blurDescription}</p>
+            <p className="mt-3 font-heading font-semibold">{blurMessage}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{blurDescription}</p>
           </div>
         </div>
       </div>
@@ -42,9 +48,17 @@ export function AccountPrivacyPlaceholder({
   }
 
   const presentation = privacy.displayStyle === "unavailable"
-    ? { icon: CloudOff, title: copy.unavailableTitle, description: copy.unavailableDescription }
+    ? {
+        icon: CloudOff,
+        title: isAssets ? copy.assetUnavailableTitle : copy.unavailableTitle,
+        description: isAssets ? copy.assetUnavailableDescription : copy.unavailableDescription,
+      }
     : privacy.displayStyle === "empty"
-      ? { icon: WalletCards, title: copy.emptyTitle, description: copy.emptyDescription }
+      ? {
+          icon: isAssets ? Gem : WalletCards,
+          title: isAssets ? copy.assetEmptyTitle : copy.emptyTitle,
+          description: isAssets ? copy.assetEmptyDescription : copy.emptyDescription,
+        }
       : { icon: CircleSlash2, title: privacy.customMessage || copy.customFallback, description: null };
   const Icon = presentation.icon;
 
