@@ -202,8 +202,15 @@ export function QuickCaptureSheet({
     const typed = textDraft;
     try {
       const prepared = await prepareReceiptImage(file);
+      if (!prepared.ok) {
+        // Too big / unsupported: say so instead of a request the server rejects.
+        const message = prepared.reason === "too_large" ? t("capture.scanTooLarge") : t("capture.scanInvalid");
+        setReceipt({ status: "done", previewUrl, extraction: null, message });
+        setReceiptDraft(draftFromExtraction(null, typed));
+        return;
+      }
       const formData = new FormData();
-      formData.append("image", prepared);
+      formData.append("image", prepared.file);
       const result = await scanReceipt(formData);
       if (result.status === "ok") {
         const partial =

@@ -26,6 +26,7 @@ import { AIReceiptParser, MockReceiptParser, type ReceiptParser } from "./lib/re
 import { learnMerchantCategory } from "./learning";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { CaptureMerchantPreference } from "@/lib/capture/transaction-parser";
+import { SCAN_ACCEPTED_TYPES, SCAN_MAX_UPLOAD_BYTES } from "@/lib/capture/scan-upload";
 
 const PG_UNIQUE_VIOLATION = "23505";
 const PG_UNDEFINED_COLUMN = "42703";
@@ -368,8 +369,10 @@ export type ReceiptScanResult =
   | { status: "ok"; extraction: ReceiptExtraction; mock?: boolean }
   | { status: "unavailable" | "failed" | "limit" | "invalid"; message: string };
 
-const MAX_SCAN_BYTES = 5 * 1024 * 1024;
-const SCAN_MEDIA_TYPES: AIImageMediaType[] = ["image/jpeg", "image/png", "image/webp"];
+// Kept in sync with the browser-side prep (scan-upload.ts): the Server
+// Action body limit (1 MB) is the real ceiling, not the old 5 MB figure.
+const MAX_SCAN_BYTES = SCAN_MAX_UPLOAD_BYTES;
+const SCAN_MEDIA_TYPES: readonly AIImageMediaType[] = SCAN_ACCEPTED_TYPES;
 
 function getReceiptParser(): ReceiptParser | null {
   if (process.env.CAPTURE_OCR_MOCK === "1") return new MockReceiptParser();
