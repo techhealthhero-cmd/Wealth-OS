@@ -14,6 +14,7 @@ import { SuccessBadge } from "@/components/illustrations";
 import { formatMoney } from "@/lib/financial/money";
 import { toLocalDateString, addMonthsClamped } from "@/lib/date";
 import { useSpeechInput } from "@/lib/speech/use-speech-input";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import {
   defaultAccountId,
   matchAccount,
@@ -75,6 +76,7 @@ export function QuickCaptureSheet({
   onTransfer,
 }: QuickCaptureSheetProps) {
   const { t, locale } = useTranslation();
+  const keyboardInset = useKeyboardInset(open);
   const [text, setText] = useState("");
   const [textSource, setTextSource] = useState<"quick_text" | "voice">("quick_text");
   const [overrides, setOverrides] = useState<Partial<CaptureDraft>>({});
@@ -350,6 +352,13 @@ export function QuickCaptureSheet({
       <SheetContent
         side="bottom"
         className="max-h-[92dvh] gap-0 overflow-y-auto rounded-t-3xl p-0 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:mx-auto sm:max-w-lg"
+        // iOS overlays the keyboard instead of resizing the page — lift the
+        // sheet above it and cap its height to the space left visible.
+        style={
+          keyboardInset > 0
+            ? { bottom: keyboardInset, maxHeight: `calc(100dvh - ${keyboardInset}px - 1rem)`, paddingBottom: 12 }
+            : undefined
+        }
       >
         <SheetHeader className="pb-2">
           <SheetTitle className="text-lg">{t("capture.title")}</SheetTitle>
