@@ -66,13 +66,23 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
 
   return (
     <nav className="overflow-x-auto rounded-[1.75rem] border border-white/70 bg-white/45 p-1.5 shadow-[0_8px_32px_-12px_rgba(15,40,30,0.18),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl backdrop-saturate-150 [scrollbar-width:none] dark:border-white/10 dark:bg-white/5 dark:shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] [&::-webkit-scrollbar]:hidden">
-      <div className="relative flex min-w-max gap-1">
+      <div className="group/tabs relative flex min-w-max gap-1">
         {indicator ? (
           // Glossy brand-green tile: lighter green top fading into the same
           // primary as the bottom nav, with a glass-edge highlight and glow.
+          // Pressing the active tab sinks this tile too (same soft-press feel
+          // as the bottom nav's "+"). Uses the standalone `scale` property
+          // (Tailwind v4) so it composes with the inline translateX slide.
           <span
             aria-hidden="true"
-            className="absolute inset-y-0 left-0 rounded-[1.35rem] border border-white/40 shadow-[0_8px_20px_-6px_color-mix(in_oklab,var(--primary)_65%,transparent),inset_0_1px_0_rgba(255,255,255,0.35)] transition-[transform,width] duration-(--motion-normal) ease-(--ease-standard) dark:border-white/15"
+            className={cn(
+              "absolute inset-y-0 left-0 rounded-[1.35rem] border border-white/40 dark:border-white/15",
+              "shadow-[0_8px_20px_-6px_color-mix(in_oklab,var(--primary)_65%,transparent),inset_0_1px_0_rgba(255,255,255,0.35)]",
+              "transition-[transform,width,scale,box-shadow,filter] duration-(--motion-normal) ease-(--ease-standard)",
+              "group-has-[[aria-current=page]:active]/tabs:scale-[0.93] group-has-[[aria-current=page]:active]/tabs:brightness-95",
+              "group-has-[[aria-current=page]:active]/tabs:shadow-[0_3px_8px_-3px_color-mix(in_oklab,var(--primary)_65%,transparent),inset_0_3px_8px_rgba(0,0,0,0.25)]",
+              "motion-reduce:transition-none"
+            )}
             style={{
               width: indicator.width,
               transform: `translateX(${indicator.left}px)`,
@@ -92,9 +102,17 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
               ref={(el) => {
                 tabRefs.current[i] = el;
               }}
+              // Soft press: quick ease-out sink on touch (scale down + inner
+              // shade on inactive tabs), then an overshooting spring curve on
+              // release so it bounces back like a cushioned physical key.
               className={cn(
-                "relative flex min-w-18 shrink-0 flex-col items-center gap-1 whitespace-nowrap rounded-[1.35rem] px-3.5 py-2.5 text-xs transition-colors duration-(--motion-normal) ease-(--ease-standard) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                active ? "font-semibold text-white" : "font-medium text-foreground/75 hover:text-foreground"
+                "relative flex min-w-18 shrink-0 touch-manipulation select-none flex-col items-center gap-1 whitespace-nowrap rounded-[1.35rem] px-3.5 py-2.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "transform-gpu transition-[scale,translate,color,background-color,box-shadow] duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]",
+                "active:translate-y-px active:scale-[0.93] active:duration-150 active:ease-out",
+                "motion-reduce:transition-colors motion-reduce:active:scale-100 motion-reduce:active:translate-y-0",
+                active
+                  ? "font-semibold text-white"
+                  : "font-medium text-foreground/75 hover:text-foreground active:bg-foreground/6 active:shadow-[inset_0_2px_6px_rgba(0,0,0,0.12)] dark:active:bg-white/8"
               )}
             >
               {Icon ? (
