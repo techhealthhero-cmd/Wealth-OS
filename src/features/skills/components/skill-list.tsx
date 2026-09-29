@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { ArrowRight, Calculator } from "lucide-react";
+
 import { getUserSkills } from "@/features/skills/queries";
 import { getIncomeMissions, getIncomeRankXpEvents } from "@/features/income-missions/queries";
 import { getOpportunityCatalog } from "@/features/opportunities/queries";
@@ -12,6 +15,8 @@ import { EarnIllustration } from "@/components/illustrations";
 import { calculateSkillProgress } from "@/lib/skills/progress";
 import { calculateIncomeRank, type IncomeRankBreakdownItem } from "@/lib/skills/income-rank";
 import type { MissionType } from "@/types/database";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export async function SkillList() {
   const [skills, profile, missions, opportunities, incomeRankEvents] = await Promise.all([
@@ -85,6 +90,21 @@ export async function SkillList() {
         closedClientCount={closedClientCount}
         skillCount={skills.length}
       />
+
+      <Card className="border-primary/15 bg-primary/[0.035]">
+        <CardContent className="flex items-center gap-3 p-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Calculator className="size-5" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">{dict.earn.planner.skillCtaTitle}</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">{dict.earn.planner.skillCtaDescription}</p>
+          </div>
+          <Button size="icon-sm" variant="ghost" nativeButton={false} render={<Link href="/earn/income#income-planner-title" />} aria-label={dict.earn.planner.startPlanning}>
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Button>
+        </CardContent>
+      </Card>
 
       <SkillMap items={skillProgress} />
     </div>

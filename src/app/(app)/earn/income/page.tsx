@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { IncomeSourceList } from "@/features/income-sources/components/income-source-list";
 import { IncomeTargetSection } from "@/features/income-target/components/income-target-section";
+import { IncomePlannerSection } from "@/features/income-plans/components/income-planner-section";
 import { getPrivacyGate } from "@/features/account-privacy/gate";
 import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
@@ -15,6 +16,7 @@ export default async function EarnIncomePage() {
 
   return (
     <div className="space-y-6">
+      <IncomePlannerSection />
       <IncomeTargetSection />
       <IncomeSourceList />
     </div>

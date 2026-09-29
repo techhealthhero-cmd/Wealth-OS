@@ -57,6 +57,8 @@ export type IncomeSourceType =
 
 export type IncomeStability = "stable" | "variable";
 export type IncomeFrequency = "monthly" | "biweekly" | "weekly" | "irregular" | "one_time";
+export type IncomePlanEarningUnit = "hour" | "person" | "session" | "job" | "item";
+export type IncomePlanGrowthFocus = "steady" | "more_clients" | "raise_rate" | "scale";
 
 export type SkillCategory =
   | "web_development"
@@ -676,6 +678,36 @@ export interface Database {
         > & { user_id: string; name: string; source_type: IncomeSourceType };
         Update: Partial<Database["public"]["Tables"]["income_sources"]["Row"]>;
       };
+      income_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          skill_id: string | null;
+          income_source_id: string | null;
+          interest_name: string;
+          offer_name: string;
+          category: SkillCategory;
+          earning_unit: IncomePlanEarningUnit;
+          rate_per_unit: string;
+          units_per_week: string;
+          hours_per_unit: string;
+          active_weeks_per_year: number;
+          growth_focus: IncomePlanGrowthFocus;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["income_plans"]["Row"], "id" | "created_at" | "updated_at">
+        > & {
+          user_id: string;
+          interest_name: string;
+          offer_name: string;
+          rate_per_unit: string | number;
+          units_per_week: string | number;
+        };
+        Update: Partial<Database["public"]["Tables"]["income_plans"]["Row"]>;
+      };
       user_skills: {
         Row: {
           id: string;
@@ -1078,6 +1110,7 @@ export type AIConversation = Database["public"]["Tables"]["ai_conversations"]["R
 export type AIMessageRow = Database["public"]["Tables"]["ai_messages"]["Row"];
 export type AIUsageLog = Database["public"]["Tables"]["ai_usage_log"]["Row"];
 export type IncomeSource = Database["public"]["Tables"]["income_sources"]["Row"];
+export type IncomePlan = Database["public"]["Tables"]["income_plans"]["Row"];
 export type UserSkill = Database["public"]["Tables"]["user_skills"]["Row"];
 export type IncomeTarget = Database["public"]["Tables"]["income_targets"]["Row"];
 export type IncomeOpportunity = Database["public"]["Tables"]["income_opportunities"]["Row"];
