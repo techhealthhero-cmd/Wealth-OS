@@ -3,9 +3,14 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 
-import { createClient } from "@/lib/supabase/server";
+import { captureError } from "@/lib/observability";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { AccountPrivacyDisplayStyle } from "@/types/database";
-import type { AccountPrivacyState } from "./types";
+import {
+  DEFAULT_ACCOUNT_PRIVACY_STATE,
+  FAIL_CLOSED_ACCOUNT_PRIVACY_STATE,
+  type AccountPrivacyState,
+} from "./types";
 
 export const ACCOUNT_PRIVACY_COOKIE = "wealth_account_unlock";
 
@@ -19,17 +24,14 @@ interface PrivacyStateRow {
   locked_until: string | null;
 }
 
-const DEFAULT_STATE: AccountPrivacyState = {
-  enabled: false,
-  displayStyle: "blur",
-  customMessage: null,
-  pinConfigured: false,
-  isUnlocked: true,
-  unlockedUntil: null,
-  lockedUntil: null,
-};
-
 export const getAccountPrivacyState = cache(async (): Promise<AccountPrivacyState> => {
+  // Verify/refresh the Supabase session before calling the RPC. The account
+  // page used to call the RPC concurrently with getProfile(); during a token
+  // refresh that could reach Postgres without auth.uid() and crash only this
+  // route with the generic Next.js error boundary.
+  const user = await getAuthUser();
+  if (!user) return FAIL_CLOSED_ACCOUNT_PRIVACY_STATE;
+
   const cookieStore = await cookies();
   const unlockToken = cookieStore.get(ACCOUNT_PRIVACY_COOKIE)?.value ?? null;
   const supabase = await createClient();
@@ -38,14 +40,18 @@ export const getAccountPrivacyState = cache(async (): Promise<AccountPrivacyStat
   });
 
   if (error) {
-    if (process.env.NODE_ENV !== "production") {
-      throw new Error(`[dev] Failed to load account privacy settings: ${error.message}`);
-    }
-    throw new Error("Failed to load account privacy settings");
+    captureError(new Error(error.message), {
+      route: "account-privacy",
+      provider: "supabase",
+      operation: "get_account_privacy_state",
+      userId: user.id,
+      extra: { code: error.code ?? "unknown" },
+    });
+    return FAIL_CLOSED_ACCOUNT_PRIVACY_STATE;
   }
 
   const row = (Array.isArray(data) ? data[0] : data) as PrivacyStateRow | null;
-  if (!row) return DEFAULT_STATE;
+  if (!row) return DEFAULT_ACCOUNT_PRIVACY_STATE;
 
   return {
     enabled: row.enabled,

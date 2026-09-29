@@ -13,10 +13,11 @@ import { EmptyAccountsIllustration } from "@/components/illustrations";
 import { Plus } from "lucide-react";
 
 export async function AccountList() {
-  const [profile, privacy] = await Promise.all([
-    getProfile(),
-    getAccountPrivacyState(),
-  ]);
+  // Resolve the authenticated profile first so a refreshed access token is
+  // available before the privacy RPC decides whether financial rows may be
+  // fetched at all.
+  const profile = await getProfile();
+  const privacy = await getAccountPrivacyState();
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 

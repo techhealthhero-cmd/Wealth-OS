@@ -25,12 +25,12 @@ export default async function ProfilePage() {
   // (app)/layout.tsx already redirects unauthenticated users before this
   // page renders at all, so `!profile` here is a rare defensive case, not
   // the normal signed-out path.
-  const [profile, entitlements, accountPrivacy] = await Promise.all([
+  const [profile, entitlements] = await Promise.all([
     getProfile(),
     getEntitlements(),
-    getAccountPrivacyState(),
   ]);
   if (!profile) redirect("/login");
+  const accountPrivacy = await getAccountPrivacyState();
 
   const locale = await getLocale(profile.preferred_language);
   const dict = getDictionary(locale);
