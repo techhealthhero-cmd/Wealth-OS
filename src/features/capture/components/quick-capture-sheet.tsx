@@ -59,9 +59,9 @@ type ReceiptState =
   | { status: "scanning"; previewUrl: string }
   | { status: "done"; previewUrl: string; extraction: ReceiptExtraction | null; message: string | null; mock?: boolean };
 
-/** Pause after typing before an AI pass, and a hard per-open cap, so one capture can never fan out into many model calls. */
+/** Pause after typing and allow at most one AI pass for one capture session. */
 const AI_ASSIST_DEBOUNCE_MS = 1200;
-const AI_ASSIST_MAX_PER_OPEN = 3;
+const AI_ASSIST_MAX_PER_OPEN = 1;
 
 function centsToPrefillAmount(cents: number | null) {
   return cents === null ? undefined : (cents / 100).toString();
@@ -139,8 +139,8 @@ export function QuickCaptureSheet({
   const localParsed = useMemo(() => (textKey ? parseCaptureText(textKey, ctx) : null), [textKey, ctx]);
   const aiReading = aiReadings[textKey] ?? null;
 
-  // One AI pass only for sentences the rules could not fully read (never for
-  // "ข้าว 80 cash"-style input), after the user pauses, max 3 per open.
+  // One AI pass only for a sentence the rules could not fully read (never for
+  // "ข้าว 80 cash"-style input), after the user pauses, max 1 per open.
   useEffect(() => {
     if (!open || !localParsed || receipt.status !== "idle" || speech.listening) return;
     if (aiRequestedRef.current.has(textKey) || aiCallsRef.current >= AI_ASSIST_MAX_PER_OPEN) return;

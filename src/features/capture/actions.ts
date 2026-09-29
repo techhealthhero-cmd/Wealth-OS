@@ -10,7 +10,7 @@ import { captureError } from "@/lib/observability";
 import { friendlyDbError } from "@/lib/db-error";
 import { centsToDecimalString, parseMoneyToCents } from "@/lib/financial/money";
 import { detectSubscriptions } from "@/lib/financial/subscription-detector";
-import { normalizeMerchant } from "@/lib/capture/transaction-parser";
+import { normalizeMerchant, parseCaptureText } from "@/lib/capture/transaction-parser";
 import { todayInTimeZone } from "@/lib/date";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getAIUsageStatus } from "@/lib/billing/ai-usage";
@@ -31,6 +31,7 @@ import { isUndecidedCategory } from "@/lib/capture/inbox";
 import {
   AI_ASSIST_MAX_TEXT,
   buildAIParseSystemPrompt,
+  needsAIAssist,
   normalizeAIParseOutput,
   type AIParseFields,
 } from "@/lib/capture/ai-fallback";
@@ -461,11 +462,13 @@ export async function scanReceipt(formData: FormData): Promise<ReceiptScanResult
 
 export type CaptureAssistResult =
   | { status: "ok"; fields: AIParseFields | null }
-  | { status: "unavailable" | "limit" | "invalid" | "failed" };
+  | { status: "unavailable" | "limit" | "invalid" | "failed" | "not_needed" };
 
 /**
- * One AI reading of a Quick Capture sentence. Only called by the client for
- * sentences `needsAIAssist()` flags — simple ones never reach this. The
+ * One AI reading of a Quick Capture sentence. The client checks
+ * `needsAIAssist()` for responsiveness, and this public Server Action repeats
+ * that decision from trusted server-fetched context so a direct call cannot
+ * spend quota on a simple deterministic sentence. The
  * result is a SUGGESTION validated against the user's own text
  * (normalizeAIParseOutput) and merged client-side; nothing is saved here.
  * Metered like one AI Money Coach message; burst rate-limited.
@@ -481,6 +484,30 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
   } = await supabase.auth.getUser();
   if (!user) return { status: "invalid" };
 
+  const today = todayInTimeZone(timezone);
+  const [categoriesResult, accountsResult, preferencesResult] = await Promise.all([
+    supabase.from("categories").select("id, name_th, name_en, type, icon, is_system"),
+    supabase
+      .from("accounts")
+      .select("id, name, account_type, institution, is_archived")
+      .eq("is_archived", false),
+    supabase
+      .from("merchant_category_preferences")
+      .select("merchant_normalized, category_id")
+      .order("usage_count", { ascending: false })
+      .limit(500),
+  ]);
+  if (categoriesResult.error || accountsResult.error || preferencesResult.error) return { status: "failed" };
+
+  const categories = categoriesResult.data ?? [];
+  const local = parseCaptureText(input, {
+    today,
+    categories,
+    accounts: accountsResult.data ?? [],
+    merchantPreferences: preferencesResult.data ?? [],
+  });
+  if (!needsAIAssist(input, local)) return { status: "not_needed" };
+
   const provider = getAIProvider();
   if (!provider) return { status: "unavailable" };
 
@@ -489,13 +516,9 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
   const usage = await getAIUsageStatus(user.id);
   if (usage.limitReached) return { status: "limit" };
 
-  // RLS limits this to system categories + the user's own.
-  const { data: categories } = await supabase.from("categories").select("id, name_th, name_en, type, icon, is_system");
-  const today = todayInTimeZone(timezone);
-
   try {
     const result = await provider.generate({
-      system: buildAIParseSystemPrompt(today, categories ?? []),
+      system: buildAIParseSystemPrompt(today, categories),
       maxTokens: 300,
       messages: [{ role: "user", content: input }],
     });
@@ -505,7 +528,7 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
       input_tokens: result.usage.inputTokens,
       output_tokens: result.usage.outputTokens,
     });
-    return { status: "ok", fields: normalizeAIParseOutput(result.content, { text: input, today, categories: categories ?? [] }) };
+    return { status: "ok", fields: normalizeAIParseOutput(result.content, { text: input, today, categories }) };
   } catch (error) {
     // Never log the sentence itself — it's the user's financial data.
     captureError(error, { route: "capture.assistCaptureParse", operation: "ai_parse" });
