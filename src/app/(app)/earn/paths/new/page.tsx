@@ -9,11 +9,12 @@ import { CreatePathForm } from "@/features/earn/components/v2/create-path-form";
 
 export const metadata: Metadata = { title: "Earn — Wealth OS" };
 
-export default async function NewIncomePathPage({ searchParams }: { searchParams: Promise<{ type?: string; experiment?: string }> }) {
+export default async function NewIncomePathPage({ searchParams }: { searchParams: Promise<{ type?: string; experiment?: string; title?: string }> }) {
   const params = await searchParams;
   const profile = await getProfile();
   const dict = getDictionary(await getLocale(profile?.preferred_language));
-  // Only catalog keys / known types are honoured — never free text from the URL.
+  // Type/experiment must be catalog values; `title` is only a length-capped,
+  // user-editable prefill (e.g. from an Opportunities card), rendered as text.
   const experiment = params.experiment ? getExperiment(params.experiment) : null;
   const type = (experiment?.pathType ??
     ((INCOME_PATH_TYPES as readonly string[]).includes(params.type ?? "") ? params.type : null)) as IncomePathType | null;
@@ -21,7 +22,7 @@ export default async function NewIncomePathPage({ searchParams }: { searchParams
   return (
     <CreatePathForm
       defaultType={type}
-      defaultTitle={experiment ? experiments[experiment.key]?.title ?? "" : ""}
+      defaultTitle={experiment ? experiments[experiment.key]?.title ?? "" : (params.title ?? "").replace(/s+/g, " ").trim().slice(0, 100)}
       experimentKey={experiment?.key ?? null}
     />
   );

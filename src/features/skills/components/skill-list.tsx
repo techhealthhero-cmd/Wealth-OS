@@ -17,6 +17,7 @@ import { calculateIncomeRank, type IncomeRankBreakdownItem } from "@/lib/skills/
 import type { MissionType } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SkillEvidenceSection } from "@/features/earn/components/v2/skill-evidence-section";
 
 export async function SkillList() {
   const [skills, profile, missions, opportunities, incomeRankEvents] = await Promise.all([
@@ -83,6 +84,9 @@ export async function SkillList() {
 
   return (
     <div className="space-y-5">
+      {/* Earn V2: evidence-based progress first; Rank/XP stay as motivation below. */}
+      <SkillEvidenceSection dict={dict} skills={skills} />
+
       <IncomeRankCard
         progress={rankProgress}
         breakdown={rankBreakdown}

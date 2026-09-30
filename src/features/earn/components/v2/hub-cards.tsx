@@ -112,11 +112,49 @@ export function NextActionCard({
   );
 }
 
-/** Income that came from Earn paths — per currency, from real linked transactions only. */
-export function IncomeProgressCard({ dict, income, hidden }: { dict: Dictionary; income: PathIncome; hidden: boolean }) {
+/**
+ * Income progress: average monthly income vs target (the existing Income
+ * Profile / Income Target systems, THB) and, below, income that came from
+ * Earn paths (per currency, from real linked transactions only).
+ */
+export function IncomeProgressCard({
+  dict,
+  income,
+  hidden,
+  averageMonthlyCents,
+  targetMonthlyCents,
+}: {
+  dict: Dictionary;
+  income: PathIncome;
+  hidden: boolean;
+  averageMonthlyCents: number | null;
+  targetMonthlyCents: number | null;
+}) {
+  const pct = averageMonthlyCents !== null && targetMonthlyCents ? Math.min(100, Math.round((averageMonthlyCents / targetMonthlyCents) * 100)) : null;
   return (
     <Card>
       <CardContent className="pt-5">
+        {averageMonthlyCents !== null ? (
+          <div className="mb-4">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs text-muted-foreground">{dict.earn.v2.hub.avgMonthly}</p>
+                <p className="text-2xl font-bold tabular-nums">{hidden ? "••••" : formatMoney(averageMonthlyCents)}</p>
+              </div>
+              {targetMonthlyCents ? (
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">{dict.earn.v2.hub.target}</p>
+                  <p className="text-base font-semibold tabular-nums">{hidden ? "••••" : formatMoney(targetMonthlyCents)}</p>
+                </div>
+              ) : null}
+            </div>
+            {pct !== null && !hidden ? (
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={dict.earn.v2.hub.target}>
+                <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <p className="text-sm font-medium text-muted-foreground">{dict.earn.v2.hub.incomeProgress}</p>
         {hidden ? (
           <p className="mt-2 flex items-center gap-2 text-2xl font-bold tracking-widest text-muted-foreground" aria-label={dict.accountPrivacy.title}>

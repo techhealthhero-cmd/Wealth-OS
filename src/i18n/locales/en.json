@@ -1102,6 +1102,63 @@
   },
   "earn": {
     "v2": {
+      "skillsV2": {
+        "title": "Progress from real action",
+        "hint": "Skills grow from learning, doing and real results — not from points",
+        "levels": {
+          "none": "No evidence yet",
+          "learning": "Learning",
+          "action": "Used in practice",
+          "outcome": "Real results"
+        },
+        "dims": {
+          "learning": "Learning",
+          "action": "Action",
+          "outcome": "Outcome"
+        },
+        "supports": "Supports",
+        "noPaths": "Not used in any path yet",
+        "logLearning": "Log what you learned",
+        "learningLabel": "What did you learn about this skill?",
+        "learningPlaceholder": "e.g. Watched a 30-min Figma tutorial, built one homepage",
+        "save": "Save",
+        "saved": "Saved",
+        "recent": "Latest",
+        "pathSkills": "Skills used in this path",
+        "pathSkillsEmpty": "No skills linked — link them so results count as skill evidence",
+        "addSkill": "Link skill",
+        "chooseSkill": "Choose a skill",
+        "remove": "Remove",
+        "noSkillsYet": "No skills yet — add them on the Skills tab"
+      },
+      "opportunitiesV2": {
+        "forYou": "Experiments that fit you",
+        "forYouHint": "Based on your latest assessment",
+        "takeDiagnostic": "Take the 3-minute assessment to see experiments that fit you",
+        "startDiagnostic": "Start assessment",
+        "catalog": "All opportunities",
+        "catalogHint": "A curated list, not live job listings. Income figures are rough ranges.",
+        "fit": {
+          "strong": "Strong fit",
+          "worth_trying": "Worth trying",
+          "later": "Maybe not yet"
+        },
+        "why": "Why it might be worth trying",
+        "reasons": {
+          "skill_match": "Uses skills you have",
+          "fast_income": "Can earn soon",
+          "easy_start": "Easy to start",
+          "low_cost": "Low starting cost"
+        },
+        "smallTest": "Try it small first",
+        "experiments": {
+          "show_sample_five": "Make one sample and offer it to 5 potential customers",
+          "offer_trial_month": "Offer a 1-month trial to 3 customers",
+          "presell_five": "Take pre-orders from 5 customers before spending on production or stock"
+        },
+        "startPath": "Start as a path",
+        "legacyStart": "Create classic missions"
+      },
       "intro": {
         "title": "Find a way to earn more that fits you",
         "body": "Answer 8 short questions (about 3 minutes) and we'll help you find a starting point and small experiments you can actually try.",
@@ -1557,6 +1614,8 @@
       },
       "hub": {
         "todayQuestion": "What should I do today?",
+        "avgMonthly": "Average monthly income",
+        "target": "Target",
         "situation": "Where you are",
         "alsoCanDo": "Or do something else first",
         "incomeProgress": "Income from your paths",

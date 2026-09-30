@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, Circle, Clock, Coins, Lock, Target } from "lucide-react";
 
-import { getEarnProjects, getIncomePath, getLinkedIncome, getPathMissions } from "@/features/earn/v2-queries";
+import { getEarnProjects, getIncomePath, getLinkedIncome, getPathMissions, getSkillEvidenceData } from "@/features/earn/v2-queries";
+import { getUserSkills } from "@/features/skills/queries";
+import { PathSkillLinks } from "@/features/earn/components/v2/skill-evidence-client";
 import { getProfile } from "@/features/profile/queries";
 import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 import { isPrivacyLockedFor } from "@/features/account-privacy/types";
@@ -28,12 +30,14 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
   const path = await getIncomePath(pathId); // RLS: only the owner's path is visible
   if (!path) notFound();
 
-  const [missions, income, projects, profile, privacy] = await Promise.all([
+  const [missions, income, projects, profile, privacy, skills, skillData] = await Promise.all([
     getPathMissions([path.id]),
     getLinkedIncome([path.id]),
     getEarnProjects(path.id),
     getProfile(),
     getAccountPrivacyState(),
+    getUserSkills(),
+    getSkillEvidenceData(),
   ]);
   const dict = getDictionary(await getLocale(profile?.preferred_language));
   const v2 = dict.earn.v2;
@@ -214,6 +218,17 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
         )}
       </section>
       ) : null}
+
+      <section aria-labelledby="path-skills" className="space-y-2">
+        <h3 id="path-skills" className="text-base font-semibold">
+          {v2.skillsV2.pathSkills}
+        </h3>
+        <PathSkillLinks
+          pathId={path.id}
+          skills={skills.map((s) => ({ id: s.id, name: s.skill_name }))}
+          linkedIds={skillData.skillsByPath[path.id] ?? []}
+        />
+      </section>
 
       {history.length > 0 ? (
         <details className="rounded-2xl border bg-card px-4">

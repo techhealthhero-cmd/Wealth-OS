@@ -28,19 +28,21 @@ export function MissionResultForm({
   fields,
   mayProduceIncome,
   skills,
+  defaultSkillId = null,
 }: {
   missionId: string;
   pathId: string;
   fields: string[];
   mayProduceIncome: boolean;
   skills: { id: string; name: string }[];
+  defaultSkillId?: string | null;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [counts, setCounts] = useState<Record<string, number>>(() => Object.fromEntries(fields.map((f) => [f, 0])));
   const [decision, setDecision] = useState<ExperimentDecision>("continue");
   const [notes, setNotes] = useState("");
-  const [skillId, setSkillId] = useState(NO_SKILL);
+  const [skillId, setSkillId] = useState(defaultSkillId ?? NO_SKILL);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

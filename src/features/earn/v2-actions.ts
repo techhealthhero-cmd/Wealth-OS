@@ -410,3 +410,68 @@ export async function recordEarnIncome(input: {
   revalidatePath("/dashboard");
   return { success: true, id: data ?? undefined };
 }
+
+// ---------------------------------------------------------------------------
+// skills V2 — evidence + path links
+// ---------------------------------------------------------------------------
+
+/** "I learned something" — the learning dimension of a skill's evidence. */
+export async function addLearningEvidence(input: { skillId: string; description: string }): Promise<EarnActionResult> {
+  const { dict } = await context();
+  const description = typeof input.description === "string" ? input.description.trim() : "";
+  if (!/^[0-9a-f-]{36}$/i.test(input.skillId) || !description || description.length > 1000) return { error: dict.common.invalidInput };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+  // RLS (0028) re-checks that the skill belongs to this user.
+  const { error } = await supabase.from("skill_evidence").insert({
+    user_id: user.id,
+    user_skill_id: input.skillId,
+    dimension: "learning",
+    evidence_type: "self_learning",
+    description,
+    metadata: {},
+  });
+  if (error) return { error: friendlyDbError(error, "addLearningEvidence", dict.earn.v2.missions.failed) };
+  revalidatePath("/earn/skills");
+  return { success: true };
+}
+
+/** A skill can support several paths; RLS verifies both belong to the user. */
+export async function linkSkillToPath(input: { pathId: string; skillId: string }): Promise<EarnActionResult> {
+  const { dict } = await context();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+  const { error } = await supabase
+    .from("income_path_skills")
+    .insert({ user_id: user.id, income_path_id: input.pathId, user_skill_id: input.skillId });
+  // Already linked (primary key) is fine.
+  if (error && error.code !== "23505") return { error: friendlyDbError(error, "linkSkillToPath", dict.earn.v2.missions.failed) };
+  revalidatePath(`/earn/paths/${input.pathId}`);
+  revalidatePath("/earn/skills");
+  return { success: true };
+}
+
+export async function unlinkSkillFromPath(input: { pathId: string; skillId: string }): Promise<EarnActionResult> {
+  const { dict } = await context();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+  const { error } = await supabase
+    .from("income_path_skills")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("income_path_id", input.pathId)
+    .eq("user_skill_id", input.skillId);
+  if (error) return { error: friendlyDbError(error, "unlinkSkillFromPath", dict.earn.v2.missions.failed) };
+  revalidatePath(`/earn/paths/${input.pathId}`);
+  revalidatePath("/earn/skills");
+  return { success: true };
+}

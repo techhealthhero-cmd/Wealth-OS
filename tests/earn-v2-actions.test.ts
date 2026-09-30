@@ -26,7 +26,7 @@ const MIGRATION_0031 = new Set(["earn_projects", "earn_transaction_links"]);
 
 class Query {
   private filters: ((r: Row) => boolean)[] = [];
-  private op: "select" | "insert" | "update" | "upsert" = "select";
+  private op: "select" | "insert" | "update" | "upsert" | "delete" = "select";
   private payload: Row | null = null;
   private conflict: string | null = null;
   private limitN = Infinity;
@@ -34,6 +34,7 @@ class Query {
   select() { return this; }
   insert(p: Row) { this.op = "insert"; this.payload = p; return this; }
   update(p: Row) { this.op = "update"; this.payload = p; return this; }
+  delete() { this.op = "delete"; return this; }
   upsert(p: Row, o?: { onConflict?: string }) { this.op = "upsert"; this.payload = p; this.conflict = o?.onConflict ?? null; return this; }
   eq(c: string, v: unknown) { this.filters.push((r) => r[c] === v); return this; }
   neq(c: string, v: unknown) { this.filters.push((r) => r[c] !== v); return this; }
@@ -56,6 +57,10 @@ class Query {
       return { data: null, error: null };
     }
     const matched = this.rows().filter((r) => this.filters.every((f) => f(r)));
+    if (this.op === "delete") {
+      db[this.table] = this.rows().filter((r) => !matched.includes(r));
+      return { data: null, error: null };
+    }
     if (this.op === "update") matched.forEach((r) => Object.assign(r, this.payload));
     return { data: matched.slice(0, this.limitN), error: null };
   }
@@ -254,5 +259,24 @@ describe("real income goes through the existing ledger (record_earn_income)", ()
     migrated0031 = false;
     expect((await recordEarnIncome(INPUT)).error).toMatch(/0031/);
     expect((await createEarnProject({ pathId: "path-1", title: "ABC website" })).error).toMatch(/0031/);
+  });
+});
+
+describe("Skills V2 actions", () => {
+  it("logs learning evidence for a skill", async () => {
+    const { addLearningEvidence } = await import("@/features/earn/v2-actions");
+    const SKILL = "66666666-6666-4666-8666-666666666666";
+    expect((await addLearningEvidence({ skillId: SKILL, description: "Figma basics 30 min" })).success).toBe(true);
+    expect(db.skill_evidence[0]).toMatchObject({ user_id: "user-1", user_skill_id: SKILL, dimension: "learning", description: "Figma basics 30 min" });
+    expect((await addLearningEvidence({ skillId: "not-a-uuid", description: "x" })).error).toBeTruthy();
+    expect((await addLearningEvidence({ skillId: SKILL, description: "   " })).error).toBeTruthy();
+  });
+
+  it("links a skill to a path (idempotent) and unlinks it", async () => {
+    const { linkSkillToPath, unlinkSkillFromPath } = await import("@/features/earn/v2-actions");
+    await linkSkillToPath({ pathId: "p1", skillId: "s1" });
+    expect(db.income_path_skills).toEqual([expect.objectContaining({ user_id: "user-1", income_path_id: "p1", user_skill_id: "s1" })]);
+    await unlinkSkillFromPath({ pathId: "p1", skillId: "s1" });
+    expect(db.income_path_skills).toEqual([]);
   });
 });

@@ -263,3 +263,33 @@ export async function getEarnHubData(): Promise<EarnHubData> {
     missionTitles: Object.fromEntries(liveMissions.map((m) => [m.id, m.title])),
   };
 }
+
+export interface SkillEvidenceData {
+  evidence: { user_skill_id: string; dimension: "learning" | "action" | "outcome"; occurred_at: string; description: string | null; evidence_type: string }[];
+  /** skillId → paths it supports */
+  pathsBySkill: Record<string, { id: string; title: string }[]>;
+  /** pathId → linked skill ids */
+  skillsByPath: Record<string, string[]>;
+}
+
+export async function getSkillEvidenceData(): Promise<SkillEvidenceData> {
+  const supabase = await createClient();
+  const [{ data: evidence }, { data: links }, paths] = await Promise.all([
+    supabase
+      .from("skill_evidence")
+      .select("user_skill_id, dimension, occurred_at, description, evidence_type")
+      .order("occurred_at", { ascending: false })
+      .limit(500),
+    supabase.from("income_path_skills").select("income_path_id, user_skill_id"),
+    getIncomePaths(),
+  ]);
+  const titles = new Map(paths.map((p) => [p.id, p.title]));
+  const pathsBySkill: SkillEvidenceData["pathsBySkill"] = {};
+  const skillsByPath: SkillEvidenceData["skillsByPath"] = {};
+  for (const l of links ?? []) {
+    const title = titles.get(l.income_path_id);
+    if (title) (pathsBySkill[l.user_skill_id] ??= []).push({ id: l.income_path_id, title });
+    (skillsByPath[l.income_path_id] ??= []).push(l.user_skill_id);
+  }
+  return { evidence: (evidence ?? []) as SkillEvidenceData["evidence"], pathsBySkill, skillsByPath };
+}

@@ -2,6 +2,9 @@ import Link from "next/link";
 import { ArrowRight, Compass, Plus, Sparkles, Trophy, Wallet } from "lucide-react";
 
 import { getEarnHubData } from "@/features/earn/v2-queries";
+import { getIncomeProfileSummary } from "@/features/income-profile/queries";
+import { getIncomeTarget } from "@/features/income-target/queries";
+import { parseMoneyToCents } from "@/lib/financial/money";
 import { getProfile } from "@/features/profile/queries";
 import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 import { isPrivacyLockedFor } from "@/features/account-privacy/types";
@@ -27,7 +30,14 @@ import {
  * respect the "planning" privacy scope.
  */
 export async function EarnHub() {
-  const [data, profile, privacy] = await Promise.all([getEarnHubData(), getProfile(), getAccountPrivacyState()]);
+  const [data, profile, privacy, incomeSummary, target] = await Promise.all([
+    getEarnHubData(),
+    getProfile(),
+    getAccountPrivacyState(),
+    // Supporting numbers only — a failure here must never hide the guidance.
+    getIncomeProfileSummary().catch(() => null),
+    getIncomeTarget().catch(() => null),
+  ]);
   const dict = getDictionary(await getLocale(profile?.preferred_language));
   const v2 = dict.earn.v2;
 
@@ -48,8 +58,14 @@ export async function EarnHub() {
       />
 
       {/* Hidden (not an error message) until migration 0031 provides income links. */}
-      {livePaths.length > 0 && data.income.available ? (
-        <IncomeProgressCard dict={dict} income={data.income} hidden={amountsHidden} />
+      {data.income.available ? (
+        <IncomeProgressCard
+          dict={dict}
+          income={data.income}
+          hidden={amountsHidden}
+          averageMonthlyCents={incomeSummary?.profile.averageMonthlyIncomeCents ?? null}
+          targetMonthlyCents={target?.target_monthly_income ? parseMoneyToCents(target.target_monthly_income) : null}
+        />
       ) : null}
 
       <section aria-labelledby="earn-paths" className="space-y-2">
