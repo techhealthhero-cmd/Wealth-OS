@@ -37,20 +37,6 @@ import {
 } from "@/lib/capture/ai-fallback";
 
 const PG_UNIQUE_VIOLATION = "23505";
-const PG_UNDEFINED_COLUMN = "42703";
-const PG_CHECK_VIOLATION = "23514";
-const POSTGREST_UNKNOWN_COLUMN = "PGRST204";
-
-/**
- * True when an error means "migration 0021 isn't applied to this database
- * yet" — an unknown column, or the old `source` check rejecting a new value.
- * The caller then retries in pre-0021 shape so capturing never breaks.
- */
-function isPreMigrationError(error: { code?: string; message?: string } | null): boolean {
-  if (!error) return false;
-  if (error.code === PG_UNDEFINED_COLUMN || error.code === POSTGREST_UNKNOWN_COLUMN) return true;
-  return error.code === PG_CHECK_VIOLATION && /source/i.test(error.message ?? "");
-}
 
 async function getRequestContext() {
   const profile = await getProfile();
@@ -220,7 +206,7 @@ export async function saveCapturedTransaction(input: CaptureSaveInput): Promise<
 
   // RLS re-validates account/category ownership on insert (0001's
   // transactions_insert_own) — user_id always comes from the session.
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("transactions")
     .insert({
       ...base,
@@ -232,13 +218,8 @@ export async function saveCapturedTransaction(input: CaptureSaveInput): Promise<
     .select("id")
     .single();
 
-  if (isPreMigrationError(error)) {
-    ({ data, error } = await supabase
-      .from("transactions")
-      .insert({ ...base, source: "manual" })
-      .select("id")
-      .single());
-  }
+  // Migration 0021 is applied on every database this app runs against
+  // (verified 2026-09-30), so the old pre-0021 retry shape was removed.
 
   if (error && error.code === PG_UNIQUE_VIOLATION) {
     // Same capture already saved (a retried tap) — look it up, succeed quietly.

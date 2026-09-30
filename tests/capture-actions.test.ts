@@ -220,15 +220,6 @@ describe("saveCapturedTransaction", () => {
     expect(db.transactions).toHaveLength(2);
   });
 
-  it("still saves on a database without migration 0021 (pre-0021 shape)", async () => {
-    migrated = false;
-    const res = await saveCapturedTransaction({ ...BASE, clientRequestId: key() });
-    expect(res.success).toBe(true);
-    expect(db.transactions).toHaveLength(1);
-    expect(db.transactions[0].source).toBe("manual");
-    expect(db.transactions[0]).not.toHaveProperty("review_status");
-  });
-
   it("rejects an unauthenticated call and invalid payloads", async () => {
     currentUser = null;
     expect((await saveCapturedTransaction({ ...BASE, clientRequestId: key() })).error).toBeTruthy();

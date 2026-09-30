@@ -92,4 +92,14 @@ describe("Next Action Engine V1", () => {
     }));
     expect(result.primary.actionKind).toBe("complete_diagnostic");
   });
+
+  it("v2: a user who skipped the diagnostic but has a path sees the path's mission first", () => {
+    const result = resolveNextAction(input({
+      assessmentStatus: "not_started",
+      stage: { stage: "unknown", reasonCodes: ["diagnostic_incomplete"], rulesVersion: "earn-stage-v1", confidence: "insufficient" },
+      activeMissions: [{ id: "m1", pathId: "path-1", estimatedMinutes: 30 }],
+    }));
+    expect(result.primary).toMatchObject({ actionKind: "continue_mission", missionId: "m1" });
+    expect(result.secondary.map((a) => a.actionKind)).toContain("complete_diagnostic");
+  });
 });

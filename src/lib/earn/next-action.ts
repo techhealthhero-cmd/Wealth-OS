@@ -5,7 +5,13 @@ import type {
   NextActionResult,
 } from "@/lib/earn/types";
 
-export const NEXT_ACTION_RULES_VERSION = "earn-next-action-v1";
+/**
+ * v2 (product decision, 2026-09-30): someone who skipped the diagnostic
+ * ("I already know what I want to do") and already has a path sees their
+ * path's work first; the diagnostic stays available as a secondary action.
+ * With no path yet, the diagnostic still comes first (v1 behaviour).
+ */
+export const NEXT_ACTION_RULES_VERSION = "earn-next-action-v2";
 
 const KEYS: Record<NextActionKind, { titleKey: string; reasonKey: string; ctaKey: string }> = {
   complete_diagnostic: keySet("completeDiagnostic"),
@@ -47,7 +53,9 @@ function action(
 export function resolveNextAction(input: NextActionInput): NextActionResult {
   const candidates: NextAction[] = [];
 
-  if (input.assessmentStatus !== "completed" || input.stage.stage === "unknown") {
+  const diagnosticMissing = input.assessmentStatus !== "completed" || input.stage.stage === "unknown";
+  const hasPath = input.activePaths.length > 0;
+  if (diagnosticMissing && !hasPath) {
     candidates.push(action("complete_diagnostic", { estimatedMinutes: 3 }));
   }
 
@@ -87,6 +95,10 @@ export function resolveNextAction(input: NextActionInput): NextActionResult {
       projectId: unrecordedIncome.projectId,
       estimatedMinutes: 2,
     }));
+  }
+
+  if (diagnosticMissing && hasPath) {
+    candidates.push(action("complete_diagnostic", { estimatedMinutes: 3 }));
   }
 
   const stageAction: Record<typeof input.stage.stage, NextActionKind> = {
