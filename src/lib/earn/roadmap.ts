@@ -87,3 +87,43 @@ export function getRoadmapTemplate(pathType: IncomePathType): RoadmapTemplate {
     steps: template.steps.map((step) => ({ ...step, missionCategories: [...step.missionCategories] })),
   };
 }
+
+export interface RoadmapProgress {
+  total: number;
+  /** 0-based index of the current step; equals `total` once every step is done. */
+  currentIndex: number;
+  currentStepKey: string | null;
+  nextStepKey: string | null;
+  completedStepKeys: string[];
+  isComplete: boolean;
+}
+
+/**
+ * Where a path is on its roadmap. `currentStepKey` null means either not
+ * started (treated as the first step) or finished (`completed = true`). An
+ * unknown key (template changed) falls back to the first step rather than
+ * guessing progress.
+ */
+export function getRoadmapProgress(pathType: IncomePathType, currentStepKey: string | null, completed = false): RoadmapProgress {
+  const keys = ROADMAP_TEMPLATES[pathType].steps.map((s) => s.key);
+  if (completed) {
+    return { total: keys.length, currentIndex: keys.length, currentStepKey: null, nextStepKey: null, completedStepKeys: keys, isComplete: true };
+  }
+  const found = currentStepKey ? keys.indexOf(currentStepKey) : -1;
+  const index = found >= 0 ? found : 0;
+  return {
+    total: keys.length,
+    currentIndex: index,
+    currentStepKey: keys[index],
+    nextStepKey: keys[index + 1] ?? null,
+    completedStepKeys: keys.slice(0, index),
+    isComplete: false,
+  };
+}
+
+/** The step after `stepKey`, or null when it was the last one. */
+export function getNextRoadmapStepKey(pathType: IncomePathType, stepKey: string): string | null {
+  const keys = ROADMAP_TEMPLATES[pathType].steps.map((s) => s.key);
+  const i = keys.indexOf(stepKey);
+  return i >= 0 ? keys[i + 1] ?? null : null;
+}

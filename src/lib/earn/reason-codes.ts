@@ -38,6 +38,7 @@ export const OPPORTUNITY_REASON_CODES = [
   "low_starting_capital",
   "matches_work_preference",
   "supports_income_goal",
+  "uses_existing_resources",
 ] as const;
 
 export type OpportunityReasonCode = (typeof OPPORTUNITY_REASON_CODES)[number];
