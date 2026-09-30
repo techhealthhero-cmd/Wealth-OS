@@ -180,6 +180,8 @@ export interface EarnHubData {
   nextAction: NextActionResult;
   recommendations: RecommendedExperiment[];
   income: PathIncome;
+  /** Titles of live missions, so the Hub can headline the concrete mission. */
+  missionTitles: Record<string, string>;
 }
 
 /** A path's current mission: the open mission on its current roadmap step, else the latest open one. */
@@ -258,5 +260,6 @@ export async function getEarnHubData(): Promise<EarnHubData> {
     nextAction,
     recommendations: assessment ? recommendExperiments(assessment.answers, stage.stage) : [],
     income,
+    missionTitles: Object.fromEntries(liveMissions.map((m) => [m.id, m.title])),
   };
 }

@@ -189,3 +189,14 @@ describe("validation", () => {
     expect(missionResultSchema.safeParse({ missionId: "x", counts: {}, decision: null, notes: null }).success).toBe(false);
   });
 });
+
+describe("mainConstraint", () => {
+  it("income first when surviving, then time, money, tools", async () => {
+    const { mainConstraint } = await import("@/lib/earn/diagnostic");
+    expect(mainConstraint(answers(), "survive")).toBe("income");
+    expect(mainConstraint(answers({ availableHoursPerWeek: 3 }), "cashflow")).toBe("time");
+    expect(mainConstraint(answers(), "cashflow")).toBe("capital");
+    expect(mainConstraint(answers({ startingCapitalMinor: 50_000, availableResources: ["time"] }), "grow")).toBe("resources");
+    expect(mainConstraint(answers({ startingCapitalMinor: 50_000 }), "grow")).toBe("none");
+  });
+});

@@ -114,3 +114,18 @@ export function firstIncompleteStep(draft: Partial<DiagnosticAnswers>): Diagnost
   if (!draft.currentPriority) return "priority";
   return null;
 }
+
+export type MainConstraint = "income" | "time" | "capital" | "resources" | "none";
+
+/**
+ * The single most important constraint to show on the starting-point
+ * screen. Basic income comes first when there is none; then time, money,
+ * tools. Deterministic, explainable, never a score.
+ */
+export function mainConstraint(answers: DiagnosticAnswers, stage: string): MainConstraint {
+  if (stage === "survive") return "income";
+  if (answers.availableHoursPerWeek < 5) return "time";
+  if (answers.startingCapitalMinor === 0) return "capital";
+  if (answers.availableResources.filter((r) => r !== "time").length === 0) return "resources";
+  return "none";
+}
