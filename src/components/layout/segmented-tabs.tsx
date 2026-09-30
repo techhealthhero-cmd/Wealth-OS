@@ -67,7 +67,7 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
   return (
     <nav className="overflow-x-auto rounded-[1.75rem] border border-white/70 bg-white/45 p-1.5 shadow-[0_8px_32px_-12px_rgba(15,40,30,0.18),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl backdrop-saturate-150 [scrollbar-width:none] dark:border-white/10 dark:bg-white/5 dark:shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] [&::-webkit-scrollbar]:hidden">
       <div className="group/tabs relative flex min-w-max gap-1">
-        {indicator ? (
+        {indicator && activeIndex >= 0 ? (
           // Glossy brand-green tile: lighter green top fading into the same
           // primary as the bottom nav, with a glass-edge highlight and glow.
           // Pressing the active tab sinks this tile too (same soft-press feel

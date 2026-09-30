@@ -158,7 +158,7 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
       </section>
 
       {/* Real income from this path — lives in the real ledger. */}
-      {type !== "investment" ? (
+      {type !== "investment" && income.available ? (
         <Card>
           <CardContent className="flex items-center gap-3 pt-5">
             <IconChip icon={Coins} />
@@ -190,6 +190,7 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
       ) : null}
 
       {/* Projects are optional. */}
+      {projects.available ? (
       <section aria-labelledby="projects" className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 id="projects" className="text-base font-semibold">
@@ -212,6 +213,7 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
           </ul>
         )}
       </section>
+      ) : null}
 
       {history.length > 0 ? (
         <details className="rounded-2xl border bg-card px-4">

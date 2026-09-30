@@ -8,6 +8,27 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-09-30
 
+## Earn V2 — 2026-09-30
+
+Built on the Earn Foundation (`bc7f559`, migration 0028 — **applied to production**, verified by read-only column checks). Commits: `e9f9ce2` domain, `cc3562b` data layer + migration 0031 + copy, `de1dcb8` UI, plus the UX-fix commit after visual QA.
+
+**VERIFIED (automated + live E2E, 390px, real production DB, disposable user deleted afterwards, global row counts unchanged, zero console errors):**
+- `/earn` Hub: first-time intro (→ diagnostic, or "ฉันรู้อยู่แล้วว่าอยากทำอะไร" → create path); returning users see situation → ONE Next Action (strongest card; a concrete mission's own title is the headline) → up to 2 secondary → active paths with roadmap progress → skills/income/opportunities links. Thai and English both rendered.
+- Diagnostic (`/earn/diagnostic`): 8 questions, one per screen, per-user localStorage draft — refresh mid-way resumed at the right question with answers intact; back navigation keeps answers. Submitting stores a NEW immutable `earn_assessments` snapshot (stage computed server-side; reassessment never overwrites — table has no update policy).
+- Starting point (`/earn/diagnostic/result`): plain-language situation, self-reported income/expenses (hidden under Privacy Center "planning" lock), resources, strengths, main constraint, priority, and up to 3 recommended experiments with reason chips (no percentages — asserted in E2E).
+- Stage is recomputed live from the latest answers + current emergency fund (deterministic, versioned `earn-stage-v1`); unknown buffer stays unknown (→ stability, never grow); a questionnaire can never produce scale/freedom; investment experiments are never suggested in survive/cashflow; experiments costing more than the user's capital are never suggested.
+- Paths: create from an experiment (prefilled title) or directly; roadmap initialized at step 1 with its concrete mission (one per step, all 4 path types; investment is planning-only, no money outcomes).
+- Missions: completing a no-result mission advances exactly one step (repeat completion never double-advances); a result-required mission routes to `/earn/missions/[id]/result`; results are validated (template fields only, whole numbers, funnel never widens) and drive continue / adjust (fresh try) / pause / switch; optional skill evidence (outcome vs action). XP is awarded once per mission via the existing ledger and never affects stage or Next Action.
+- Next Action recalculates after each action (E2E: foundation mission → after result, "หาลูกค้าที่อาจสนใจ 5 ราย").
+- 793/793 unit/integration tests (Earn V2: domain, validation, actions against an in-memory Supabase fake incl. cross-user isolation, immutable reassessment, idempotent RPC call shape), typecheck, lint, production build.
+
+**IMPLEMENTED BUT NOT YET LIVE — needs migration `0031_earn_projects_income_links.sql` applied:**
+- `earn_projects` (optional projects per path) and `earn_transaction_links` (links a REAL income transaction to a path/project; unique per transaction so nothing is double-counted; RLS checks every parent incl. "income transactions only").
+- `record_earn_income()` RPC: creates the income transaction in the existing `transactions` ledger AND its Earn link in one database call (both or neither), idempotent via `client_request_id` (same pattern as `create_transfer`). Earn has no ledger of its own.
+- UI for both (`/earn/paths/[id]/income`, projects list/create) is built; until 0031 is applied these sections are simply hidden (no error shown to users). Apply with `supabase db push --linked` after a `--dry-run` that should list exactly `0031`.
+
+**PLANNED / NOT DONE:** Earn-specific Opportunities cards (the existing Opportunities tab is unchanged), skill-evidence display on the Skills tab, E2E for the income/project flow (blocked on 0031), E2E personas beyond the zero-income user, desktop/tablet visual QA, real-device testing.
+
 ## Quick Capture ("capture first, organize later") — 2026-09-29
 
 **Built, tested, and verified live end-to-end (2026-09-30). Migration `0021_quick_capture.sql` IS applied to production** (`lvxuruzspchhcwebrbzy` — confirmed by a read-only column check: `transactions.review_status`/`ai_confidence`/`reference` and `merchant_category_preferences` all exist). The pre-0021 fallback in `capture/actions.ts` (`42703`/`PGRST204` → retry in the old row shape) is therefore now dormant bridge code on production; it has deliberately NOT been removed yet (same pattern as the 0012 bridge, which was removed in a later pass).

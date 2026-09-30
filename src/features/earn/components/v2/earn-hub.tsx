@@ -47,7 +47,10 @@ export async function EarnHub() {
         missionTitles={data.missionTitles}
       />
 
-      {livePaths.length > 0 ? <IncomeProgressCard dict={dict} income={data.income} hidden={amountsHidden} /> : null}
+      {/* Hidden (not an error message) until migration 0031 provides income links. */}
+      {livePaths.length > 0 && data.income.available ? (
+        <IncomeProgressCard dict={dict} income={data.income} hidden={amountsHidden} />
+      ) : null}
 
       <section aria-labelledby="earn-paths" className="space-y-2">
         <div className="flex items-center justify-between">
