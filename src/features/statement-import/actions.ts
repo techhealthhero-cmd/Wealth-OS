@@ -93,33 +93,15 @@ export async function createStatementImport(formData: FormData): Promise<ImportA
   }
 
   const contentHash = createHash("sha256").update(bytes).digest("hex");
-  const { data: batch, error: batchError } = await auth.supabase
-    .from("transaction_import_batches")
-    .insert({
-      user_id: auth.user.id,
-      account_id: accountId,
-      filename: safeFilename(file.name),
-      content_hash: contentHash,
-      row_count: parsed.rows.length,
-    })
-    .select("*")
-    .single();
+  const { data: batchData, error: batchError } = await auth.supabase.rpc("create_statement_import_batch", {
+    p_account_id: accountId,
+    p_filename: safeFilename(file.name),
+    p_content_hash: contentHash,
+    p_rows: parsed.rows,
+  });
+  const batch = (Array.isArray(batchData) ? batchData[0] : batchData) as TransactionImportBatch | null;
   if (batchError || !batch) {
     return { success: false, error: batchError ? friendlyDbError(batchError, "statementImport.createBatch", "สร้างรายการนำเข้าไม่สำเร็จ") : "สร้างรายการนำเข้าไม่สำเร็จ" };
-  }
-
-  const insertRows = parsed.rows.map((raw, index) => ({
-    batch_id: batch.id,
-    user_id: auth.user.id,
-    row_number: index + 1,
-    raw_data: raw,
-  }));
-  for (let offset = 0; offset < insertRows.length; offset += 250) {
-    const { error } = await auth.supabase.from("transaction_import_rows").insert(insertRows.slice(offset, offset + 250));
-    if (error) {
-      await auth.supabase.from("transaction_import_batches").delete().eq("id", batch.id).eq("user_id", auth.user.id);
-      return { success: false, error: friendlyDbError(error, "statementImport.createRows", "บันทึกแถว CSV ไม่สำเร็จ") };
-    }
   }
 
   return {

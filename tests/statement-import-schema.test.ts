@@ -22,10 +22,17 @@ describe("statement import database boundary", () => {
     expect(sql).toContain("t.client_request_id = r.id");
   });
 
+  it("creates staging batches and rows atomically", () => {
+    const atomicSql = readFileSync(resolve("supabase/migrations/0030_atomic_statement_import_staging.sql"), "utf8");
+    expect(atomicSql).toContain("create_statement_import_batch");
+    expect(atomicSql).toContain("SECURITY INVOKER");
+    expect(atomicSql).toContain("jsonb_array_elements");
+    expect(atomicSql).toContain("auth.uid()");
+  });
+
   it("keeps cross-user account and transaction relationships behind ownership checks", () => {
     expect(sql).toContain("a.user_id = auth.uid()");
     expect(sql).toContain("t.user_id = auth.uid()");
     expect(sql).toContain("transaction_import_rows_batch_owner_fk");
   });
 });
-

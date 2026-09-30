@@ -1269,6 +1269,15 @@ export interface Database {
         Args: { p_batch_id: string };
         Returns: number;
       };
+      create_statement_import_batch: {
+        Args: {
+          p_account_id: string;
+          p_filename: string;
+          p_content_hash: string;
+          p_rows: Record<string, string>[];
+        };
+        Returns: Database["public"]["Tables"]["transaction_import_batches"]["Row"];
+      };
     };
   };
 }
