@@ -2580,7 +2580,7 @@
     "navLabel": "How to use",
     "title": "How to use WEALTH OS",
     "subtitle": "Know your money, grow your income, build your wealth — an easy guide to every feature in the app.",
-    "lastUpdated": "Last updated Sep 19, 2026 · updated every time a new feature ships",
+    "lastUpdated": "Last updated Sep 30, 2026 · updated every time a new feature ships",
     "philosophy": {
       "track": "Track",
       "analyze": "Analyze",
@@ -2681,10 +2681,15 @@
         "title": "Earn",
         "description": "What sets WEALTH OS apart from a typical finance app — it doesn't just help you save, it helps you earn more too.",
         "items": [
-          { "emoji": "💼", "title": "Income Profile", "description": "Log every income source you have and see how stable it really is." },
-          { "emoji": "🛠️", "title": "My Skills", "description": "Enter your skills, experience, and available time so the app can match you with real opportunities." },
-          { "emoji": "💡", "title": "Opportunities", "description": "Curated side-income and freelance ideas matched to your skills, each with a fit score.", "badge": "limitedFree" },
-          { "emoji": "🚀", "title": "Income Missions", "description": "Clear, step-by-step actions that close the gap between your current and target income.", "badge": "limitedFree" }
+          { "emoji": "🧭", "title": "Your starting point", "description": "Answer 8 short questions (about 3 minutes), one at a time. You'll see what to focus on now — e.g. first income or stability. Leave and resume any time; reassess whenever you like, past results are kept." },
+          { "emoji": "✅", "title": "What should I do today?", "description": "The green card on Earn shows the one next thing to do, with a time estimate. When you finish, the next step is recalculated." },
+          { "emoji": "🛣️", "title": "Income paths", "description": "Four kinds: Career, Freelance/Service, Business/Product and Investment (planning only — never buy/sell advice). Have several at once. Each path has a step-by-step plan showing where you are and what's next." },
+          { "emoji": "🧪", "title": "Suggested experiments", "description": "Start small — low cost, fast feedback, e.g. make one sample and show it to 5 customers. Each suggestion says why it fits you; no percentage scores." },
+          { "emoji": "🚀", "title": "Missions and results", "description": "Missions are real actions. Record what happened (how many you contacted, how many replied), then continue, adjust and retry, pause or switch paths. A weak result is still useful information." },
+          { "emoji": "💰", "title": "Record real income", "description": "Got paid from a path? Tap “Record real income”: the money goes into your real account like any income, balances and net worth update immediately, a repeated tap never double-records, and you can link a project (optional)." },
+          { "emoji": "🛠️", "title": "My Skills", "description": "Skills grow from real evidence: learning, action and outcomes. Link skills to paths and mission results count as evidence automatically. XP and Rank are just motivation." },
+          { "emoji": "💡", "title": "Opportunities", "description": "Curated side-income ideas, each explaining what it is, why it might be worth trying and a small first experiment. Tap “Start as a path” to begin. Income figures are rough ranges, never guaranteed.", "badge": "limitedFree" },
+          { "emoji": "💼", "title": "Income Profile", "description": "Log every income source and compare your average monthly income with your target." }
         ]
       },
       {
