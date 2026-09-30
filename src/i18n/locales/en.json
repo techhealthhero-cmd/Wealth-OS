@@ -63,7 +63,8 @@
     "settings": "Settings",
     "logout": "Log out",
     "accounts": "Accounts",
-    "transactions": "Transactions"
+    "transactions": "Transactions",
+    "importStatement": "Import CSV"
   },
   "capture": {
     "title": "Quick capture",

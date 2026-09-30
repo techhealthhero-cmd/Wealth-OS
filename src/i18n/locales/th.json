@@ -63,7 +63,8 @@
     "settings": "ตั้งค่า",
     "logout": "ออกจากระบบ",
     "accounts": "บัญชี",
-    "transactions": "รายการ"
+    "transactions": "รายการ",
+    "importStatement": "นำเข้า CSV"
   },
   "capture": {
     "title": "บันทึกด่วน",

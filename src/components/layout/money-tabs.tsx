@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, ChartColumn, ChartPie, CreditCard, Gem, ReceiptText, Repeat, Wallet } from "lucide-react";
+import { CalendarClock, ChartColumn, ChartPie, CreditCard, FileSpreadsheet, Gem, ReceiptText, Repeat, Wallet } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
 import { SegmentedTabs } from "./segmented-tabs";
@@ -8,6 +8,7 @@ import { SegmentedTabs } from "./segmented-tabs";
 const TABS = [
   { href: "/money/transactions", key: "nav.transactions", icon: ReceiptText },
   { href: "/money/accounts", key: "nav.accounts", icon: Wallet },
+  { href: "/money/import", key: "nav.importStatement", icon: FileSpreadsheet },
   { href: "/money/budget", key: "budget.title", icon: ChartColumn },
   { href: "/money/assets", key: "assets.title", icon: ChartPie },
   { href: "/money/liabilities", key: "liabilities.title", icon: CreditCard },

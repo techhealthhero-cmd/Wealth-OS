@@ -174,6 +174,7 @@ declare
   v_batch public.transaction_import_batches;
   v_row public.transaction_import_rows;
   v_transaction_id uuid;
+  v_account_currency text;
 begin
   select * into v_batch
   from public.transaction_import_batches
@@ -197,10 +198,11 @@ begin
     return;
   end if;
 
-  if not exists (
-    select 1 from public.accounts a
-    where a.id = v_batch.account_id and a.user_id = auth.uid() and not a.is_archived
-  ) then
+  select a.currency_code into v_account_currency
+  from public.accounts a
+  where a.id = v_batch.account_id and a.user_id = auth.uid() and not a.is_archived;
+
+  if v_account_currency is null then
     raise exception 'target account is unavailable';
   end if;
 
@@ -220,6 +222,24 @@ begin
   loop
     if v_row.normalized_data is null then
       raise exception 'normalized import row is missing';
+    end if;
+
+    if coalesce(v_row.normalized_data ->> 'type', '') not in ('income', 'expense') then
+      raise exception 'invalid imported transaction type';
+    end if;
+    if coalesce((v_row.normalized_data ->> 'amount')::numeric, 0) <= 0 then
+      raise exception 'invalid imported transaction amount';
+    end if;
+    if coalesce(v_row.normalized_data ->> 'currencyCode', '') <> v_account_currency then
+      raise exception 'import currency does not match target account';
+    end if;
+    if nullif(v_row.normalized_data ->> 'categoryId', '') is not null
+       and not exists (
+         select 1 from public.categories c
+         where c.id = (v_row.normalized_data ->> 'categoryId')::uuid
+           and (c.is_system or c.user_id = auth.uid())
+       ) then
+      raise exception 'invalid imported transaction category';
     end if;
 
     v_transaction_id := null;
@@ -343,4 +363,3 @@ revoke all on function public.confirm_statement_import(uuid) from public;
 revoke all on function public.rollback_statement_import(uuid) from public;
 grant execute on function public.confirm_statement_import(uuid) to authenticated;
 grant execute on function public.rollback_statement_import(uuid) to authenticated;
-
