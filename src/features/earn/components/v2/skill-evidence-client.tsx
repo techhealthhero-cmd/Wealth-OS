@@ -23,7 +23,7 @@ export function LogLearningButton({ skillId }: { skillId: string }) {
 
   if (!open) {
     return (
-      <Button variant="ghost" size="sm" className="h-10 px-2 text-primary" onClick={() => setOpen(true)}>
+      <Button variant="ghost" size="sm" className="h-10 px-2 text-primary dark:text-[#7FD6B2]" onClick={() => setOpen(true)}>
         <BookOpen className="mr-1 size-3.5" aria-hidden="true" />
         {t("earn.v2.skillsV2.logLearning")}
       </Button>
@@ -93,7 +93,7 @@ export function PathSkillLinks({
       {linked.length > 0 ? (
         <ul className="flex flex-wrap gap-1.5">
           {linked.map((s) => (
-            <li key={s.id} className="inline-flex items-center gap-1 rounded-full bg-primary/8 py-1 pr-1 pl-3 text-sm font-medium text-primary">
+            <li key={s.id} className="inline-flex items-center gap-1 rounded-full bg-primary/8 py-1 pr-1 pl-3 text-sm font-medium text-primary dark:text-[#7FD6B2]">
               {s.name}
               <button
                 type="button"

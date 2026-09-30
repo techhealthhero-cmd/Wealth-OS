@@ -53,7 +53,7 @@ export function CreatePathForm({
       <div className="space-y-1">
         <h2 className="text-xl font-bold">{t("earn.v2.paths.chooseType")}</h2>
         <p className="text-sm text-muted-foreground">{t("earn.v2.paths.chooseTypeHint")}</p>
-        {experimentKey ? <p className="text-xs font-medium text-primary">{t("earn.v2.paths.fromExperiment")}</p> : null}
+        {experimentKey ? <p className="text-xs font-medium text-primary dark:text-[#7FD6B2]">{t("earn.v2.paths.fromExperiment")}</p> : null}
       </div>
 
       <div role="radiogroup" aria-label={t("earn.v2.paths.chooseType")} className="grid grid-cols-2 gap-2.5">
@@ -72,7 +72,7 @@ export function CreatePathForm({
                 on ? "border-primary bg-primary/8 ring-1 ring-primary/30" : "hover:bg-muted/40"
               )}
             >
-              {on ? <Check className="absolute top-3 right-3 size-4 text-primary" aria-hidden="true" /> : null}
+              {on ? <Check className="absolute top-3 right-3 size-4 text-primary dark:text-[#7FD6B2]" aria-hidden="true" /> : null}
               <IconChip icon={PATH_ICON_COMPONENTS[p]} />
               <span className="font-semibold">{t(`earn.v2.pathTypes.${p}.title`)}</span>
               <span className="text-xs text-muted-foreground text-pretty">{t(`earn.v2.pathTypes.${p}.subtitle`)}</span>

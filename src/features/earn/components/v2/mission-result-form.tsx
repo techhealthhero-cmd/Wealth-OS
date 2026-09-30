@@ -120,7 +120,7 @@ export function MissionResultForm({
               onClick={() => setDecision(d)}
               className={cn(
                 "min-h-12 rounded-2xl border bg-card px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                decision === d ? "border-primary bg-primary/8 text-primary" : "hover:bg-muted/50"
+                decision === d ? "border-primary bg-primary/8 text-primary dark:text-[#7FD6B2]" : "hover:bg-muted/50"
               )}
             >
               {t(`earn.v2.missions.result.decision.${d}`)}

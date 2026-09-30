@@ -39,7 +39,7 @@ export function MissionActions({
   }
   if (done) {
     return (
-      <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
+      <p className="flex items-center gap-1.5 text-sm font-medium text-primary dark:text-[#7FD6B2]">
         <Check className="size-4" aria-hidden="true" />
         {t("earn.v2.missions.done")}
       </p>

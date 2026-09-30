@@ -67,18 +67,18 @@ export function IncomeRankCard({
         <span className="min-w-0 flex-1">
           <span className="flex items-start justify-between gap-3">
             <span className="min-w-0">
-              <span className="block text-xs font-medium text-white/70 sm:text-sm">{t("earn.skills.incomeBuilderRank")}</span>
+              <span className="block text-xs font-medium text-white/70 dark:text-white/90 sm:text-sm">{t("earn.skills.incomeBuilderRank")}</span>
               <span className="mt-0.5 block text-2xl font-semibold leading-none sm:text-3xl">
                 {t("earn.skills.rankLabel").replace("{rank}", rankNumber)}
               </span>
-              <span className="mt-1 block truncate text-[10px] text-white/60 sm:text-xs">{title}</span>
+              <span className="mt-1 block truncate text-[10px] text-white/60 dark:text-white/85 sm:text-xs">{title}</span>
             </span>
             <span className="flex shrink-0 items-center gap-2 text-right">
               <span>
                 <span className="block text-xl font-semibold sm:text-2xl">{progress.totalXp}</span>
-                <span className="block text-[10px] text-white/65 sm:text-xs">XP</span>
+                <span className="block text-[10px] text-white/65 dark:text-white/90 sm:text-xs">XP</span>
               </span>
-              <ChevronRight className="size-5 text-white/65" aria-hidden="true" />
+              <ChevronRight className="size-5 text-white/65 dark:text-white/90" aria-hidden="true" />
             </span>
           </span>
           <span className="mt-3 block h-2 overflow-hidden rounded-full bg-white/15">
@@ -87,7 +87,7 @@ export function IncomeRankCard({
               style={{ width: `${progress.progressPercent}%` }}
             />
           </span>
-          <span className="mt-2 flex items-center justify-between gap-2 text-[10px] text-white/65 sm:text-xs">
+          <span className="mt-2 flex items-center justify-between gap-2 text-[10px] text-white/65 dark:text-white/90 sm:text-xs">
             <span>{nextRankText}</span>
             <span>{skillCount} {t("earn.skills.skillsCount")}</span>
           </span>
@@ -116,15 +116,15 @@ export function IncomeRankCard({
               <BarChart3 className="relative size-7" aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-white/65">{title}</p>
+              <p className="text-xs text-white/65 dark:text-white/90">{title}</p>
               <p className="text-2xl font-semibold">{t("earn.skills.rankLabel").replace("{rank}", rankNumber)}</p>
-              <p className="mt-0.5 text-xs text-white/65">{progress.totalXp} XP</p>
+              <p className="mt-0.5 text-xs text-white/65 dark:text-white/90">{progress.totalXp} XP</p>
             </div>
           </div>
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/15">
             <div className="h-full rounded-full bg-[#bcebd2]" style={{ width: `${progress.progressPercent}%` }} />
           </div>
-          <p className="mt-2 text-xs text-white/70">{nextRankText}</p>
+          <p className="mt-2 text-xs text-white/70 dark:text-white/90">{nextRankText}</p>
         </div>
 
         <div className="grid grid-cols-3 gap-2">

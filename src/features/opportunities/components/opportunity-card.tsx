@@ -90,7 +90,7 @@ export function OpportunityCard({ ranked, hasActiveMissions }: { ranked: RankedO
             <p className="text-xs font-medium">{t("earn.v2.opportunitiesV2.why")}</p>
             <ul className="mt-1 flex flex-wrap gap-1.5">
               {whyReasons.map((r) => (
-                <li key={r} className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary">
+                <li key={r} className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary dark:text-[#7FD6B2]">
                   {t(`earn.v2.opportunitiesV2.reasons.${r}`)}
                 </li>
               ))}

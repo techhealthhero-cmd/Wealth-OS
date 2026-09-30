@@ -12,7 +12,7 @@ const LEVEL_STYLE: Record<SkillEvidenceLevel, string> = {
   none: "bg-muted text-muted-foreground",
   learning: "bg-sky-500/10 text-sky-800 dark:text-sky-300",
   action: "bg-amber-500/10 text-amber-800 dark:text-amber-300",
-  outcome: "bg-primary/10 text-primary",
+  outcome: "bg-primary/10 text-primary dark:text-[#7FD6B2]",
 };
 
 /**
@@ -60,7 +60,7 @@ export async function SkillEvidenceSection({ dict, skills }: { dict: Dictionary;
                       {paths.map((p, i) => (
                         <span key={p.id}>
                           {i > 0 ? ", " : ""}
-                          <Link href={`/earn/paths/${p.id}`} className="font-medium text-primary underline-offset-2 hover:underline">
+                          <Link href={`/earn/paths/${p.id}`} className="font-medium text-primary dark:text-[#7FD6B2] underline-offset-2 hover:underline">
                             {p.title}
                           </Link>
                         </span>

@@ -248,7 +248,7 @@ export function RecommendedExperimentCard({ dict, experiment }: { dict: Dictiona
       </div>
       <ul className="mt-3 flex flex-wrap gap-1.5" aria-label={dict.earn.v2.result.experimentsTitle}>
         {experiment.reasonCodes.slice(0, 3).map((code) => (
-          <li key={code} className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary">
+          <li key={code} className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary dark:text-[#7FD6B2]">
             {dict.earn.v2.reasons[code]}
           </li>
         ))}

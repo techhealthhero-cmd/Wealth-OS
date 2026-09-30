@@ -97,7 +97,7 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
             <div className="h-full rounded-full bg-primary" style={{ width: `${(progress.currentIndex / progress.total) * 100}%` }} />
           </div>
           <details className="group mt-3">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-medium text-primary">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-medium text-primary dark:text-[#7FD6B2]">
               <span className="group-open:hidden">{v2.paths.showAll}</span>
               <span className="hidden group-open:inline">{v2.paths.hideAll}</span>
             </summary>
@@ -107,7 +107,7 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
                 const here = i === progress.currentIndex && !progress.isComplete;
                 return (
                   <li key={s.key} className={cn("flex items-center gap-2.5 text-sm", !done && !here && "text-muted-foreground")} aria-current={here ? "step" : undefined}>
-                    <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px]", done && "border-primary bg-primary text-primary-foreground", here && "border-primary text-primary")}>
+                    <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px]", done && "border-primary bg-primary text-primary-foreground", here && "border-primary text-primary dark:text-[#7FD6B2]")}>
                       {done ? <Check className="size-3.5" aria-hidden="true" /> : here ? <Circle className="size-2.5 fill-current" aria-hidden="true" /> : i + 1}
                     </span>
                     <span className={cn(here && "font-semibold text-foreground")}>{stepNames[s.key]}</span>
@@ -240,11 +240,11 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
               <li key={m.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
                 <span className="min-w-0 truncate">{m.title}</span>
                 {m.result_required && !m.hasResult ? (
-                  <Link href={`/earn/missions/${m.id}/result`} className="shrink-0 text-xs font-medium text-primary">
+                  <Link href={`/earn/missions/${m.id}/result`} className="shrink-0 text-xs font-medium text-primary dark:text-[#7FD6B2]">
                     {v2.missions.recordResult}
                   </Link>
                 ) : (
-                  <Check className="size-4 shrink-0 text-primary" aria-label={v2.missions.done} />
+                  <Check className="size-4 shrink-0 text-primary dark:text-[#7FD6B2]" aria-label={v2.missions.done} />
                 )}
               </li>
             ))}

@@ -346,7 +346,7 @@ function ChoiceGroup({
               className={cn(
                 "flex min-h-12 items-center justify-between gap-2 rounded-2xl border bg-card px-4 py-3 text-left text-sm font-medium transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                on ? "border-primary bg-primary/8 text-primary" : "hover:bg-muted/50"
+                on ? "border-primary bg-primary/8 text-primary dark:text-[#7FD6B2]" : "hover:bg-muted/50"
               )}
             >
               <span className="text-pretty">{o.label}</span>

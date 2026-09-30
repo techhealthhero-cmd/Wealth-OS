@@ -112,7 +112,7 @@ export async function EarnHub() {
               href={l.href}
               className="flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border bg-card p-2 text-center text-xs font-medium hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <l.icon className="size-5 text-primary" aria-hidden="true" />
+              <l.icon className="size-5 text-primary dark:text-[#7FD6B2]" aria-hidden="true" />
               {l.label}
             </Link>
           ))}

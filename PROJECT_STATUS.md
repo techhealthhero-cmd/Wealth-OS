@@ -35,7 +35,9 @@ Built on the Earn Foundation (`bc7f559`, migration 0028 — **applied to product
 **Skills V2:** evidence-based level (learning / action / outcome — XP never feeds it), per-skill counters, paths each skill supports, "log what I learned", link/unlink skills on the path page; Rank/XP card kept below as motivation.
 **Opportunities V2:** "Experiments that fit you" from the latest diagnostic above the curated catalog; catalog cards show a plain fit label instead of "x/100", named reasons, a small first experiment, and "Start as a path" (legacy mission generation kept as a secondary action).
 
-**Remaining / not done:** real-device (iPhone/Android) testing; dark-mode contrast audit (axe run in light mode only); E2E in English beyond the Hub; offline/slow-network behaviour of the diagnostic draft on a second device (draft is per device by design).
+**Follow-ups done (2026-09-30):** migration `0032_revoke_anon_record_earn_income.sql` applied (dry-run showed only 0032; anon now gets `42501 permission denied`, signed-in users still record income — verified in E2E). Next Action rules v2: a user who skipped the diagnostic but has a path sees the path's mission first (diagnostic becomes secondary). Quick Capture's pre-0021 fallback removed (0021 is on every database). In-app guide (`/help`) Earn section rewritten for Earn V2 (TH/EN). English E2E across intro, diagnostic, result, new path, path, mission result, income, hub, paths, skills, opportunities, help: no untranslated text or raw keys. Dark mode: axe WCAG A/AA → 0 violations on all Earn pages after adding a readable dark text tint (#7FD6B2) where `text-primary` was used as text, and dark-only tweaks to the Income Rank card.
+
+**Remaining:** real-device (iPhone/Android) testing; the diagnostic draft is per device by design.
 
 ## Quick Capture ("capture first, organize later") — 2026-09-29
 
