@@ -1,0 +1,11 @@
+-- =============================================================================
+-- WEALTH OS — Migration 0032: close anonymous access to record_earn_income()
+--
+-- 0031 revoked EXECUTE from PUBLIC and granted it to `authenticated`, but
+-- Supabase's default privileges also grant EXECUTE on new public functions
+-- to `anon` directly. The function already refused anonymous callers
+-- (`auth.uid()` check → 'not_authenticated'), so nothing leaked; this makes
+-- the database itself refuse the call instead. Permissions only — no data,
+-- tables or function bodies change.
+-- =============================================================================
+revoke execute on function public.record_earn_income(uuid, uuid, uuid, uuid, numeric, date, text, uuid) from anon;
