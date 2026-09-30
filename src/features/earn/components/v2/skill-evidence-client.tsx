@@ -57,7 +57,8 @@ export function LogLearningButton({ skillId }: { skillId: string }) {
           {t("common.cancel")}
         </Button>
         <Button type="submit" size="sm" className="h-10" disabled={pending || !text.trim()}>
-          {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : t("earn.v2.skillsV2.save")}
+          {pending ? <Loader2 className="mr-1 size-4 animate-spin" aria-hidden="true" /> : null}
+          {t("earn.v2.skillsV2.save")}
         </Button>
       </div>
     </form>

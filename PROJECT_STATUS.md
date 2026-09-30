@@ -22,12 +22,20 @@ Built on the Earn Foundation (`bc7f559`, migration 0028 — **applied to product
 - Next Action recalculates after each action (E2E: foundation mission → after result, "หาลูกค้าที่อาจสนใจ 5 ราย").
 - 793/793 unit/integration tests (Earn V2: domain, validation, actions against an in-memory Supabase fake incl. cross-user isolation, immutable reassessment, idempotent RPC call shape), typecheck, lint, production build.
 
-**IMPLEMENTED BUT NOT YET LIVE — needs migration `0031_earn_projects_income_links.sql` applied:**
-- `earn_projects` (optional projects per path) and `earn_transaction_links` (links a REAL income transaction to a path/project; unique per transaction so nothing is double-counted; RLS checks every parent incl. "income transactions only").
-- `record_earn_income()` RPC: creates the income transaction in the existing `transactions` ledger AND its Earn link in one database call (both or neither), idempotent via `client_request_id` (same pattern as `create_transfer`). Earn has no ledger of its own.
-- UI for both (`/earn/paths/[id]/income`, projects list/create) is built; until 0031 is applied these sections are simply hidden (no error shown to users). Apply with `supabase db push --linked` after a `--dry-run` that should list exactly `0031`.
+**Migration 0031 — APPLIED to production (2026-09-30).** `supabase db push --linked --dry-run` listed only 0031; the file was re-inspected (additive only: 2 new tables, indexes, RLS policies, 1 new function; no DROP/TRUNCATE/destructive ALTER; the new objects did not exist beforehand), then pushed. Verified afterwards: both tables and the RPC respond; `supabase migration list --linked` shows local = remote 0001–0031. Note: Supabase's default grants leave `record_earn_income` EXECUTE-able by `anon`, but the function rejects immediately with `not_authenticated` (checks `auth.uid()` first) — a follow-up `revoke execute ... from anon` migration is recommended (not applied: outside the approved scope).
 
-**PLANNED / NOT DONE:** Earn-specific Opportunities cards (the existing Opportunities tab is unchanged), skill-evidence display on the Skills tab, E2E for the income/project flow (blocked on 0031), E2E personas beyond the zero-income user, desktop/tablet visual QA, real-device testing.
+**VERIFIED after 0031 (live E2E, disposable users, all cleaned up, global row counts identical before/after, 0 console errors):**
+- Projects: created via the path page; stored under the path.
+- Real income: positive result on "first_payment" routes to the income form; Hub shows "record income" until it is recorded; saving creates exactly one ordinary income transaction in the chosen account (balance +3,500 / +2,500 verified), linked to path + project; the same save replayed twice → still 1 transaction, 1 link, balance unchanged; visible in /money/transactions; Hub/path show the linked total.
+- Security (real RLS): another user cannot call the RPC on someone else's path (`income_path_not_found`), cannot insert links/projects on it (42501) and reads nothing; even the owner cannot link an EXPENSE.
+- Personas (390px): A zero income → survive, full journey incl. skill linked to path, result pre-selects it, outcome skill evidence, learning evidence, Skills V2 + Opportunities V2 pages; B irregular → cashflow; C salaried + 3-month buffer → grow, career path, returning user sees state (not intro), reassessment adds a 2nd immutable snapshot (grow → stability); D freelancer → stability (buffer unknown), income recorded from the path page, Privacy Center lock hides every amount on Hub/path/result while guidance stays visible; E business → presell experiment + business path; F investment → plan experiment only once foundation is ready, planning-only note, no income section; G multiple paths listed on the Hub.
+- Tablet 768 / desktop 1280: no horizontal overflow (screenshots reviewed).
+- Accessibility: axe-core WCAG 2 A/AA on intro, diagnostic, result, path, mission result, skills, opportunities, hub → 0 violations after fixes; keyboard selection of diagnostic choices verified. Fixes made: global `--muted-foreground` #6f7873 → #666f6a (was 4.04–4.40:1, now 4.60–5.19:1 on all light surfaces), inactive section-tab text /75 → /85, spinner-only submit buttons now keep their label.
+
+**Skills V2:** evidence-based level (learning / action / outcome — XP never feeds it), per-skill counters, paths each skill supports, "log what I learned", link/unlink skills on the path page; Rank/XP card kept below as motivation.
+**Opportunities V2:** "Experiments that fit you" from the latest diagnostic above the curated catalog; catalog cards show a plain fit label instead of "x/100", named reasons, a small first experiment, and "Start as a path" (legacy mission generation kept as a secondary action).
+
+**Remaining / not done:** real-device (iPhone/Android) testing; dark-mode contrast audit (axe run in light mode only); E2E in English beyond the Hub; offline/slow-network behaviour of the diagnostic draft on a second device (draft is per device by design).
 
 ## Quick Capture ("capture first, organize later") — 2026-09-29
 

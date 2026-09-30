@@ -140,7 +140,8 @@ export function ProjectCreateForm({ pathId }: { pathId: string }) {
           onChange={(e) => setTitle(e.target.value)}
         />
         <Button type="submit" className="h-11 rounded-xl" disabled={pending || !title.trim()}>
-          {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : t("earn.v2.projects.create")}
+          {pending ? <Loader2 className="mr-1 size-4 animate-spin" aria-hidden="true" /> : null}
+          {t("earn.v2.projects.create")}
         </Button>
       </div>
     </form>

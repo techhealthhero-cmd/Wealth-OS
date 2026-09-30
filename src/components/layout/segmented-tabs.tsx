@@ -112,7 +112,7 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
                 "motion-reduce:transition-colors motion-reduce:active:scale-100 motion-reduce:active:translate-y-0",
                 active
                   ? "font-semibold text-white"
-                  : "font-medium text-foreground/75 hover:text-foreground active:bg-foreground/6 active:shadow-[inset_0_2px_6px_rgba(0,0,0,0.12)] dark:active:bg-white/8"
+                  : "font-medium text-foreground/85 hover:text-foreground active:bg-foreground/6 active:shadow-[inset_0_2px_6px_rgba(0,0,0,0.12)] dark:active:bg-white/8"
               )}
             >
               {Icon ? (

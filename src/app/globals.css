@@ -72,7 +72,9 @@
   --secondary: #f2f4f1;
   --secondary-foreground: #1c2521;
   --muted: #f2f4f1;
-  --muted-foreground: #6f7873;
+  /* WCAG AA: #6f7873 measured 4.04–4.40:1 on the app's light surfaces (axe, Earn V2 QA);
+     #666f6a is the smallest darkening that clears 4.5:1 on all of them (4.60–5.19:1). */
+  --muted-foreground: #666f6a;
   --accent: #f2f4f1;
   --accent-foreground: #1c2521;
   /* Minor accent only (pricing "recommended" badge/checkmark) — the soft
