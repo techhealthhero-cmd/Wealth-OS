@@ -1101,6 +1101,591 @@
     "noInsight": "No notable insight right now."
   },
   "earn": {
+    "v2": {
+      "intro": {
+        "title": "Find a way to earn more that fits you",
+        "body": "Answer 8 short questions (about 3 minutes) and we'll help you find a starting point and small experiments you can actually try.",
+        "start": "Start",
+        "knowPath": "I already know what I want to do",
+        "note": "We don't promise riches — we help you know what to do next."
+      },
+      "diagnostic": {
+        "progress": "Question {current} of {total}",
+        "back": "Back",
+        "next": "Next",
+        "finish": "See results",
+        "saving": "Saving…",
+        "saveFailed": "Couldn't save. Try again — your answers are kept.",
+        "resumed": "Picked up where you left off",
+        "chooseMany": "Choose any that apply",
+        "steps": {
+          "income": {
+            "title": "What kind of income do you have now?",
+            "hint": "Pick the closest one",
+            "amountLabel": "Approximate monthly income (THB)",
+            "steadyLabel": "Is this income fairly steady every month?",
+            "steadyYes": "Steady",
+            "steadyNo": "Varies",
+            "options": {
+              "none": "No income yet",
+              "irregular": "Sometimes",
+              "salary": "Regular salary",
+              "freelance": "Freelance work",
+              "business": "Selling / business",
+              "investment": "Investment income"
+            }
+          },
+          "expenses": {
+            "title": "Roughly how much are your essential monthly expenses?",
+            "hint": "Rent, food, transport, bills, debt payments — an estimate is fine",
+            "amountLabel": "Essential expenses per month (THB)"
+          },
+          "resources": {
+            "title": "What do you have available right now?",
+            "hint": "Things you can use without buying anything",
+            "options": {
+              "smartphone": "Smartphone",
+              "computer": "Computer / laptop",
+              "internet": "Internet",
+              "transport": "Car / motorbike",
+              "workspace": "Workspace / shopfront",
+              "time": "Free daytime hours"
+            }
+          },
+          "preferences": {
+            "title": "What kind of work do you enjoy?",
+            "hint": "Not sure? That's a fine answer",
+            "options": {
+              "people": "Talking to / helping people",
+              "digital": "Computer work",
+              "creative": "Creative / design",
+              "hands_on": "Hands-on / service",
+              "teaching": "Teaching / explaining",
+              "analysis": "Analysis / planning",
+              "not_sure": "Not sure yet"
+            }
+          },
+          "abilities": {
+            "title": "What are you already good at?",
+            "hint": "It doesn't have to be expert level",
+            "options": {
+              "writing": "Writing",
+              "design": "Design",
+              "tech": "Computers / tech",
+              "languages": "Languages",
+              "sales": "Selling / negotiating",
+              "teaching": "Teaching",
+              "cooking": "Cooking",
+              "driving": "Driving",
+              "crafts": "Crafts / repairs",
+              "accounting": "Numbers / accounting",
+              "social_media": "Social media",
+              "none": "Nothing stands out yet"
+            }
+          },
+          "time": {
+            "title": "How much time per week can you give this?",
+            "hint": "On top of your current work and duties",
+            "options": {
+              "under_5": "Under 5 hours",
+              "5_10": "5–10 hours",
+              "10_20": "10–20 hours",
+              "over_20": "Over 20 hours"
+            }
+          },
+          "capital": {
+            "title": "Do you have money you could use to start?",
+            "hint": "Money you could lose without affecting essentials",
+            "options": {
+              "none": "None",
+              "under_1000": "Up to 1,000 THB",
+              "1000_5000": "1,000–5,000 THB",
+              "5000_20000": "5,000–20,000 THB",
+              "over_20000": "Over 20,000 THB"
+            }
+          },
+          "priority": {
+            "title": "What matters most to you right now?",
+            "hint": "Pick one",
+            "options": {
+              "quick_money": "I need money soon",
+              "stable_job": "A stable job",
+              "increase_income": "Earn more",
+              "build_skills": "Build skills",
+              "build_business": "Build a business",
+              "long_term_wealth": "Long-term wealth"
+            }
+          }
+        }
+      },
+      "stage": {
+        "unknown": {
+          "title": "Not enough information yet",
+          "body": "Finish the assessment and we'll help find your starting point."
+        },
+        "survive": {
+          "title": "Let's focus on your first income",
+          "body": "First goal: enough money for essentials. Start with something small you can do now."
+        },
+        "cashflow": {
+          "title": "You have income — next, make it enough and steady",
+          "body": "Income doesn't yet reliably cover essentials. Let's grow it or make it more predictable."
+        },
+        "stability": {
+          "title": "Income covers life — next, build stability",
+          "body": "Build an emergency buffer, then grow income with confidence."
+        },
+        "grow": {
+          "title": "Your foundation is solid — time to grow income",
+          "body": "Focus on increasing your earning ability and trying new paths."
+        },
+        "scale": {
+          "title": "You have repeatable income",
+          "body": "Improve what works and diversify your income."
+        },
+        "freedom": {
+          "title": "You have more financial options now",
+          "body": "Review your plan regularly to protect and build on it."
+        }
+      },
+      "reasons": {
+        "matches_existing_skill": "Uses a skill you have",
+        "matches_work_preference": "Matches work you enjoy",
+        "matches_available_time": "Fits your available time",
+        "low_starting_capital": "No money needed to start",
+        "uses_existing_resources": "Uses what you already have",
+        "supports_income_goal": "Fits your current goal"
+      },
+      "experiments": {
+        "apply_three_jobs": {
+          "title": "Apply to 3 jobs that fit you",
+          "body": "See how the market responds to your profile."
+        },
+        "ask_for_raise_evidence": {
+          "title": "Collect results to discuss a raise",
+          "body": "Note 3 measurable achievements, then book a talk with your manager."
+        },
+        "sample_and_show_five": {
+          "title": "Make one sample and show it to 5 potential customers",
+          "body": "Faster than months of study — you'll know right away if anyone is interested."
+        },
+        "local_service_five_neighbors": {
+          "title": "Offer a service to 5 people nearby",
+          "body": "Deliveries, cooking, repairs — see whether anyone needs it."
+        },
+        "tutoring_trial_lesson": {
+          "title": "Teach one trial lesson",
+          "body": "Teach what you know to 1–2 people, then ask if they'd continue."
+        },
+        "presell_before_stock": {
+          "title": "Take pre-orders before buying stock",
+          "body": "Ask 5 customers if they'd buy before spending on inventory."
+        },
+        "interview_five_customers": {
+          "title": "Talk to 5 target customers",
+          "body": "Learn their real problem before building a product."
+        },
+        "investment_plan_basics": {
+          "title": "Make a basic investment plan",
+          "body": "Set a goal, a time horizon and the risk you can accept before investing — not buy/sell advice."
+        }
+      },
+      "pathTypes": {
+        "career": {
+          "title": "Career",
+          "subtitle": "Find work, grow, earn a higher salary"
+        },
+        "freelance_service": {
+          "title": "Freelance / Service",
+          "subtitle": "Use your skills for paid jobs"
+        },
+        "business_product": {
+          "title": "Business / Product",
+          "subtitle": "Sell your own product or service"
+        },
+        "investment": {
+          "title": "Investment",
+          "subtitle": "Plan for your money to work long-term"
+        }
+      },
+      "paths": {
+        "title": "Income paths",
+        "empty": "No paths yet — choose your first one to begin",
+        "new": "Add a path",
+        "chooseType": "Choose an income path",
+        "chooseTypeHint": "You can have more than one — starting with one is fine",
+        "titleLabel": "Name the goal of this path",
+        "titlePlaceholder": "e.g. Website jobs",
+        "create": "Start this path",
+        "creating": "Creating…",
+        "createFailed": "Couldn't create the path. Try again.",
+        "fromExperiment": "Starting from a suggested experiment",
+        "whereIAm": "Where you are",
+        "whatsNext": "What's next",
+        "stepOf": "Step {current} of {total}",
+        "showAll": "See the whole path",
+        "hideAll": "Hide",
+        "completed": "Every step done",
+        "pause": "Pause this path",
+        "resume": "Resume",
+        "paused": "Paused",
+        "notFound": "Path not found",
+        "investmentNote": "This path is planning only. Wealth OS never recommends buying or selling any asset."
+      },
+      "roadmap": {
+        "career": {
+          "foundation": "Foundation",
+          "skill_growth": "Skill growth",
+          "evidence": "Evidence",
+          "performance": "Performance",
+          "compensation_review": "Compensation review",
+          "market_check": "Market check"
+        },
+        "freelance_service": {
+          "foundation": "Choose a service",
+          "proof_of_work": "Proof of work",
+          "find_leads": "Find leads",
+          "proposal": "Proposal",
+          "delivery": "Delivery",
+          "first_payment": "First payment",
+          "repeat": "Repeat work",
+          "raise_value": "Raise value"
+        },
+        "business_product": {
+          "problem": "Find a problem",
+          "validation": "Validate demand",
+          "offer": "Create an offer",
+          "first_sale": "First sale",
+          "delivery": "Delivery",
+          "repeatability": "Repeat sales",
+          "systemize": "Systemize",
+          "scale": "Scale"
+        },
+        "investment": {
+          "foundation": "Foundation",
+          "goal": "Goal",
+          "time_horizon": "Time horizon",
+          "risk_understanding": "Understand risk",
+          "allocation_plan": "Allocation plan",
+          "contribution": "Contribute",
+          "review": "Review"
+        }
+      },
+      "missions": {
+        "title": "Missions",
+        "empty": "No missions in this path yet",
+        "start": "Start",
+        "complete": "Mark done",
+        "completing": "Saving…",
+        "recordResult": "Record result",
+        "resultPending": "Result pending",
+        "done": "Done",
+        "minutes": "About {n} min",
+        "target": "Target {n}",
+        "notFound": "Mission not found",
+        "failed": "Couldn't save. Try again.",
+        "result": {
+          "title": "How did it go?",
+          "hint": "Be honest — a weak result is useful information, not failure.",
+          "notes": "Notes (optional)",
+          "notesPlaceholder": "e.g. Messaged 3 shops, 1 replied, meeting tomorrow",
+          "skill": "Count this as evidence for a skill (optional)",
+          "noSkill": "None",
+          "save": "Save result",
+          "saving": "Saving…",
+          "saved": "Result saved",
+          "decision": {
+            "title": "What next?",
+            "continue": "Move to the next step",
+            "adjust": "Adjust and try again",
+            "pause": "Pause this path",
+            "switch": "Try another path"
+          },
+          "errors": {
+            "unknown_field": "Unknown field",
+            "invalid_count": "Enter whole, non-negative numbers",
+            "funnel_order": "A later number can't be larger than the one before it"
+          },
+          "fields": {
+            "achievements": "Measurable achievements",
+            "conversations": "Conversations held",
+            "raises": "Raises received",
+            "applications": "Applications",
+            "interviews": "Interviews",
+            "offers": "Offers",
+            "samples": "Samples finished",
+            "contacted": "Contacted",
+            "responses": "Replied",
+            "interested": "Interested",
+            "proposals": "Proposals sent",
+            "accepted": "Accepted",
+            "delivered": "Delivered",
+            "payments": "Payments received",
+            "repeat_customers": "Repeat customers",
+            "quotes_sent": "New quotes sent",
+            "interviewed": "Interviewed",
+            "would_pay": "Would pay",
+            "offers_shown": "Offers made",
+            "customers": "Customers who bought",
+            "new_customers": "New customers"
+          }
+        },
+        "career": {
+          "foundation": {
+            "title": "Write down one target job",
+            "description": "The role, the salary you hope for and 3 required skills."
+          },
+          "skill_growth": {
+            "title": "Learn one missing skill",
+            "description": "Pick a skill the target job needs and study it for 45 minutes."
+          },
+          "evidence": {
+            "title": "Write 3 measurable achievements",
+            "description": "e.g. cut processing time by X% or helped sales by Y."
+          },
+          "performance": {
+            "title": "Pick one thing to do better this week",
+            "description": "Set a measurable goal and track it."
+          },
+          "compensation_review": {
+            "title": "Book a compensation talk",
+            "description": "Bring the achievements you wrote down."
+          },
+          "market_check": {
+            "title": "Apply to 3 jobs",
+            "description": "See what the market would pay you."
+          }
+        },
+        "freelance_service": {
+          "foundation": {
+            "title": "Choose one service you can offer",
+            "description": "Describe what you help with and a starting price."
+          },
+          "proof_of_work": {
+            "title": "Make one sample of your work",
+            "description": "Something a customer instantly understands."
+          },
+          "find_leads": {
+            "title": "Find 5 potential customers",
+            "description": "Send a short message with your sample."
+          },
+          "proposal": {
+            "title": "Send a proposal to an interested customer",
+            "description": "Clear scope, price and timeline."
+          },
+          "delivery": {
+            "title": "Deliver the work",
+            "description": "On time — then ask for feedback."
+          },
+          "first_payment": {
+            "title": "Get paid",
+            "description": "Once the money arrives, record it into the account that received it."
+          },
+          "repeat": {
+            "title": "Invite past customers back",
+            "description": "Contact 3 past customers or ask for referrals."
+          },
+          "raise_value": {
+            "title": "Raise your price or value",
+            "description": "Quote a new price for your next job."
+          }
+        },
+        "business_product": {
+          "problem": {
+            "title": "Write down one customer problem",
+            "description": "Who has it, and how do they solve it today?"
+          },
+          "validation": {
+            "title": "Talk to 5 target customers",
+            "description": "Ask about the real problem and whether they'd pay — no spending yet."
+          },
+          "offer": {
+            "title": "Create one offer",
+            "description": "The product or service, price and delivery."
+          },
+          "first_sale": {
+            "title": "Offer it to real customers",
+            "description": "Start with people who said they were interested."
+          },
+          "delivery": {
+            "title": "Deliver",
+            "description": "Deliver and ask for feedback."
+          },
+          "repeatability": {
+            "title": "Get customers to buy again",
+            "description": "Contact past customers; learn what makes them return."
+          },
+          "systemize": {
+            "title": "Write down your repeatable process",
+            "description": "So it gets faster or can be handed off."
+          },
+          "scale": {
+            "title": "Try one new sales channel",
+            "description": "Low-cost, and measure the result."
+          }
+        },
+        "investment": {
+          "foundation": {
+            "title": "Check your emergency buffer first",
+            "description": "Have an emergency fund before investing."
+          },
+          "goal": {
+            "title": "Set one investment goal",
+            "description": "What for, and how much?"
+          },
+          "time_horizon": {
+            "title": "Decide how long you won't need this money",
+            "description": "Time horizon shapes the risk you can take."
+          },
+          "risk_understanding": {
+            "title": "Understand the risks of each asset type",
+            "description": "Investments can lose money; no return is guaranteed."
+          },
+          "allocation_plan": {
+            "title": "Sketch an allocation plan",
+            "description": "Split by goal and the risk you can accept."
+          },
+          "contribution": {
+            "title": "Make your first planned contribution",
+            "description": "An amount that doesn't affect your essentials."
+          },
+          "review": {
+            "title": "Review your plan",
+            "description": "Still on track? No need to check daily."
+          }
+        }
+      },
+      "hub": {
+        "todayQuestion": "What should I do today?",
+        "situation": "Where you are",
+        "alsoCanDo": "Or do something else first",
+        "incomeProgress": "Income from your paths",
+        "noLinkedIncome": "No income recorded from your paths yet",
+        "activePaths": "Active paths",
+        "noPaths": "No paths yet",
+        "reassess": "Reassess",
+        "supporting": "Skills and rank",
+        "skills": "Your skills",
+        "rank": "Income rank",
+        "recommended": "Paths worth trying",
+        "loadFailed": "Couldn't load this"
+      },
+      "result": {
+        "title": "Your starting point",
+        "situation": "Your situation now",
+        "income": "Monthly income",
+        "expenses": "Essential expenses",
+        "resources": "What you have",
+        "strengths": "Strengths and interests",
+        "constraint": "Main constraint",
+        "priority": "What to focus on first",
+        "experimentsTitle": "Paths worth trying",
+        "experimentsHint": "Small experiments: little money, fast feedback — switch if it doesn't work.",
+        "startThis": "Try this path",
+        "allPaths": "See all paths",
+        "noExperiments": "We couldn't find a fitting experiment — choose a path yourself.",
+        "selfReported": "Based on your answers",
+        "constraints": {
+          "time": "Limited free time",
+          "capital": "No starting money yet",
+          "resources": "Few tools available",
+          "income": "Income comes first",
+          "none": "No major constraint"
+        }
+      },
+      "income": {
+        "record": "Record real income",
+        "recordTitle": "Record income from this path",
+        "recordHint": "It's saved into your real account and counted everywhere in Wealth OS.",
+        "amount": "Amount",
+        "account": "Received into account",
+        "category": "Income category",
+        "date": "Date received",
+        "project": "Project (optional)",
+        "noProject": "No project",
+        "description": "Description (optional)",
+        "save": "Record income",
+        "saving": "Saving…",
+        "saved": "Income recorded",
+        "failed": "Couldn't record income. Try again.",
+        "migrationPending": "This needs a database update first (migration 0031)",
+        "noAccounts": "Add at least one account first",
+        "total": "Income from this path",
+        "promptAfterResult": "Got paid? Record it so your balances match reality."
+      },
+      "projects": {
+        "title": "Projects",
+        "new": "Add project",
+        "titleLabel": "Project name",
+        "titlePlaceholder": "e.g. ABC Restaurant website",
+        "create": "Create project",
+        "empty": "No projects — they're optional",
+        "failed": "Couldn't create the project",
+        "status": {
+          "active": "Active",
+          "paused": "Paused",
+          "completed": "Completed",
+          "archived": "Archived"
+        }
+      }
+    },
+    "nextAction": {
+      "completeDiagnostic": {
+        "title": "Find your starting point",
+        "reason": "Answer 8 questions and we'll help find a path that fits you.",
+        "cta": "Start assessment"
+      },
+      "chooseIncomePath": {
+        "title": "Choose your first income path",
+        "reason": "Pick one to try — it doesn't need to be perfect, and you can change it.",
+        "cta": "Choose a path"
+      },
+      "initializeIncomePath": {
+        "title": "Finish setting up your path",
+        "reason": "This path has no plan yet — let's start step one.",
+        "cta": "Set it up"
+      },
+      "recordMissionResult": {
+        "title": "Record your latest mission result",
+        "reason": "Results tell you whether to continue or adjust.",
+        "cta": "Record result"
+      },
+      "continueMission": {
+        "title": "Continue your mission",
+        "reason": "A small step toward income.",
+        "cta": "Start"
+      },
+      "recordIncome": {
+        "title": "Record the income you received",
+        "reason": "You have a result that may have earned money — record it so balances are real.",
+        "cta": "Record income"
+      },
+      "improveCashflow": {
+        "title": "Grow income to cover essentials",
+        "reason": "Focus on the path that can earn soonest.",
+        "cta": "See paths"
+      },
+      "buildResilience": {
+        "title": "Build your emergency buffer",
+        "reason": "A buffer lets you grow income with confidence.",
+        "cta": "See emergency fund"
+      },
+      "growIncome": {
+        "title": "Grow your earning ability",
+        "reason": "Your foundation is ready — try a new path or skill.",
+        "cta": "See paths"
+      },
+      "optimizeScale": {
+        "title": "Improve what's working",
+        "reason": "Build on your repeatable income.",
+        "cta": "See paths"
+      },
+      "reviewFreedomPlan": {
+        "title": "Review your financial plan",
+        "reason": "Protect the options you've built.",
+        "cta": "Review"
+      }
+    },
     "title": "Earn",
     "subtitle": "Grow your income in a practical, measurable way",
     "tabs": {

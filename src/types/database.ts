@@ -824,6 +824,38 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["income_paths"]["Row"]>;
       };
+      earn_projects: {
+        Row: {
+          id: string;
+          user_id: string;
+          income_path_id: string;
+          title: string;
+          status: EarnProjectStatus;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["earn_projects"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; income_path_id: string; title: string };
+        Update: Partial<Database["public"]["Tables"]["earn_projects"]["Row"]>;
+      };
+      earn_transaction_links: {
+        Row: {
+          id: string;
+          user_id: string;
+          transaction_id: string;
+          income_path_id: string;
+          earn_project_id: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["earn_transaction_links"]["Row"], "id" | "created_at">> & {
+          user_id: string;
+          transaction_id: string;
+          income_path_id: string;
+        };
+        Update: never;
+      };
       income_path_skills: {
         Row: {
           user_id: string;
@@ -1233,6 +1265,19 @@ export interface Database {
         Returns: "unlocked" | "invalid_pin" | "temporarily_locked" | "not_configured";
       };
       lock_account_privacy: { Args: Record<string, never>; Returns: void };
+      record_earn_income: {
+        Args: {
+          p_income_path_id: string;
+          p_earn_project_id: string | null;
+          p_account_id: string;
+          p_category_id: string | null;
+          p_amount: number;
+          p_transaction_date: string;
+          p_description: string | null;
+          p_client_request_id: string;
+        };
+        Returns: string;
+      };
       create_transfer: {
         Args: {
           p_from_account_id: string;
@@ -1310,6 +1355,9 @@ export type IncomeSource = Database["public"]["Tables"]["income_sources"]["Row"]
 export type IncomePlan = Database["public"]["Tables"]["income_plans"]["Row"];
 export type EarnAssessment = Database["public"]["Tables"]["earn_assessments"]["Row"];
 export type IncomePath = Database["public"]["Tables"]["income_paths"]["Row"];
+export type EarnProjectStatus = "active" | "paused" | "completed" | "archived";
+export type EarnProject = Database["public"]["Tables"]["earn_projects"]["Row"];
+export type EarnTransactionLink = Database["public"]["Tables"]["earn_transaction_links"]["Row"];
 export type IncomePathSkill = Database["public"]["Tables"]["income_path_skills"]["Row"];
 export type UserSkill = Database["public"]["Tables"]["user_skills"]["Row"];
 export type IncomeTarget = Database["public"]["Tables"]["income_targets"]["Row"];
