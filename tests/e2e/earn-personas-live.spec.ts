@@ -146,14 +146,14 @@ test("Earn V2 persona states render deterministic next actions", async ({ page }
       { type: "freelance_service", title: "Weekend freelance" },
     ]);
     await page.goto("/earn");
-    await expect(page.getByText("Primary career")).toBeVisible();
-    await expect(page.getByText("Weekend freelance")).toBeVisible();
+    await expect(page.getByText("Primary career").first()).toBeVisible();
+    await expect(page.getByText("Weekend freelance").first()).toBeVisible();
     await expect(page.locator("#earn-next-action")).toHaveCount(1);
 
     // Returning user: assessment history is preserved and latest snapshot drives guidance.
     await assessment("salary", 3_500_000, null);
     await page.goto("/earn");
-    await expect(page.getByText("Primary career")).toBeVisible();
+    await expect(page.getByText("Primary career").first()).toBeVisible();
     expect((await admin.from("earn_assessments").select("id", { count: "exact", head: true }).eq("user_id", userId)).count).toBeGreaterThan(1);
   } finally {
     await page.goto("about:blank").catch(() => {});

@@ -142,6 +142,18 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     const { data: updatedAccount } = await admin.from("accounts").select("current_balance").eq("id", account!.id).single();
     expect(Number(updatedAccount!.current_balance)).toBe(1500);
 
+    // The Hub's decision hierarchy stays readable and overflow-free from the
+    // narrowest supported phone through desktop. Screenshots are retained as
+    // Playwright artifacts for release-review rather than committed fixtures.
+    for (const width of [320, 390, 768, 1280]) {
+      await page.setViewportSize({ width, height: width < 700 ? 850 : 900 });
+      await page.goto("/earn");
+      await expect(page.locator("#earn-next-action")).toBeVisible();
+      await expect(page.locator("#earn-roadmap")).toBeVisible();
+      await expectNoHorizontalOverflow(page, `Earn Hub overflow at ${width}px`);
+      await page.screenshot({ path: testInfo.outputPath(`earn-hub-${width}.png`), fullPage: true });
+    }
+
     // The path's densest page remains usable from a 320px phone through desktop.
     for (const width of [320, 390, 768, 1280]) {
       await page.setViewportSize({ width, height: width < 700 ? 850 : 900 });
@@ -172,9 +184,23 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
       p_pin: "726194",
     });
     expect(privacy.error).toBeNull();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/earn");
+    await expect(page.getByText("This information is unavailable")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/฿500\.00/)).toHaveCount(0);
+    await expectNoHorizontalOverflow(page, "Privacy-locked Earn Hub overflow");
+    await page.screenshot({ path: testInfo.outputPath("earn-hub-privacy-390.png"), fullPage: true });
     await page.goto(`/earn/paths/${pathId}`);
     await expect(page.getByText("••••")).toBeVisible({ timeout: 20_000 });
     expect(Number((await admin.from("accounts").select("current_balance").eq("id", account!.id).single()).data!.current_balance)).toBe(1500);
+
+    // Thai is the primary product language; verify its longer labels wrap
+    // naturally in the privacy-locked mobile Hub without widening the page.
+    expect((await admin.from("profiles").update({ preferred_language: "th" }).eq("user_id", userId)).error).toBeNull();
+    await page.goto("/earn");
+    await expect(page.getByText("วันนี้ทำอะไรดี?")).toBeVisible({ timeout: 20_000 });
+    await expectNoHorizontalOverflow(page, "Thai Earn Hub overflow at 390px");
+    await page.screenshot({ path: testInfo.outputPath("earn-hub-thai-390.png"), fullPage: true });
   } finally {
     await page.goto("about:blank").catch(() => {});
     if (userId) await admin.auth.admin.deleteUser(userId);

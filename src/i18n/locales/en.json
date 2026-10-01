@@ -1182,6 +1182,7 @@
         "legacyStart": "Create classic missions"
       },
       "intro": {
+        "eyebrow": "Your starting point",
         "title": "Find a way to earn more that fits you",
         "body": "Answer 8 short questions (about 3 minutes) and we'll help you find a starting point and small experiments you can actually try.",
         "start": "Start",
@@ -1669,7 +1670,9 @@
         "target": "Target",
         "situation": "Where you are",
         "alsoCanDo": "Or do something else first",
-        "incomeProgress": "Income from your paths",
+        "incomeProgress": "Income progress",
+        "incomeProgressHint": "A simple view that keeps today's action in focus",
+        "incomeFromPaths": "Income recorded from your paths",
         "noLinkedIncome": "No income recorded from your paths yet",
         "activePaths": "Active paths",
         "noPaths": "No paths yet",
@@ -1677,6 +1680,11 @@
         "supporting": "Skills and rank",
         "skills": "Your skills",
         "rank": "Income rank",
+        "roadmap": "Your roadmap",
+        "roadmapDone": "Completed",
+        "roadmapCurrent": "Current",
+        "roadmapNext": "Next",
+        "viewRoadmap": "View all",
         "recommended": "Paths worth trying",
         "loadFailed": "Couldn't load this"
       },

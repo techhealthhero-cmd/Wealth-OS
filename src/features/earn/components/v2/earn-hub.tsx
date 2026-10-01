@@ -20,6 +20,7 @@ import {
   IncomeProgressCard,
   NextActionCard,
   RecommendedExperimentCard,
+  RoadmapFocusCard,
 } from "./hub-cards";
 import { localizeMission } from "./helpers";
 
@@ -46,9 +47,13 @@ export async function EarnHub() {
 
   const amountsHidden = isPrivacyLockedFor(privacy, "planning");
   const livePaths = data.paths.filter((p) => p.path.status !== "archived");
+  const focusPath =
+    livePaths.find((item) => item.path.id === data.nextAction.primary.pathId) ??
+    livePaths.find((item) => item.path.status === "active") ??
+    livePaths[0];
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       <EarnSituationCard dict={dict} stage={data.stage} />
 
       <NextActionCard
@@ -61,6 +66,7 @@ export async function EarnHub() {
             localizeMission(dict, r.pathType, { title: r.title, roadmap_step_key: r.stepKey, income_path_id: id }).title,
           ])
         )}
+        contextLabel={focusPath?.path.title}
       />
 
       {/* Hidden (not an error message) until migration 0031 provides income links. */}
@@ -68,13 +74,14 @@ export async function EarnHub() {
         <IncomeProgressCard
           dict={dict}
           income={data.income}
+          privacy={privacy}
           hidden={amountsHidden}
           averageMonthlyCents={incomeSummary?.profile.averageMonthlyIncomeCents ?? null}
           targetMonthlyCents={target?.target_monthly_income ? parseMoneyToCents(target.target_monthly_income) : null}
         />
       ) : null}
 
-      <section aria-labelledby="earn-paths" className="space-y-2">
+      <section aria-labelledby="earn-paths" className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 id="earn-paths" className="text-base font-semibold">
             {livePaths.length > 0 ? v2.hub.activePaths : v2.hub.recommended}
@@ -85,7 +92,7 @@ export async function EarnHub() {
           </Button>
         </div>
         {livePaths.length > 0 ? (
-          <div className="space-y-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             {livePaths.map((item) => (
               <IncomePathCard key={item.path.id} dict={dict} item={item} />
             ))}
@@ -103,7 +110,9 @@ export async function EarnHub() {
         )}
       </section>
 
-      <section aria-labelledby="earn-supporting" className="space-y-2">
+      {focusPath ? <RoadmapFocusCard dict={dict} item={focusPath} /> : null}
+
+      <section aria-labelledby="earn-supporting" className="space-y-3">
         <h2 id="earn-supporting" className="text-sm font-medium text-muted-foreground">
           {v2.hub.supporting}
         </h2>
@@ -116,7 +125,7 @@ export async function EarnHub() {
             <Link
               key={l.href}
               href={l.href}
-              className="flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border bg-card p-2 text-center text-xs font-medium hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border bg-card p-2 text-center text-xs font-medium shadow-xs transition-[background-color,transform,box-shadow] hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none"
             >
               <l.icon className="size-5 text-primary dark:text-[#7FD6B2]" aria-hidden="true" />
               {l.label}
@@ -132,18 +141,21 @@ export async function EarnHub() {
 function EarnIntro({ dict }: { dict: ReturnType<typeof getDictionary> }) {
   const v2 = dict.earn.v2;
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="flex flex-col items-center gap-4 px-6 pb-6 pt-8 text-center">
-        <EarnIllustration size={140} />
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold text-balance">{v2.intro.title}</h2>
-          <p className="text-sm text-muted-foreground text-pretty">{v2.intro.body}</p>
+    <Card className="mx-auto max-w-2xl overflow-hidden rounded-[2rem] border-primary/10 bg-linear-to-b from-primary/6 via-card to-card shadow-[0_18px_48px_-34px_color-mix(in_oklab,var(--primary)_55%,transparent)]">
+      <CardContent className="flex flex-col items-center gap-5 px-5 pb-7 pt-8 text-center sm:px-10 sm:pb-10 sm:pt-10">
+        <div className="rounded-[2rem] bg-primary/6 p-3 ring-1 ring-primary/10">
+          <EarnIllustration size={136} />
         </div>
-        <Button className="h-12 w-full rounded-2xl text-base" nativeButton={false} render={<Link href="/earn/diagnostic" />}>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">{v2.intro.eyebrow}</p>
+          <h2 className="text-2xl font-bold leading-tight text-balance sm:text-3xl">{v2.intro.title}</h2>
+          <p className="mx-auto max-w-lg text-sm leading-relaxed text-muted-foreground text-pretty sm:text-base">{v2.intro.body}</p>
+        </div>
+        <Button className="h-12 w-full max-w-md rounded-2xl text-base shadow-sm" nativeButton={false} render={<Link href="/earn/diagnostic" />}>
           {v2.intro.start}
           <ArrowRight className="ml-1 size-4" aria-hidden="true" />
         </Button>
-        <Button variant="ghost" className="h-11 w-full" nativeButton={false} render={<Link href="/earn/paths/new" />}>
+        <Button variant="ghost" className="h-11 w-full max-w-md rounded-2xl" nativeButton={false} render={<Link href="/earn/paths/new" />}>
           {v2.intro.knowPath}
         </Button>
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
