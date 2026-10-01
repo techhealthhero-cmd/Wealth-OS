@@ -15,6 +15,7 @@ import { formatMoney } from "@/lib/financial/money";
 import { toLocalDateString, addMonthsClamped } from "@/lib/date";
 import { useSpeechInput } from "@/lib/speech/use-speech-input";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { useSwipeToDismiss } from "@/hooks/use-swipe-to-dismiss";
 import {
   defaultAccountId,
   matchAccount,
@@ -84,6 +85,14 @@ export function QuickCaptureSheet({
 }: QuickCaptureSheetProps) {
   const { t, locale } = useTranslation();
   const keyboardInset = useKeyboardInset(open);
+  // Pull down to close; content scrolls freely in its own area below the header.
+  const { sheetRef, scrollRef } = useSwipeToDismiss({
+    enabled: open,
+    onDismiss: () => {
+      speech.stop();
+      onOpenChange(false);
+    },
+  });
   const [text, setText] = useState("");
   const [textSource, setTextSource] = useState<"quick_text" | "voice">("quick_text");
   const [overrides, setOverrides] = useState<Partial<CaptureDraft>>({});
@@ -401,8 +410,9 @@ export function QuickCaptureSheet({
       }}
     >
       <SheetContent
+        ref={sheetRef}
         side="bottom"
-        className="max-h-[92dvh] gap-0 overflow-y-auto rounded-t-3xl p-0 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:mx-auto sm:max-w-lg"
+        className="flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-t-3xl p-0 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:mx-auto sm:max-w-lg"
         // iOS overlays the keyboard instead of resizing the page — lift the
         // sheet above it and cap its height to the space left visible.
         style={
@@ -411,242 +421,246 @@ export function QuickCaptureSheet({
             : undefined
         }
       >
-        <SheetHeader className="pb-2">
+        {/* Grab handle: the visual cue that the sheet can be pulled down to close. */}
+        <div aria-hidden="true" className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/25" />
+        <SheetHeader className="shrink-0 pt-2 pb-2">
           <SheetTitle className="text-lg">{t("capture.title")}</SheetTitle>
           <SheetDescription>{t("capture.subtitle")}</SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-3 px-4">
-          {/* Type — the primary path. Enter saves when the preview is ready. */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void save();
-            }}
-            className="relative"
-          >
-            <label htmlFor="quick-capture-input" className="sr-only">
-              {t("capture.inputLabel")}
-            </label>
-            <input
-              id="quick-capture-input"
-              ref={textRef}
-              value={text}
-              onChange={(e) => {
-                setText(e.target.value);
-                setTextSource("quick_text");
-                setOverrides({});
-                setError(null);
-                if (receipt.status !== "idle") clearReceipt();
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="space-y-3 px-4">
+            {/* Type — the primary path. Enter saves when the preview is ready. */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void save();
               }}
-              placeholder={speech.listening ? t("capture.listening") : t("capture.inputPlaceholder")}
-              autoFocus
-              autoComplete="off"
-              enterKeyHint="done"
-              className="h-13 w-full rounded-2xl border bg-background px-4 pr-11 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
-            />
-            {text ? (
-              <button
-                type="button"
-                aria-label={t("common.clear")}
-                onClick={() => {
-                  setText("");
+              className="relative"
+            >
+              <label htmlFor="quick-capture-input" className="sr-only">
+                {t("capture.inputLabel")}
+              </label>
+              <input
+                id="quick-capture-input"
+                ref={textRef}
+                value={text}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  setTextSource("quick_text");
                   setOverrides({});
-                  textRef.current?.focus();
+                  setError(null);
+                  if (receipt.status !== "idle") clearReceipt();
                 }}
-                className="absolute top-1/2 right-3 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            ) : null}
-          </form>
-
-          {!text && receipt.status === "idle" ? (
-            <div className="flex flex-wrap gap-1.5">
-              {(["example1", "example2", "example3"] as const).map((key) => (
+                placeholder={speech.listening ? t("capture.listening") : t("capture.inputPlaceholder")}
+                autoFocus
+                autoComplete="off"
+                enterKeyHint="done"
+                className="h-13 w-full rounded-2xl border bg-background px-4 pr-11 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
+              />
+              {text ? (
                 <button
-                  key={key}
                   type="button"
+                  aria-label={t("common.clear")}
                   onClick={() => {
-                    setText(t(`capture.${key}`));
-                    setTextSource("quick_text");
+                    setText("");
+                    setOverrides({});
+                    textRef.current?.focus();
                   }}
-                  className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+                  className="absolute top-1/2 right-3 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
                 >
-                  {t(`capture.${key}`)}
+                  <X className="size-4" aria-hidden="true" />
                 </button>
-              ))}
-            </div>
-          ) : null}
+              ) : null}
+            </form>
 
-          {/* Capture methods */}
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => speech.toggle()}
-              disabled={!speech.supported}
-              aria-pressed={speech.listening}
-              className={cn(
-                "flex flex-col items-center gap-1 rounded-2xl border bg-card py-3 text-xs font-medium transition-colors disabled:opacity-50",
-                speech.listening ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted"
-              )}
-            >
-              <Mic className={cn("size-5", speech.listening && "animate-pulse")} aria-hidden="true" />
-              {speech.listening ? t("capture.stopListening") : t("capture.speak")}
-            </button>
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              className="flex flex-col items-center gap-1 rounded-2xl border bg-card py-3 text-xs font-medium hover:bg-muted"
-            >
-              <Camera className="size-5" aria-hidden="true" />
-              {t("capture.scan")}
-            </button>
-            <button
-              type="button"
-              onClick={openManual}
-              className="flex flex-col items-center gap-1 rounded-2xl border bg-card py-3 text-xs font-medium hover:bg-muted"
-            >
-              <PencilLine className="size-5" aria-hidden="true" />
-              {t("capture.manual")}
-            </button>
-          </div>
-          {!speech.supported ? <p className="text-xs text-muted-foreground">{t("capture.voiceUnsupported")}</p> : null}
-          {speech.error ? <p className="text-xs text-amber-700 dark:text-amber-400">{t("capture.voiceError")}</p> : null}
-
-          {/* Two inputs: the camera (capture) and the photo library. */}
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              void handleImage(file);
-            }}
-          />
-          <input
-            ref={libraryInputRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              void handleImage(file);
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => libraryInputRef.current?.click()}
-            className="flex w-full items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ImageUp className="size-3.5" aria-hidden="true" />
-            {t("capture.uploadImage")}
-          </button>
-
-          {receipt.status !== "idle" ? (
-            <div className="flex items-center gap-3 rounded-2xl border bg-muted/40 p-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- transient local object URL, never uploaded as-is or stored */}
-              <img src={receipt.previewUrl} alt="" className="size-14 shrink-0 rounded-xl object-cover" />
-              <div className="min-w-0 flex-1 text-sm">
-                {receipt.status === "scanning" ? (
-                  <p className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                    {t("capture.scanning")}
-                  </p>
-                ) : (
-                  <>
-                    {receipt.message ? <p className="font-medium text-amber-800 dark:text-amber-300">{receipt.message}</p> : null}
-                    {receipt.message ? <p className="text-xs text-muted-foreground">{t("capture.partialReadHint")}</p> : null}
-                    {receipt.mock ? <p className="text-xs text-muted-foreground">{t("capture.mockLabel")}</p> : null}
-                  </>
-                )}
+            {!text && receipt.status === "idle" ? (
+              <div className="flex flex-wrap gap-1.5">
+                {(["example1", "example2", "example3"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setText(t(`capture.${key}`));
+                      setTextSource("quick_text");
+                    }}
+                    className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    {t(`capture.${key}`)}
+                  </button>
+                ))}
               </div>
+            ) : null}
+
+            {/* Capture methods */}
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                aria-label={t("common.close")}
-                onClick={clearReceipt}
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+                onClick={() => speech.toggle()}
+                disabled={!speech.supported}
+                aria-pressed={speech.listening}
+                className={cn(
+                  "flex flex-col items-center gap-1 rounded-2xl border bg-card py-3 text-xs font-medium transition-colors disabled:opacity-50",
+                  speech.listening ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted"
+                )}
               >
-                <X className="size-4" aria-hidden="true" />
+                <Mic className={cn("size-5", speech.listening && "animate-pulse")} aria-hidden="true" />
+                {speech.listening ? t("capture.stopListening") : t("capture.speak")}
+              </button>
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex flex-col items-center gap-1 rounded-2xl border bg-card py-3 text-xs font-medium hover:bg-muted"
+              >
+                <Camera className="size-5" aria-hidden="true" />
+                {t("capture.scan")}
+              </button>
+              <button
+                type="button"
+                onClick={openManual}
+                className="flex flex-col items-center gap-1 rounded-2xl border bg-card py-3 text-xs font-medium hover:bg-muted"
+              >
+                <PencilLine className="size-5" aria-hidden="true" />
+                {t("capture.manual")}
               </button>
             </div>
-          ) : null}
+            {!speech.supported ? <p className="text-xs text-muted-foreground">{t("capture.voiceUnsupported")}</p> : null}
+            {speech.error ? <p className="text-xs text-amber-700 dark:text-amber-400">{t("capture.voiceError")}</p> : null}
 
-          {activeDraft && receipt.status !== "scanning" ? (
-            <TransactionPreview
-              draft={activeDraft}
-              accounts={accounts}
-              categories={categories}
-              heading={receipt.status !== "idle" ? receiptHeading : t("capture.preview")}
-              onChange={patchDraft}
-              onSave={() => void save()}
-              onSaveAnyway={() => {
-                setDuplicate(null);
-                void save({ skipDuplicateCheck: true });
+            {/* Two inputs: the camera (capture) and the photo library. */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                void handleImage(file);
               }}
-              onEdit={openManual}
-              saving={saving}
-              saveLabel={receipt.status !== "idle" ? t("capture.correct") : t("capture.save")}
-              duplicate={duplicate}
-              notice={
-                receipt.status !== "idle" ? undefined : aiPendingKey === textKey ? (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                    {t("capture.aiAssisting")}
-                  </p>
-                ) : aiReading ? (
-                  <p className="text-xs text-muted-foreground" aria-live="polite">
-                    {t("capture.aiAssisted")}
-                  </p>
-                ) : undefined
-              }
             />
-          ) : null}
-
-          {error ? (
-            <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
-
-          {accounts.length === 0 ? (
-            <Button variant="outline" className="w-full" nativeButton={false} render={<Link href="/money/accounts" />}>
-              {t("capture.addAccount")}
-            </Button>
-          ) : null}
-
-          {/* Everything the old "+" menu offered stays reachable. */}
-          <div className="flex gap-2 border-t pt-3">
-            <Button
-              type="button"
-              variant="ghost"
-              className="flex-1 text-emerald-700 dark:text-emerald-400"
-              onClick={() => {
-                resetAll();
-                onOpenChange(false);
-                onIncome();
+            <input
+              ref={libraryInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                void handleImage(file);
               }}
-            >
-              <TrendingUp className="mr-1.5 size-4" aria-hidden="true" />
-              {t("capture.income")}
-            </Button>
-            <Button
+            />
+            <button
               type="button"
-              variant="ghost"
-              className="flex-1"
-              onClick={() => {
-                resetAll();
-                onOpenChange(false);
-                onTransfer();
-              }}
+              onClick={() => libraryInputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
-              <ArrowLeftRight className="mr-1.5 size-4" aria-hidden="true" />
-              {t("capture.transfer")}
-            </Button>
+              <ImageUp className="size-3.5" aria-hidden="true" />
+              {t("capture.uploadImage")}
+            </button>
+
+            {receipt.status !== "idle" ? (
+              <div className="flex items-center gap-3 rounded-2xl border bg-muted/40 p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element -- transient local object URL, never uploaded as-is or stored */}
+                <img src={receipt.previewUrl} alt="" className="size-14 shrink-0 rounded-xl object-cover" />
+                <div className="min-w-0 flex-1 text-sm">
+                  {receipt.status === "scanning" ? (
+                    <p className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                      {t("capture.scanning")}
+                    </p>
+                  ) : (
+                    <>
+                      {receipt.message ? <p className="font-medium text-amber-800 dark:text-amber-300">{receipt.message}</p> : null}
+                      {receipt.message ? <p className="text-xs text-muted-foreground">{t("capture.partialReadHint")}</p> : null}
+                      {receipt.mock ? <p className="text-xs text-muted-foreground">{t("capture.mockLabel")}</p> : null}
+                    </>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  aria-label={t("common.close")}
+                  onClick={clearReceipt}
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              </div>
+            ) : null}
+
+            {activeDraft && receipt.status !== "scanning" ? (
+              <TransactionPreview
+                draft={activeDraft}
+                accounts={accounts}
+                categories={categories}
+                heading={receipt.status !== "idle" ? receiptHeading : t("capture.preview")}
+                onChange={patchDraft}
+                onSave={() => void save()}
+                onSaveAnyway={() => {
+                  setDuplicate(null);
+                  void save({ skipDuplicateCheck: true });
+                }}
+                onEdit={openManual}
+                saving={saving}
+                saveLabel={receipt.status !== "idle" ? t("capture.correct") : t("capture.save")}
+                duplicate={duplicate}
+                notice={
+                  receipt.status !== "idle" ? undefined : aiPendingKey === textKey ? (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
+                      <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                      {t("capture.aiAssisting")}
+                    </p>
+                  ) : aiReading ? (
+                    <p className="text-xs text-muted-foreground" aria-live="polite">
+                      {t("capture.aiAssisted")}
+                    </p>
+                  ) : undefined
+                }
+              />
+            ) : null}
+
+            {error ? (
+              <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+
+            {accounts.length === 0 ? (
+              <Button variant="outline" className="w-full" nativeButton={false} render={<Link href="/money/accounts" />}>
+                {t("capture.addAccount")}
+              </Button>
+            ) : null}
+
+            {/* Everything the old "+" menu offered stays reachable. */}
+            <div className="flex gap-2 border-t pt-3">
+              <Button
+                type="button"
+                variant="ghost"
+                className="flex-1 text-emerald-700 dark:text-emerald-400"
+                onClick={() => {
+                  resetAll();
+                  onOpenChange(false);
+                  onIncome();
+                }}
+              >
+                <TrendingUp className="mr-1.5 size-4" aria-hidden="true" />
+                {t("capture.income")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="flex-1"
+                onClick={() => {
+                  resetAll();
+                  onOpenChange(false);
+                  onTransfer();
+                }}
+              >
+                <ArrowLeftRight className="mr-1.5 size-4" aria-hidden="true" />
+                {t("capture.transfer")}
+              </Button>
+            </div>
           </div>
         </div>
       </SheetContent>
