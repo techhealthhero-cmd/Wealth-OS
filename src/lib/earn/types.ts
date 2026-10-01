@@ -104,6 +104,8 @@ export interface NextAction {
   actionKind: NextActionKind;
   titleKey: string;
   reasonKey: string;
+  /** Stable, machine-readable "why" — rendered via locale keys, never as raw text. */
+  reasonCodes: EarnReasonCode[];
   ctaKey: string;
   estimatedMinutes: number | null;
   pathId: string | null;

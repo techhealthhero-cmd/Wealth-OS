@@ -102,4 +102,12 @@ describe("Next Action Engine V1", () => {
     expect(result.primary).toMatchObject({ actionKind: "continue_mission", missionId: "m1" });
     expect(result.secondary.map((a) => a.actionKind)).toContain("complete_diagnostic");
   });
+
+  it("every action carries stable reason codes; stage actions add the stage's reasons", () => {
+    const result = resolveNextAction(input({ activePaths: [], stage: { stage: "cashflow", reasonCodes: ["income_below_essential_expenses"], rulesVersion: "earn-stage-v1", confidence: "sufficient" } }));
+    expect(result.primary).toMatchObject({ actionKind: "choose_income_path", reasonCodes: ["income_path_missing"] });
+    const stageAction = result.secondary.find((a) => a.actionKind === "improve_cashflow");
+    expect(stageAction?.reasonCodes).toEqual(["cashflow_needs_attention", "income_below_essential_expenses"]);
+    for (const a of [result.primary, ...result.secondary]) expect(a.reasonCodes.length).toBeGreaterThan(0);
+  });
 });

@@ -21,6 +21,7 @@ import {
   NextActionCard,
   RecommendedExperimentCard,
 } from "./hub-cards";
+import { localizeMission } from "./helpers";
 
 /**
  * Earn Hub — the answer to "ตอนนี้ฉันควรทำอะไรต่อ?".
@@ -54,7 +55,12 @@ export async function EarnHub() {
         dict={dict}
         primary={data.nextAction.primary}
         secondary={data.nextAction.secondary}
-        missionTitles={data.missionTitles}
+        missionTitles={Object.fromEntries(
+          Object.entries(data.missionRefs).map(([id, r]) => [
+            id,
+            localizeMission(dict, r.pathType, { title: r.title, roadmap_step_key: r.stepKey, income_path_id: id }).title,
+          ])
+        )}
       />
 
       {/* Hidden (not an error message) until migration 0031 provides income links. */}

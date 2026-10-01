@@ -36,3 +36,22 @@ export function nextActionHref(action: NextAction): string {
       return "/earn/paths";
   }
 }
+
+/**
+ * Display copy for a mission. Earn V2 path missions are generated from a
+ * (path type, roadmap step) template, so they render in the CURRENT language
+ * from that template key — the title stored at creation is only a fallback.
+ * Legacy and any custom missions keep their stored title untouched.
+ */
+export function localizeMission(
+  dict: unknown,
+  pathType: string | null | undefined,
+  m: { title: string; description?: string | null; roadmap_step_key?: string | null; income_path_id?: string | null }
+): { title: string; description: string | null } {
+  if (m.income_path_id && pathType && m.roadmap_step_key) {
+    const copy = (dict as { earn?: { v2?: { missions?: Record<string, Record<string, { title?: string; description?: string }>> } } })
+      .earn?.v2?.missions?.[pathType]?.[m.roadmap_step_key];
+    if (copy?.title) return { title: copy.title, description: copy.description ?? m.description ?? null };
+  }
+  return { title: m.title, description: m.description ?? null };
+}

@@ -1,3 +1,4 @@
+import type { EarnReasonCode } from "@/lib/earn/reason-codes";
 import type {
   NextAction,
   NextActionInput,
@@ -34,13 +35,29 @@ function keySet(name: string) {
     ctaKey: `earn.nextAction.${name}.cta`,
   };
 }
+const PRIMARY_REASON: Record<NextActionKind, EarnReasonCode> = {
+  complete_diagnostic: "diagnostic_incomplete",
+  choose_income_path: "income_path_missing",
+  initialize_income_path: "income_path_not_initialized",
+  record_mission_result: "mission_result_pending",
+  continue_mission: "mission_ready",
+  record_income: "earned_income_not_recorded",
+  improve_cashflow: "cashflow_needs_attention",
+  build_resilience: "resilience_needs_attention",
+  grow_income: "earning_capacity_can_grow",
+  optimize_scale: "repeatable_income_can_scale",
+  review_freedom_plan: "freedom_plan_needs_review",
+};
+
 function action(
   actionKind: NextActionKind,
-  references: Partial<Pick<NextAction, "pathId" | "projectId" | "missionId" | "estimatedMinutes">> = {}
+  references: Partial<Pick<NextAction, "pathId" | "projectId" | "missionId" | "estimatedMinutes">> = {},
+  extraReasons: EarnReasonCode[] = []
 ): NextAction {
   return {
     actionKind,
     ...KEYS[actionKind],
+    reasonCodes: [PRIMARY_REASON[actionKind], ...extraReasons.filter((c) => c !== PRIMARY_REASON[actionKind])],
     estimatedMinutes: references.estimatedMinutes ?? null,
     pathId: references.pathId ?? null,
     projectId: references.projectId ?? null,
@@ -110,7 +127,9 @@ export function resolveNextAction(input: NextActionInput): NextActionResult {
     scale: "optimize_scale",
     freedom: "review_freedom_plan",
   };
-  candidates.push(action(stageAction[input.stage.stage]));
+  // Stage-driven actions also carry the stage's own reasons (e.g. "income
+  // below essential expenses") so the UI can explain the recommendation.
+  candidates.push(action(stageAction[input.stage.stage], {}, input.stage.reasonCodes));
 
   const uniqueCandidates = candidates.filter(
     (candidate, index) => candidates.findIndex((item) => item.actionKind === candidate.actionKind) === index

@@ -20,7 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/shared/icon-chip";
 import { PATH_ICON_COMPONENTS } from "@/features/earn/components/v2/path-icons";
-import { fill } from "@/features/earn/components/v2/helpers";
+import { fill, localizeMission } from "@/features/earn/components/v2/helpers";
 import { MissionActions, PathStatusToggle, ProjectCreateForm } from "@/features/earn/components/v2/path-client";
 
 export const metadata: Metadata = { title: "Earn — Wealth OS" };
@@ -52,6 +52,7 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
   const current = awaitingResult[0] ?? open.find((m) => m.roadmap_step_key === progress.currentStepKey) ?? open[0] ?? null;
   const history = missions.filter((m) => m.id !== current?.id && m.status === "completed").reverse();
   const currentTemplate = current?.roadmap_step_key ? getMissionTemplate(type, current.roadmap_step_key) : null;
+  const currentCopy = current ? localizeMission(dict, type, current) : null;
   const pathIncome = income.byPath[path.id] ?? [];
   const Icon = PATH_ICON_COMPONENTS[type];
 
@@ -128,8 +129,8 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
           <Card className="border-primary/20">
             <CardContent className="space-y-3 pt-5">
               <div>
-                <p className="font-semibold leading-snug text-balance">{current.title}</p>
-                {current.description ? <p className="mt-1 text-sm text-muted-foreground">{current.description}</p> : null}
+                <p className="font-semibold leading-snug text-balance">{currentCopy?.title}</p>
+                {currentCopy?.description ? <p className="mt-1 text-sm text-muted-foreground">{currentCopy.description}</p> : null}
               </div>
               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {current.estimated_minutes ? (
@@ -238,7 +239,7 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
           <ul className="divide-y pb-2">
             {history.map((m) => (
               <li key={m.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
-                <span className="min-w-0 truncate">{m.title}</span>
+                <span className="min-w-0 truncate">{localizeMission(dict, type, m).title}</span>
                 {m.result_required && !m.hasResult ? (
                   <Link href={`/earn/missions/${m.id}/result`} className="shrink-0 text-xs font-medium text-primary dark:text-[#7FD6B2]">
                     {v2.missions.recordResult}

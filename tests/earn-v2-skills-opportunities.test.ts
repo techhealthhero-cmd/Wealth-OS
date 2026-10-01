@@ -41,3 +41,21 @@ describe("Opportunities V2", () => {
     expect(opportunityReasons({ matchedSkillCount: 0, timeToFirstIncome: "slow", difficulty: "hard", startupCostMaxMinor: 5_000_000 })).toEqual([]);
   });
 });
+
+describe("localizeMission — template missions follow the current language", () => {
+  it("renders a V2 template mission from its (path type, step) key, ignoring the stored creation-language title", async () => {
+    const { localizeMission } = await import("@/features/earn/components/v2/helpers");
+    const th = (await import("@/i18n/locales/th.json")).default;
+    const en = (await import("@/i18n/locales/en.json")).default;
+    const stored = { title: "หาลูกค้าที่อาจสนใจ 5 ราย", description: null, roadmap_step_key: "find_leads", income_path_id: "p1" };
+    expect(localizeMission(en, "freelance_service", stored).title).toBe("Find 5 potential customers");
+    expect(localizeMission(th, "freelance_service", stored).title).toBe("หาลูกค้าที่อาจสนใจ 5 ราย");
+  });
+
+  it("legacy / custom missions keep their stored title", async () => {
+    const { localizeMission } = await import("@/features/earn/components/v2/helpers");
+    const en = (await import("@/i18n/locales/en.json")).default;
+    expect(localizeMission(en, null, { title: "outreach", income_path_id: null }).title).toBe("outreach");
+    expect(localizeMission(en, "freelance_service", { title: "My own mission", roadmap_step_key: "unknown_step", income_path_id: "p1" }).title).toBe("My own mission");
+  });
+});

@@ -10,7 +10,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import type { EarnStageResult, IncomePathType, NextAction } from "@/lib/earn/types";
 import type { RecommendedExperiment } from "@/lib/earn/recommendations";
 import type { HubPath, PathIncome } from "@/features/earn/v2-queries";
-import { fill, nextActionHref, tr } from "./helpers";
+import { fill, localizeMission, nextActionHref, tr } from "./helpers";
 import { PATH_ICON_COMPONENTS } from "./path-icons";
 
 export const PATH_ICONS = PATH_ICON_COMPONENTS;
@@ -74,6 +74,21 @@ export function NextActionCard({
           {title}
         </h2>
         <p className="mt-1.5 text-sm text-primary-foreground/85">{missionTitle ? tr(dict, primary.titleKey) : reason}</p>
+        {primary.reasonCodes.length > 0 ? (
+          <details className="group mt-2 text-sm">
+            <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 font-medium text-primary-foreground/90 underline-offset-2 hover:underline">
+              {dict.earn.v2.hub.whyTitle}
+            </summary>
+            <ul className="mt-1 space-y-1 text-primary-foreground/90">
+              {primary.reasonCodes.map((code) => (
+                <li key={code} className="flex gap-2">
+                  <span aria-hidden="true">•</span>
+                  {dict.earn.v2.hub.why[code]}
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
         <div className="mt-4 flex items-center justify-between gap-3">
           {primary.estimatedMinutes ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">
@@ -223,7 +238,7 @@ export function IncomePathCard({ dict, item }: { dict: Dictionary; item: HubPath
         {item.currentMission ? (
           <p className="mt-2 truncate text-sm">
             <span className="text-muted-foreground">{dict.earn.v2.paths.whatsNext}: </span>
-            {item.currentMission.title}
+            {localizeMission(dict, type, item.currentMission).title}
           </p>
         ) : null}
       </div>

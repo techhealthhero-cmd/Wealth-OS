@@ -205,8 +205,8 @@ export interface EarnHubData {
   nextAction: NextActionResult;
   recommendations: RecommendedExperiment[];
   income: PathIncome;
-  /** Titles of live missions, so the Hub can headline the concrete mission. */
-  missionTitles: Record<string, string>;
+  /** Live missions (stored title + template key), so the Hub can headline the concrete mission in the current language. */
+  missionRefs: Record<string, { title: string; pathType: string; stepKey: string | null }>;
 }
 
 /** A path's current mission: the open mission on its current roadmap step, else the latest open one. */
@@ -285,7 +285,9 @@ export async function getEarnHubData(): Promise<EarnHubData> {
     nextAction,
     recommendations: assessment ? recommendExperiments(assessment.answers, stage.stage) : [],
     income,
-    missionTitles: Object.fromEntries(liveMissions.map((m) => [m.id, m.title])),
+    missionRefs: Object.fromEntries(
+      liveMissions.map((m) => [m.id, { title: m.title, pathType: livePaths.find((p) => p.id === m.income_path_id)?.path_type ?? "", stepKey: m.roadmap_step_key }])
+    ),
   };
 }
 
