@@ -27,6 +27,10 @@ export function EarnSituationCard({ dict, stage }: { dict: Dictionary; stage: Ea
           <p className="text-xs font-medium text-muted-foreground">{dict.earn.v2.hub.situation}</p>
           <p className="mt-1 text-lg font-semibold leading-snug text-balance">{copy.title}</p>
           <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground max-[359px]:line-clamp-2">{copy.body}</p>
+          <div className="mt-3 border-t border-primary/10 pt-3">
+            <p className="text-[11px] font-medium text-muted-foreground">{dict.earn.v2.hub.immediateGoal}</p>
+            <p className="mt-0.5 text-sm font-semibold text-primary dark:text-[#7FD6B2]">{dict.earn.v2.hub.goals[stage.stage]}</p>
+          </div>
         </div>
         <Button
           variant="ghost"
@@ -80,7 +84,7 @@ export function NextActionCard({
         <h2 id="earn-next-action" className="mt-2 max-w-2xl text-2xl font-bold leading-snug text-balance sm:text-[1.75rem]">
           {title}
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-primary-foreground/85 sm:text-base">{missionTitle ? tr(dict, primary.titleKey) : reason}</p>
+        {!missionTitle ? <p className="mt-2 max-w-2xl text-sm leading-relaxed text-primary-foreground/85 sm:text-base">{reason}</p> : null}
         <div className="mt-4 flex flex-col gap-3 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
           {primary.estimatedMinutes ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">
@@ -154,7 +158,8 @@ export function IncomeProgressCard({
   averageMonthlyCents: number | null;
   targetMonthlyCents: number | null;
 }) {
-  const pct = averageMonthlyCents !== null && targetMonthlyCents ? Math.min(100, Math.round((averageMonthlyCents / targetMonthlyCents) * 100)) : null;
+  const actualThb = income.monthlyTotals.find((row) => row.currency === "THB")?.amountMinor ?? null;
+  const pct = actualThb !== null && targetMonthlyCents ? Math.min(100, Math.round((actualThb / targetMonthlyCents) * 100)) : null;
   const protectedPresentation = privacy.displayStyle === "unavailable"
     ? { icon: CloudOff, title: dict.accountPrivacy.genericUnavailableTitle, description: dict.accountPrivacy.genericUnavailableDescription }
     : privacy.displayStyle === "empty"
@@ -185,41 +190,35 @@ export function IncomeProgressCard({
           </div>
         ) : (
           <>
-        {averageMonthlyCents !== null ? (
-          <div className="mb-4">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground">{dict.earn.v2.hub.avgMonthly}</p>
-                <p className="text-2xl font-bold tabular-nums">{formatMoney(averageMonthlyCents)}</p>
-              </div>
-              {targetMonthlyCents ? (
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">{dict.earn.v2.hub.target}</p>
-                  <p className="text-base font-semibold tabular-nums">{formatMoney(targetMonthlyCents)}</p>
-                </div>
-              ) : null}
+        <div className="mb-4">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">{dict.earn.v2.hub.actualThisMonth}</p>
+              {income.monthlyTotals.length ? income.monthlyTotals.map((total) => (
+                <p key={total.currency} className="text-2xl font-bold tabular-nums">{formatMoney(total.amountMinor, total.currency)}</p>
+              )) : <p className="text-2xl font-bold tabular-nums">{formatMoney(0)}</p>}
             </div>
-            {pct !== null ? (
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={dict.earn.v2.hub.target}>
-                <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+            {targetMonthlyCents ? (
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">{dict.earn.v2.hub.target}</p>
+                <p className="text-base font-semibold tabular-nums">{formatMoney(targetMonthlyCents)}</p>
               </div>
             ) : null}
           </div>
-        ) : null}
-        <p className="text-sm font-medium text-muted-foreground">{dict.earn.v2.hub.incomeFromPaths}</p>
-        {!income.available ? (
-          <p className="mt-2 text-sm text-muted-foreground">{dict.earn.v2.income.migrationPending}</p>
-        ) : income.totals.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">{dict.earn.v2.hub.noLinkedIncome}</p>
-        ) : (
-          <div className="mt-1 space-y-0.5">
-            {income.totals.map((t) => (
-              <p key={t.currency} className="text-2xl font-bold tabular-nums">
-                {formatMoney(t.amountMinor, t.currency)}
-              </p>
-            ))}
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{dict.earn.v2.hub.actualIncomeHint}</p>
+          {pct !== null ? (
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={dict.earn.v2.hub.target}>
+              <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+            </div>
+          ) : null}
+        </div>
+        {averageMonthlyCents !== null ? (
+          <div className="mb-4">
+            <p className="text-xs text-muted-foreground">{dict.earn.v2.hub.avgMonthly}</p>
+            <p className="text-base font-semibold tabular-nums">{formatMoney(averageMonthlyCents)}</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{dict.earn.v2.hub.historicalIncomeHint}</p>
           </div>
-        )}
+        ) : null}
           </>
         )}
       </CardContent>

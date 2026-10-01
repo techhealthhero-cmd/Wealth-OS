@@ -95,7 +95,7 @@ export async function submitDiagnostic(answers: DiagnosticAnswers): Promise<Earn
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 
-/** Creates the one mission for a roadmap step, in the user's language. Idempotent per (path, step) while one is open. */
+/** Creates the one mission for a roadmap step, in the user's language. Idempotent per (path, template, project) while one is open. */
 async function createStepMission(supabase: Client, dict: Dictionary, userId: string, pathId: string, pathType: IncomePathType, stepKey: string) {
   const template = getMissionTemplate(pathType, stepKey);
   if (!template) return;
@@ -110,7 +110,7 @@ async function createStepMission(supabase: Client, dict: Dictionary, userId: str
 
   const copy = (dict.earn.v2.missions as unknown as Record<string, Record<string, { title: string; description: string }>>)[pathType]?.[stepKey];
   const order = getRoadmapTemplate(pathType).steps.find((s) => s.key === stepKey)?.order ?? 0;
-  await supabase.from("income_missions").insert({
+  const row = {
     user_id: userId,
     title: copy?.title ?? stepKey,
     description: copy?.description ?? null,
@@ -123,8 +123,19 @@ async function createStepMission(supabase: Client, dict: Dictionary, userId: str
     income_path_id: pathId,
     mission_category: template.category,
     roadmap_step_key: stepKey,
+    mission_template_key: `${pathType}.${stepKey}`,
     result_required: template.resultRequired,
-  });
+  };
+  let { error } = await supabase.from("income_missions").insert(row);
+  // Deploy-safe transition: app code may reach an environment shortly before
+  // additive migration 0035. Keep the sequential idempotency guard working
+  // there, while the unique index closes concurrent retries after migration.
+  if (error?.code === "42703" || error?.code === "PGRST204") {
+    const { mission_template_key: _notMigratedYet, ...legacyRow } = row;
+    void _notMigratedYet;
+    ({ error } = await supabase.from("income_missions").insert(legacyRow));
+  }
+  if (error && error.code !== "23505") throw error;
 }
 
 /** Creates a path, initializes its roadmap at step one and its first mission. */

@@ -85,6 +85,7 @@ function defaultPosition(): Position {
  */
 export function FloatingAiButton() {
   const pathname = usePathname();
+  const onEarnPage = pathname === "/earn" || pathname.startsWith("/earn/");
   const [position, setPosition] = useState<Position | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const idleOpacity = useAiFabIdleOpacity();
@@ -209,7 +210,7 @@ export function FloatingAiButton() {
   // navigated away from under it while open.
   const onAiPage = pathname === AI_NAV_ITEM.matchPrefix || pathname.startsWith(`${AI_NAV_ITEM.matchPrefix}/`);
   // `fabEnabled`: Settings → floating AI button on/off toggle.
-  const showButton = fabEnabled && !onAiPage && AI_NAV_ITEM.enabled && position;
+  const showButton = fabEnabled && !onAiPage && !onEarnPage && AI_NAV_ITEM.enabled && position;
   const anchor = useMemo(
     () => (position ? { x: position.x, y: position.y, size: BUTTON_SIZE_PX } : null),
     [position]
@@ -249,7 +250,7 @@ export function FloatingAiButton() {
         </button>
       ) : null}
       <AiAssistantPanel
-        open={sheetOpen}
+        open={sheetOpen && !onEarnPage}
         onOpenChange={setSheetOpen}
         anchor={anchor}
       />

@@ -76,6 +76,72 @@ describe("actionablePathMissions — the V2 missions list", () => {
     ]);
     expect(out.map((x) => x.id)).toEqual(["pending", "open", "doing"]);
   });
+
+  it("consolidates accidental historical open duplicates without removing completed history", async () => {
+    const { consolidateActionableMissions } = await import("@/features/earn/components/v2/helpers");
+    const base = {
+      income_path_id: "path-1", earn_project_id: null, roadmap_step_key: "foundation",
+      result_required: false, hasResult: false, sequence_order: 1,
+    };
+    const out = consolidateActionableMissions([
+      { ...base, id: "old", status: "not_started", created_at: "2026-01-01T00:00:00Z" },
+      { ...base, id: "retry", status: "not_started", created_at: "2026-01-02T00:00:00Z" },
+      { ...base, id: "done", status: "completed", hasResult: true, created_at: "2025-12-01T00:00:00Z" },
+    ]);
+    expect(out.map((row) => row.id)).toEqual(["old"]);
+  });
+
+  it("keeps identical templates on different paths distinct and orders NOW / NEXT / LATER deterministically", async () => {
+    const { organizeMissionQueue } = await import("@/features/earn/components/v2/helpers");
+    const m = (id: string, path: string, order: number, status = "not_started") => ({
+      id, income_path_id: path, earn_project_id: null, roadmap_step_key: "foundation",
+      status, result_required: false, hasResult: false, sequence_order: order,
+      created_at: `2026-01-0${order}T00:00:00Z`,
+    });
+    const queue = organizeMissionQueue([m("p1", "path-1", 2), m("p2", "path-2", 1), m("p3", "path-3", 3), m("p4", "path-4", 4)], "p1");
+    expect(queue.primary?.id).toBe("p1");
+    expect(queue.next.map((row) => row.id)).toEqual(["p2", "p3"]);
+    expect(queue.later.map((row) => row.id)).toEqual(["p4"]);
+  });
+});
+
+describe("Earn UX semantics", () => {
+  it("keeps Actual, Historical and Forecast labels explicit in both locales", async () => {
+    const th = (await import("@/i18n/locales/th.json")).default;
+    const en = (await import("@/i18n/locales/en.json")).default;
+    expect(th.earn.v2.hub.actualThisMonth).toContain("จริง");
+    expect(th.earn.v2.hub.avgMonthly).toContain("ประวัติ");
+    expect(th.earn.planner.estimateDisclaimer).toContain("ไม่ใช่การรับประกัน");
+    expect(en.earn.v2.hub.actualThisMonth).toContain("Actual");
+    expect(en.earn.v2.hub.avgMonthly).toContain("Historical");
+    expect(en.earn.planner.estimateDisclaimer).toContain("not guaranteed");
+  });
+
+  it("uses explainable opportunity labels without fake percentages", async () => {
+    const th = (await import("@/i18n/locales/th.json")).default;
+    const labels = Object.values(th.earn.v2.opportunitiesV2.fit).join(" ");
+    expect(labels).not.toContain("%");
+    expect(labels).not.toContain("เหมาะกับคุณมาก");
+  });
+
+  it("uses one canonical Earn tab order with Overview first", () => {
+    const source = readFileSync(resolve("src/components/layout/earn-tabs.tsx"), "utf8");
+    const overview = source.indexOf('href: "/earn"');
+    const paths = source.indexOf('href: "/earn/paths"');
+    const missions = source.indexOf('href: "/earn/missions"');
+    expect(overview).toBeLessThan(paths);
+    expect(paths).toBeLessThan(missions);
+  });
+});
+
+describe("Earn mission identity migration", () => {
+  it("adds a non-destructive partial unique identity for newly generated open missions", () => {
+    const sql = readFileSync(resolve("supabase/migrations/0035_earn_mission_identity.sql"), "utf8");
+    expect(sql).toMatch(/add column if not exists mission_template_key text/i);
+    expect(sql).toMatch(/create unique index if not exists income_missions_open_template_identity_idx/i);
+    expect(sql).toMatch(/status in \('not_started', 'in_progress'\)/i);
+    expect(sql).not.toMatch(/delete from|drop table|truncate/i);
+  });
 });
 
 describe("Earn V2 result accessibility", () => {

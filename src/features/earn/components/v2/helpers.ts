@@ -67,3 +67,54 @@ export function actionablePathMissions<T extends { status: string; result_requir
     .filter((m) => m.status === "not_started" || m.status === "in_progress" || pendingResult(m))
     .sort((a, b) => Number(pendingResult(b)) - Number(pendingResult(a)));
 }
+
+export interface MissionQueueItem {
+  id: string;
+  income_path_id: string | null;
+  earn_project_id?: string | null;
+  roadmap_step_key: string | null;
+  status: string;
+  result_required: boolean;
+  hasResult: boolean;
+  sequence_order: number;
+  created_at: string;
+}
+
+/**
+ * Stable UI identity for generated roadmap work. Historical rows predate
+ * migration 0035, so presentation derives the same identity without mutating
+ * or deleting any result/evidence-linked history.
+ */
+export function missionLogicalKey(mission: MissionQueueItem): string {
+  return [mission.income_path_id ?? "legacy", mission.roadmap_step_key ?? mission.id, mission.earn_project_id ?? "no-project"].join(":");
+}
+
+function missionPriority(mission: MissionQueueItem): number {
+  if (mission.status === "completed" && mission.result_required && !mission.hasResult) return 3;
+  if (mission.status === "in_progress") return 2;
+  return 1;
+}
+
+/** Consolidate accidental historical open duplicates for display only. */
+export function consolidateActionableMissions<T extends MissionQueueItem>(missions: T[]): T[] {
+  const byIdentity = new Map<string, T>();
+  for (const mission of actionablePathMissions(missions)) {
+    const key = missionLogicalKey(mission);
+    const current = byIdentity.get(key);
+    if (!current || missionPriority(mission) > missionPriority(current) || (missionPriority(mission) === missionPriority(current) && mission.created_at < current.created_at)) {
+      byIdentity.set(key, mission);
+    }
+  }
+  return [...byIdentity.values()].sort((a, b) => {
+    const pending = missionPriority(b) - missionPriority(a);
+    if (pending) return pending;
+    return a.sequence_order - b.sequence_order || a.created_at.localeCompare(b.created_at);
+  });
+}
+
+export function organizeMissionQueue<T extends MissionQueueItem>(missions: T[], primaryMissionId?: string | null) {
+  const rows = consolidateActionableMissions(missions);
+  const primaryIndex = primaryMissionId ? rows.findIndex((m) => m.id === primaryMissionId) : -1;
+  const primary = primaryIndex >= 0 ? rows.splice(primaryIndex, 1)[0] : rows.shift() ?? null;
+  return { primary, next: rows.slice(0, 2), later: rows.slice(2) };
+}

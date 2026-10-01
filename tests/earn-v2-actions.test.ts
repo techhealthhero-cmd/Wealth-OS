@@ -154,7 +154,7 @@ describe("paths, roadmap and missions", () => {
     expect(path).toMatchObject({ user_id: "user-1", status: "active", current_roadmap_step_key: "foundation" });
     expect(path.initialized_at).toBeTruthy();
     expect(missionsOf(res.id!)).toEqual([
-      expect.objectContaining({ roadmap_step_key: "foundation", mission_category: "learn", result_required: false, mission_type: "other", status: "not_started" }),
+      expect.objectContaining({ roadmap_step_key: "foundation", mission_template_key: "freelance_service.foundation", mission_category: "learn", result_required: false, mission_type: "other", status: "not_started" }),
     ]);
   });
 

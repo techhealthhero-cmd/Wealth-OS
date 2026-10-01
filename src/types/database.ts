@@ -947,6 +947,8 @@ export interface Database {
           mission_type: MissionType;
           mission_category: MissionCategory | null;
           roadmap_step_key: string | null;
+          /** Migration 0035; stable identity for generated V2 roadmap missions. */
+          mission_template_key?: string | null;
           target_quantity: string | null;
           progress_quantity: string;
           status: MissionStatus;

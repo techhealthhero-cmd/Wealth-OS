@@ -38,6 +38,7 @@ export async function SkillEvidenceSection({ dict, skills }: { dict: Dictionary;
           const s = summaries.get(skill.id) ?? EMPTY_SKILL_EVIDENCE;
           const paths = data.pathsBySkill[skill.id] ?? [];
           const latest = data.evidence.find((e) => e.user_skill_id === skill.id && e.description);
+          const nextEvidence = s.level === "none" ? "learning" : s.level === "learning" ? "action" : s.level === "action" ? "outcome" : "continue";
           return (
             <Card key={skill.id}>
               <CardContent className="space-y-3 pt-4">
@@ -53,6 +54,7 @@ export async function SkillEvidenceSection({ dict, skills }: { dict: Dictionary;
                     </div>
                   ))}
                 </dl>
+                <p className="rounded-xl bg-primary/6 px-3 py-2 text-xs font-medium text-primary dark:text-[#7FD6B2]">{copy.nextEvidence[nextEvidence]}</p>
                 <p className="text-xs text-muted-foreground">
                   {paths.length ? (
                     <>

@@ -3,16 +3,13 @@ import { ArrowRight, Calculator } from "lucide-react";
 
 import { getUserSkills } from "@/features/skills/queries";
 import { getIncomeMissions, getIncomeRankXpEvents } from "@/features/income-missions/queries";
-import { getOpportunityCatalog } from "@/features/opportunities/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { SkillForm } from "./skill-form";
-import { SkillMap } from "./skill-map";
 import { IncomeRankCard } from "./income-rank-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EarnIllustration } from "@/components/illustrations";
-import { calculateSkillProgress } from "@/lib/skills/progress";
 import { calculateIncomeRank, type IncomeRankBreakdownItem } from "@/lib/skills/income-rank";
 import type { MissionType } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,11 +17,10 @@ import { Button } from "@/components/ui/button";
 import { SkillEvidenceSection } from "@/features/earn/components/v2/skill-evidence-section";
 
 export async function SkillList() {
-  const [skills, profile, missions, opportunities, incomeRankEvents] = await Promise.all([
+  const [skills, profile, missions, incomeRankEvents] = await Promise.all([
     getUserSkills(),
     getProfile(),
     getIncomeMissions(),
-    getOpportunityCatalog(),
     getIncomeRankXpEvents(),
   ]);
   const locale = await getLocale(profile?.preferred_language);
@@ -41,24 +37,6 @@ export async function SkillList() {
     );
   }
 
-  const opportunityCategories = new Map(
-    opportunities.map((opportunity) => [opportunity.id, opportunity.required_skill_categories])
-  );
-  const completedMissions = missions.filter((mission) => mission.status === "completed");
-  const workCountByCategory = new Map<string, number>();
-
-  for (const mission of completedMissions) {
-    if (!mission.related_opportunity_id) continue;
-    const categories = opportunityCategories.get(mission.related_opportunity_id) ?? [];
-    for (const category of new Set(categories)) {
-      workCountByCategory.set(category, (workCountByCategory.get(category) ?? 0) + 1);
-    }
-  }
-
-  const skillProgress = skills.map((skill) => ({
-    skill,
-    progress: calculateSkillProgress(workCountByCategory.get(skill.category) ?? 0),
-  }));
   const rankProgress = calculateIncomeRank(
     incomeRankEvents.reduce((total, event) => total + event.xp_amount, 0)
   );
@@ -109,8 +87,6 @@ export async function SkillList() {
           </Button>
         </CardContent>
       </Card>
-
-      <SkillMap items={skillProgress} />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Compass, Plus, Sparkles, Trophy, Wallet } from "lucide-react";
+import { ArrowRight, Compass, MessageCircle, Plus, Sparkles, Trophy, Wallet } from "lucide-react";
 
 import { getEarnHubData } from "@/features/earn/v2-queries";
 import { getIncomeProfileSummary } from "@/features/income-profile/queries";
@@ -26,8 +26,8 @@ import { localizeMission } from "./helpers";
 
 /**
  * Earn Hub — the answer to "ตอนนี้ฉันควรทำอะไรต่อ?".
- * Hierarchy (spec): situation → ONE next action (strongest) → income
- * progress → active paths → supporting (skills/rank). The core guidance
+ * Hierarchy: situation + goal → ONE next action → roadmap → active paths →
+ * actual income → supporting skills/rank. The core guidance
  * loop is never paywalled or hidden by Privacy Center — only money amounts
  * respect the "planning" privacy scope.
  */
@@ -69,17 +69,7 @@ export async function EarnHub() {
         contextLabel={focusPath?.path.title}
       />
 
-      {/* Hidden (not an error message) until migration 0031 provides income links. */}
-      {data.income.available ? (
-        <IncomeProgressCard
-          dict={dict}
-          income={data.income}
-          privacy={privacy}
-          hidden={amountsHidden}
-          averageMonthlyCents={incomeSummary?.profile.averageMonthlyIncomeCents ?? null}
-          targetMonthlyCents={target?.target_monthly_income ? parseMoneyToCents(target.target_monthly_income) : null}
-        />
-      ) : null}
+      {focusPath ? <RoadmapFocusCard dict={dict} item={focusPath} /> : null}
 
       <section aria-labelledby="earn-paths" className="space-y-3">
         <div className="flex items-center justify-between">
@@ -110,17 +100,28 @@ export async function EarnHub() {
         )}
       </section>
 
-      {focusPath ? <RoadmapFocusCard dict={dict} item={focusPath} /> : null}
+      {/* Real transaction income only; forecast stays in the planner. */}
+      {data.income.available ? (
+        <IncomeProgressCard
+          dict={dict}
+          income={data.income}
+          privacy={privacy}
+          hidden={amountsHidden}
+          averageMonthlyCents={incomeSummary?.profile.averageMonthlyIncomeCents ?? null}
+          targetMonthlyCents={target?.target_monthly_income ? parseMoneyToCents(target.target_monthly_income) : null}
+        />
+      ) : null}
 
       <section aria-labelledby="earn-supporting" className="space-y-3">
         <h2 id="earn-supporting" className="text-sm font-medium text-muted-foreground">
           {v2.hub.supporting}
         </h2>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             { href: "/earn/skills", icon: Sparkles, label: v2.hub.skills },
             { href: "/earn/income", icon: Wallet, label: dict.earn.tabs.income },
             { href: "/earn/opportunities", icon: Compass, label: dict.earn.tabs.opportunities },
+            { href: "/ai", icon: MessageCircle, label: v2.hub.aiSupport },
           ].map((l) => (
             <Link
               key={l.href}

@@ -108,6 +108,16 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     await page.waitForURL(/\/earn\/paths\/[0-9a-f-]+$/, { timeout: 20_000 });
     const pathId = page.url().split("/").pop()!;
 
+    // One linked skill makes the mission result real evidence by default;
+    // XP remains a separate motivational signal and is not used here.
+    const { data: skill, error: skillError } = await admin
+      .from("user_skills")
+      .insert({ user_id: userId, skill_name: "Landing Page QA", category: "web_development" })
+      .select("id")
+      .single();
+    expect(skillError).toBeNull();
+    expect((await admin.from("income_path_skills").insert({ user_id: userId, income_path_id: pathId, user_skill_id: skill!.id })).error).toBeNull();
+
     await expect(page.getByText("Choose one service you can offer")).toBeVisible();
     await page.getByRole("button", { name: "Mark done" }).click();
     await expect(page.getByText("Make one sample of your work")).toBeVisible({ timeout: 20_000 });
@@ -117,6 +127,8 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     await page.getByRole("button", { name: "Save result" }).click();
     await page.waitForURL(new RegExp(`/earn/paths/${pathId}$`), { timeout: 20_000 });
     await expect(page.getByText("Find 5 potential customers")).toBeVisible();
+    const { data: evidence } = await admin.from("skill_evidence").select("dimension").eq("user_id", userId).eq("user_skill_id", skill!.id);
+    expect(evidence).toEqual([expect.objectContaining({ dimension: "outcome" })]);
 
     await page.getByRole("button", { name: "Add project" }).click();
     await page.getByLabel("Project name").fill("Restaurant website");
@@ -128,7 +140,7 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     await page.getByLabel("Description (optional)").fill("QA deposit");
     await page.getByRole("button", { name: "Record income" }).click();
     await page.waitForURL(new RegExp(`/earn/paths/${pathId}$`), { timeout: 20_000 });
-    await expect(page.getByText(/฿500\.00/)).toBeVisible();
+    await expect(page.getByText(/฿500\.00/).first()).toBeVisible();
 
     const { data: paths } = await admin.from("income_paths").select("id, current_roadmap_step_key").eq("user_id", userId);
     expect(paths).toEqual([expect.objectContaining({ id: pathId, current_roadmap_step_key: "find_leads" })]);
@@ -141,6 +153,27 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     expect(Number(transaction!.amount)).toBe(500);
     const { data: updatedAccount } = await admin.from("accounts").select("current_balance").eq("id", account!.id).single();
     expect(Number(updatedAccount!.current_balance)).toBe(1500);
+
+    // Returning-user hierarchy: where I am → goal → exactly one dominant
+    // next action. Actual transaction income is explicitly separate from
+    // historical averages and planner forecasts.
+    await page.goto("/earn");
+    await expect(page.getByText("Where you are", { exact: true })).toBeVisible();
+    await expect(page.getByText("Next goal", { exact: true })).toBeVisible();
+    await expect(page.locator("#earn-next-action")).toHaveCount(1);
+    await expect(page.getByText("Actual income this month")).toBeVisible();
+    await expect(page.getByText(/฿500\.00/).first()).toBeVisible();
+    await expect(page.getByText("Historical average")).toBeVisible();
+    await expect(page.getByText("Forecast income from this plan / month")).toHaveCount(0);
+
+    await page.goto("/earn/missions");
+    await expect(page.locator("#mission-now")).toHaveCount(1);
+    await expect(page.getByText("Do now")).toBeVisible();
+    await expect(page.getByText("Mission history")).toBeVisible();
+
+    await page.goto("/earn/skills");
+    await expect(page.getByText("Landing Page QA")).toBeVisible();
+    await expect(page.getByText("Real results", { exact: true }).first()).toBeVisible();
 
     // The Hub's decision hierarchy stays readable and overflow-free from the
     // narrowest supported phone through desktop. Screenshots are retained as
@@ -161,10 +194,13 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
       await expect(page.getByText("Find 5 potential customers")).toBeVisible();
       await expectNoHorizontalOverflow(page, `Earn path overflow at ${width}px`);
     }
-    await page.setViewportSize({ width: 390, height: 844 });
-    for (const route of ["/earn", "/earn/missions", "/earn/skills", "/earn/opportunities"]) {
-      await page.goto(route);
-      await expectNoHorizontalOverflow(page, `Earn route overflow: ${route}`);
+    for (const width of [320, 390, 768, 1280]) {
+      await page.setViewportSize({ width, height: width < 700 ? 850 : 900 });
+      for (const route of ["/earn/missions", "/earn/skills", "/earn/opportunities"]) {
+        await page.goto(route);
+        await expectNoHorizontalOverflow(page, `Earn route overflow at ${width}px: ${route}`);
+        if (route === "/earn/missions" && width === 390) await page.screenshot({ path: testInfo.outputPath("earn-missions-390.png"), fullPage: true });
+      }
     }
 
     // Earn uses the existing Privacy Center planning scope; privacy changes

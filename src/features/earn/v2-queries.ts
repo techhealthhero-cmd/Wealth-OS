@@ -5,6 +5,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { throwDbError } from "@/lib/db-error";
 import { parseMoneyToCents } from "@/lib/financial/money";
+import { todayInTimeZone } from "@/lib/date";
 import { deriveStageFacts, type DiagnosticAnswers } from "@/lib/earn/diagnostic";
 import { calculateEarnStage } from "@/lib/earn/stage";
 import { resolveNextAction } from "@/lib/earn/next-action";
@@ -135,18 +136,20 @@ export interface PathIncome {
   available: boolean;
   /** Per currency — never summed across currencies. */
   totals: { currency: string; amountMinor: number }[];
+  /** Current calendar month only; still separated by currency. */
+  monthlyTotals: { currency: string; amountMinor: number }[];
   byPath: Record<string, { currency: string; amountMinor: number }[]>;
   linkCount: number;
 }
 
 /** Income linked to Earn paths, read from the real transactions it points at. */
 export async function getLinkedIncome(pathIds: string[]): Promise<PathIncome> {
-  const empty: PathIncome = { available: true, totals: [], byPath: {}, linkCount: 0 };
+  const empty: PathIncome = { available: true, totals: [], monthlyTotals: [], byPath: {}, linkCount: 0 };
   if (pathIds.length === 0) return empty;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("earn_transaction_links")
-    .select("income_path_id, transaction:transactions!earn_transaction_links_transaction_id_fkey(amount, currency_code, type)")
+    .select("income_path_id, transaction:transactions!earn_transaction_links_transaction_id_fkey(amount, currency_code, type, transaction_date)")
     .in("income_path_id", pathIds);
   if (error) {
     if (isMissingRelation(error)) return { ...empty, available: false };
@@ -158,14 +161,16 @@ export async function getLinkedIncome(pathIds: string[]): Promise<PathIncome> {
     if (row) row.amountMinor += minor;
     else list.push({ currency, amountMinor: minor });
   };
-  const result: PathIncome = { available: true, totals: [], byPath: {}, linkCount: 0 };
+  const result: PathIncome = { available: true, totals: [], monthlyTotals: [], byPath: {}, linkCount: 0 };
+  const currentMonth = todayInTimeZone().slice(0, 7);
   for (const row of data ?? []) {
     const tx = (Array.isArray(row.transaction) ? row.transaction[0] : row.transaction) as
-      | { amount: string; currency_code: string; type: string }
+      | { amount: string; currency_code: string; type: string; transaction_date: string }
       | null;
     if (!tx || tx.type !== "income") continue;
     const minor = parseMoneyToCents(tx.amount);
     add(result.totals, tx.currency_code, minor);
+    if (tx.transaction_date.startsWith(currentMonth)) add(result.monthlyTotals, tx.currency_code, minor);
     add((result.byPath[row.income_path_id] ??= []), tx.currency_code, minor);
     result.linkCount += 1;
   }
