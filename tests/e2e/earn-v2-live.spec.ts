@@ -19,6 +19,18 @@ function adminClient(): SupabaseClient {
   });
 }
 
+function userClient(): SupabaseClient {
+  const env = localEnv();
+  return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+async function expectNoHorizontalOverflow(page: import("@playwright/test").Page, context: string) {
+  const dimensions = await page.evaluate(() => ({ width: window.innerWidth, scrollWidth: document.documentElement.scrollWidth }));
+  expect(dimensions.scrollWidth, context).toBeLessThanOrEqual(dimensions.width + 1);
+}
+
 /**
  * Permanent Earn V2 core-loop regression. It uses a disposable user and the
  * real signed-in UI, then verifies the resulting database relationships.
@@ -101,7 +113,7 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     await expect(page.getByText("Make one sample of your work")).toBeVisible({ timeout: 20_000 });
     await page.getByRole("button", { name: "Mark done" }).click();
     await page.waitForURL(/\/earn\/missions\/[0-9a-f-]+\/result/, { timeout: 20_000 });
-    await page.getByLabel("Samples finished").fill("1");
+    await page.getByRole("textbox", { name: "Samples finished", exact: true }).fill("1");
     await page.getByRole("button", { name: "Save result" }).click();
     await page.waitForURL(new RegExp(`/earn/paths/${pathId}$`), { timeout: 20_000 });
     await expect(page.getByText("Find 5 potential customers")).toBeVisible();
@@ -129,6 +141,40 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     expect(Number(transaction!.amount)).toBe(500);
     const { data: updatedAccount } = await admin.from("accounts").select("current_balance").eq("id", account!.id).single();
     expect(Number(updatedAccount!.current_balance)).toBe(1500);
+
+    // The path's densest page remains usable from a 320px phone through desktop.
+    for (const width of [320, 390, 768, 1280]) {
+      await page.setViewportSize({ width, height: width < 700 ? 850 : 900 });
+      await page.goto(`/earn/paths/${pathId}`);
+      await expect(page.getByText("Find 5 potential customers")).toBeVisible();
+      await expectNoHorizontalOverflow(page, `Earn path overflow at ${width}px`);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const route of ["/earn", "/earn/missions", "/earn/skills", "/earn/opportunities"]) {
+      await page.goto(route);
+      await expectNoHorizontalOverflow(page, `Earn route overflow: ${route}`);
+    }
+
+    // Earn uses the existing Privacy Center planning scope; privacy changes
+    // presentation only and must never alter the ledger underneath.
+    const signedIn = userClient();
+    expect((await signedIn.auth.signInWithPassword({ email, password })).error).toBeNull();
+    const privacy = await signedIn.rpc("configure_account_privacy", {
+      p_enabled: true,
+      p_protect_accounts: false,
+      p_protect_assets: false,
+      p_protect_overview: false,
+      p_protect_activity: false,
+      p_protect_planning: true,
+      p_protect_insights: false,
+      p_display_style: "unavailable",
+      p_custom_message: null,
+      p_pin: "726194",
+    });
+    expect(privacy.error).toBeNull();
+    await page.goto(`/earn/paths/${pathId}`);
+    await expect(page.getByText("••••")).toBeVisible({ timeout: 20_000 });
+    expect(Number((await admin.from("accounts").select("current_balance").eq("id", account!.id).single()).data!.current_balance)).toBe(1500);
   } finally {
     await page.goto("about:blank").catch(() => {});
     if (userId) await admin.auth.admin.deleteUser(userId);
