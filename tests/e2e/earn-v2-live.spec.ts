@@ -206,7 +206,7 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     }
     for (const width of [320, 390, 768, 1280]) {
       await page.setViewportSize({ width, height: width < 700 ? 850 : 900 });
-      for (const route of ["/earn/missions", "/earn/skills", "/earn/opportunities"]) {
+      for (const route of ["/earn/missions", "/earn/income", "/earn/skills", "/earn/opportunities"]) {
         await page.goto(route);
         await expectNoHorizontalOverflow(page, `Earn route overflow at ${width}px: ${route}`);
         if (route === "/earn/missions" && width === 390) await page.screenshot({ path: testInfo.outputPath("earn-missions-390.png"), fullPage: true });

@@ -26,48 +26,19 @@ export function IncomeProfileCard({ profile }: { profile: IncomeProfile }) {
           {t(`earn.income.stabilityRatings.${profile.stability}`)}
         </Badge>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">{t("earn.income.profile.currentMonthly")}</p>
-            <p className="font-medium">{formatMoney(profile.currentMonthlyIncomeCents)}</p>
+            <p className="text-2xl font-bold tabular-nums">{formatMoney(profile.currentMonthlyIncomeCents)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">{t("earn.income.profile.averageMonthly")}</p>
-            <p className="font-medium">{formatMoney(profile.averageMonthlyIncomeCents)}</p>
+            <p className="text-lg font-semibold tabular-nums">{formatMoney(profile.averageMonthlyIncomeCents)}</p>
           </div>
-          <div>
-            <p className="text-muted-foreground">{t("earn.income.profile.activeSources")}</p>
-            <p className="font-medium">{profile.activeSourceCount}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">{t("earn.income.profile.stableIncome")}</p>
-            <p className="font-medium">{formatMoney(profile.stableIncomeCents)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">{t("earn.income.profile.variableIncome")}</p>
-            <p className="font-medium">{formatMoney(profile.variableIncomeCents)}</p>
-          </div>
-          {profile.momGrowthPercent !== null ? (
-            <div>
-              <p className="text-muted-foreground">{t("earn.income.profile.momGrowth")}</p>
-              <p className={`font-medium ${profile.momGrowthPercent < 0 ? "text-destructive" : ""}`}>
-                {profile.momGrowthPercent >= 0 ? "+" : ""}
-                {profile.momGrowthPercent.toFixed(1)}%
-              </p>
-            </div>
-          ) : null}
         </div>
 
-        {profile.primarySource ? (
-          <div className="text-sm">
-            <p className="text-muted-foreground">{t("earn.income.profile.primarySource")}</p>
-            <p className="font-medium">
-              {profile.primarySource}
-              {profile.concentrationPercent !== null ? ` (${profile.concentrationPercent.toFixed(0)}%)` : ""}
-            </p>
-          </div>
-        ) : null}
+        <p className="text-sm text-muted-foreground">{t("earn.income.profile.activeSources")}: <span className="font-medium text-foreground">{profile.activeSourceCount}</span></p>
 
         {concentrationRisk ? (
           <p className="rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">

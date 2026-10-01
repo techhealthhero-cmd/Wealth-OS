@@ -27,14 +27,18 @@ export async function IncomeSourceList() {
   return (
     <div className="space-y-4">
       <IncomeProfileCard profile={profile} />
-      <div className="flex justify-end">
-        <IncomeSourceForm />
-      </div>
-      <div className="grid gap-3">
-        {sources.map((source) => (
-          <IncomeSourceCard key={source.id} source={source} />
-        ))}
-      </div>
+      <details className="group rounded-2xl border bg-card px-4">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-medium">
+          <span>{dict.earn.income.title} · {sources.length}</span>
+          <span className="text-xs text-muted-foreground group-open:hidden">+</span>
+        </summary>
+        <div className="space-y-3 border-t pb-4 pt-3">
+          <div className="flex justify-end"><IncomeSourceForm /></div>
+          <div className="grid gap-3">
+            {sources.map((source) => <IncomeSourceCard key={source.id} source={source} />)}
+          </div>
+        </div>
+      </details>
     </div>
   );
 }
