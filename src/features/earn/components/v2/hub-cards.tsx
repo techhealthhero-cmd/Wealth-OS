@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, ChevronRight, Circle, CircleSlash2, Clock, CloudOff, EyeOff, Flag, RotateCcw, Sprout, TrendingUp, WalletCards } from "lucide-react";
+import { ArrowRight, ChevronRight, CircleSlash2, Clock, CloudOff, Coins, EyeOff, RotateCcw, Sprout, Target, WalletCards } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import type { EarnStageResult, IncomePathType, NextAction } from "@/lib/earn/types";
 import type { RecommendedExperiment } from "@/lib/earn/recommendations";
 import type { HubPath, PathIncome } from "@/features/earn/v2-queries";
+import type { IncomeGapResult } from "@/lib/financial/income-gap";
 import type { AccountPrivacyState } from "@/features/account-privacy/types";
 import { fill, localizeMission, nextActionHref, tr } from "./helpers";
 import { PATH_ICON_COMPONENTS } from "./path-icons";
@@ -135,66 +136,121 @@ export function NextActionCard({
   );
 }
 
-/**
- * Income progress: average monthly income vs target (the existing Income
- * Profile / Income Target systems, THB) and, below, income that came from
- * Earn paths (per currency, from real linked transactions only).
- */
-export function IncomeProgressCard({
-  dict,
-  income,
-  privacy,
-  hidden,
-}: {
-  dict: Dictionary;
-  income: PathIncome;
-  privacy: AccountPrivacyState;
-  hidden: boolean;
-}) {
-  const protectedPresentation = privacy.displayStyle === "unavailable"
+/** Privacy Center presentation for hidden amounts — the user's chosen style, never a leak. */
+function ProtectedAmounts({ dict, privacy }: { dict: Dictionary; privacy: AccountPrivacyState }) {
+  const p = privacy.displayStyle === "unavailable"
     ? { icon: CloudOff, title: dict.accountPrivacy.genericUnavailableTitle, description: dict.accountPrivacy.genericUnavailableDescription }
     : privacy.displayStyle === "empty"
       ? { icon: WalletCards, title: dict.accountPrivacy.genericEmptyTitle, description: dict.accountPrivacy.genericEmptyDescription }
       : privacy.displayStyle === "custom"
         ? { icon: CircleSlash2, title: privacy.customMessage || dict.accountPrivacy.customFallback, description: null }
         : { icon: EyeOff, title: dict.accountPrivacy.genericProtectedTitle, description: dict.accountPrivacy.genericProtectedDescription };
-  const ProtectedIcon = protectedPresentation.icon;
+  const Icon = p.icon;
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-dashed bg-muted/35 px-4 py-3" role="status">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-background text-primary shadow-xs">
+        <Icon className="size-4" aria-hidden="true" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{p.title}</p>
+        {p.description ? <p className="text-xs text-muted-foreground">{p.description}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Hub's anchor: "how far am I from the income I want?" — the existing
+ * deterministic Income Gap (average real income vs the user's target).
+ * Without a target, the card asks for one instead of showing a bare ฿0.
+ * The user's stage sits underneath as one plain sentence.
+ */
+export function IncomeGoalCard({
+  dict,
+  gap,
+  averageMonthlyIncomeCents,
+  stage,
+  privacy,
+  hidden,
+}: {
+  dict: Dictionary;
+  gap: IncomeGapResult;
+  averageMonthlyIncomeCents: number;
+  stage: EarnStageResult;
+  privacy: AccountPrivacyState;
+  hidden: boolean;
+}) {
+  const hub = dict.earn.v2.hub;
+  const target = gap.targetMonthlyIncomeCents ?? 0;
+  const pct = target > 0 ? Math.min(100, Math.max(0, Math.round((averageMonthlyIncomeCents / target) * 100))) : 0;
   return (
     <Card className="rounded-[1.75rem] shadow-xs">
-      <CardContent className="p-5 sm:p-6">
-        <div className="mb-3 flex items-center gap-2.5">
-          <IconChip icon={TrendingUp} tone="mint" className="size-9 [&_svg]:size-4" />
-          <div>
-            <h2 className="font-semibold">{dict.earn.v2.hub.incomeProgress}</h2>
-            <p className="text-xs text-muted-foreground">{dict.earn.v2.hub.incomeProgressHint}</p>
-          </div>
+      <CardContent className="space-y-3 p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-2">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <Target className="size-4 text-primary dark:text-[#7FD6B2]" aria-hidden="true" />
+            {hub.goalTitle}
+          </p>
+          {gap.hasTarget && !hidden ? (
+            <Link href="/earn/income#income-target" className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-primary dark:text-[#7FD6B2]">
+              {hub.editTarget}
+            </Link>
+          ) : null}
         </div>
+
         {hidden ? (
-          <div className="flex min-h-24 items-center gap-3 rounded-2xl border border-dashed bg-muted/35 px-4 py-4" role="status">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background text-primary shadow-xs">
-              <ProtectedIcon className="size-4.5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <p className="font-medium">{protectedPresentation.title}</p>
-              {protectedPresentation.description ? <p className="text-sm text-muted-foreground">{protectedPresentation.description}</p> : null}
+          <ProtectedAmounts dict={dict} privacy={privacy} />
+        ) : !gap.hasTarget ? (
+          <div className="space-y-3">
+            <div>
+              <p className="text-lg font-bold leading-snug text-balance">{hub.noTargetTitle}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{hub.noTargetBody}</p>
             </div>
+            <Button variant="outline" className="h-11 rounded-2xl" nativeButton={false} render={<Link href="/earn/income#income-target" />}>
+              {hub.setTarget}
+              <ChevronRight className="ml-1 size-4" aria-hidden="true" />
+            </Button>
           </div>
         ) : (
-          <>
-        <div>
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">{dict.earn.v2.hub.actualThisMonth}</p>
-              {income.monthlyTotals.length ? income.monthlyTotals.map((total) => (
-                <p key={total.currency} className="text-2xl font-bold tabular-nums">{formatMoney(total.amountMinor, total.currency)}</p>
-              )) : <p className="text-2xl font-bold tabular-nums">{formatMoney(0)}</p>}
+          <div>
+            {gap.achieved ? (
+              <>
+                <p className="text-2xl font-bold text-primary dark:text-[#7FD6B2]">{hub.goalReached}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{hub.goalReachedBody}</p>
+              </>
+            ) : (
+              <p className="text-2xl font-bold tabular-nums">
+                {fill(hub.gapLeft, { amount: formatMoney(gap.gapCents ?? 0) })}{" "}
+                <span className="text-base font-medium text-muted-foreground">{hub.perMonth}</span>
+              </p>
+            )}
+            <div
+              className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={pct}
+              aria-label={hub.goalTitle}
+            >
+              <div className="h-full rounded-full bg-primary transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${pct}%` }} />
             </div>
-            <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/earn/income" />}>{dict.earn.tabs.income}<ChevronRight className="ml-1 size-4" aria-hidden="true" /></Button>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {fill(hub.avgOfTarget, { avg: formatMoney(averageMonthlyIncomeCents), target: formatMoney(target) })}
+            </p>
           </div>
-          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{dict.earn.v2.hub.actualIncomeHint}</p>
-        </div>
-          </>
         )}
+
+        <div className="flex items-center gap-2 border-t pt-3 text-sm">
+          <Sprout className="size-4 shrink-0 text-primary dark:text-[#7FD6B2]" aria-hidden="true" />
+          <p className="min-w-0 flex-1 leading-snug">
+            <span className="text-muted-foreground">{hub.situation}: </span>
+            {dict.earn.v2.stage[stage.stage].title}
+          </p>
+          <Link href="/earn/diagnostic" className="inline-flex min-h-11 shrink-0 items-center gap-1 px-1 text-xs font-medium text-primary dark:text-[#7FD6B2]">
+            <RotateCcw className="size-3.5" aria-hidden="true" />
+            {hub.reassess}
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );
@@ -253,50 +309,100 @@ export function IncomePathCard({ dict, item }: { dict: Dictionary; item: HubPath
   );
 }
 
-/** A calm three-step preview: just enough roadmap to orient the user. */
-export function RoadmapFocusCard({ dict, item }: { dict: Dictionary; item: HubPath }) {
+/**
+ * The focused path in one card: where it is on the roadmap (step N of M,
+ * now → next) and the real money Earn paths produced this month, with the
+ * one button that closes the loop — record income that actually arrived.
+ */
+export function PathFocusCard({
+  dict,
+  item,
+  income,
+  hidden,
+}: {
+  dict: Dictionary;
+  item: HubPath;
+  income: PathIncome;
+  hidden: boolean;
+}) {
   const type = item.path.path_type as IncomePathType;
+  const Icon = PATH_ICONS[type];
   const names = dict.earn.v2.roadmap[type] as Record<string, string>;
-  const completedKey = item.progress.completedStepKeys.at(-1) ?? null;
-  const rows = [
-    completedKey ? { key: `done-${completedKey}`, label: dict.earn.v2.hub.roadmapDone, title: names[completedKey], state: "done" as const } : null,
-    item.progress.currentStepKey
-      ? { key: `current-${item.progress.currentStepKey}`, label: dict.earn.v2.hub.roadmapCurrent, title: names[item.progress.currentStepKey], state: "current" as const }
-      : { key: "complete", label: dict.earn.v2.hub.roadmapCurrent, title: dict.earn.v2.paths.completed, state: "done" as const },
-    item.progress.nextStepKey ? { key: `next-${item.progress.nextStepKey}`, label: dict.earn.v2.hub.roadmapNext, title: names[item.progress.nextStepKey], state: "next" as const } : null,
-  ].filter(Boolean) as Array<{ key: string; label: string; title: string; state: "done" | "current" | "next" }>;
-
+  const hub = dict.earn.v2.hub;
+  const { progress } = item;
+  const pct = Math.round((progress.currentIndex / progress.total) * 100);
+  const showIncome = type !== "investment" && income.available;
   return (
-    <section aria-labelledby="earn-roadmap" className="space-y-3">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id="earn-roadmap" className="text-base font-semibold">{dict.earn.v2.hub.roadmap}</h2>
-          <p className="truncate text-xs text-muted-foreground">{item.path.title}</p>
-        </div>
-        <Link href={`/earn/paths/${item.path.id}`} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-xl px-2 text-sm font-medium text-primary hover:bg-primary/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          {dict.earn.v2.hub.viewRoadmap}
-          <ChevronRight className="size-4" aria-hidden="true" />
-        </Link>
-      </div>
+    <section aria-labelledby="earn-roadmap">
       <Card className="rounded-[1.75rem] shadow-xs">
-        <CardContent className="p-4 sm:p-5">
-          <ol className="space-y-0">
-            {rows.map((row, index) => {
-              const Icon = row.state === "done" ? Check : row.state === "current" ? Flag : Circle;
-              return (
-                <li key={row.key} className="relative flex gap-3 pb-4 last:pb-0">
-                  {index < rows.length - 1 ? <span className="absolute left-[17px] top-8 h-[calc(100%-1.25rem)] w-px bg-border" aria-hidden="true" /> : null}
-                  <span className={cn("relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full border", row.state === "current" ? "border-primary bg-primary text-primary-foreground shadow-sm" : row.state === "done" ? "border-primary/20 bg-primary/10 text-primary" : "bg-card text-muted-foreground")}>
-                    <Icon className="size-4" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 pt-0.5">
-                    <p className={cn("text-[11px] font-semibold tracking-wide uppercase", row.state === "current" ? "text-primary" : "text-muted-foreground")}>{row.label}</p>
-                    <p className={cn("mt-0.5 text-sm leading-snug", row.state === "current" && "font-semibold")}>{row.title}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
+        <CardContent className="space-y-4 p-5 sm:p-6">
+          <Link
+            href={`/earn/paths/${item.path.id}`}
+            className="group -m-2 block rounded-2xl p-2 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <div className="flex items-center gap-3">
+              <IconChip icon={Icon} tone="mint" className="size-10" />
+              <div className="min-w-0 flex-1">
+                <h2 id="earn-roadmap" className="truncate font-semibold">{item.path.title}</h2>
+                <p className="text-xs text-muted-foreground">
+                  {progress.isComplete
+                    ? dict.earn.v2.paths.completed
+                    : fill(dict.earn.v2.paths.stepOf, { current: Math.min(progress.currentIndex + 1, progress.total), total: progress.total })}
+                </p>
+              </div>
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-medium text-primary dark:text-[#7FD6B2]">
+                {hub.openPath}
+                <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none" aria-hidden="true" />
+              </span>
+            </div>
+            <div
+              className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={progress.total}
+              aria-valuenow={progress.currentIndex}
+              aria-label={item.path.title}
+            >
+              <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+            </div>
+            {!progress.isComplete ? (
+              <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-sm">
+                <span className="text-muted-foreground">{hub.roadmapCurrent}</span>
+                <span className="font-semibold">{names[progress.currentStepKey ?? ""]}</span>
+                {progress.nextStepKey ? (
+                  <>
+                    <ArrowRight className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                    <span className="text-muted-foreground">{names[progress.nextStepKey]}</span>
+                  </>
+                ) : null}
+              </p>
+            ) : null}
+          </Link>
+
+          {showIncome ? (
+            <div className="border-t pt-4">
+              {/* Hidden amounts: the goal card above already explains the lock; here just mask. */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">{hub.earnIncomeMonth}</p>
+                  {hidden ? (
+                    <p className="text-xl font-bold tracking-widest text-muted-foreground" aria-label={dict.accountPrivacy.genericProtectedTitle}>••••</p>
+                  ) : income.monthlyTotals.length ? (
+                    income.monthlyTotals.map((t) => (
+                      <p key={t.currency} className="text-xl font-bold tabular-nums">{formatMoney(t.amountMinor, t.currency)}</p>
+                    ))
+                  ) : (
+                    <p className="text-xl font-bold tabular-nums">{formatMoney(0)}</p>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">{hub.fromRealTransactions}</p>
+                </div>
+                <Button variant="outline" className="h-11 rounded-2xl" nativeButton={false} render={<Link href={`/earn/paths/${item.path.id}/income`} />}>
+                  <Coins className="mr-1.5 size-4" aria-hidden="true" />
+                  {dict.earn.v2.income.record}
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </section>

@@ -15,6 +15,7 @@ export function EarnTabs() {
   const { t } = useTranslation();
   return (
     <SegmentedTabs
+      stretch
       tabs={TABS.map((tab) => ({ href: tab.href, label: t(tab.key), icon: tab.icon, isActive: tab.isActive }))}
     />
   );

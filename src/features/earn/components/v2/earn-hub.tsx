@@ -1,7 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, ChevronRight, Compass, Route, Sparkles, Trophy, Wallet } from "lucide-react";
+import { ArrowRight, Compass, Route, Sparkles, Trophy } from "lucide-react";
 
 import { getEarnHubData } from "@/features/earn/v2-queries";
+import { getIncomeProfileSummary } from "@/features/income-profile/queries";
+import { getIncomeTarget } from "@/features/income-target/queries";
+import { calculateIncomeGap } from "@/lib/financial/income-gap";
+import { parseMoneyToCents } from "@/lib/financial/money";
 import { getProfile } from "@/features/profile/queries";
 import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 import { isPrivacyLockedFor } from "@/features/account-privacy/types";
@@ -11,27 +15,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { IconChip } from "@/components/shared/icon-chip";
 import { EarnIllustration } from "@/components/illustrations";
-import {
-  EarnSituationCard,
-  IncomeProgressCard,
-  NextActionCard,
-  RecommendedExperimentCard,
-  RoadmapFocusCard,
-} from "./hub-cards";
+import { IncomeGoalCard, NextActionCard, PathFocusCard, RecommendedExperimentCard } from "./hub-cards";
 import { localizeMission } from "./helpers";
 
 /**
  * Earn Hub — the answer to "ตอนนี้ฉันควรทำอะไรต่อ?".
- * Hierarchy: situation + goal → ONE next action → roadmap → active paths →
- * actual income → supporting skills/rank. The core guidance
+ * Hierarchy: ONE next action → income goal (gap) + situation → the focused
+ * path (progress + real income, with "record income") → supporting tools.
+ * The core guidance
  * loop is never paywalled or hidden by Privacy Center — only money amounts
  * respect the "planning" privacy scope.
  */
 export async function EarnHub() {
-  const [data, profile, privacy] = await Promise.all([
+  const [data, profile, privacy, incomeSummary, target] = await Promise.all([
     getEarnHubData(),
     getProfile(),
     getAccountPrivacyState(),
+    getIncomeProfileSummary(),
+    getIncomeTarget(),
   ]);
   const dict = getDictionary(await getLocale(profile?.preferred_language));
   const v2 = dict.earn.v2;
@@ -45,10 +46,16 @@ export async function EarnHub() {
     livePaths.find((item) => item.path.status === "active") ??
     livePaths[0];
 
-  return (
-    <div className="mx-auto w-full max-w-3xl space-y-5">
-      <EarnSituationCard dict={dict} stage={data.stage} />
+  const gap = calculateIncomeGap({
+    targetMonthlyIncomeCents:
+      target?.target_monthly_income !== null && target?.target_monthly_income !== undefined
+        ? parseMoneyToCents(target.target_monthly_income)
+        : null,
+    averageMonthlyIncomeCents: incomeSummary.profile.averageMonthlyIncomeCents,
+  });
 
+  return (
+    <div className="mx-auto w-full max-w-3xl space-y-4">
       <NextActionCard
         dict={dict}
         primary={data.nextAction.primary}
@@ -62,7 +69,16 @@ export async function EarnHub() {
         contextLabel={focusPath?.path.title}
       />
 
-      {focusPath ? <RoadmapFocusCard dict={dict} item={focusPath} /> : null}
+      <IncomeGoalCard
+        dict={dict}
+        gap={gap}
+        averageMonthlyIncomeCents={incomeSummary.profile.averageMonthlyIncomeCents}
+        stage={data.stage}
+        privacy={privacy}
+        hidden={amountsHidden}
+      />
+
+      {focusPath ? <PathFocusCard dict={dict} item={focusPath} income={data.income} hidden={amountsHidden} /> : null}
 
       {livePaths.length === 0 ? (
         <section aria-labelledby="earn-paths" className="space-y-3">
@@ -73,39 +89,23 @@ export async function EarnHub() {
         </section>
       ) : null}
 
-      {/* Real transaction income only; forecast stays in the planner. */}
-      {data.income.available ? (
-        <IncomeProgressCard
-          dict={dict}
-          income={data.income}
-          privacy={privacy}
-          hidden={amountsHidden}
-        />
-      ) : null}
-
-      <details className="group rounded-2xl border bg-card px-4 py-1">
-        <summary id="earn-supporting" className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-medium">
-          {v2.hub.supporting}
-          <ChevronRight className="size-4 text-muted-foreground transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden="true" />
-        </summary>
-        <div className="grid grid-cols-2 gap-2 border-t py-3 sm:grid-cols-4">
-          {[
-            { href: "/earn/skills", icon: Sparkles, label: v2.hub.skills },
-            { href: "/earn/income", icon: Wallet, label: dict.earn.tabs.income },
-            { href: "/earn/opportunities", icon: Compass, label: dict.earn.tabs.opportunities },
-            { href: "/earn/paths", icon: Route, label: dict.earn.tabs.paths },
-          ].map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border bg-card p-2 text-center text-xs font-medium shadow-xs transition-[background-color,transform,box-shadow] hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none"
-            >
-              <l.icon className="size-5 text-primary dark:text-[#7FD6B2]" aria-hidden="true" />
-              {l.label}
-            </Link>
-          ))}
-        </div>
-      </details>
+      {/* Supporting tools — always visible, never competing with the action above. */}
+      <nav aria-label={v2.hub.supporting} className="grid grid-cols-3 gap-2">
+        {[
+          { href: "/earn/skills", icon: Sparkles, label: v2.hub.skills },
+          { href: "/earn/opportunities", icon: Compass, label: dict.earn.tabs.opportunities },
+          { href: "/earn/paths", icon: Route, label: dict.earn.tabs.paths },
+        ].map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            className="flex min-h-18 flex-col items-center justify-center gap-1.5 rounded-2xl border bg-card p-2 text-center text-xs font-medium shadow-xs transition-[background-color,transform,box-shadow] hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none"
+          >
+            <l.icon className="size-5 text-primary dark:text-[#7FD6B2]" aria-hidden="true" />
+            {l.label}
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }
@@ -120,7 +120,7 @@ function EarnIntro({ dict }: { dict: ReturnType<typeof getDictionary> }) {
           <EarnIllustration size={136} />
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">{v2.intro.eyebrow}</p>
+          <p className="text-sm font-semibold text-primary dark:text-[#7FD6B2]">{v2.intro.eyebrow}</p>
           <h2 className="text-2xl font-bold leading-tight text-balance sm:text-3xl">{v2.intro.title}</h2>
           <p className="mx-auto max-w-lg text-sm leading-relaxed text-muted-foreground text-pretty sm:text-base">{v2.intro.body}</p>
         </div>

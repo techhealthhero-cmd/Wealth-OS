@@ -18,7 +18,8 @@ export async function IncomeTargetSection() {
 
   return (
     <div className="space-y-4">
-      <IncomeGapCard gap={gap} averageMonthlyIncomeCents={profile.averageMonthlyIncomeCents} />
+      {/* With no target yet the form below is the call to action — an empty gap card would just repeat it. */}
+      {gap.hasTarget ? <IncomeGapCard gap={gap} averageMonthlyIncomeCents={profile.averageMonthlyIncomeCents} /> : null}
       <IncomeTargetView target={target} />
     </div>
   );

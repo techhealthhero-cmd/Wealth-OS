@@ -158,17 +158,22 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     const { data: updatedAccount } = await admin.from("accounts").select("current_balance").eq("id", account!.id).single();
     expect(Number(updatedAccount!.current_balance)).toBe(1500);
 
-    // Returning-user hierarchy: where I am → goal → exactly one dominant
-    // next action. Actual transaction income is explicitly separate from
-    // historical averages and planner forecasts.
+    // Returning-user hierarchy: exactly one dominant next action → income
+    // goal + where I am → the focused path with its real income. Earn
+    // income comes from linked transactions only — never planner forecasts.
     await page.goto("/earn");
-    await expect(page.getByText("Where you are", { exact: true })).toBeVisible();
-    await expect(page.getByText("Next goal", { exact: true })).toBeVisible();
+    await expect(page.getByText("Monthly income goal", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^Where you are:/)).toBeVisible();
     await expect(page.locator("#earn-next-action")).toHaveCount(1);
-    await expect(page.getByText("Actual income this month")).toBeVisible();
+    await expect(page.getByText("Earn income this month")).toBeVisible();
     await expect(page.getByText(/฿500\.00/).first()).toBeVisible();
     await expect(page.getByText("Historical average")).toHaveCount(0);
     await expect(page.getByText("Forecast income from this plan / month")).toHaveCount(0);
+
+    // Income tab leads with the goal/gap, not buried in an accordion.
+    await page.goto("/earn/income");
+    await expect(page.locator("#income-target")).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("earn-income-390.png"), fullPage: true });
 
     await page.goto("/earn/missions");
     await expect(page.locator("#mission-now")).toHaveCount(1);
@@ -232,7 +237,7 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     expect(privacy.error).toBeNull();
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/earn");
-    await expect(page.getByText("This information is unavailable")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("This information is unavailable").first()).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(/฿500\.00/)).toHaveCount(0);
     await expectNoHorizontalOverflow(page, "Privacy-locked Earn Hub overflow");
     await page.screenshot({ path: testInfo.outputPath("earn-hub-privacy-390.png"), fullPage: true });

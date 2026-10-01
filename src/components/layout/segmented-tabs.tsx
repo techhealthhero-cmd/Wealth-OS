@@ -38,7 +38,11 @@ export interface SegmentedTabItem {
  * on request). With 8 Money tabs the row overflows on mobile, so the active
  * tab is also scrolled into view.
  */
-export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
+/**
+ * `stretch`: few tabs share the full width evenly (Earn has 3) instead of
+ * hugging the left edge; scrolling bars with many tabs leave it off.
+ */
+export function SegmentedTabs({ tabs, stretch = false }: { tabs: SegmentedTabItem[]; stretch?: boolean }) {
   const pathname = usePathname();
   const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
@@ -66,7 +70,7 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
 
   return (
     <nav className="overflow-x-auto rounded-[1.75rem] border border-white/70 bg-white/45 p-1.5 shadow-[0_8px_32px_-12px_rgba(15,40,30,0.18),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl backdrop-saturate-150 [scrollbar-width:none] dark:border-white/10 dark:bg-white/5 dark:shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] [&::-webkit-scrollbar]:hidden">
-      <div className="group/tabs relative flex min-w-max gap-1">
+      <div className={cn("group/tabs relative flex min-w-max gap-1", stretch && "w-full")}>
         {indicator && activeIndex >= 0 ? (
           // Glossy brand-green tile: lighter green top fading into the same
           // primary as the bottom nav, with a glass-edge highlight and glow.
@@ -106,6 +110,7 @@ export function SegmentedTabs({ tabs }: { tabs: SegmentedTabItem[] }) {
               // shade on inactive tabs), then an overshooting spring curve on
               // release so it bounces back like a cushioned physical key.
               className={cn(
+                stretch && "flex-1",
                 "relative flex min-w-18 shrink-0 touch-manipulation select-none flex-col items-center gap-1 whitespace-nowrap rounded-[1.35rem] px-3.5 py-2.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 "transform-gpu transition-[scale,translate,color,background-color,box-shadow] duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]",
                 "active:translate-y-px active:scale-[0.93] active:duration-150 active:ease-out",

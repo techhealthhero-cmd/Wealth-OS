@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ChevronRight } from "lucide-react";
 
 import { IncomeSourceList } from "@/features/income-sources/components/income-source-list";
 import { IncomeTargetSection } from "@/features/income-target/components/income-target-section";
@@ -11,6 +12,10 @@ import { getLocale } from "@/i18n/server";
 
 export const metadata: Metadata = { title: "Income — Wealth OS" };
 
+/**
+ * Income tab, answer first: how far from my goal (gap + target) → what my
+ * income looks like (profile, sources) → optional planning tools.
+ */
 export default async function EarnIncomePage() {
   const privacyGate = await getPrivacyGate("planning");
   if (privacyGate) {
@@ -22,18 +27,16 @@ export default async function EarnIncomePage() {
 
   return (
     <div className="space-y-4">
+      <section id="income-target" aria-label={dict.earn.target.title} className="scroll-mt-24">
+        <IncomeTargetSection />
+      </section>
       <IncomeSourceList />
       <details className="group rounded-2xl border bg-card px-4">
-        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between font-medium">
-          <span>{dict.earn.planner.title}</span><span className="text-muted-foreground group-open:hidden">+</span>
+        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <span>{dict.earn.planner.title}</span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden="true" />
         </summary>
         <div className="border-t pb-4 pt-4"><IncomePlannerSection /></div>
-      </details>
-      <details className="group rounded-2xl border bg-card px-4">
-        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between font-medium">
-          <span>{dict.earn.target.title}</span><span className="text-muted-foreground group-open:hidden">+</span>
-        </summary>
-        <div className="border-t pb-4 pt-4"><IncomeTargetSection /></div>
       </details>
     </div>
   );

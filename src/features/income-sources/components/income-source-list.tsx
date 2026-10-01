@@ -1,3 +1,5 @@
+import { ChevronRight } from "lucide-react";
+
 import { getIncomeProfileSummary } from "@/features/income-profile/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
@@ -28,9 +30,9 @@ export async function IncomeSourceList() {
     <div className="space-y-4">
       <IncomeProfileCard profile={profile} />
       <details className="group rounded-2xl border bg-card px-4">
-        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-medium">
+        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <span>{dict.earn.income.title} · {sources.length}</span>
-          <span className="text-xs text-muted-foreground group-open:hidden">+</span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden="true" />
         </summary>
         <div className="space-y-3 border-t pb-4 pt-3">
           <div className="flex justify-end"><IncomeSourceForm /></div>

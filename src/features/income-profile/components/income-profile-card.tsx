@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import type { IncomeProfile } from "@/lib/financial/income-profile";
 import { hasIncomeConcentrationRisk } from "@/lib/financial/income-profile";
 import { useTranslation } from "@/i18n/client";
@@ -41,9 +43,13 @@ export function IncomeProfileCard({ profile }: { profile: IncomeProfile }) {
         <p className="text-sm text-muted-foreground">{t("earn.income.profile.activeSources")}: <span className="font-medium text-foreground">{profile.activeSourceCount}</span></p>
 
         {concentrationRisk ? (
-          <p className="rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-            {t("earn.income.profile.concentrationRisk")}
-          </p>
+          // Meaning → action: say what the number means, then offer the fix.
+          <div className="space-y-1.5 rounded-xl bg-amber-100 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+            <p>{t("earn.income.profile.concentrationRiskPct").replace("{pct}", String(Math.round(profile.concentrationPercent ?? 0)))}</p>
+            <Link href="/earn/paths/new" className="inline-flex min-h-11 items-center font-semibold underline-offset-4 hover:underline">
+              {t("earn.income.profile.addPathCta")}
+            </Link>
+          </div>
         ) : null}
 
         {!profile.hasIncomeHistory ? (

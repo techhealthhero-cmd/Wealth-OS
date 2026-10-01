@@ -58,7 +58,7 @@ export async function PathMissionList({ dict }: { dict: Dictionary }) {
       ) : (
         <div className="space-y-5">
           <section aria-labelledby="mission-now" className="space-y-2">
-            <p id="mission-now" className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{copy.now}</p>
+            <p id="mission-now" className="text-sm font-semibold text-primary dark:text-[#7FD6B2]">{copy.now}</p>
             <div className="overflow-hidden rounded-[1.75rem] border border-primary/15 bg-linear-to-br from-primary/8 via-card to-card shadow-sm">
               <div className="p-5 sm:p-6">
                 <div className="flex items-start gap-3">
@@ -79,7 +79,7 @@ export async function PathMissionList({ dict }: { dict: Dictionary }) {
 
           {queue.next.length ? (
             <section aria-labelledby="mission-next" className="space-y-2">
-              <p id="mission-next" className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{copy.next}</p>
+              <p id="mission-next" className="text-sm font-semibold text-muted-foreground">{copy.next}</p>
               <ul className="divide-y border-y">
                 {queue.next.map((m) => (
                   <li key={m.id}>

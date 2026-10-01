@@ -1668,6 +1668,19 @@
         }
       },
       "hub": {
+        "goalTitle": "Monthly income goal",
+        "gapLeft": "{amount} to go",
+        "perMonth": "per month",
+        "avgOfTarget": "Average {avg} of your {target} goal",
+        "goalReached": "Income goal reached",
+        "goalReachedBody": "Your average income meets the goal — set a higher one to keep growing",
+        "noTargetTitle": "How much do you want to earn a month?",
+        "noTargetBody": "Set a goal and the app shows how far you are from it, then guides you step by step",
+        "setTarget": "Set income goal",
+        "editTarget": "Edit goal",
+        "earnIncomeMonth": "Earn income this month",
+        "fromRealTransactions": "Counted from real income recorded on your paths",
+        "openPath": "View path",
         "todayQuestion": "What should I do today?",
         "whyTitle": "Why this?",
         "why": {
@@ -1720,7 +1733,7 @@
         "activePaths": "Active paths",
         "noPaths": "No paths yet",
         "reassess": "Reassess",
-        "supporting": "More tools",
+        "supporting": "Skills · opportunities · all paths",
         "skills": "Your skills",
         "aiSupport": "Ask the assistant",
         "rank": "Income rank",
@@ -1922,6 +1935,8 @@
         "one_time": "One-time"
       },
       "profile": {
+        "concentrationRiskPct": "{pct}% of your income comes from one source — if it stops, you'd lose most of it. Try adding another income stream",
+        "addPathCta": "Start a new income path",
         "title": "Income Profile",
         "currentMonthly": "This month's income",
         "averageMonthly": "Average monthly income",
@@ -2794,6 +2809,7 @@
         "items": [
           { "emoji": "🧭", "title": "Your starting point", "description": "Answer 8 short questions (about 3 minutes), one at a time. You'll see what to focus on now — e.g. first income or stability. Leave and resume any time; reassess whenever you like, past results are kept." },
           { "emoji": "✅", "title": "What should I do today?", "description": "The green card on Earn shows the one next thing to do, with a time estimate. When you finish, the next step is recalculated." },
+          { "emoji": "🎯", "title": "Monthly income goal", "description": "Set how much you want to earn a month. The app compares it with your real average income and shows how much is still missing each month, with a progress bar. Edit the goal on the Income tab." },
           { "emoji": "🛣️", "title": "Income paths", "description": "Four kinds: Career, Freelance/Service, Business/Product and Investment (planning only — never buy/sell advice). Have several at once. Each path has a step-by-step plan showing where you are and what's next." },
           { "emoji": "🧪", "title": "Suggested experiments", "description": "Start small — low cost, fast feedback, e.g. make one sample and show it to 5 customers. Each suggestion says why it fits you; no percentage scores." },
           { "emoji": "🚀", "title": "Missions and results", "description": "Missions are real actions. Record what happened (how many you contacted, how many replied), then continue, adjust and retry, pause or switch paths. A weak result is still useful information." },
