@@ -20,16 +20,14 @@ export const PATH_ICONS = PATH_ICON_COMPONENTS;
 export function EarnSituationCard({ dict, stage }: { dict: Dictionary; stage: EarnStageResult }) {
   const copy = dict.earn.v2.stage[stage.stage];
   return (
-    <Card className="overflow-hidden rounded-[1.75rem] border-primary/10 bg-linear-to-br from-primary/9 via-card to-card shadow-xs">
-      <CardContent className="flex items-start gap-3 px-4 py-5 sm:px-5">
+    <section className="flex items-start gap-3 border-b border-primary/10 pb-4">
         <IconChip icon={Sprout} className="mt-0.5 ring-4 ring-primary/5" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-muted-foreground">{dict.earn.v2.hub.situation}</p>
           <p className="mt-1 text-lg font-semibold leading-snug text-balance">{copy.title}</p>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground max-[359px]:line-clamp-2">{copy.body}</p>
-          <div className="mt-3 border-t border-primary/10 pt-3">
-            <p className="text-[11px] font-medium text-muted-foreground">{dict.earn.v2.hub.immediateGoal}</p>
-            <p className="mt-0.5 text-sm font-semibold text-primary dark:text-[#7FD6B2]">{dict.earn.v2.hub.goals[stage.stage]}</p>
+          <div className="mt-1 flex flex-wrap gap-x-1.5 text-sm">
+            <span className="text-muted-foreground">{dict.earn.v2.hub.immediateGoal}</span>
+            <span className="font-medium text-foreground">{dict.earn.v2.hub.goals[stage.stage]}</span>
           </div>
         </div>
         <Button
@@ -41,8 +39,7 @@ export function EarnSituationCard({ dict, stage }: { dict: Dictionary; stage: Ea
         >
           <RotateCcw className="size-3.5" aria-hidden="true" />
         </Button>
-      </CardContent>
-    </Card>
+    </section>
   );
 }
 
@@ -148,18 +145,12 @@ export function IncomeProgressCard({
   income,
   privacy,
   hidden,
-  averageMonthlyCents,
-  targetMonthlyCents,
 }: {
   dict: Dictionary;
   income: PathIncome;
   privacy: AccountPrivacyState;
   hidden: boolean;
-  averageMonthlyCents: number | null;
-  targetMonthlyCents: number | null;
 }) {
-  const actualThb = income.monthlyTotals.find((row) => row.currency === "THB")?.amountMinor ?? null;
-  const pct = actualThb !== null && targetMonthlyCents ? Math.min(100, Math.round((actualThb / targetMonthlyCents) * 100)) : null;
   const protectedPresentation = privacy.displayStyle === "unavailable"
     ? { icon: CloudOff, title: dict.accountPrivacy.genericUnavailableTitle, description: dict.accountPrivacy.genericUnavailableDescription }
     : privacy.displayStyle === "empty"
@@ -171,7 +162,7 @@ export function IncomeProgressCard({
   return (
     <Card className="rounded-[1.75rem] shadow-xs">
       <CardContent className="p-5 sm:p-6">
-        <div className="mb-4 flex items-center gap-2.5">
+        <div className="mb-3 flex items-center gap-2.5">
           <IconChip icon={TrendingUp} tone="mint" className="size-9 [&_svg]:size-4" />
           <div>
             <h2 className="font-semibold">{dict.earn.v2.hub.incomeProgress}</h2>
@@ -190,7 +181,7 @@ export function IncomeProgressCard({
           </div>
         ) : (
           <>
-        <div className="mb-4">
+        <div>
           <div className="flex items-end justify-between gap-3">
             <div>
               <p className="text-xs font-medium text-muted-foreground">{dict.earn.v2.hub.actualThisMonth}</p>
@@ -198,27 +189,10 @@ export function IncomeProgressCard({
                 <p key={total.currency} className="text-2xl font-bold tabular-nums">{formatMoney(total.amountMinor, total.currency)}</p>
               )) : <p className="text-2xl font-bold tabular-nums">{formatMoney(0)}</p>}
             </div>
-            {targetMonthlyCents ? (
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">{dict.earn.v2.hub.target}</p>
-                <p className="text-base font-semibold tabular-nums">{formatMoney(targetMonthlyCents)}</p>
-              </div>
-            ) : null}
+            <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/earn/income" />}>{dict.earn.tabs.income}<ChevronRight className="ml-1 size-4" aria-hidden="true" /></Button>
           </div>
           <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{dict.earn.v2.hub.actualIncomeHint}</p>
-          {pct !== null ? (
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={dict.earn.v2.hub.target}>
-              <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-            </div>
-          ) : null}
         </div>
-        {averageMonthlyCents !== null ? (
-          <div className="mb-4">
-            <p className="text-xs text-muted-foreground">{dict.earn.v2.hub.avgMonthly}</p>
-            <p className="text-base font-semibold tabular-nums">{formatMoney(averageMonthlyCents)}</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{dict.earn.v2.hub.historicalIncomeHint}</p>
-          </div>
-        ) : null}
           </>
         )}
       </CardContent>

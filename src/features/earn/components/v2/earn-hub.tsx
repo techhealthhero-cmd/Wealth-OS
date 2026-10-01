@@ -1,10 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Compass, MessageCircle, Plus, Sparkles, Trophy, Wallet } from "lucide-react";
+import { ArrowRight, ChevronRight, Compass, Route, Sparkles, Trophy, Wallet } from "lucide-react";
 
 import { getEarnHubData } from "@/features/earn/v2-queries";
-import { getIncomeProfileSummary } from "@/features/income-profile/queries";
-import { getIncomeTarget } from "@/features/income-target/queries";
-import { parseMoneyToCents } from "@/lib/financial/money";
 import { getProfile } from "@/features/profile/queries";
 import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 import { isPrivacyLockedFor } from "@/features/account-privacy/types";
@@ -16,7 +13,6 @@ import { IconChip } from "@/components/shared/icon-chip";
 import { EarnIllustration } from "@/components/illustrations";
 import {
   EarnSituationCard,
-  IncomePathCard,
   IncomeProgressCard,
   NextActionCard,
   RecommendedExperimentCard,
@@ -32,13 +28,10 @@ import { localizeMission } from "./helpers";
  * respect the "planning" privacy scope.
  */
 export async function EarnHub() {
-  const [data, profile, privacy, incomeSummary, target] = await Promise.all([
+  const [data, profile, privacy] = await Promise.all([
     getEarnHubData(),
     getProfile(),
     getAccountPrivacyState(),
-    // Supporting numbers only — a failure here must never hide the guidance.
-    getIncomeProfileSummary().catch(() => null),
-    getIncomeTarget().catch(() => null),
   ]);
   const dict = getDictionary(await getLocale(profile?.preferred_language));
   const v2 = dict.earn.v2;
@@ -53,13 +46,13 @@ export async function EarnHub() {
     livePaths[0];
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-3xl space-y-5">
       <EarnSituationCard dict={dict} stage={data.stage} />
 
       <NextActionCard
         dict={dict}
         primary={data.nextAction.primary}
-        secondary={data.nextAction.secondary}
+        secondary={[]}
         missionTitles={Object.fromEntries(
           Object.entries(data.missionRefs).map(([id, r]) => [
             id,
@@ -71,34 +64,14 @@ export async function EarnHub() {
 
       {focusPath ? <RoadmapFocusCard dict={dict} item={focusPath} /> : null}
 
-      <section aria-labelledby="earn-paths" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 id="earn-paths" className="text-base font-semibold">
-            {livePaths.length > 0 ? v2.hub.activePaths : v2.hub.recommended}
-          </h2>
-          <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/earn/paths/new" />}>
-            <Plus className="mr-1 size-3.5" aria-hidden="true" />
-            {v2.paths.new}
-          </Button>
-        </div>
-        {livePaths.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {livePaths.map((item) => (
-              <IncomePathCard key={item.path.id} dict={dict} item={item} />
-            ))}
-          </div>
-        ) : data.recommendations.length > 0 ? (
-          <div className="space-y-2">
-            {data.recommendations.map((e) => (
-              <RecommendedExperimentCard key={e.key} dict={dict} experiment={e} />
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="pt-5 text-sm text-muted-foreground">{v2.result.noExperiments}</CardContent>
-          </Card>
-        )}
-      </section>
+      {livePaths.length === 0 ? (
+        <section aria-labelledby="earn-paths" className="space-y-3">
+          <h2 id="earn-paths" className="text-base font-semibold">{v2.hub.recommended}</h2>
+          {data.recommendations[0] ? <RecommendedExperimentCard dict={dict} experiment={data.recommendations[0]} /> : (
+            <Card><CardContent className="pt-5 text-sm text-muted-foreground">{v2.result.noExperiments}</CardContent></Card>
+          )}
+        </section>
+      ) : null}
 
       {/* Real transaction income only; forecast stays in the planner. */}
       {data.income.available ? (
@@ -107,21 +80,20 @@ export async function EarnHub() {
           income={data.income}
           privacy={privacy}
           hidden={amountsHidden}
-          averageMonthlyCents={incomeSummary?.profile.averageMonthlyIncomeCents ?? null}
-          targetMonthlyCents={target?.target_monthly_income ? parseMoneyToCents(target.target_monthly_income) : null}
         />
       ) : null}
 
-      <section aria-labelledby="earn-supporting" className="space-y-3">
-        <h2 id="earn-supporting" className="text-sm font-medium text-muted-foreground">
+      <details className="group rounded-2xl border bg-card px-4 py-1">
+        <summary id="earn-supporting" className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-medium">
           {v2.hub.supporting}
-        </h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <ChevronRight className="size-4 text-muted-foreground transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden="true" />
+        </summary>
+        <div className="grid grid-cols-2 gap-2 border-t py-3 sm:grid-cols-4">
           {[
             { href: "/earn/skills", icon: Sparkles, label: v2.hub.skills },
             { href: "/earn/income", icon: Wallet, label: dict.earn.tabs.income },
             { href: "/earn/opportunities", icon: Compass, label: dict.earn.tabs.opportunities },
-            { href: "/ai", icon: MessageCircle, label: v2.hub.aiSupport },
+            { href: "/earn/paths", icon: Route, label: dict.earn.tabs.paths },
           ].map((l) => (
             <Link
               key={l.href}
@@ -133,7 +105,7 @@ export async function EarnHub() {
             </Link>
           ))}
         </div>
-      </section>
+      </details>
     </div>
   );
 }

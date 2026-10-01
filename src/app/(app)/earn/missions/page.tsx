@@ -19,15 +19,15 @@ export default async function EarnMissionsPage() {
       <PathMissionList dict={dict} />
       {/* Classic missions keep working; the section shows only for users who have them. */}
       {legacy.length > 0 ? (
-        <section aria-labelledby="legacy-missions" className="space-y-2">
-          <div>
-            <h2 id="legacy-missions" className="text-base font-semibold">
-              {copy.legacyTitle}
-            </h2>
+        <details className="rounded-2xl border bg-card px-4">
+          <summary id="legacy-missions" className="flex min-h-12 cursor-pointer items-center text-sm font-medium text-muted-foreground">
+            {copy.legacyTitle} · {legacy.length}
+          </summary>
+          <div className="space-y-2 border-t pb-4 pt-3">
             <p className="text-sm text-muted-foreground">{copy.legacyHint}</p>
+            <MissionList />
           </div>
-          <MissionList />
-        </section>
+        </details>
       ) : null}
     </div>
   );

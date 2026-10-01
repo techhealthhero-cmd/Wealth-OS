@@ -124,13 +124,15 @@ describe("Earn UX semantics", () => {
     expect(labels).not.toContain("เหมาะกับคุณมาก");
   });
 
-  it("uses one canonical Earn tab order with Overview first", () => {
+  it("keeps the primary Earn navigation focused on Today, Missions and Income", () => {
     const source = readFileSync(resolve("src/components/layout/earn-tabs.tsx"), "utf8");
     const overview = source.indexOf('href: "/earn"');
-    const paths = source.indexOf('href: "/earn/paths"');
     const missions = source.indexOf('href: "/earn/missions"');
-    expect(overview).toBeLessThan(paths);
-    expect(paths).toBeLessThan(missions);
+    const income = source.indexOf('href: "/earn/income"');
+    expect(overview).toBeLessThan(missions);
+    expect(missions).toBeLessThan(income);
+    expect(source).not.toContain('href: "/earn/opportunities"');
+    expect(source).not.toContain('href: "/earn/skills"');
   });
 });
 

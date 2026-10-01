@@ -20,19 +20,19 @@ const LEVEL_STYLE: Record<SkillEvidenceLevel, string> = {
  * outcome) and the income paths it supports. Rank/XP stay below as
  * motivation only — they never decide this level.
  */
-export async function SkillEvidenceSection({ dict, skills }: { dict: Dictionary; skills: UserSkill[] }) {
+export async function SkillEvidenceSection({ dict, skills, hideHeading = false }: { dict: Dictionary; skills: UserSkill[]; hideHeading?: boolean }) {
   const data = await getSkillEvidenceData();
   const summaries = summarizeSkillEvidence(data.evidence);
   const copy = dict.earn.v2.skillsV2;
 
   return (
     <section aria-labelledby="skill-evidence" className="space-y-2">
-      <div>
+      {!hideHeading ? <div>
         <h2 id="skill-evidence" className="text-base font-semibold">
           {copy.title}
         </h2>
         <p className="text-sm text-muted-foreground">{copy.hint}</p>
-      </div>
+      </div> : null}
       <div className="grid gap-2 sm:grid-cols-2">
         {skills.map((skill) => {
           const s = summaries.get(skill.id) ?? EMPTY_SKILL_EVIDENCE;

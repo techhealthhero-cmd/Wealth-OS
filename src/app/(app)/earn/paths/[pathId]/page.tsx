@@ -201,13 +201,13 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
 
       {/* Projects are optional. */}
       {projects.available ? (
-      <section aria-labelledby="projects" className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 id="projects" className="text-base font-semibold">
-            {v2.projects.title}
-          </h3>
-          {projects.available ? <ProjectCreateForm pathId={path.id} /> : null}
-        </div>
+      <details className="group rounded-2xl border bg-card px-4">
+        <summary id="projects" className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-medium">
+          <span>{v2.projects.title}{projects.projects.length ? ` · ${projects.projects.length}` : ""}</span>
+          <span className="text-xs text-muted-foreground group-open:hidden">+</span>
+        </summary>
+        <div className="space-y-3 border-t pb-4 pt-3">
+        <div className="flex justify-end"><ProjectCreateForm pathId={path.id} /></div>
         {!projects.available ? (
           <p className="text-sm text-muted-foreground">{v2.income.migrationPending}</p>
         ) : projects.projects.length === 0 ? (
@@ -225,19 +225,23 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
             ))}
           </ul>
         )}
-      </section>
+        </div>
+      </details>
       ) : null}
 
-      <section aria-labelledby="path-skills" className="space-y-2">
-        <h3 id="path-skills" className="text-base font-semibold">
+      <details className="group rounded-2xl border bg-card px-4">
+        <summary id="path-skills" className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-medium">
           {v2.skillsV2.pathSkills}
-        </h3>
+          <span className="text-xs text-muted-foreground group-open:hidden">+</span>
+        </summary>
+        <div className="border-t pb-4 pt-3">
         <PathSkillLinks
           pathId={path.id}
           skills={skills.map((s) => ({ id: s.id, name: s.skill_name }))}
           linkedIds={skillData.skillsByPath[path.id] ?? []}
         />
-      </section>
+        </div>
+      </details>
 
       {history.length > 0 ? (
         <details className="rounded-2xl border bg-card px-4">

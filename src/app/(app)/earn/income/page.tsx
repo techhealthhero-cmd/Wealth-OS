@@ -16,9 +16,9 @@ export default async function EarnIncomePage() {
 
   return (
     <div className="space-y-6">
+      <IncomeSourceList />
       <IncomePlannerSection />
       <IncomeTargetSection />
-      <IncomeSourceList />
     </div>
   );
 }

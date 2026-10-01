@@ -161,8 +161,12 @@ export function MissionResultForm({
         </div>
       ))}
 
-      <fieldset className="space-y-2">
-        <legend className="mb-2 text-sm font-medium">{t("earn.v2.missions.result.decision.title")}</legend>
+      <details className="group rounded-2xl border bg-card px-4 py-1">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center text-sm font-medium text-muted-foreground">
+          {t("earn.v2.missions.result.decision.title")}
+        </summary>
+      <fieldset className="space-y-2 border-t pb-3 pt-3">
+        <legend className="sr-only">{t("earn.v2.missions.result.decision.title")}</legend>
         <div role="radiogroup" aria-label={t("earn.v2.missions.result.decision.title")} className="grid grid-cols-2 gap-2">
           {EXPERIMENT_DECISIONS.map((d) => (
             <button
@@ -181,6 +185,7 @@ export function MissionResultForm({
           ))}
         </div>
       </fieldset>
+      </details>
 
       <details className="rounded-2xl border bg-card px-4 py-3">
         <summary className="cursor-pointer text-sm font-medium">{t("earn.v2.missions.result.notes")}</summary>

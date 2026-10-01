@@ -133,6 +133,7 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     const { data: evidence } = await admin.from("skill_evidence").select("dimension").eq("user_id", userId).eq("user_skill_id", skill!.id);
     expect(evidence).toEqual([expect.objectContaining({ dimension: "action" })]);
 
+    await page.getByText(/^Projects(?: · \d+)?$/).click();
     await page.getByRole("button", { name: "Add project" }).click();
     await page.getByLabel("Project name").fill("Restaurant website");
     await page.getByRole("button", { name: "Create project" }).click();
@@ -166,7 +167,7 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     await expect(page.locator("#earn-next-action")).toHaveCount(1);
     await expect(page.getByText("Actual income this month")).toBeVisible();
     await expect(page.getByText(/฿500\.00/).first()).toBeVisible();
-    await expect(page.getByText("Historical average")).toBeVisible();
+    await expect(page.getByText("Historical average")).toHaveCount(0);
     await expect(page.getByText("Forecast income from this plan / month")).toHaveCount(0);
 
     await page.goto("/earn/missions");
