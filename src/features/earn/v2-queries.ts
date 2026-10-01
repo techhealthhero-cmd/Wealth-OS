@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
+import { throwDbError } from "@/lib/db-error";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import { deriveStageFacts, type DiagnosticAnswers } from "@/lib/earn/diagnostic";
 import { calculateEarnStage } from "@/lib/earn/stage";
@@ -28,6 +29,16 @@ export function isMissingRelation(error: { code?: string } | null | undefined): 
   return Boolean(error?.code && MISSING_RELATION.has(error.code));
 }
 
+/**
+ * "No data" and "failed to load" must never look the same: a database
+ * failure that silently returned empty used to make a returning user look
+ * brand-new (intro screen). Errors are thrown to the Earn error boundary
+ * (which retries) — only "relation doesn't exist yet" is treated as absent.
+ */
+function fail(error: { message: string; code?: string }, context: string): never {
+  throwDbError(error, `earn.${context}`, "Failed to load Earn data");
+}
+
 export interface LatestAssessment {
   id: string;
   answers: DiagnosticAnswers;
@@ -37,12 +48,13 @@ export interface LatestAssessment {
 
 export const getLatestAssessment = cache(async (): Promise<LatestAssessment | null> => {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("earn_assessments")
     .select("id, answers, calculated_stage, completed_at")
     .order("completed_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (error) fail(error, "getLatestAssessment");
   if (!data) return null;
   // Older/foreign snapshots that don't fit the V2 shape are treated as "no
   // usable diagnostic" rather than guessed at.
@@ -54,17 +66,19 @@ export const getLatestAssessment = cache(async (): Promise<LatestAssessment | nu
 /** Emergency fund balance in minor units, or null when the user has none set up (unknown ≠ zero). */
 export const getEmergencyFundMinor = cache(async (): Promise<number | null> => {
   const supabase = await createClient();
-  const { data: fund } = await supabase
+  const { data: fund, error } = await supabase
     .from("emergency_funds")
     .select("current_amount, linked_account_id")
     .maybeSingle();
+  if (error) fail(error, "getEmergencyFundMinor");
   if (!fund) return null;
   if (fund.linked_account_id) {
-    const { data: account } = await supabase
+    const { data: account, error: accountError } = await supabase
       .from("accounts")
       .select("current_balance")
       .eq("id", fund.linked_account_id)
       .maybeSingle();
+    if (accountError) fail(accountError, "getEmergencyFundMinor.account");
     if (account) return parseMoneyToCents(account.current_balance);
   }
   return parseMoneyToCents(fund.current_amount);
@@ -72,17 +86,20 @@ export const getEmergencyFundMinor = cache(async (): Promise<number | null> => {
 
 export const getIncomePaths = cache(async (): Promise<IncomePath[]> => {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("income_paths")
     .select("*")
     .neq("status", "archived")
     .order("created_at", { ascending: true });
+  if (error) fail(error, "getIncomePaths");
   return data ?? [];
 });
 
 export async function getIncomePath(pathId: string): Promise<IncomePath | null> {
   const supabase = await createClient();
-  const { data } = await supabase.from("income_paths").select("*").eq("id", pathId).maybeSingle();
+  const { data, error } = await supabase.from("income_paths").select("*").eq("id", pathId).maybeSingle();
+  // An invalid id format (22P02) is simply "not found", not an outage.
+  if (error && error.code !== "22P02") fail(error, "getIncomePath");
   return data ?? null;
 }
 
@@ -94,17 +111,19 @@ export interface PathMission extends IncomeMission {
 export async function getPathMissions(pathIds: string[]): Promise<PathMission[]> {
   if (pathIds.length === 0) return [];
   const supabase = await createClient();
-  const { data: missions } = await supabase
+  const { data: missions, error: missionsError } = await supabase
     .from("income_missions")
     .select("*")
     .in("income_path_id", pathIds)
     .order("sequence_order", { ascending: true })
     .order("created_at", { ascending: true });
+  if (missionsError) fail(missionsError, "getPathMissions");
   if (!missions?.length) return [];
-  const { data: results } = await supabase
+  const { data: results, error: resultsError } = await supabase
     .from("income_mission_results")
     .select("income_mission_id, outcome_data")
     .in("income_mission_id", missions.map((m) => m.id));
+  if (resultsError) fail(resultsError, "getPathMissions.results");
   const byMission = new Map((results ?? []).map((r) => [r.income_mission_id, r.outcome_data]));
   return missions.map((m) => {
     const outcome = byMission.get(m.id) as { counts?: Record<string, number> } | undefined;
@@ -129,7 +148,10 @@ export async function getLinkedIncome(pathIds: string[]): Promise<PathIncome> {
     .from("earn_transaction_links")
     .select("income_path_id, transaction:transactions!earn_transaction_links_transaction_id_fkey(amount, currency_code, type)")
     .in("income_path_id", pathIds);
-  if (error) return isMissingRelation(error) ? { ...empty, available: false } : empty;
+  if (error) {
+    if (isMissingRelation(error)) return { ...empty, available: false };
+    fail(error, "getLinkedIncome");
+  }
 
   const add = (list: { currency: string; amountMinor: number }[], currency: string, minor: number) => {
     const row = list.find((r) => r.currency === currency);
@@ -163,7 +185,10 @@ export async function getEarnProjects(pathId: string): Promise<ProjectsResult> {
     .eq("income_path_id", pathId)
     .neq("status", "archived")
     .order("created_at", { ascending: true });
-  if (error) return { available: !isMissingRelation(error), projects: [] };
+  if (error) {
+    if (isMissingRelation(error)) return { available: false, projects: [] };
+    fail(error, "getEarnProjects");
+  }
   return { available: true, projects: data ?? [] };
 }
 
@@ -274,7 +299,7 @@ export interface SkillEvidenceData {
 
 export async function getSkillEvidenceData(): Promise<SkillEvidenceData> {
   const supabase = await createClient();
-  const [{ data: evidence }, { data: links }, paths] = await Promise.all([
+  const [{ data: evidence, error: evidenceError }, { data: links, error: linksError }, paths] = await Promise.all([
     supabase
       .from("skill_evidence")
       .select("user_skill_id, dimension, occurred_at, description, evidence_type")
@@ -283,6 +308,8 @@ export async function getSkillEvidenceData(): Promise<SkillEvidenceData> {
     supabase.from("income_path_skills").select("income_path_id, user_skill_id"),
     getIncomePaths(),
   ]);
+  if (evidenceError) fail(evidenceError, "getSkillEvidenceData.evidence");
+  if (linksError) fail(linksError, "getSkillEvidenceData.links");
   const titles = new Map(paths.map((p) => [p.id, p.title]));
   const pathsBySkill: SkillEvidenceData["pathsBySkill"] = {};
   const skillsByPath: SkillEvidenceData["skillsByPath"] = {};
