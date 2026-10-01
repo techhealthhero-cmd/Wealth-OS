@@ -121,14 +121,17 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     await expect(page.getByText("Choose one service you can offer")).toBeVisible();
     await page.getByRole("button", { name: "Mark done" }).click();
     await expect(page.getByText("Make one sample of your work")).toBeVisible({ timeout: 20_000 });
-    await page.getByRole("button", { name: "Mark done" }).click();
+    await page.getByRole("button", { name: "Record result" }).click();
     await page.waitForURL(/\/earn\/missions\/[0-9a-f-]+\/result/, { timeout: 20_000 });
+    const missionResultUrl = page.url();
     await page.getByRole("textbox", { name: "Samples finished", exact: true }).fill("1");
-    await page.getByRole("button", { name: "Save result" }).click();
+    await page.getByLabel("Work / evidence name *").fill("Restaurant landing page");
+    await page.getByLabel("What was built or demonstrated *").fill("A responsive landing page sample");
+    await page.getByRole("button", { name: "Save result and complete mission" }).click();
     await page.waitForURL(new RegExp(`/earn/paths/${pathId}$`), { timeout: 20_000 });
     await expect(page.getByText("Find 5 potential customers")).toBeVisible();
     const { data: evidence } = await admin.from("skill_evidence").select("dimension").eq("user_id", userId).eq("user_skill_id", skill!.id);
-    expect(evidence).toEqual([expect.objectContaining({ dimension: "outcome" })]);
+    expect(evidence).toEqual([expect.objectContaining({ dimension: "action" })]);
 
     await page.getByRole("button", { name: "Add project" }).click();
     await page.getByLabel("Project name").fill("Restaurant website");
@@ -173,7 +176,7 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
 
     await page.goto("/earn/skills");
     await expect(page.getByText("Landing Page QA")).toBeVisible();
-    await expect(page.getByText("Real results", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Used in practice", { exact: true }).first()).toBeVisible();
 
     // The Hub's decision hierarchy stays readable and overflow-free from the
     // narrowest supported phone through desktop. Screenshots are retained as
@@ -185,6 +188,12 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
       await expect(page.locator("#earn-roadmap")).toBeVisible();
       await expectNoHorizontalOverflow(page, `Earn Hub overflow at ${width}px`);
       await page.screenshot({ path: testInfo.outputPath(`earn-hub-${width}.png`), fullPage: true });
+    }
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 850 });
+      await page.goto(missionResultUrl);
+      await expect(page.getByLabel("Work / evidence name *")).toBeVisible();
+      await expectNoHorizontalOverflow(page, `Earn mission result overflow at ${width}px`);
     }
 
     // The path's densest page remains usable from a 320px phone through desktop.

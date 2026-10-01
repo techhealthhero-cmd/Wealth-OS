@@ -46,9 +46,11 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
   const progress = getRoadmapProgress(type, path.current_roadmap_step_key, path.status === "completed");
   const steps = getRoadmapTemplate(type).steps;
   const hidden = isPrivacyLockedFor(privacy, "planning");
+  const requiresResult = (mission: (typeof missions)[number]) =>
+    (mission.roadmap_step_key ? getMissionTemplate(type, mission.roadmap_step_key)?.resultRequired : null) ?? mission.result_required;
 
   const open = missions.filter((m) => m.status === "not_started" || m.status === "in_progress");
-  const awaitingResult = missions.filter((m) => m.result_required && m.status === "completed" && !m.hasResult);
+  const awaitingResult = missions.filter((m) => requiresResult(m) && m.status === "completed" && !m.hasResult);
   const current = awaitingResult[0] ?? open.find((m) => m.roadmap_step_key === progress.currentStepKey) ?? open[0] ?? null;
   const history = missions.filter((m) => m.id !== current?.id && m.status === "completed").reverse();
   const currentTemplate = current?.roadmap_step_key ? getMissionTemplate(type, current.roadmap_step_key) : null;
@@ -145,11 +147,11 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
                     {fill(v2.missions.target, { n: Number(current.target_quantity) })}
                   </span>
                 ) : null}
-                {current.result_required && current.status === "completed" && !current.hasResult ? (
+                {requiresResult(current) && current.status === "completed" && !current.hasResult ? (
                   <span className="rounded-full bg-amber-500/10 px-2.5 py-1 font-medium text-amber-800 dark:text-amber-300">{v2.missions.resultPending}</span>
                 ) : null}
               </div>
-              <MissionActions missionId={current.id} status={current.status} resultRequired={current.result_required} hasResult={current.hasResult} />
+              <MissionActions missionId={current.id} status={current.status} resultRequired={requiresResult(current)} hasResult={current.hasResult} />
               {currentTemplate?.mayProduceIncome ? (
                 <p className="text-xs text-muted-foreground">{v2.income.promptAfterResult}</p>
               ) : null}
@@ -246,7 +248,7 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
             {history.map((m) => (
               <li key={m.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
                 <span className="min-w-0 truncate">{localizeMission(dict, type, m).title}</span>
-                {m.result_required && !m.hasResult ? (
+                {requiresResult(m) && !m.hasResult ? (
                   <Link href={`/earn/missions/${m.id}/result`} className="shrink-0 text-xs font-medium text-primary dark:text-[#7FD6B2]">
                     {v2.missions.recordResult}
                   </Link>

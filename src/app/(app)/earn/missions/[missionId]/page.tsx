@@ -60,6 +60,7 @@ export default async function EarnMissionDetailPage({ params }: { params: Promis
   const text = localizeMission(dict, type, mission);
   const stepName = mission.roadmap_step_key ? tr(dict, `earn.v2.roadmap.${type}.${mission.roadmap_step_key}`) : null;
   const fields = template?.resultFields ?? [];
+  const resultRequired = template?.resultRequired ?? mission.result_required;
 
   return (
     <div className="space-y-4">
@@ -106,9 +107,9 @@ export default async function EarnMissionDetailPage({ params }: { params: Promis
           <div className="rounded-2xl bg-muted/60 px-3 py-2.5">
             <p className="flex items-center gap-1.5 text-xs font-semibold">
               <ClipboardList className="size-3.5" aria-hidden="true" />
-              {mission.result_required ? copy.recordAfter : copy.noResultNeeded}
+              {resultRequired ? copy.recordAfter : copy.noResultNeeded}
             </p>
-            {mission.result_required && fields.length ? (
+            {resultRequired && fields.length ? (
               <ul className="mt-1 list-inside list-disc text-sm text-muted-foreground">
                 {fields.map((f) => (
                   <li key={f}>{tr(dict, `earn.v2.missions.result.fields.${f}`)}</li>
@@ -125,7 +126,7 @@ export default async function EarnMissionDetailPage({ params }: { params: Promis
             />
           ) : null}
 
-          <MissionActions missionId={mission.id} status={mission.status} resultRequired={mission.result_required} hasResult={mission.hasResult} />
+          <MissionActions missionId={mission.id} status={mission.status} resultRequired={resultRequired} hasResult={mission.hasResult} />
         </CardContent>
       </Card>
     </div>

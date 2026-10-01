@@ -68,6 +68,7 @@ export const createIncomePathSchema = z.object({
 export const missionResultSchema = z.object({
   missionId: z.string().uuid(),
   counts: z.record(z.string().max(40), z.number().int().min(0).max(100_000)),
+  answers: z.record(z.string().max(40), z.string().max(2000)).default({}),
   decision: z.enum(EXPERIMENT_DECISIONS).nullable(),
   notes: z.string().trim().max(2000).nullable(),
   /** Optional: attach this result as evidence to one of the user's skills. */

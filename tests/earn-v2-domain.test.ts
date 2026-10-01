@@ -12,6 +12,7 @@ import { recommendExperiments } from "@/lib/earn/recommendations";
 import {
   getMissionTemplate,
   listMissionTemplates,
+  missionCompletionSatisfied,
   resultHasPositiveOutcome,
   validateMissionResult,
 } from "@/lib/earn/mission-templates";
@@ -160,6 +161,26 @@ describe("mission templates", () => {
     const t = getMissionTemplate("business_product", "first_sale")!;
     expect(resultHasPositiveOutcome(t, { offers_shown: 5, customers: 0 })).toBe(false);
     expect(resultHasPositiveOutcome(t, { offers_shown: 5, customers: 1 })).toBe(true);
+  });
+
+  it("requires structured customer-problem evidence", () => {
+    const t = getMissionTemplate("business_product", "problem")!;
+    expect(t.resultKind).toBe("customer_problem");
+    expect(missionCompletionSatisfied(t, { counts: {}, answers: { target_customer: "ร้านอาหาร", customer_problem: "รับออเดอร์ตกหล่น", current_solution: "จดกระดาษ" } })).toBe(true);
+    expect(missionCompletionSatisfied(t, { counts: {}, answers: { target_customer: "ร้านอาหาร" } })).toBe(false);
+  });
+
+  it("keeps interview progress active until its target and rejects an invalid funnel", () => {
+    const t = getMissionTemplate("business_product", "validation")!;
+    expect(missionCompletionSatisfied(t, { counts: { interviewed: 3, interested: 2, would_pay: 1 }, answers: {} })).toBe(false);
+    expect(missionCompletionSatisfied(t, { counts: { interviewed: 5, interested: 2, would_pay: 1 }, answers: {} })).toBe(true);
+    expect(validateMissionResult(t, { counts: { interviewed: 5, interested: 6, would_pay: 1 }, answers: {}, decision: null, notes: null })).toBe("funnel_order");
+  });
+
+  it("maps build and learning missions to the correct evidence dimensions", () => {
+    expect(getMissionTemplate("freelance_service", "proof_of_work")).toMatchObject({ resultKind: "artifact", evidenceDimension: "action" });
+    expect(getMissionTemplate("career", "skill_growth")).toMatchObject({ resultKind: "learning", evidenceDimension: "learning" });
+    expect(getMissionTemplate("freelance_service", "first_payment")).toMatchObject({ resultKind: "income_outcome", evidenceDimension: "outcome", mayProduceIncome: true });
   });
 });
 

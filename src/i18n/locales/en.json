@@ -1484,6 +1484,11 @@
           "save": "Save result",
           "saving": "Saving…",
           "saved": "Result saved",
+          "progressSaved": "Progress saved — keep going when you're ready",
+          "saveProgress": "Save progress",
+          "saveAndComplete": "Save result and complete mission",
+          "progress": "Progress: {current} / {target}",
+          "required": "Record the required evidence before completing this mission.",
           "decreaseField": "Decrease {field}",
           "increaseField": "Increase {field}",
           "decision": {
@@ -1497,6 +1502,19 @@
             "unknown_field": "Unknown field",
             "invalid_count": "Enter whole, non-negative numbers",
             "funnel_order": "A later number can't be larger than the one before it"
+            ,"invalid_answer": "Complete the required evidence fields",
+            "invalid_url": "Enter a URL beginning with http:// or https://"
+          },
+          "answers": {
+            "target_customer": "Target customer",
+            "customer_problem": "Problem discovered",
+            "current_solution": "How they solve it today",
+            "learning": "What I learned",
+            "application": "How I will apply it",
+            "common_feedback": "Common feedback (optional)",
+            "artifact_name": "Work / evidence name",
+            "artifact_url": "URL (optional)",
+            "artifact_description": "What was built or demonstrated"
           },
           "fields": {
             "achievements": "Measurable achievements",
@@ -1520,6 +1538,8 @@
             "offers_shown": "Offers made",
             "customers": "Customers who bought",
             "new_customers": "New customers"
+            ,"offers_built": "Offers built",
+            "systems_built": "Systems built"
           }
         },
         "career": {

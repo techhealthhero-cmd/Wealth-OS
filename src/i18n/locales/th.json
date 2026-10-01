@@ -1484,6 +1484,11 @@
           "save": "บันทึกผลลัพธ์",
           "saving": "กำลังบันทึก…",
           "saved": "บันทึกผลแล้ว",
+          "progressSaved": "บันทึกความคืบหน้าแล้ว กลับมาทำต่อได้เสมอ",
+          "saveProgress": "บันทึกความคืบหน้า",
+          "saveAndComplete": "บันทึกผลและทำภารกิจสำเร็จ",
+          "progress": "ความคืบหน้า: {current} / {target}",
+          "required": "กรุณาบันทึกหลักฐานที่กำหนดก่อนทำภารกิจสำเร็จ",
           "decreaseField": "ลดจำนวน {field}",
           "increaseField": "เพิ่มจำนวน {field}",
           "decision": {
@@ -1497,6 +1502,19 @@
             "unknown_field": "มีช่องข้อมูลที่ไม่รู้จัก",
             "invalid_count": "กรุณาใส่ตัวเลขจำนวนเต็มที่ไม่ติดลบ",
             "funnel_order": "ตัวเลขขั้นหลังต้องไม่มากกว่าขั้นก่อนหน้า"
+            ,"invalid_answer": "กรุณากรอกหลักฐานที่จำเป็นให้ครบ",
+            "invalid_url": "กรุณาใส่ URL ที่ขึ้นต้นด้วย http:// หรือ https://"
+          },
+          "answers": {
+            "target_customer": "ลูกค้าเป้าหมาย",
+            "customer_problem": "ปัญหาที่พบ",
+            "current_solution": "ตอนนี้เขาแก้ปัญหานี้อย่างไร",
+            "learning": "สิ่งที่ฉันเรียนรู้",
+            "application": "จะนำไปใช้อย่างไร",
+            "common_feedback": "สิ่งที่ได้เรียนรู้ / ข้อคิดเห็นที่พบบ่อย (ไม่บังคับ)",
+            "artifact_name": "ชื่อผลงาน / หลักฐาน",
+            "artifact_url": "URL (ไม่บังคับ)",
+            "artifact_description": "สิ่งที่สร้างหรือแสดงให้เห็น"
           },
           "fields": {
             "achievements": "ผลงานที่วัดได้",
@@ -1520,6 +1538,8 @@
             "offers_shown": "เสนอขายไป",
             "customers": "ลูกค้าที่ซื้อ",
             "new_customers": "ลูกค้าใหม่"
+            ,"offers_built": "ข้อเสนอที่สร้าง",
+            "systems_built": "ระบบที่สร้าง"
           }
         },
         "career": {

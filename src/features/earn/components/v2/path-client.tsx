@@ -54,6 +54,14 @@ export function MissionActions({
       </p>
     );
   }
+  if (resultRequired) {
+    return (
+      <Button className="h-11 w-full rounded-2xl" nativeButton={false} render={<Link href={`/earn/missions/${missionId}/result`} />}>
+        <ClipboardList className="mr-1.5 size-4" aria-hidden="true" />
+        {t("earn.v2.missions.recordResult")}
+      </Button>
+    );
+  }
   return (
     <div className="flex gap-2">
       <Button
@@ -66,8 +74,7 @@ export function MissionActions({
               toast.error(res.error);
               return;
             }
-            if (resultRequired) router.push(`/earn/missions/${missionId}/result`);
-            else router.refresh();
+            router.refresh();
           })
         }
       >

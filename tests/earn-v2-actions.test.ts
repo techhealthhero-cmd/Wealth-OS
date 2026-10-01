@@ -175,7 +175,7 @@ describe("paths, roadmap and missions", () => {
     const proof = missionsOf(id!).find((m) => m.roadmap_step_key === "proof_of_work")!;
     await completeEarnMission(proof.id as string);
     expect(pathRow(id!).current_roadmap_step_key).toBe("proof_of_work");
-    const res = await recordEarnMissionResult({ missionId: proof.id as string, counts: { samples: 1 }, decision: "continue", notes: "Built one landing page" });
+    const res = await recordEarnMissionResult({ missionId: proof.id as string, counts: { samples: 1 }, answers: { artifact_name: "Landing page", artifact_description: "Responsive client sample" }, decision: "continue", notes: "Built one landing page" });
     expect(res.success).toBe(true);
     expect(db.income_mission_results[0]).toMatchObject({ income_mission_id: proof.id, notes: "Built one landing page" });
     expect(pathRow(id!).current_roadmap_step_key).toBe("find_leads");
@@ -187,6 +187,17 @@ describe("paths, roadmap and missions", () => {
     const res = await recordEarnMissionResult({ missionId: "aaaaaaaa-0000-4000-8000-000000000001", counts: { contacted: 2, responses: 5 }, decision: "continue", notes: null });
     expect(res.error).toBeTruthy();
     expect(db.income_mission_results ?? []).toHaveLength(0);
+  });
+
+  it("saves partial interview progress without completing or advancing", async () => {
+    const { id } = await createIncomePath({ pathType: "business_product", title: "Course" });
+    pathRow(id!).current_roadmap_step_key = "validation";
+    db.income_missions.push({ id: "aaaaaaaa-0000-4000-8000-000000000009", user_id: "user-1", income_path_id: id, roadmap_step_key: "validation", status: "in_progress", mission_type: "other" });
+    const res = await recordEarnMissionResult({ missionId: "aaaaaaaa-0000-4000-8000-000000000009", counts: { interviewed: 3, interested: 2, would_pay: 1 }, answers: { common_feedback: "Needs a shorter lesson" }, decision: "continue", notes: null });
+    expect(res).toMatchObject({ success: true, completed: false });
+    expect(pathRow(id!).current_roadmap_step_key).toBe("validation");
+    expect(db.income_missions.find((m) => m.id === "aaaaaaaa-0000-4000-8000-000000000009")?.status).toBe("in_progress");
+    expect(db.income_mission_results).toHaveLength(1);
   });
 
   it("adjust = a fresh try of the same step; pause/switch pause the path", async () => {

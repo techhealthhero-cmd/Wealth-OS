@@ -49,7 +49,9 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 const awardXpOnce = vi.fn(async () => true);
 vi.mock("@/features/engagement/xp", () => ({ awardXpOnce: (...a: unknown[]) => awardXpOnce(...(a as [])) }));
 
-const PATH_MISSION = { id: "pm", user_id: "u1", mission_type: "other", income_path_id: "path-1", roadmap_step_key: "find_leads", result_required: true, status: "not_started", progress_quantity: 0 };
+// Simulates a historical row created before structured-result templates: the
+// stored flag is false, but the current template still requires evidence.
+const PATH_MISSION = { id: "pm", user_id: "u1", mission_type: "other", income_path_id: "path-1", roadmap_step_key: "find_leads", result_required: false, status: "not_started", progress_quantity: 0 };
 const LEGACY_MISSION = { id: "lm", user_id: "u1", mission_type: "outreach", income_path_id: null, status: "not_started", progress_quantity: 0 };
 
 beforeEach(() => {
@@ -88,10 +90,11 @@ describe("Earn V2 completion refuses legacy missions", () => {
     expect(row("lm").status).toBe("not_started");
   });
 
-  it("a result-required path mission completed through V2 waits for its result (roadmap does not move)", async () => {
+  it("a result-required path mission cannot be completed before its result", async () => {
     db.income_paths = [{ id: "path-1", user_id: "u1", path_type: "freelance_service", current_roadmap_step_key: "find_leads" }];
-    await completeEarnMission("pm");
-    expect(row("pm").status).toBe("completed");
+    const result = await completeEarnMission("pm");
+    expect(result.error).toBeTruthy();
+    expect(row("pm").status).toBe("not_started");
     expect(db.income_paths[0].current_roadmap_step_key).toBe("find_leads");
   });
 });

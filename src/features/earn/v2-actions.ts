@@ -14,7 +14,7 @@ import { getIncomeMissionXpReward } from "@/lib/skills/income-rank";
 import { deriveStageFacts, DIAGNOSTIC_RULES_VERSION } from "@/lib/earn/diagnostic";
 import { calculateEarnStage, EARN_STAGE_RULES } from "@/lib/earn/stage";
 import { getNextRoadmapStepKey, getRoadmapTemplate, ROADMAP_TEMPLATES_VERSION } from "@/lib/earn/roadmap";
-import { getMissionTemplate, resultHasPositiveOutcome, validateMissionResult } from "@/lib/earn/mission-templates";
+import { getMissionTemplate, missionCompletionSatisfied, resultHasPositiveOutcome, validateMissionResult } from "@/lib/earn/mission-templates";
 import { createIncomePathSchema, diagnosticAnswersSchema, missionResultSchema } from "@/lib/validation/earn";
 import { getEmergencyFundMinor, isMissingRelation } from "@/features/earn/v2-queries";
 import type { IncomePathType } from "@/lib/earn/types";
@@ -31,6 +31,7 @@ export interface EarnActionResult {
   success?: boolean;
   error?: string;
   id?: string;
+  completed?: boolean;
 }
 
 async function context() {
@@ -230,6 +231,16 @@ export async function completeEarnMission(missionId: string): Promise<EarnAction
   if (missionError) return { error: friendlyDbError(missionError, "completeEarnMission.read", dict.earn.v2.missions.failed) };
   // Legacy (non-path) missions keep their own lifecycle in income-missions/actions.ts.
   if (!mission || !mission.income_path_id) return { error: dict.earn.v2.missions.notFound };
+  const { data: missionPath } = await supabase
+    .from("income_paths")
+    .select("path_type")
+    .eq("id", mission.income_path_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const effectiveTemplate = mission.roadmap_step_key && missionPath
+    ? getMissionTemplate(missionPath.path_type as IncomePathType, mission.roadmap_step_key)
+    : null;
+  if (mission.result_required || effectiveTemplate?.resultRequired) return { error: dict.earn.v2.missions.result.required };
 
   if (mission.status !== "completed") {
     const { error } = await supabase
@@ -259,6 +270,7 @@ export async function completeEarnMission(missionId: string): Promise<EarnAction
 export async function recordEarnMissionResult(input: {
   missionId: string;
   counts: Record<string, number>;
+  answers?: Record<string, string>;
   decision: "continue" | "adjust" | "pause" | "switch" | null;
   notes: string | null;
   skillId?: string | null;
@@ -293,14 +305,21 @@ export async function recordEarnMissionResult(input: {
 
   const template = getMissionTemplate(path.path_type as IncomePathType, mission.roadmap_step_key);
   if (!template) return { error: dict.earn.v2.missions.notFound };
-  const invalid = validateMissionResult(template, { counts: d.counts, decision: d.decision, notes: d.notes });
+  const invalid = validateMissionResult(template, { counts: d.counts, answers: d.answers, decision: d.decision, notes: d.notes });
   if (invalid) return { error: dict.earn.v2.missions.result.errors[invalid] };
+
+  const { data: existingResult, error: existingResultError } = await supabase
+    .from("income_mission_results")
+    .select("id")
+    .eq("income_mission_id", mission.id)
+    .maybeSingle();
+  if (existingResultError) return { error: friendlyDbError(existingResultError, "recordEarnMissionResult.read", dict.earn.v2.missions.failed) };
 
   const { error } = await supabase.from("income_mission_results").upsert(
     {
       user_id: user.id,
       income_mission_id: mission.id,
-      outcome_data: { counts: d.counts, decision: d.decision, template: `${path.path_type}.${template.stepKey}` },
+      outcome_data: { counts: d.counts, answers: d.answers, decision: d.decision, template: `${path.path_type}.${template.stepKey}`, result_kind: template.resultKind },
       notes: d.notes || null,
       recorded_at: new Date().toISOString(),
     },
@@ -308,40 +327,53 @@ export async function recordEarnMissionResult(input: {
   );
   if (error) return { error: friendlyDbError(error, "recordEarnMissionResult", dict.earn.v2.missions.failed) };
 
+  const decision = d.decision ?? "continue";
+  const complete = missionCompletionSatisfied(template, { counts: d.counts, answers: d.answers }) || decision !== "continue";
+  if (!complete) {
+    revalidateEarn(path.id);
+    return { success: true, id: path.id, completed: false };
+  }
+
+  // Backward compatibility: older UI marked result-required missions completed
+  // before opening this form. Their first real result still owns progression.
+  let completionWon = mission.status === "completed" && !existingResult;
   if (mission.status !== "completed") {
-    await supabase
+    const { data: updated, error: completionError } = await supabase
       .from("income_missions")
       .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", mission.id)
-      .eq("user_id", user.id);
-    await awardXpOnce(user.id, "income_mission_completed", mission.id, getIncomeMissionXpReward(mission.mission_type));
+      .eq("user_id", user.id)
+      .neq("status", "completed")
+      .select("id");
+    if (completionError) return { error: friendlyDbError(completionError, "recordEarnMissionResult.complete", dict.earn.v2.missions.failed) };
+    completionWon = Boolean(updated?.length);
+    if (completionWon) await awardXpOnce(user.id, "income_mission_completed", mission.id, getIncomeMissionXpReward(mission.mission_type));
   }
 
-  if (d.skillId) {
+  if (d.skillId && completionWon) {
     // RLS re-checks that the skill, path and mission all belong to this user.
     await supabase.from("skill_evidence").insert({
       user_id: user.id,
       user_skill_id: d.skillId,
       income_path_id: path.id,
       income_mission_id: mission.id,
-      dimension: resultHasPositiveOutcome(template, d.counts) ? "outcome" : "action",
-      evidence_type: `mission_result:${template.stepKey}`,
-      description: d.notes || null,
-      metadata: { counts: d.counts },
+      dimension: template.evidenceDimension === "action_or_outcome" ? (resultHasPositiveOutcome(template, d.counts) ? "outcome" : "action") : (template.evidenceDimension ?? "action"),
+      evidence_type: template.evidenceType ?? `mission_result:${template.stepKey}`,
+      description: d.notes || Object.values(d.answers).find(Boolean) || null,
+      metadata: { counts: d.counts, answers: d.answers, result_kind: template.resultKind },
     });
   }
 
-  const decision = d.decision ?? "continue";
-  if (decision === "continue") {
+  if (completionWon && decision === "continue") {
     await advancePath(supabase, dict, user.id, path.id, template.stepKey);
-  } else if (decision === "adjust") {
+  } else if (completionWon && decision === "adjust") {
     await createStepMission(supabase, dict, user.id, path.id, path.path_type as IncomePathType, template.stepKey);
-  } else {
+  } else if (completionWon) {
     await supabase.from("income_paths").update({ status: "paused" }).eq("id", path.id).eq("user_id", user.id);
   }
 
   revalidateEarn(path.id);
-  return { success: true, id: path.id };
+  return { success: true, id: path.id, completed: true };
 }
 
 // ---------------------------------------------------------------------------

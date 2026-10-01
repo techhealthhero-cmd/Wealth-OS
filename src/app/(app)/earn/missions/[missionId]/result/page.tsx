@@ -31,12 +31,16 @@ export default async function MissionResultPage({ params }: { params: Promise<{ 
   if (!path) notFound();
   const template = getMissionTemplate(path.path_type as IncomePathType, mission.roadmap_step_key);
   if (!template) notFound();
-  const [skills, skillData, profile] = await Promise.all([getUserSkills(), getSkillEvidenceData(), getProfile()]);
+  const [skills, skillData, profile, resultResponse] = await Promise.all([
+    getUserSkills(), getSkillEvidenceData(), getProfile(),
+    supabase.from("income_mission_results").select("outcome_data, notes").eq("income_mission_id", mission.id).maybeSingle(),
+  ]);
   const dict = getDictionary(await getLocale(profile?.preferred_language));
   // Skills linked to this path are offered first and pre-selected, so a result
   // becomes skill evidence without extra taps (the user can still pick "none").
   const linked = new Set(skillData.skillsByPath[path.id] ?? []);
   const ordered = [...skills].sort((a, b) => Number(linked.has(b.id)) - Number(linked.has(a.id)));
+  const outcome = (resultResponse.data?.outcome_data ?? {}) as { counts?: Record<string, number>; answers?: Record<string, string> };
 
   return (
     <div className="space-y-3">
@@ -45,9 +49,15 @@ export default async function MissionResultPage({ params }: { params: Promise<{ 
         missionId={mission.id}
         pathId={path.id}
         fields={template.resultFields}
+        answerFields={template.answerFields}
+        resultKind={template.resultKind}
+        targetQuantity={template.targetQuantity}
         mayProduceIncome={template.mayProduceIncome}
         skills={ordered.map((s) => ({ id: s.id, name: s.skill_name }))}
         defaultSkillId={ordered.find((s) => linked.has(s.id))?.id ?? null}
+        initialCounts={outcome.counts}
+        initialAnswers={outcome.answers}
+        initialNotes={resultResponse.data?.notes ?? ""}
       />
     </div>
   );

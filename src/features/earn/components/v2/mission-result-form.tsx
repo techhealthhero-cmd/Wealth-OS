@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { recordEarnMissionResult } from "@/features/earn/v2-actions";
 import { EXPERIMENT_DECISIONS, type ExperimentDecision } from "@/lib/earn/mission-templates";
+import type { MissionAnswerField, MissionResultKind } from "@/lib/earn/mission-templates";
 
 const NO_SKILL = "__none__";
 
@@ -26,22 +27,35 @@ export function MissionResultForm({
   missionId,
   pathId,
   fields,
+  answerFields,
+  resultKind,
+  targetQuantity,
   mayProduceIncome,
   skills,
   defaultSkillId = null,
+  initialCounts = {},
+  initialAnswers = {},
+  initialNotes = "",
 }: {
   missionId: string;
   pathId: string;
   fields: string[];
+  answerFields: MissionAnswerField[];
+  resultKind: MissionResultKind;
+  targetQuantity: number | null;
   mayProduceIncome: boolean;
   skills: { id: string; name: string }[];
   defaultSkillId?: string | null;
+  initialCounts?: Record<string, number>;
+  initialAnswers?: Record<string, string>;
+  initialNotes?: string;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const [counts, setCounts] = useState<Record<string, number>>(() => Object.fromEntries(fields.map((f) => [f, 0])));
+  const [counts, setCounts] = useState<Record<string, number>>(() => Object.fromEntries(fields.map((f) => [f, initialCounts[f] ?? 0])));
+  const [answers, setAnswers] = useState<Record<string, string>>(() => Object.fromEntries(answerFields.map((f) => [f.key, initialAnswers[f.key] ?? ""])));
   const [decision, setDecision] = useState<ExperimentDecision>("continue");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(initialNotes);
   const [skillId, setSkillId] = useState(defaultSkillId ?? NO_SKILL);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,16 +72,22 @@ export function MissionResultForm({
     const res = await recordEarnMissionResult({
       missionId,
       counts,
+      answers,
       decision,
       notes: notes.trim() || null,
       skillId: skillId === NO_SKILL ? null : skillId,
-    }).catch(() => ({ error: t("earn.v2.missions.failed") }) as { error: string; success?: boolean });
+    }).catch(() => ({ error: t("earn.v2.missions.failed") }) as Awaited<ReturnType<typeof recordEarnMissionResult>>);
     if (res.error) {
       setSaving(false);
       setError(res.error);
       return;
     }
-    toast.success(t("earn.v2.missions.result.saved"));
+    toast.success(t(res.completed === false ? "earn.v2.missions.result.progressSaved" : "earn.v2.missions.result.saved"));
+    if (res.completed === false) {
+      setSaving(false);
+      router.refresh();
+      return;
+    }
     const last = fields[fields.length - 1];
     const earned = mayProduceIncome && last !== undefined && (counts[last] ?? 0) > 0;
     if (decision === "switch") router.push("/earn/paths/new");
@@ -75,7 +95,7 @@ export function MissionResultForm({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <form onSubmit={submit} className="space-y-5" data-result-kind={resultKind}>
       <div className="space-y-1">
         <h2 className="text-xl font-bold">{t("earn.v2.missions.result.title")}</h2>
         <p className="text-sm text-muted-foreground">{t("earn.v2.missions.result.hint")}</p>
@@ -122,6 +142,25 @@ export function MissionResultForm({
         </div>
       ) : null}
 
+      {targetQuantity !== null && fields[0] ? (
+        <p className="text-sm font-medium text-primary" role="status">
+          {t("earn.v2.missions.result.progress").replace("{current}", String(counts[fields[0]] ?? 0)).replace("{target}", String(targetQuantity))}
+        </p>
+      ) : null}
+
+      {answerFields.map((field) => (
+        <div key={field.key} className="space-y-2">
+          <Label htmlFor={`answer-${field.key}`}>
+            {t(`earn.v2.missions.result.answers.${field.key}`)}{field.required ? " *" : ""}
+          </Label>
+          {field.input === "long_text" ? (
+            <Textarea id={`answer-${field.key}`} rows={3} maxLength={field.maxLength} className="rounded-2xl" value={answers[field.key] ?? ""} onChange={(e) => setAnswers((v) => ({ ...v, [field.key]: e.target.value }))} required={field.required} />
+          ) : (
+            <Input id={`answer-${field.key}`} type={field.input === "url" ? "url" : "text"} maxLength={field.maxLength} className="h-11 rounded-xl" value={answers[field.key] ?? ""} onChange={(e) => setAnswers((v) => ({ ...v, [field.key]: e.target.value }))} required={field.required} />
+          )}
+        </div>
+      ))}
+
       <fieldset className="space-y-2">
         <legend className="mb-2 text-sm font-medium">{t("earn.v2.missions.result.decision.title")}</legend>
         <div role="radiogroup" aria-label={t("earn.v2.missions.result.decision.title")} className="grid grid-cols-2 gap-2">
@@ -143,18 +182,10 @@ export function MissionResultForm({
         </div>
       </fieldset>
 
-      <div className="space-y-2">
-        <Label htmlFor="result-notes">{t("earn.v2.missions.result.notes")}</Label>
-        <Textarea
-          id="result-notes"
-          value={notes}
-          maxLength={2000}
-          rows={3}
-          className="rounded-2xl"
-          placeholder={t("earn.v2.missions.result.notesPlaceholder")}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-      </div>
+      <details className="rounded-2xl border bg-card px-4 py-3">
+        <summary className="cursor-pointer text-sm font-medium">{t("earn.v2.missions.result.notes")}</summary>
+        <Textarea id="result-notes" value={notes} maxLength={2000} rows={3} className="mt-3 rounded-2xl" placeholder={t("earn.v2.missions.result.notesPlaceholder")} onChange={(e) => setNotes(e.target.value)} />
+      </details>
 
       {skills.length > 0 ? (
         <div className="space-y-2">
@@ -188,7 +219,7 @@ export function MissionResultForm({
             {t("earn.v2.missions.result.saving")}
           </>
         ) : (
-          t("earn.v2.missions.result.save")
+          t(targetQuantity !== null && fields[0] && (counts[fields[0]] ?? 0) < targetQuantity && decision === "continue" ? "earn.v2.missions.result.saveProgress" : "earn.v2.missions.result.saveAndComplete")
         )}
       </Button>
     </form>
