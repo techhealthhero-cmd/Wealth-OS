@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/shared/icon-chip";
 import { PATH_ICON_COMPONENTS } from "@/features/earn/components/v2/path-icons";
 import { fill, localizeMission } from "@/features/earn/components/v2/helpers";
-import { MissionActions, PathStatusToggle, ProjectCreateForm } from "@/features/earn/components/v2/path-client";
+import { MissionActions, PathStatusToggle, ProjectCreateForm, ProjectStatusActions } from "@/features/earn/components/v2/path-client";
 
 export const metadata: Metadata = { title: "Earn — Wealth OS" };
 
@@ -213,9 +213,12 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
         ) : (
           <ul className="divide-y rounded-2xl border bg-card">
             {projects.projects.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-2 px-4 py-3 text-sm">
-                <span className="min-w-0 truncate font-medium">{p.title}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">{v2.projects.status[p.status]}</span>
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{p.title}</p>
+                  <p className="text-xs text-muted-foreground">{v2.projects.status[p.status]}</p>
+                </div>
+                <ProjectStatusActions projectId={p.id} status={p.status} />
               </li>
             ))}
           </ul>

@@ -4,13 +4,22 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, ClipboardList, Loader2, Pause, Play, Plus } from "lucide-react";
+import { Archive, Check, ClipboardList, Loader2, Pause, Play, Plus, RotateCcw } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { completeEarnMission, createEarnProject, setIncomePathStatus } from "@/features/earn/v2-actions";
+import {
+  assignEarnMissionProject,
+  completeEarnMission,
+  createEarnProject,
+  setEarnProjectStatus,
+  setIncomePathStatus,
+} from "@/features/earn/v2-actions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const NO_PROJECT = "__none__";
 
 /** Mission CTA: mark done, or record the result when one is required. */
 export function MissionActions({
@@ -145,5 +154,97 @@ export function ProjectCreateForm({ pathId }: { pathId: string }) {
         </Button>
       </div>
     </form>
+  );
+}
+
+export function ProjectStatusActions({ projectId, status }: { projectId: string; status: string }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const run = (next: "active" | "completed" | "archived") =>
+    start(async () => {
+      const result = await setEarnProjectStatus(projectId, next);
+      if (result.error) toast.error(result.error);
+      else router.refresh();
+    });
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      {status === "completed" ? (
+        <Button type="button" variant="ghost" size="sm" className="min-h-10" disabled={pending} onClick={() => run("active")}>
+          <RotateCcw className="mr-1 size-3.5" aria-hidden="true" />
+          {t("earn.v2.projects.reactivate")}
+        </Button>
+      ) : (
+        <Button type="button" variant="ghost" size="sm" className="min-h-10" disabled={pending} onClick={() => run("completed")}>
+          <Check className="mr-1 size-3.5" aria-hidden="true" />
+          {t("earn.v2.projects.markCompleted")}
+        </Button>
+      )}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-10"
+        disabled={pending}
+        aria-label={t("earn.v2.projects.archive")}
+        onClick={() => run("archived")}
+      >
+        <Archive className="size-4" aria-hidden="true" />
+      </Button>
+    </div>
+  );
+}
+
+export function MissionProjectPicker({
+  missionId,
+  projectId,
+  projects,
+}: {
+  missionId: string;
+  projectId: string | null;
+  projects: { id: string; title: string }[];
+}) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [value, setValue] = useState(projectId ?? NO_PROJECT);
+  const [pending, start] = useTransition();
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="mission-project">{t("earn.v2.projects.missionLabel")}</Label>
+      <Select
+        value={value}
+        disabled={pending}
+        onValueChange={(next) => {
+          const selected = next ?? NO_PROJECT;
+          setValue(selected);
+          start(async () => {
+            const result = await assignEarnMissionProject(missionId, selected === NO_PROJECT ? null : selected);
+            if (result.error) {
+              toast.error(result.error);
+              setValue(projectId ?? NO_PROJECT);
+            } else {
+              toast.success(t("earn.v2.projects.missionSaved"));
+              router.refresh();
+            }
+          });
+        }}
+      >
+        <SelectTrigger id="mission-project" className="h-11 w-full rounded-xl">
+          <SelectValue>
+            {(selected: string) =>
+              selected === NO_PROJECT
+                ? t("earn.v2.projects.missionNone")
+                : projects.find((project) => project.id === selected)?.title ?? t("earn.v2.projects.missionNone")
+            }
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_PROJECT}>{t("earn.v2.projects.missionNone")}</SelectItem>
+          {projects.map((project) => (
+            <SelectItem key={project.id} value={project.id}>{project.title}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

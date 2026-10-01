@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ClipboardList, Clock, Route, Target } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { getIncomePath, getPathMissions } from "@/features/earn/v2-queries";
+import { getEarnProjects, getIncomePath, getPathMissions } from "@/features/earn/v2-queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -12,7 +12,7 @@ import { throwDbError } from "@/lib/db-error";
 import { getMissionTemplate } from "@/lib/earn/mission-templates";
 import type { IncomePathType } from "@/lib/earn/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { MissionActions } from "@/features/earn/components/v2/path-client";
+import { MissionActions, MissionProjectPicker } from "@/features/earn/components/v2/path-client";
 import { fill, localizeMission, tr } from "@/features/earn/components/v2/helpers";
 
 export const metadata: Metadata = { title: "Missions — Wealth OS" };
@@ -53,6 +53,7 @@ export default async function EarnMissionDetailPage({ params }: { params: Promis
   if (!path) notFound();
   const mission = (await getPathMissions([path.id])).find((m) => m.id === missionId);
   if (!mission) notFound();
+  const projects = await getEarnProjects(path.id);
 
   const type = path.path_type as IncomePathType;
   const template = mission.roadmap_step_key ? getMissionTemplate(type, mission.roadmap_step_key) : null;
@@ -115,6 +116,14 @@ export default async function EarnMissionDetailPage({ params }: { params: Promis
               </ul>
             ) : null}
           </div>
+
+          {projects.available && projects.projects.length > 0 ? (
+            <MissionProjectPicker
+              missionId={mission.id}
+              projectId={mission.earn_project_id ?? null}
+              projects={projects.projects.map((project) => ({ id: project.id, title: project.title }))}
+            />
+          ) : null}
 
           <MissionActions missionId={mission.id} status={mission.status} resultRequired={mission.result_required} hasResult={mission.hasResult} />
         </CardContent>

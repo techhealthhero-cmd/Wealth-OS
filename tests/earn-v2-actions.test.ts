@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  assignEarnMissionProject,
   completeEarnMission,
   createEarnProject,
   createIncomePath,
   recordEarnIncome,
   recordEarnMissionResult,
+  setEarnProjectStatus,
   submitDiagnostic,
 } from "@/features/earn/v2-actions";
 import type { DiagnosticAnswers } from "@/lib/earn/diagnostic";
@@ -259,6 +261,39 @@ describe("real income goes through the existing ledger (record_earn_income)", ()
     migrated0031 = false;
     expect((await recordEarnIncome(INPUT)).error).toMatch(/0031/);
     expect((await createEarnProject({ pathId: "path-1", title: "ABC website" })).error).toMatch(/0031/);
+  });
+});
+
+describe("Earn projects", () => {
+  it("supports create, complete, reactivate and archive", async () => {
+    db.income_paths = [{ id: "path-1", user_id: "user-1" }];
+    const created = await createEarnProject({ pathId: "path-1", title: "  Restaurant website  " });
+    expect(created.success).toBe(true);
+    const project = db.earn_projects[0];
+    expect(project).toMatchObject({ title: "Restaurant website", income_path_id: "path-1" });
+    expect((await setEarnProjectStatus(project.id as string, "completed")).success).toBe(true);
+    expect(project.status).toBe("completed");
+    expect((await setEarnProjectStatus(project.id as string, "active")).success).toBe(true);
+    expect(project.status).toBe("active");
+    expect((await setEarnProjectStatus(project.id as string, "archived")).success).toBe(true);
+    expect(project.status).toBe("archived");
+  });
+
+  it("links a mission only to a project from the same path", async () => {
+    const missionId = "11111111-1111-4111-8111-111111111111";
+    const goodProject = "22222222-2222-4222-8222-222222222222";
+    const wrongProject = "33333333-3333-4333-8333-333333333333";
+    db.income_missions = [{ id: missionId, user_id: "user-1", income_path_id: "path-1", earn_project_id: null }];
+    db.earn_projects = [
+      { id: goodProject, user_id: "user-1", income_path_id: "path-1" },
+      { id: wrongProject, user_id: "user-1", income_path_id: "path-2" },
+    ];
+    expect((await assignEarnMissionProject(missionId, goodProject)).success).toBe(true);
+    expect(db.income_missions[0].earn_project_id).toBe(goodProject);
+    expect((await assignEarnMissionProject(missionId, wrongProject)).error).toBeTruthy();
+    expect(db.income_missions[0].earn_project_id).toBe(goodProject);
+    expect((await assignEarnMissionProject(missionId, null)).success).toBe(true);
+    expect(db.income_missions[0].earn_project_id).toBeNull();
   });
 });
 

@@ -940,6 +940,8 @@ export interface Database {
           user_id: string;
           related_opportunity_id: string | null;
           income_path_id: string | null;
+          /** Migration 0033; optional until that additive migration is applied. */
+          earn_project_id?: string | null;
           title: string;
           description: string | null;
           mission_type: MissionType;

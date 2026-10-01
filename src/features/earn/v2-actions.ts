@@ -356,6 +356,70 @@ export async function createEarnProject(input: { pathId: string; title: string }
   return { success: true, id: data.id };
 }
 
+export async function setEarnProjectStatus(
+  projectId: string,
+  status: "active" | "completed" | "archived"
+): Promise<EarnActionResult> {
+  const { dict } = await context();
+  if (!/^[0-9a-f-]{36}$/i.test(projectId) || !["active", "completed", "archived"].includes(status)) {
+    return { error: dict.common.invalidInput };
+  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+  const { data: project, error: readError } = await supabase
+    .from("earn_projects")
+    .select("id, income_path_id")
+    .eq("id", projectId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (readError || !project) return { error: friendlyDbError(readError ?? { message: "not found" }, "setEarnProjectStatus.read", dict.earn.v2.projects.failed) };
+  const { error } = await supabase.from("earn_projects").update({ status }).eq("id", project.id).eq("user_id", user.id);
+  if (error) return { error: friendlyDbError(error, "setEarnProjectStatus", dict.earn.v2.projects.failed) };
+  revalidateEarn(project.income_path_id);
+  return { success: true };
+}
+
+/** Link a V2 mission to an optional project from the same income path. */
+export async function assignEarnMissionProject(missionId: string, projectId: string | null): Promise<EarnActionResult> {
+  const { dict } = await context();
+  if (!/^[0-9a-f-]{36}$/i.test(missionId) || (projectId !== null && !/^[0-9a-f-]{36}$/i.test(projectId))) {
+    return { error: dict.common.invalidInput };
+  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+  const { data: mission, error: missionError } = await supabase
+    .from("income_missions")
+    .select("id, income_path_id")
+    .eq("id", missionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (missionError || !mission?.income_path_id) return { error: dict.earn.v2.missions.notFound };
+  if (projectId) {
+    const { data: project, error: projectError } = await supabase
+      .from("earn_projects")
+      .select("id")
+      .eq("id", projectId)
+      .eq("user_id", user.id)
+      .eq("income_path_id", mission.income_path_id)
+      .maybeSingle();
+    if (projectError || !project) return { error: dict.common.invalidInput };
+  }
+  const { error } = await supabase
+    .from("income_missions")
+    .update({ earn_project_id: projectId })
+    .eq("id", mission.id)
+    .eq("user_id", user.id);
+  if (error) {
+    if (isMissingRelation(error) || error.code === "42703") return { error: dict.earn.v2.projects.migrationPending };
+    return { error: friendlyDbError(error, "assignEarnMissionProject", dict.earn.v2.projects.failed) };
+  }
+  revalidateEarn(mission.income_path_id);
+  revalidatePath(`/earn/missions/${mission.id}`);
+  return { success: true };
+}
+
 /**
  * "I got paid from this path": one call to record_earn_income, which
  * creates the real income transaction (balances, dashboards, net worth all
