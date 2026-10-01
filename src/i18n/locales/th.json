@@ -1473,6 +1473,8 @@
           "save": "บันทึกผลลัพธ์",
           "saving": "กำลังบันทึก…",
           "saved": "บันทึกผลแล้ว",
+          "decreaseField": "ลดจำนวน {field}",
+          "increaseField": "เพิ่มจำนวน {field}",
           "decision": {
             "title": "ขั้นต่อไปจะทำอย่างไร?",
             "continue": "ไปต่อขั้นถัดไป",

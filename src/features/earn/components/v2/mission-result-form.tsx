@@ -84,12 +84,19 @@ export function MissionResultForm({
       {fields.length > 0 ? (
         <div className="space-y-2.5">
           {fields.map((f) => (
-            <div key={f} className="flex items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-2.5">
+            <div key={f} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-2.5">
               <Label htmlFor={`count-${f}`} className="text-sm font-medium">
                 {t(`earn.v2.missions.result.fields.${f}`)}
               </Label>
               <div className="flex items-center gap-1.5">
-                <Button type="button" variant="outline" size="icon" className="size-11 rounded-xl" aria-label="−" onClick={() => set(f, counts[f] - 1)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-11 rounded-xl"
+                  aria-label={t("earn.v2.missions.result.decreaseField").replace("{field}", t(`earn.v2.missions.result.fields.${f}`))}
+                  onClick={() => set(f, counts[f] - 1)}
+                >
                   <Minus className="size-4" aria-hidden="true" />
                 </Button>
                 <Input
@@ -99,7 +106,14 @@ export function MissionResultForm({
                   value={String(counts[f])}
                   onChange={(e) => set(f, Number(e.target.value.replace(/\D/g, "")))}
                 />
-                <Button type="button" variant="outline" size="icon" className="size-11 rounded-xl" aria-label="+" onClick={() => set(f, counts[f] + 1)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-11 rounded-xl"
+                  aria-label={t("earn.v2.missions.result.increaseField").replace("{field}", t(`earn.v2.missions.result.fields.${f}`))}
+                  onClick={() => set(f, counts[f] + 1)}
+                >
                   <Plus className="size-4" aria-hidden="true" />
                 </Button>
               </div>

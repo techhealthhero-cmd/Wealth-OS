@@ -1473,6 +1473,8 @@
           "save": "Save result",
           "saving": "Saving…",
           "saved": "Result saved",
+          "decreaseField": "Decrease {field}",
+          "increaseField": "Increase {field}",
           "decision": {
             "title": "What next?",
             "continue": "Move to the next step",

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { summarizeSkillEvidence } from "@/lib/earn/skill-evidence";
@@ -73,5 +75,15 @@ describe("actionablePathMissions — the V2 missions list", () => {
       m("pending", "completed", true, false),
     ]);
     expect(out.map((x) => x.id)).toEqual(["pending", "open", "doing"]);
+  });
+});
+
+describe("Earn V2 result accessibility", () => {
+  it("gives counter controls field-specific accessible names", () => {
+    const source = readFileSync(resolve("src/features/earn/components/v2/mission-result-form.tsx"), "utf8");
+    expect(source).toContain('t("earn.v2.missions.result.decreaseField")');
+    expect(source).toContain('t("earn.v2.missions.result.increaseField")');
+    expect(source).not.toContain('aria-label="−"');
+    expect(source).not.toContain('aria-label="+"');
   });
 });
