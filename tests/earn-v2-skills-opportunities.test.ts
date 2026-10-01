@@ -59,3 +59,19 @@ describe("localizeMission — template missions follow the current language", ()
     expect(localizeMission(en, "freelance_service", { title: "My own mission", roadmap_step_key: "unknown_step", income_path_id: "p1" }).title).toBe("My own mission");
   });
 });
+
+describe("actionablePathMissions — the V2 missions list", () => {
+  it("keeps open missions and pending results (first), drops finished and skipped ones", async () => {
+    const { actionablePathMissions } = await import("@/features/earn/components/v2/helpers");
+    const m = (id: string, status: string, result_required = false, hasResult = false) => ({ id, status, result_required, hasResult });
+    const out = actionablePathMissions([
+      m("open", "not_started"),
+      m("doing", "in_progress"),
+      m("done", "completed"),
+      m("recorded", "completed", true, true),
+      m("skipped", "skipped"),
+      m("pending", "completed", true, false),
+    ]);
+    expect(out.map((x) => x.id)).toEqual(["pending", "open", "doing"]);
+  });
+});

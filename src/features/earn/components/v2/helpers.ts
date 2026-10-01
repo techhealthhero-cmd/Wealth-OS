@@ -55,3 +55,15 @@ export function localizeMission(
   }
   return { title: m.title, description: m.description ?? null };
 }
+
+/**
+ * Path missions the user still has to act on: open ones, plus completed
+ * result-required ones whose result isn't recorded yet (those come first —
+ * the path can't move on until they're done).
+ */
+export function actionablePathMissions<T extends { status: string; result_required: boolean; hasResult: boolean }>(missions: T[]): T[] {
+  const pendingResult = (m: T) => m.status === "completed" && m.result_required && !m.hasResult;
+  return missions
+    .filter((m) => m.status === "not_started" || m.status === "in_progress" || pendingResult(m))
+    .sort((a, b) => Number(pendingResult(b)) - Number(pendingResult(a)));
+}

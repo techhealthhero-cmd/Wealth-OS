@@ -153,6 +153,9 @@ export default async function IncomePathPage({ params }: { params: Promise<{ pat
               {currentTemplate?.mayProduceIncome ? (
                 <p className="text-xs text-muted-foreground">{v2.income.promptAfterResult}</p>
               ) : null}
+              <Link href={`/earn/missions/${current.id}`} className="inline-flex min-h-11 items-center text-sm font-medium text-primary dark:text-[#7FD6B2]">
+                {v2.missionsV2.viewDetail}
+              </Link>
             </CardContent>
           </Card>
         ) : (

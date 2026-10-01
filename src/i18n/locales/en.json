@@ -1102,6 +1102,28 @@
   },
   "earn": {
     "v2": {
+      "missionsV2": {
+        "pathMissions": "Missions in your paths",
+        "pathMissionsHint": "One at a time — each mission moves its path to the next step",
+        "noPathMissions": "No path missions yet — choose an income path to start",
+        "choosePath": "Choose a path",
+        "legacyTitle": "Classic missions",
+        "legacyHint": "Missions from the earlier opportunity sequences",
+        "pendingResult": "Result pending",
+        "open": "Continue",
+        "inPath": "In path",
+        "step": "Step",
+        "why": "Why this mission",
+        "whyBody": "It's the “{step}” step of your “{path}” path — finishing it moves the path forward.",
+        "howLong": "About",
+        "recordAfter": "When done, record the result",
+        "noResultNeeded": "No result to record — just mark it done",
+        "viewDetail": "View details",
+        "openPath": "Go to path",
+        "project": "Project for this mission",
+        "noProject": "No project",
+        "legacyMission": "This is a classic mission — manage it on the Missions tab"
+      },
       "skillsV2": {
         "title": "Progress from real action",
         "hint": "Skills grow from learning, doing and real results — not from points",
