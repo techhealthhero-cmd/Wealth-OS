@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildInsights, getTopInsight, getVisibleInsights } from "@/features/ai/lib/insights";
 import type { DebtSummaryTool, GoalProgressTool, NetWorthTool } from "@/features/ai/types";
@@ -24,15 +24,32 @@ let debtSummary: DebtSummaryTool = { hasDebt: false };
 let goalProgress: GoalProgressTool = { goals: [] };
 let netWorth: NetWorthTool = { netWorthCents: 0, totalAssetsCents: 0, totalLiabilitiesCents: 0, changeVsPreviousCents: null };
 
+// Test determinism (was failing on the first day of a new month): the mocked
+// "current month" is derived from the clock exactly like production's own
+// previousMonthRange(), and the clock itself is pinned with fake timers.
+function monthBounds(offset = 0): { from: string; to: string } {
+  const now = new Date();
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return { from: iso(new Date(now.getFullYear(), now.getMonth() + offset, 1)), to: iso(new Date(now.getFullYear(), now.getMonth() + offset + 1, 0)) };
+}
+
 vi.mock("@/features/transactions/queries", () => ({
-  getCurrentMonthRange: vi.fn(() => ({ from: "2026-09-01", to: "2026-09-30" })),
+  getCurrentMonthRange: vi.fn(() => monthBounds(0)),
   getTransactions: vi.fn(async (filters: { from: string; type?: string }) => {
-    const isCurrent = filters.from === "2026-09-01";
+    const isCurrent = filters.from === monthBounds(0).from;
     if (filters.type === "expense") return isCurrent ? currentExpense : previousExpense;
     if (filters.type === "debt_payment") return isCurrent ? currentDebtPayment : [];
     return isCurrent ? currentAll : previousAll;
   }),
 }));
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 8, 15, 12, 0, 0));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 vi.mock("@/features/categories/queries", () => ({
   getCategories: vi.fn(async () => [

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildMonthlyHealthCheck } from "@/features/ai/lib/health-check";
 import type { BudgetStatusTool, NetWorthTool, PriorityTool } from "@/features/ai/types";
@@ -14,10 +14,27 @@ let budgetStatus: BudgetStatusTool = { hasBudget: false };
 let netWorth: NetWorthTool = { netWorthCents: 0, totalAssetsCents: 0, totalLiabilitiesCents: 0, changeVsPreviousCents: null };
 let priority: PriorityTool | null = null;
 
+// Test determinism (was failing on the first day of a new month): the mocked
+// "current month" is derived from the clock exactly like production's own
+// previousMonthRange(), and the clock itself is pinned with fake timers.
+function monthBounds(offset = 0): { from: string; to: string } {
+  const now = new Date();
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return { from: iso(new Date(now.getFullYear(), now.getMonth() + offset, 1)), to: iso(new Date(now.getFullYear(), now.getMonth() + offset + 1, 0)) };
+}
+
 vi.mock("@/features/transactions/queries", () => ({
-  getCurrentMonthRange: vi.fn(() => ({ from: "2026-09-01", to: "2026-09-30" })),
-  getTransactions: vi.fn(async (filters: { from: string }) => (filters.from === "2026-09-01" ? currentMonthTx : previousMonthTx)),
+  getCurrentMonthRange: vi.fn(() => monthBounds(0)),
+  getTransactions: vi.fn(async (filters: { from: string }) => (filters.from === monthBounds(0).from ? currentMonthTx : previousMonthTx)),
 }));
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 8, 15, 12, 0, 0));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 vi.mock("@/features/ai/tools", () => ({
   getBudgetStatus: vi.fn(async () => budgetStatus),
@@ -94,5 +111,21 @@ describe("buildMonthlyHealthCheck — structure", () => {
 
     const result = await buildMonthlyHealthCheck();
     expect(result.positives.find((p) => p.type === "debt_paid_down")?.amountCents).toBe(200000);
+  });
+});
+
+describe("buildMonthlyHealthCheck — calendar boundaries", () => {
+  it.each([
+    ["first day of a month", new Date(2026, 9, 1, 0, 30)],
+    ["new year's day", new Date(2027, 0, 1, 9, 0)],
+    ["last day of the year", new Date(2026, 11, 31, 23, 30)],
+    ["leap-day month end", new Date(2028, 1, 29, 12, 0)],
+  ])("compares the right two months on %s", async (_label, now) => {
+    vi.setSystemTime(now);
+    currentMonthTx = [tx("income", "40000.00")];
+    previousMonthTx = [tx("income", "30000.00")];
+    const result = await buildMonthlyHealthCheck();
+    expect(result.hasEnoughData).toBe(true);
+    expect(result.positives.find((p) => p.type === "income_up")).toBeTruthy();
   });
 });
