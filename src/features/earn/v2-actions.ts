@@ -210,12 +210,13 @@ export async function completeEarnMission(missionId: string): Promise<EarnAction
   } = await supabase.auth.getUser();
   if (!user) return { error: dict.common.pleaseLogin };
 
-  const { data: mission } = await supabase
+  const { data: mission, error: missionError } = await supabase
     .from("income_missions")
     .select("id, status, mission_type, income_path_id, roadmap_step_key, result_required")
     .eq("id", missionId)
     .eq("user_id", user.id)
     .maybeSingle();
+  if (missionError) return { error: friendlyDbError(missionError, "completeEarnMission.read", dict.earn.v2.missions.failed) };
   // Legacy (non-path) missions keep their own lifecycle in income-missions/actions.ts.
   if (!mission || !mission.income_path_id) return { error: dict.earn.v2.missions.notFound };
 
@@ -262,19 +263,21 @@ export async function recordEarnMissionResult(input: {
   } = await supabase.auth.getUser();
   if (!user) return { error: dict.common.pleaseLogin };
 
-  const { data: mission } = await supabase
+  const { data: mission, error: missionError } = await supabase
     .from("income_missions")
     .select("id, status, mission_type, income_path_id, roadmap_step_key")
     .eq("id", d.missionId)
     .eq("user_id", user.id)
     .maybeSingle();
+  if (missionError) return { error: friendlyDbError(missionError, "recordEarnMissionResult.mission", dict.earn.v2.missions.failed) };
   if (!mission || !mission.income_path_id || !mission.roadmap_step_key) return { error: dict.earn.v2.missions.notFound };
-  const { data: path } = await supabase
+  const { data: path, error: pathError } = await supabase
     .from("income_paths")
     .select("id, path_type")
     .eq("id", mission.income_path_id)
     .eq("user_id", user.id)
     .maybeSingle();
+  if (pathError) return { error: friendlyDbError(pathError, "recordEarnMissionResult.path", dict.earn.v2.missions.failed) };
   if (!path) return { error: dict.earn.v2.missions.notFound };
 
   const template = getMissionTemplate(path.path_type as IncomePathType, mission.roadmap_step_key);
@@ -451,7 +454,8 @@ export async function recordEarnIncome(input: {
   if (!user) return { error: dict.common.pleaseLogin };
 
   if (input.categoryId) {
-    const { data: category } = await supabase.from("categories").select("type").eq("id", input.categoryId).maybeSingle();
+    const { data: category, error: categoryError } = await supabase.from("categories").select("type").eq("id", input.categoryId).maybeSingle();
+    if (categoryError) return { error: friendlyDbError(categoryError, "recordEarnIncome.category", dict.earn.v2.income.failed) };
     if (!category || (category.type !== "income" && category.type !== "both")) return { error: dict.common.invalidInput };
   }
 

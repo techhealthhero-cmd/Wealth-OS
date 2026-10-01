@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Earn V2 audit P1-1: a database failure must never look like "no data"
@@ -51,5 +53,14 @@ describe("Earn V2 load errors", () => {
     expect((await q.getLinkedIncome(["p1"])).available).toBe(false);
     failCode = "08006";
     await expect(q.getLinkedIncome(["p1"])).rejects.toThrow();
+  });
+});
+
+describe("Earn V2 route-level load errors", () => {
+  it("mission result distinguishes query failure from not-found", () => {
+    const source = readFileSync(resolve("src/app/(app)/earn/missions/[missionId]/result/page.tsx"), "utf8");
+    expect(source).toContain("missionError");
+    expect(source).toContain("pathError");
+    expect(source).toContain("throwDbError");
   });
 });

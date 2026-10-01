@@ -11,6 +11,7 @@ import { localizeMission } from "@/features/earn/components/v2/helpers";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
+import { throwDbError } from "@/lib/db-error";
 
 export const metadata: Metadata = { title: "Earn — Wealth OS" };
 
@@ -18,13 +19,15 @@ export default async function MissionResultPage({ params }: { params: Promise<{ 
   const { missionId } = await params;
   const supabase = await createClient();
   // RLS scopes both reads to the signed-in user.
-  const { data: mission } = await supabase
+  const { data: mission, error: missionError } = await supabase
     .from("income_missions")
     .select("id, title, description, income_path_id, roadmap_step_key")
     .eq("id", missionId)
     .maybeSingle();
+  if (missionError && missionError.code !== "22P02") throwDbError(missionError, "earn.missionResult.mission", "Failed to load mission result");
   if (!mission?.income_path_id || !mission.roadmap_step_key) notFound();
-  const { data: path } = await supabase.from("income_paths").select("id, path_type").eq("id", mission.income_path_id).maybeSingle();
+  const { data: path, error: pathError } = await supabase.from("income_paths").select("id, path_type").eq("id", mission.income_path_id).maybeSingle();
+  if (pathError) throwDbError(pathError, "earn.missionResult.path", "Failed to load mission path");
   if (!path) notFound();
   const template = getMissionTemplate(path.path_type as IncomePathType, mission.roadmap_step_key);
   if (!template) notFound();
