@@ -105,7 +105,9 @@ test("Quick Capture sheet moves freely: scrolls, drops the keyboard, expands, co
     await touchDrag(cdp, x, resting.y + 30, resting.y - 280);
     await page.waitForTimeout(350);
     const tall = (await sheet(page).boundingBox())!;
-    expect(tall.height, "pulled up, the sheet expands").toBeGreaterThan(resting.height + 150);
+    // Expands to its maximum (92% of the screen), whatever its resting size.
+    expect(tall.height, "pulled up, the sheet expands").toBeGreaterThan(resting.height + 40);
+    expect(tall.height, "to near full height").toBeGreaterThanOrEqual(Math.floor(844 * 0.92) - 2);
     await touchDrag(cdp, x, tall.y + 30, tall.y + 260);
     await page.waitForTimeout(450);
     const back = (await sheet(page).boundingBox())!;

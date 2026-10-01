@@ -101,7 +101,7 @@ export function normalizeMerchant(input: string): string {
 
 const LATIN = /[a-z0-9]/i;
 
-interface Match {
+export interface Match {
   start: number;
   end: number;
 }
@@ -112,7 +112,7 @@ interface Match {
  * substrings (Thai has no word spaces), except very short ones (≤2 chars)
  * which must be a whole space-separated token.
  */
-function findKeyword(lower: string, keyword: string): Match | null {
+export function findKeyword(lower: string, keyword: string): Match | null {
   const kw = keyword.toLowerCase();
   if (LATIN.test(kw)) {
     const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -141,7 +141,13 @@ function removeSpan(text: string, span: Match): string {
 // ---------------------------------------------------------------------------
 
 const AMOUNT_RE =
-  /(?:฿\s*)?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?\s*(k|พัน)?(?![\d])\s*(บาท|baht|thb|฿|บ\.)?/gi;
+  /(?:฿\s*)?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?\s*(k|พัน|หมื่น|แสน|ล้าน)?(?![\d])\s*(บาท|baht|thb|฿|บ\.)?/gi;
+
+/** Spoken Thai magnitudes ("2 หมื่น" = 20,000) as well as "20k". */
+const AMOUNT_MULTIPLIER: Record<string, number> = { k: 1_000, พัน: 1_000, หมื่น: 10_000, แสน: 100_000, ล้าน: 1_000_000 };
+
+/** The amount pattern, shared with the multi-item recap splitter (global flag — use with matchAll). */
+export const AMOUNT_PATTERN = AMOUNT_RE;
 
 /** Extracts the amount in satang plus the span it occupied, or null. */
 export function extractAmount(text: string): { cents: number; span: Match } | null {
@@ -151,7 +157,7 @@ export function extractAmount(text: string): { cents: number; span: Match } | nu
     const fraction = m[2] ? Number(m[2].padEnd(2, "0")) : 0;
     if (!Number.isFinite(whole)) continue;
     let cents = whole * 100 + fraction;
-    if (m[3]) cents *= 1000;
+    if (m[3]) cents *= AMOUNT_MULTIPLIER[m[3].toLowerCase()] ?? 1;
     if (cents <= 0 || cents >= 10 ** 15) continue;
     const hasCurrency = Boolean(m[4]) || m[0].trimStart().startsWith("฿");
     candidates.push({ cents, span: { start: m.index!, end: m.index! + m[0].length }, hasCurrency });
@@ -303,6 +309,25 @@ export function matchAccount(text: string, accounts: CaptureAccount[]): { accoun
   return best ? { accountId: best.accountId, span: best.span } : null;
 }
 
+function hasExplicitIncomeMarker(lower: string): boolean {
+  return lower.startsWith("+") || INCOME_MARKERS.some((m) => findKeyword(lower, m) !== null);
+}
+
+/** Flips the detected type only when a learned preference of the OTHER type matches and none of this type does. */
+function learnedTypeOverride(
+  lower: string,
+  text: string,
+  merchant: string | null,
+  detected: "expense" | "income",
+  ctx: ParseContext
+): "expense" | "income" {
+  if (ctx.merchantPreferences.length === 0) return detected;
+  const other = detected === "expense" ? "income" : "expense";
+  if (other === "expense" && hasExplicitIncomeMarker(lower)) return detected;
+  if (suggestCategory(text, merchant, detected, ctx).source === "learned") return detected;
+  return suggestCategory(text, merchant, other, ctx).source === "learned" ? other : detected;
+}
+
 function detectType(lower: string): "expense" | "income" {
   if (lower.startsWith("+")) return "income";
   if (INCOME_MARKERS.some((m) => findKeyword(lower, m))) return "income";
@@ -347,7 +372,7 @@ function cleanDescription(text: string): string | null {
 export function parseCaptureText(input: string, ctx: ParseContext): ParsedCapture {
   const text = normalizeText(input);
   const lower = text.toLowerCase();
-  const type = detectType(lower);
+  const detectedType = detectType(lower);
   const date = extractDate(lower, ctx.today);
 
   // Remove the brand first so digits inside it ("7-11", "3BB") can't be
@@ -363,6 +388,10 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
 
   const merchant = merchantHit?.name ?? null;
   const description = cleanDescription(working) ?? merchant;
+  // Learning decides the TYPE too: once the user has filed "แม่ให้" under an
+  // income category, the same words read as income next time even without
+  // an explicit marker. Explicit markers ("+", "รายรับ") still win.
+  const type = learnedTypeOverride(lower, text, merchant, detectedType, ctx);
   const category = suggestCategory(text, merchant, type, ctx);
   const accountId = accountHit?.accountId ?? defaultAccountId(ctx.accounts);
 

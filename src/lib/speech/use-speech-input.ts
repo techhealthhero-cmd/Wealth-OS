@@ -17,6 +17,8 @@ export interface SpeechProvider {
   isSupported(): boolean;
   start(options: {
     lang: string;
+    /** Keep listening across pauses (hold-to-talk recaps). */
+    continuous?: boolean;
     /** Called with the full transcript so far (interim results included). */
     onTranscript: (text: string, isFinal: boolean) => void;
     onEnd: () => void;
@@ -50,7 +52,7 @@ function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
 export const browserSpeechProvider: SpeechProvider = {
   name: "browser",
   isSupported: () => getSpeechRecognitionCtor() !== null,
-  start({ lang, onTranscript, onEnd, onError }) {
+  start({ lang, continuous = false, onTranscript, onEnd, onError }) {
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) {
       onError("unsupported");
@@ -60,7 +62,7 @@ export const browserSpeechProvider: SpeechProvider = {
     const recognition = new Ctor();
     recognition.lang = lang;
     recognition.interimResults = true;
-    recognition.continuous = false;
+    recognition.continuous = continuous;
     recognition.onresult = (event) => {
       const results = Array.from(event.results);
       const text = results.map((r) => r[0]?.transcript ?? "").join("");
@@ -81,12 +83,22 @@ export const browserSpeechProvider: SpeechProvider = {
 export const mockSpeechProvider: SpeechProvider = {
   name: "mock",
   isSupported: () => true,
-  start({ onTranscript, onEnd }) {
+  start({ continuous, onTranscript, onEnd }) {
     const timer = setTimeout(() => {
-      onTranscript("เมื่อกี้กินข้าว 120 บาท จ่ายเงินสด", true);
-      onEnd();
+      onTranscript(
+        continuous
+          ? "กินข้าว 40 บาท น้ำ 10 บาท ขนม 50 วินมอไซต์ 40 ไปกลับ 80 วันนี้เงินเดือนออก 20,000 แม่ให้ 2,000"
+          : "เมื่อกี้กินข้าว 120 บาท จ่ายเงินสด",
+        true
+      );
+      if (!continuous) onEnd();
     }, 900);
-    return { stop: () => clearTimeout(timer) };
+    return {
+      stop: () => {
+        clearTimeout(timer);
+        if (continuous) onEnd();
+      },
+    };
   },
 };
 
@@ -104,6 +116,12 @@ export function useSpeechInput(locale: string, onTranscript: (text: string, isFi
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sessionRef = useRef<SpeechSession | null>(null);
+  // Hold-to-talk: browsers end a recognition session on a pause, so while
+  // the button is held a new session starts and its words are appended.
+  const holdingRef = useRef(false);
+  const holdBaseRef = useRef("");
+  const holdCurrentRef = useRef("");
+  const holdRestartsRef = useRef(0);
   const onTranscriptRef = useRef(onTranscript);
   useEffect(() => {
     onTranscriptRef.current = onTranscript;
@@ -138,6 +156,69 @@ export function useSpeechInput(locale: string, onTranscript: (text: string, isFi
   }
 
   function stop() {
+    holdingRef.current = false;
+    sessionRef.current?.stop();
+  }
+
+  function joinSpeech(a: string, b: string) {
+    return [a.trim(), b.trim()].filter(Boolean).join(" ");
+  }
+
+  function startHoldSession(lang: string) {
+    sessionRef.current = getSpeechProvider().start({
+      lang,
+      continuous: true,
+      onTranscript: (text) => {
+        holdCurrentRef.current = text;
+        onTranscriptRef.current(joinSpeech(holdBaseRef.current, text), false);
+      },
+      onEnd: () => {
+        // Commit what this session heard; keep going while still held.
+        holdBaseRef.current = joinSpeech(holdBaseRef.current, holdCurrentRef.current);
+        holdCurrentRef.current = "";
+        // Bounded, so a recognizer that keeps failing can never loop forever.
+        if (holdingRef.current && holdRestartsRef.current < 40) {
+          holdRestartsRef.current += 1;
+          try {
+            startHoldSession(lang);
+            return;
+          } catch {
+            holdingRef.current = false;
+          }
+        }
+        setListening(false);
+        onTranscriptRef.current(holdBaseRef.current, true);
+      },
+      onError: (e) => {
+        if (e === "not-allowed" || e === "service-not-allowed" || e === "unsupported") {
+          holdingRef.current = false;
+          setError(e);
+        }
+      },
+    });
+  }
+
+  /** Press: start listening; words are appended after `baseText` (what's already in the box). */
+  function startHold(baseText = "") {
+    if (holdingRef.current) return;
+    setError(null);
+    holdingRef.current = true;
+    holdBaseRef.current = baseText;
+    holdCurrentRef.current = "";
+    holdRestartsRef.current = 0;
+    try {
+      startHoldSession(locale === "th" ? "th-TH" : "en-US");
+      setListening(true);
+    } catch {
+      holdingRef.current = false;
+      setListening(false);
+      setError("start-failed");
+    }
+  }
+
+  /** Release: stop; the final transcript arrives through onTranscript(text, true). */
+  function stopHold() {
+    holdingRef.current = false;
     sessionRef.current?.stop();
   }
 
@@ -146,5 +227,5 @@ export function useSpeechInput(locale: string, onTranscript: (text: string, isFi
     else start();
   }
 
-  return { supported, listening, error, start, stop, toggle };
+  return { supported, listening, error, start, stop, toggle, startHold, stopHold };
 }

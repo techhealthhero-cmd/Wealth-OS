@@ -30,10 +30,14 @@ import { SCAN_ACCEPTED_TYPES, SCAN_MAX_UPLOAD_BYTES } from "@/lib/capture/scan-u
 import { isUndecidedCategory } from "@/lib/capture/inbox";
 import {
   AI_ASSIST_MAX_TEXT,
+  RECAP_AI_MAX_ITEMS,
   buildAIParseSystemPrompt,
+  buildRecapCategoryPrompt,
   needsAIAssist,
   normalizeAIParseOutput,
+  normalizeRecapCategoryOutput,
   type AIParseFields,
+  type RecapAIItem,
 } from "@/lib/capture/ai-fallback";
 
 const PG_UNIQUE_VIOLATION = "23505";
@@ -513,6 +517,66 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
   } catch (error) {
     // Never log the sentence itself — it's the user's financial data.
     captureError(error, { route: "capture.assistCaptureParse", operation: "ai_parse" });
+    return { status: "failed" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// daily recap — one AI pass for the categories the rules couldn't place
+// ---------------------------------------------------------------------------
+
+export type RecapAssistResult =
+  | { status: "ok"; categories: Record<number, string> }
+  | { status: "unavailable" | "limit" | "invalid" | "failed" };
+
+/**
+ * Suggests categories for recap items that only got the blind "Other"
+ * guess. Amounts, types and text are never touched — the model only picks
+ * from the user's own category list, validated server-side
+ * (normalizeRecapCategoryOutput). Nothing is saved here. Metered as one AI
+ * message per recap, burst rate-limited like assistCaptureParse.
+ */
+export async function assistRecapCategories(items: RecapAIItem[]): Promise<RecapAssistResult> {
+  if (!Array.isArray(items) || items.length === 0 || items.length > RECAP_AI_MAX_ITEMS) return { status: "invalid" };
+  const clean: RecapAIItem[] = [];
+  for (const item of items) {
+    const description = typeof item?.description === "string" ? item.description.replace(/\s+/g, " ").trim().slice(0, 80) : "";
+    if (!description || (item.type !== "expense" && item.type !== "income")) return { status: "invalid" };
+    clean.push({ description, type: item.type });
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "invalid" };
+
+  const { data: categories, error } = await supabase.from("categories").select("id, name_th, name_en, type, icon, is_system");
+  if (error) return { status: "failed" };
+
+  const provider = getAIProvider();
+  if (!provider) return { status: "unavailable" };
+  const burst = await checkRateLimit(`capture-assist:user:${user.id}`, { windowSeconds: 60, maxRequests: 10 });
+  if (!burst.allowed) return { status: "limit" };
+  const usage = await getAIUsageStatus(user.id);
+  if (usage.limitReached) return { status: "limit" };
+
+  try {
+    const result = await provider.generate({
+      system: buildRecapCategoryPrompt(categories ?? []),
+      maxTokens: 400,
+      messages: [{ role: "user", content: JSON.stringify(clean.map((item, i) => ({ i, text: item.description, type: item.type }))) }],
+    });
+    await supabase.from("ai_usage_log").insert({
+      user_id: user.id,
+      model: result.model,
+      input_tokens: result.usage.inputTokens,
+      output_tokens: result.usage.outputTokens,
+    });
+    return { status: "ok", categories: normalizeRecapCategoryOutput(result.content, clean, categories ?? []) };
+  } catch (err) {
+    // Never log the items — they're the user's financial data.
+    captureError(err, { route: "capture.assistRecapCategories", operation: "ai_recap_categories" });
     return { status: "failed" };
   }
 }

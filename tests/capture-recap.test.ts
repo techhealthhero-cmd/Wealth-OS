@@ -1,0 +1,144 @@
+import { describe, expect, it } from "vitest";
+
+import { isMultiItemRecap, parseRecap, recapTotals, splitRecap } from "@/lib/capture/recap";
+import { extractAmount, parseCaptureText, type ParseContext } from "@/lib/capture/transaction-parser";
+
+const SYS = (id: string, name_th: string, name_en: string, type: "expense" | "income") => ({
+  id,
+  name_th,
+  name_en,
+  type,
+  icon: null,
+  is_system: true,
+});
+
+const CTX: ParseContext = {
+  today: "2026-10-02",
+  accounts: [
+    { id: "acc-cash", name: "เงินสด", account_type: "cash", institution: null, is_archived: false },
+    { id: "acc-kbank", name: "KBank", account_type: "bank", institution: "Kasikorn", is_archived: false },
+  ],
+  categories: [
+    SYS("cat-food", "อาหาร", "Food & Dining", "expense"),
+    SYS("cat-transport", "เดินทาง", "Transport", "expense"),
+    SYS("cat-family", "ครอบครัว", "Family", "expense"),
+    SYS("cat-other", "อื่นๆ", "Other", "expense"),
+    SYS("cat-salary", "เงินเดือน", "Salary", "income"),
+    SYS("cat-gift", "ของขวัญ", "Gift", "income"),
+    SYS("cat-other-in", "อื่นๆ", "Other", "income"),
+  ],
+  merchantPreferences: [],
+};
+
+const EVENING_RECAP = "วันนี้ใช้อะไรไปบ้าง กินข้าว 40 บาท น้ำ 10 บาท ขนม 50 วินมอไซต์ 40 ไปกลับ 80 วันนี้เงินเดือนออก 20,000 แม่ให้ 2,000";
+
+describe("splitRecap", () => {
+  it("splits the evening recap at each amount and merges 'ไปกลับ' into the ride", () => {
+    expect(splitRecap(EVENING_RECAP)).toEqual([
+      "กินข้าว 40 บาท",
+      "น้ำ 10 บาท",
+      "ขนม 50",
+      "วินมอไซต์ ไปกลับ 80",
+      "วันนี้เงินเดือนออก 20,000",
+      "แม่ให้ 2,000",
+    ]);
+  });
+
+  it("does not split on quantities, brand digits, dates or clock times", () => {
+    expect(splitRecap("ข้าว 2 จาน 120")).toEqual(["ข้าว 2 จาน 120"]);
+    expect(splitRecap("7-11 55 กาแฟ 45")).toEqual(["7-11 55", "กาแฟ 45"]);
+    expect(splitRecap("วันที่ 15 ค่าห้อง 4500")).toEqual(["วันที่ 15 ค่าห้อง 4500"]);
+    expect(splitRecap("8 โมง กาแฟ 60 บ่าย 3 ขนม 35")).toEqual(["8 โมง กาแฟ 60", "บ่าย 3 ขนม 35"]);
+    // Shop codes, phone/ID numbers and addresses never become separate items.
+    expect(splitRecap("ร้านทดสอบ 1790898241194-jcn832 99")).toEqual(["ร้านทดสอบ 1790898241194-jcn832 99"]);
+    expect(splitRecap("โทรหา 0812345678 ค่าโทร 50")).toEqual(["โทรหา 0812345678 ค่าโทร 50"]);
+    expect(splitRecap("ร้าน A1 ข้าว 45 ส่งบ้าน 99/1 ค่าส่ง 20")).toEqual(["ร้าน A1 ข้าว 45", "ส่งบ้าน 99/1 ค่าส่ง 20"]);
+    expect(splitRecap("เงินเดือน 20k ข้าว 40")).toEqual(["เงินเดือน 20k", "ข้าว 40"]);
+  });
+
+  it("keeps a trailing qualifier with its item and strips joining words", () => {
+    expect(splitRecap("ข้าว 40 จ่ายเงินสด แล้วก็กาแฟ 60 กับขนม 20")).toEqual(["ข้าว 40 จ่ายเงินสด", "กาแฟ 60", "ขนม 20"]);
+  });
+
+  it("uses newlines and commas as separators, but never a thousands comma", () => {
+    expect(splitRecap("ข้าว 40\nน้ำ 10")).toEqual(["ข้าว 40", "น้ำ 10"]);
+    expect(splitRecap("ข้าว 40, เงินเดือน 20,000")).toEqual(["ข้าว 40", "เงินเดือน 20,000"]);
+  });
+
+  it("returns nothing for empty input", () => {
+    expect(splitRecap("   ")).toEqual([]);
+  });
+});
+
+describe("parseRecap", () => {
+  it("reads the evening recap into 4 expenses and 2 incomes with real categories", () => {
+    const items = parseRecap(EVENING_RECAP, CTX);
+    expect(items.map((i) => [i.type, i.amountCents, i.categoryId])).toEqual([
+      ["expense", 4_000, "cat-food"],
+      ["expense", 1_000, "cat-food"],
+      ["expense", 5_000, "cat-food"],
+      ["expense", 8_000, "cat-transport"],
+      ["income", 2_000_000, "cat-salary"],
+      ["income", 200_000, "cat-other-in"],
+    ]);
+    expect(isMultiItemRecap(items)).toBe(true);
+    expect(recapTotals(items)).toEqual({ expenseCount: 4, expenseCents: 18_000, incomeCount: 2, incomeCents: 2_200_000 });
+  });
+
+  it("applies a leading 'เมื่อวาน' to every item without its own date", () => {
+    const items = parseRecap("เมื่อวาน ข้าว 40 น้ำ 10", CTX);
+    expect(items.map((i) => i.date)).toEqual(["2026-10-01", "2026-10-01"]);
+  });
+
+  it("a single item is not a recap (the normal one-item preview handles it)", () => {
+    expect(isMultiItemRecap(parseRecap("ข้าว 80 cash", CTX))).toBe(false);
+    expect(isMultiItemRecap(parseRecap("7-11 55", CTX))).toBe(false);
+  });
+
+  it("'ให้แม่' stays a Family expense while 'แม่ให้' is income", () => {
+    const [give, got] = parseRecap("ให้แม่ 500 แม่ให้ 2000", CTX);
+    expect(give).toMatchObject({ type: "expense", categoryId: "cat-family" });
+    expect(got).toMatchObject({ type: "income" });
+  });
+});
+
+describe("parser additions used by the recap", () => {
+  it("reads spoken Thai magnitudes", () => {
+    expect(extractAmount("เงินเดือน 2 หมื่น")?.cents).toBe(2_000_000);
+    expect(extractAmount("โบนัส 1 แสน")?.cents).toBe(10_000_000);
+    expect(extractAmount("ข้าว 3 พัน")?.cents).toBe(300_000);
+  });
+
+  it("learning decides the type: a learned income category flips an unmarked phrase to income", () => {
+    const learned: ParseContext = { ...CTX, merchantPreferences: [{ merchant_normalized: "ป้าแดง", category_id: "cat-gift" }] };
+    expect(parseCaptureText("ป้าแดง 500", CTX).type).toBe("expense");
+    expect(parseCaptureText("ป้าแดง 500", learned)).toMatchObject({ type: "income", categoryId: "cat-gift", categorySource: "learned" });
+  });
+
+  it("an explicit expense learning is not overridden by a weaker income guess", () => {
+    const learned: ParseContext = { ...CTX, merchantPreferences: [{ merchant_normalized: "กาแฟ", category_id: "cat-food" }] };
+    expect(parseCaptureText("กาแฟ 60", learned)).toMatchObject({ type: "expense", categoryId: "cat-food" });
+  });
+});
+
+describe("recap AI category pass — validated, categories only", () => {
+  it("asks only about priced items whose category was a blind 'Other' guess", async () => {
+    const { recapItemsNeedingAI } = await import("@/lib/capture/ai-fallback");
+    const items = parseRecap("ข้าว 40 ค่าอะไหล่ 300 แม่ให้ 2000", CTX);
+    // ข้าว → keyword food; ค่าอะไหล่ → Other (asked); แม่ให้ → income Other (asked)
+    expect(recapItemsNeedingAI(items)).toEqual([1, 2]);
+  });
+
+  it("keeps only known, type-matching, non-Other categories for indices that were asked", async () => {
+    const { normalizeRecapCategoryOutput } = await import("@/lib/capture/ai-fallback");
+    const asked = [
+      { description: "ค่าอะไหล่", type: "expense" as const },
+      { description: "แม่ให้", type: "income" as const },
+    ];
+    const reply = `Sure: [{"i":0,"category":"Transport"},{"i":1,"category":"Food & Dining"},{"i":5,"category":"Salary"},{"i":1,"category":"Gift"}]`;
+    // i=1 "Food & Dining" is an expense category for an income item → dropped; "Gift" fits → kept; i=5 was never asked.
+    expect(normalizeRecapCategoryOutput(reply, asked, CTX.categories)).toEqual({ 0: "cat-transport", 1: "cat-gift" });
+    expect(normalizeRecapCategoryOutput('[{"i":0,"category":"Other"}]', asked, CTX.categories)).toEqual({});
+    expect(normalizeRecapCategoryOutput("not json", asked, CTX.categories)).toEqual({});
+  });
+});

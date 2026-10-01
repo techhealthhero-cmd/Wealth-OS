@@ -3,11 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeftRight, Camera, ImageUp, Loader2, Mic, PencilLine, TrendingUp, X } from "lucide-react";
+import { ArrowLeftRight, Camera, ImageUp, Loader2, PencilLine, TrendingUp, X } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
 import { useTranslation } from "@/i18n/client";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SuccessBadge } from "@/components/illustrations";
@@ -25,14 +24,16 @@ import {
   type CaptureMerchantPreference,
   type ParseContext,
 } from "@/lib/capture/transaction-parser";
-import { buildCaptureSaveInput, type CaptureDraft } from "@/lib/capture/draft";
-import { mergeAIParse, needsAIAssist, type AIParseFields } from "@/lib/capture/ai-fallback";
+import { buildCaptureSaveInput, canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
+import { mergeAIParse, needsAIAssist, recapItemsNeedingAI, type AIParseFields } from "@/lib/capture/ai-fallback";
+import { isMultiItemRecap, parseRecap } from "@/lib/capture/recap";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { TransactionPrefill } from "@/features/transactions/components/transaction-form";
 import { deleteTransaction } from "@/features/transactions/actions";
 import { createRecurringTransaction } from "@/features/recurring/actions";
 import {
   assistCaptureParse,
+  assistRecapCategories,
   checkCaptureDuplicate,
   dismissRecurringSuggestion,
   getCapturePreferences,
@@ -43,6 +44,8 @@ import {
 } from "@/features/capture/actions";
 import { prepareReceiptImage } from "@/features/capture/lib/image";
 import { TransactionPreview } from "./transaction-preview";
+import { HoldToTalkButton } from "./hold-to-talk-button";
+import { RecapReview, type RecapRow } from "./recap-review";
 
 interface QuickCaptureSheetProps {
   open: boolean;
@@ -63,6 +66,10 @@ type ReceiptState =
 /** Pause after typing and allow at most one AI pass for one capture session. */
 const AI_ASSIST_DEBOUNCE_MS = 1200;
 const AI_ASSIST_MAX_PER_OPEN = 1;
+/** Recap category passes per open (each covers a whole recap, not one item). */
+const RECAP_AI_MAX_PER_OPEN = 2;
+/** Tallest the auto-growing text box gets before it scrolls. */
+const TEXT_MAX_HEIGHT = 168;
 
 function centsToPrefillAmount(cents: number | null) {
   return cents === null ? undefined : (cents / 100).toString();
@@ -105,7 +112,7 @@ export function QuickCaptureSheet({
   const [clientRequestId, setClientRequestId] = useState(() => crypto.randomUUID());
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
-  const textRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
   // Hybrid parsing: validated AI readings keyed by normalized sentence. A key
   // is claimed before its request starts, so re-renders, retyping the same
   // text or a failed call never trigger a second request for it.
@@ -113,6 +120,16 @@ export function QuickCaptureSheet({
   const [aiPendingKey, setAiPendingKey] = useState<string | null>(null);
   const aiRequestedRef = useRef<Set<string>>(new Set());
   const aiCallsRef = useRef(0);
+  // Daily recap: per-item edits/removals keyed by "index:source words", the
+  // AI's category picks, and one stable idempotency key per item so a
+  // retried confirm never saves an item twice.
+  const [recapOverrides, setRecapOverrides] = useState<Record<string, Partial<CaptureDraft>>>({});
+  const [recapRemoved, setRecapRemoved] = useState<Set<string>>(() => new Set());
+  const [recapAI, setRecapAI] = useState<Record<string, string>>({});
+  const [recapAIPendingKey, setRecapAIPendingKey] = useState<string | null>(null);
+  const [recapProgress, setRecapProgress] = useState<{ done: number; total: number } | null>(null);
+  const recapRequestIdsRef = useRef<Record<string, string>>({});
+  const recapAICallsRef = useRef(0);
 
   const speech = useSpeechInput(locale, (transcript) => {
     setTextSource("voice");
@@ -146,12 +163,38 @@ export function QuickCaptureSheet({
 
   const textKey = normalizeText(text);
   const localParsed = useMemo(() => (textKey ? parseCaptureText(textKey, ctx) : null), [textKey, ctx]);
+  // Two or more priced items in one sentence ("ข้าว 40 น้ำ 10 เงินเดือนออก
+  // 20,000") become a list confirmed together instead of a single preview.
+  const recapItems = useMemo(() => (text.trim() && receipt.status === "idle" ? parseRecap(text, ctx) : []), [text, ctx, receipt.status]);
+  const recapMode = isMultiItemRecap(recapItems);
+  const recapRows: RecapRow[] = useMemo(() => {
+    if (!recapMode) return [];
+    return recapItems.flatMap((item, i) => {
+      const id = `${i}:${item.sourceText}`;
+      if (recapRemoved.has(id)) return [];
+      const aiCategory = recapAI[id];
+      const base: CaptureDraft = {
+        type: item.type,
+        amountCents: item.amountCents,
+        categoryId: aiCategory ?? item.categoryId,
+        categorySource: aiCategory ? "ai" : item.categorySource,
+        accountId: item.accountId,
+        merchant: item.merchant,
+        description: item.description,
+        date: item.date,
+        confidence: aiCategory ? "medium" : item.confidence,
+        source: textSource,
+        categoryConfirmedByUser: false,
+      };
+      return [{ id, sourceText: item.sourceText, draft: { ...base, ...recapOverrides[id] } }];
+    });
+  }, [recapMode, recapItems, recapRemoved, recapAI, recapOverrides, textSource]);
   const aiReading = aiReadings[textKey] ?? null;
 
   // One AI pass only for a sentence the rules could not fully read (never for
   // "ข้าว 80 cash"-style input), after the user pauses, max 1 per open.
   useEffect(() => {
-    if (!open || !localParsed || receipt.status !== "idle" || speech.listening) return;
+    if (!open || !localParsed || receipt.status !== "idle" || speech.listening || recapMode) return;
     if (aiRequestedRef.current.has(textKey) || aiCallsRef.current >= AI_ASSIST_MAX_PER_OPEN) return;
     if (!needsAIAssist(textKey, localParsed)) return;
     const key = textKey;
@@ -167,7 +210,51 @@ export function QuickCaptureSheet({
         .finally(() => setAiPendingKey((k) => (k === key ? null : k)));
     }, AI_ASSIST_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [open, textKey, localParsed, receipt.status, speech.listening]);
+  }, [open, textKey, localParsed, receipt.status, speech.listening, recapMode]);
+
+  // Recap: ONE AI pass picks categories for the items the rules could only
+  // file under "Other" — after the user stops talking/typing. Amounts and
+  // types are never touched by it.
+  useEffect(() => {
+    if (!open || !recapMode || speech.listening) return;
+    const key = `recap:${textKey}`;
+    if (aiRequestedRef.current.has(key) || recapAICallsRef.current >= RECAP_AI_MAX_PER_OPEN) return;
+    const indices = recapItemsNeedingAI(recapItems);
+    if (indices.length === 0) return;
+    const timer = setTimeout(() => {
+      aiRequestedRef.current.add(key);
+      recapAICallsRef.current += 1;
+      setRecapAIPendingKey(key);
+      const asked = indices.map((i) => ({
+        id: `${i}:${recapItems[i].sourceText}`,
+        description: recapItems[i].description ?? recapItems[i].sourceText,
+        type: recapItems[i].type,
+      }));
+      assistRecapCategories(asked.map(({ description, type }) => ({ description, type })))
+        .then((res) => {
+          if (res.status !== "ok") return;
+          setRecapAI((prev) => {
+            const next = { ...prev };
+            for (const [index, categoryId] of Object.entries(res.categories)) {
+              const item = asked[Number(index)];
+              if (item) next[item.id] = categoryId;
+            }
+            return next;
+          });
+        })
+        .catch(() => {})
+        .finally(() => setRecapAIPendingKey((k) => (k === key ? null : k)));
+    }, AI_ASSIST_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [open, recapMode, speech.listening, textKey, recapItems]);
+
+  // The text box grows with a long recap, up to a cap, then scrolls.
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, TEXT_MAX_HEIGHT)}px`;
+  }, [text, open]);
 
   const textDraft: CaptureDraft | null = useMemo(() => {
     if (!localParsed) return null;
@@ -198,6 +285,10 @@ export function QuickCaptureSheet({
     setReceiptDraft(null);
     setDuplicate(null);
     setError(null);
+    setRecapOverrides({});
+    setRecapRemoved(new Set());
+    setRecapAI({});
+    setRecapProgress(null);
   }
 
   function clearReceipt() {
@@ -382,6 +473,73 @@ export function QuickCaptureSheet({
     }
   }
 
+  /**
+   * Saves every recap item through the same idempotent single-item path.
+   * Confirming the list IS the user's review: each category they saw that
+   * wasn't a blind "Other" guess counts as confirmed (and is learned for
+   * next time); blind guesses land in the Daily Inbox to pick a category.
+   * A partial failure keeps only the unsaved items on screen.
+   */
+  async function confirmRecap() {
+    if (saving) return;
+    const rows = recapRows.filter((r) => canSaveDraft(r.draft));
+    if (rows.length === 0) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setError(t("capture.offline"));
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setRecapProgress({ done: 0, total: rows.length });
+    const savedRowIds: string[] = [];
+    const savedTransactionIds: string[] = [];
+    let needsReview = 0;
+    let failed = 0;
+    for (const row of rows) {
+      const requestId = (recapRequestIdsRef.current[row.id] ??= crypto.randomUUID());
+      const reviewed = row.draft.categoryConfirmedByUser || (row.draft.categorySource !== "fallback" && row.draft.categoryId !== null);
+      const payload = buildCaptureSaveInput({ ...row.draft, categoryConfirmedByUser: reviewed }, requestId);
+      try {
+        const result = payload ? await saveCapturedTransaction(payload) : null;
+        if (result?.success) {
+          savedRowIds.push(row.id);
+          if (result.transactionId) savedTransactionIds.push(result.transactionId);
+          delete recapRequestIdsRef.current[row.id];
+          if (!reviewed) needsReview += 1;
+        } else failed += 1;
+      } catch {
+        failed += 1;
+      }
+      setRecapProgress({ done: savedRowIds.length + failed, total: rows.length });
+    }
+    setSaving(false);
+    setRecapProgress(null);
+
+    if (savedRowIds.length > 0) {
+      toast.success(t("capture.recap.saved").replace("{n}", String(savedRowIds.length)), {
+        icon: <SuccessBadge />,
+        description: needsReview > 0 ? t("capture.recap.savedReview").replace("{n}", String(needsReview)) : undefined,
+        action: savedTransactionIds.length
+          ? {
+              label: t("capture.undo"),
+              onClick: async () => {
+                const results = await Promise.all(savedTransactionIds.map((id) => deleteTransaction(id)));
+                if (results.every((r) => r.success)) toast(t("capture.undone"));
+                else toast.error(t("capture.saveFailed"));
+              },
+            }
+          : undefined,
+      });
+    }
+    if (failed > 0) {
+      setRecapRemoved((prev) => new Set([...prev, ...savedRowIds]));
+      setError(t("capture.recap.partialFailed").replace("{n}", String(failed)));
+      return;
+    }
+    resetAll();
+    onOpenChange(false);
+  }
+
   function openManual() {
     const draft = activeDraft;
     const prefill: TransactionPrefill = draft
@@ -441,9 +599,10 @@ export function QuickCaptureSheet({
               <label htmlFor="quick-capture-input" className="sr-only">
                 {t("capture.inputLabel")}
               </label>
-              <input
+              <textarea
                 id="quick-capture-input"
                 ref={textRef}
+                rows={1}
                 value={text}
                 onChange={(e) => {
                   setText(e.target.value);
@@ -452,11 +611,17 @@ export function QuickCaptureSheet({
                   setError(null);
                   if (receipt.status !== "idle") clearReceipt();
                 }}
-                placeholder={speech.listening ? t("capture.listening") : t("capture.inputPlaceholder")}
-                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+                  e.preventDefault();
+                  // One item: Enter saves. A recap: Enter just closes the keyboard to review the list.
+                  if (recapMode) e.currentTarget.blur();
+                  else void save();
+                }}
+                placeholder={speech.listening ? t("capture.listening") : t("capture.recap.placeholder")}
                 autoComplete="off"
                 enterKeyHint="done"
-                className="h-13 w-full rounded-2xl border bg-background px-4 pr-11 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
+                className="block min-h-13 w-full resize-none rounded-2xl border bg-background px-4 py-3 pr-11 text-base leading-relaxed outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
               />
               {text ? (
                 <button
@@ -467,7 +632,7 @@ export function QuickCaptureSheet({
                     setOverrides({});
                     textRef.current?.focus();
                   }}
-                  className="absolute top-1/2 right-3 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+                  className="absolute top-3 right-3 flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
                 >
                   <X className="size-4" aria-hidden="true" />
                 </button>
@@ -476,7 +641,7 @@ export function QuickCaptureSheet({
 
             {!text && receipt.status === "idle" ? (
               <div className="flex flex-wrap gap-1.5">
-                {(["example1", "example2", "example3"] as const).map((key) => (
+                {(["example1", "example2", "recap.example"] as const).map((key) => (
                   <button
                     key={key}
                     type="button"
@@ -492,35 +657,37 @@ export function QuickCaptureSheet({
               </div>
             ) : null}
 
-            {/* Capture methods */}
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => speech.toggle()}
-                disabled={!speech.supported}
-                aria-pressed={speech.listening}
-                className={cn(
-                  "flex flex-col items-center gap-1 rounded-2xl border bg-card py-3 text-xs font-medium transition-colors disabled:opacity-50",
-                  speech.listening ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted"
-                )}
-              >
-                <Mic className={cn("size-5", speech.listening && "animate-pulse")} aria-hidden="true" />
-                {speech.listening ? t("capture.stopListening") : t("capture.speak")}
-              </button>
+            {/* Capture methods — the mic is the hero: hold, talk through the day, release. */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex flex-col items-center gap-1 rounded-2xl border bg-card py-3 text-xs font-medium hover:bg-muted"
+                className="flex flex-col items-center gap-1.5 justify-self-center pt-4 text-xs font-medium text-muted-foreground hover:text-foreground"
               >
-                <Camera className="size-5" aria-hidden="true" />
+                <span className="flex size-12 items-center justify-center rounded-full border bg-card shadow-xs">
+                  <Camera className="size-5" aria-hidden="true" />
+                </span>
                 {t("capture.scan")}
               </button>
+              <HoldToTalkButton
+                listening={speech.listening}
+                disabled={!speech.supported}
+                onStart={() => {
+                  setError(null);
+                  if (receipt.status !== "idle") clearReceipt();
+                  textRef.current?.blur();
+                  speech.startHold(text);
+                }}
+                onStop={() => speech.stopHold()}
+              />
               <button
                 type="button"
                 onClick={openManual}
-                className="flex flex-col items-center gap-1 rounded-2xl border bg-card py-3 text-xs font-medium hover:bg-muted"
+                className="flex flex-col items-center gap-1.5 justify-self-center pt-4 text-xs font-medium text-muted-foreground hover:text-foreground"
               >
-                <PencilLine className="size-5" aria-hidden="true" />
+                <span className="flex size-12 items-center justify-center rounded-full border bg-card shadow-xs">
+                  <PencilLine className="size-5" aria-hidden="true" />
+                </span>
                 {t("capture.manual")}
               </button>
             </div>
@@ -589,7 +756,21 @@ export function QuickCaptureSheet({
               </div>
             ) : null}
 
-            {activeDraft && receipt.status !== "scanning" ? (
+            {recapMode ? (
+              <RecapReview
+                rows={recapRows}
+                accounts={accounts}
+                categories={categories}
+                onChange={(id, patch) => setRecapOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }))}
+                onRemove={(id) => setRecapRemoved((prev) => new Set([...prev, id]))}
+                onConfirm={() => void confirmRecap()}
+                saving={saving}
+                progress={recapProgress}
+                aiPending={recapAIPendingKey !== null}
+              />
+            ) : null}
+
+            {activeDraft && receipt.status !== "scanning" && !recapMode ? (
               <TransactionPreview
                 draft={activeDraft}
                 accounts={accounts}

@@ -40,7 +40,7 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
     "family mart", "familymart", "lawson",
   ],
   Transport: [
-    "แท็กซี่", "รถไฟฟ้า", "น้ำมัน", "เติมน้ำมัน", "มอไซค์", "วินมอไซค์", "ทางด่วน", "จอดรถ", "รถเมล์", "ค่ารถ",
+    "แท็กซี่", "รถไฟฟ้า", "น้ำมัน", "เติมน้ำมัน", "มอไซค์", "วินมอไซค์", "มอไซต์", "วินมอไซต์", "มอเตอร์ไซค์", "วินมอเตอร์ไซค์", "ทางด่วน", "จอดรถ", "รถเมล์", "ค่ารถ",
     "เดินทาง", "ตั๋ว", "grab", "bolt", "taxi", "bts", "mrt", "ptt", "shell", "bangchak", "esso", "caltex",
     "parking", "bus", "fuel", "gas", "easy pass", "m-flow", "airasia", "nok air", "thai airways",
   ],
@@ -82,7 +82,12 @@ export const INCOME_CATEGORY_KEYWORDS: Record<Exclude<IncomeCategoryKey, "Other"
 };
 
 /** Words that mark a capture as INCOME rather than an expense. */
-export const INCOME_MARKERS = ["รายรับ", "ได้เงิน", "ได้รับเงิน", "ได้รับ", "income", "received"];
+export const INCOME_MARKERS = [
+  "รายรับ", "ได้เงิน", "ได้รับเงิน", "ได้รับ", "income", "received",
+  // Someone GAVE me money ("แม่ให้ 2000"); the reverse order ("ให้แม่") is a Family expense.
+  "แม่ให้", "พ่อให้", "ยายให้", "ตาให้", "ปู่ให้", "ย่าให้", "พี่ให้", "น้องให้", "แฟนให้", "เพื่อนให้", "ลูกให้",
+  "ให้มา", "โอนมาให้", "เงินเข้า", "เงินเดือนออก", "ขายได้", "ได้ทิป",
+];
 
 /**
  * Well-known merchants → display name. When one appears in the text it

@@ -246,3 +246,75 @@ export function mergeAIParse(text: string, local: ParsedCapture, ai: AIParseFiel
     missing,
   };
 }
+
+// ---------------------------------------------------------------------------
+// daily recap — ONE AI pass that only picks categories for unclear items
+// ---------------------------------------------------------------------------
+
+/** Most items one recap AI pass will look at; anything beyond stays with the rules. */
+export const RECAP_AI_MAX_ITEMS = 20;
+
+export interface RecapAIItem {
+  description: string;
+  type: "expense" | "income";
+}
+
+/** Recap items worth an AI category pass: priced, labelled, and only a blind "Other" guess so far. */
+export function recapItemsNeedingAI(items: ParsedCapture[]): number[] {
+  return items
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.amountCents !== null && item.categorySource === "fallback" && (item.description ?? "").trim().length >= 2)
+    .map(({ index }) => index)
+    .slice(0, RECAP_AI_MAX_ITEMS);
+}
+
+export function buildRecapCategoryPrompt(categories: CaptureCategory[]): string {
+  const list = categories.map((c) => `- ${c.name_en} (${c.name_th}) [${c.type}]`).join("\n");
+  return `You label short Thai or English money items with a category.
+You get a JSON array of {"i": number, "text": string, "type": "expense"|"income"}.
+Return ONLY a JSON array of {"i": number, "category": string|null} — one entry per input item.
+category must be exactly one name_en from this list whose [type] matches the item's type (or [both]), or null if none clearly fits:
+${list}
+Never change amounts, types or text. Never invent items.`;
+}
+
+const recapCategorySchema = z.array(z.object({ i: z.number().int(), category: z.string().nullable().optional() }));
+
+function firstJsonArray(text: string): unknown {
+  const start = text.indexOf("[");
+  const end = text.lastIndexOf("]");
+  if (start < 0 || end <= start) return null;
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Validated AI categories by item index. Only an index that was asked
+ * about, a category from the user's own list, and a category whose type
+ * matches the item survive — everything else is dropped.
+ */
+export function normalizeRecapCategoryOutput(
+  rawText: string,
+  items: RecapAIItem[],
+  categories: CaptureCategory[]
+): Record<number, string> {
+  const parsed = recapCategorySchema.safeParse(firstJsonArray(rawText));
+  if (!parsed.success) return {};
+  const out: Record<number, string> = {};
+  for (const entry of parsed.data) {
+    const item = items[entry.i];
+    const name = clean(entry.category, 80)?.toLowerCase();
+    if (!item || !name) continue;
+    const category = categories.find(
+      (c) =>
+        (c.name_en.toLowerCase() === name || c.name_th.toLowerCase() === name) &&
+        (c.type === item.type || c.type === "both") &&
+        c.name_en.toLowerCase() !== "other"
+    );
+    if (category) out[entry.i] = category.id;
+  }
+  return out;
+}
