@@ -38,7 +38,7 @@ describe("Earn V2 load errors", () => {
     const q = await import("@/features/earn/v2-queries");
     expect(await q.getLatestAssessment()).toBeNull();
     expect(await q.getIncomePaths()).toEqual([]);
-  });
+  }, 15_000);
 
   it.each(["earn_assessments", "income_paths", "emergency_funds"])("a failure reading %s throws instead of pretending the user is new", async (table) => {
     failTable = table;

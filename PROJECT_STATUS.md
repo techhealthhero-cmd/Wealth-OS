@@ -6,9 +6,15 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-09-30
+Last updated: 2026-10-02
 
 ## Earn V2 — 2026-09-30
+
+**Hardening / handoff completion (2026-10-02):** recovered and audited Claude's five committed fixes after baseline `5ad4b1b`; no tracked uncommitted Claude work was left. P0 legacy/V2 mission separation is enforced in both UI queries and server actions, date-sensitive AI tests use a pinned clock, and permanent live Earn E2E now exists in the repository. Live disposable-user suites verify the complete Diagnostic → Path → Mission → Result → Project → real Income Transaction → Earn Link → Balance → recalculated Next Action loop; `record_earn_income` invalid-parent rollback, RLS isolation, exact retry/idempotency, and single balance mutation; Privacy Center planning lock; no overflow at 320/390/768/1280; and persona states for zero income, irregular/freelance, career, business, investment planning, multiple paths, and returning users. Every disposable user and related row was deleted after each run.
+
+Projects now support create/view/active/completed/archived and optional same-path mission linkage. Migration `0033_earn_mission_projects.sql` is additive, nullable, indexed, and extends mission RLS with same-user/same-path project ownership; it is **committed but NOT applied locally or remotely**. Until it is applied, existing Earn behavior remains compatible, while the new mission-project picker returns a clear migration-pending error. Database load failures now surface through the Earn error boundary instead of appearing as onboarding/not-found. Template missions render from stable `(path_type, roadmap_step_key)` locale keys while legacy/custom titles remain untouched. Mission Result +/- controls have field-specific accessible names and retain 44px targets.
+
+**Current automated gate:** 827/827 Vitest tests, TypeScript, ESLint, production build (61 pages), and 3/3 permanent signed-in Earn live E2E scenarios pass. Migration list was verified local=remote through 0032 before creating 0033. Physical iPhone/Android verification remains required; automated responsive Chromium verification is complete.
 
 Built on the Earn Foundation (`bc7f559`, migration 0028 — **applied to production**, verified by read-only column checks). Commits: `e9f9ce2` domain, `cc3562b` data layer + migration 0031 + copy, `de1dcb8` UI, plus the UX-fix commit after visual QA.
 
