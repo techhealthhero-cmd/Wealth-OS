@@ -3,9 +3,12 @@
 import { cloneElement, useEffect, useState, useActionState, type ReactElement } from "react";
 
 import { createIncomeSource, updateIncomeSource } from "@/features/income-sources/actions";
-import { INCOME_SOURCE_TYPES, INCOME_STABILITIES, INCOME_FREQUENCIES } from "@/lib/validation/income-source";
+import { INCOME_SOURCE_TYPES, INCOME_STABILITIES, INCOME_FREQUENCIES, INCOME_PAY_BASES } from "@/lib/validation/income-source";
+import { calculatePerUnitMonthlyCents } from "@/lib/financial/per-unit-income";
+import { centsToDecimalString, formatMoney } from "@/lib/financial/money";
+import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/client";
-import type { IncomeSource } from "@/types/database";
+import type { IncomePayBasis, IncomeSource } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,6 +66,116 @@ export function IncomeSourceForm({ source, trigger, open, onOpenChange }: Income
   });
 }
 
+/**
+ * "How you're paid": a set monthly amount, or per piece of work (฿200 per
+ * drink × drinks in a typical month). The live total here is only a
+ * preview — the server recomputes it from rate × units on save.
+ */
+function PayFields({ source }: { source?: IncomeSource }) {
+  const { t } = useTranslation();
+  const [basis, setBasis] = useState<IncomePayBasis>(source?.pay_basis ?? "fixed");
+  const [rate, setRate] = useState(source?.unit_rate ?? "");
+  const [units, setUnits] = useState(source?.expected_units_per_month ?? "");
+  const [unitLabel, setUnitLabel] = useState(source?.unit_label ?? "");
+
+  const rateNumber = Number(rate);
+  const unitsNumber = Number(units);
+  const monthlyCents =
+    rate !== "" && units !== "" && Number.isFinite(rateNumber) && Number.isFinite(unitsNumber)
+      ? calculatePerUnitMonthlyCents(Math.round(rateNumber * 100), unitsNumber)
+      : 0;
+  const unitName = unitLabel.trim() || t("earn.income.perUnit.defaultUnit");
+
+  return (
+    <div className="space-y-3">
+      <input type="hidden" name="pay_basis" value={basis} />
+      <div className="space-y-2">
+        <Label id="pay-basis-label">{t("earn.income.perUnit.payBasisLabel")}</Label>
+        <div role="radiogroup" aria-labelledby="pay-basis-label" className="grid grid-cols-2 gap-2">
+          {INCOME_PAY_BASES.map((b) => (
+            <button
+              key={b}
+              type="button"
+              role="radio"
+              aria-checked={basis === b}
+              onClick={() => setBasis(b)}
+              className={cn(
+                "min-h-11 rounded-xl border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                basis === b ? "border-primary bg-primary/10 text-primary dark:text-[#7FD6B2]" : "bg-card hover:bg-muted/50"
+              )}
+            >
+              {t(b === "fixed" ? "earn.income.perUnit.fixed" : "earn.income.perUnit.perUnit")}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {basis === "fixed" ? (
+        <div className="space-y-2">
+          <Label htmlFor="expected_monthly_income">{t("earn.income.expectedMonthlyIncome")}</Label>
+          <Input
+            id="expected_monthly_income"
+            name="expected_monthly_income"
+            type="number"
+            inputMode="decimal"
+            step="any"
+            min="0"
+            defaultValue={source?.expected_monthly_income ?? ""}
+            required
+          />
+        </div>
+      ) : (
+        <div className="space-y-3 rounded-2xl bg-muted/50 p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="unit_rate">{t("earn.income.perUnit.rate")}</Label>
+              <Input id="unit_rate" name="unit_rate" type="number" inputMode="decimal" step="any" min="0" value={rate} onChange={(e) => setRate(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="unit_label">{t("earn.income.perUnit.unitLabel")}</Label>
+              <Input
+                id="unit_label"
+                name="unit_label"
+                maxLength={40}
+                placeholder={t("earn.income.perUnit.unitPlaceholder")}
+                value={unitLabel}
+                onChange={(e) => setUnitLabel(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="expected_units_per_month">{t("earn.income.perUnit.units")}</Label>
+            <Input
+              id="expected_units_per_month"
+              name="expected_units_per_month"
+              type="number"
+              inputMode="decimal"
+              step="any"
+              min="0"
+              value={units}
+              onChange={(e) => setUnits(e.target.value)}
+              required
+            />
+          </div>
+          <input type="hidden" name="expected_monthly_income" value={centsToDecimalString(monthlyCents)} />
+          <div aria-live="polite" className="rounded-xl bg-card px-3 py-2.5">
+            <p className="text-lg font-bold tabular-nums">{t("earn.income.perUnit.result").replace("{amount}", formatMoney(monthlyCents))}</p>
+            {monthlyCents > 0 ? (
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {t("earn.income.perUnit.formula")
+                  .replace("{rate}", formatMoney(Math.round(rateNumber * 100)))
+                  .replace("{units}", String(unitsNumber))
+                  .replace("{unit}", unitName)}
+              </p>
+            ) : null}
+          </div>
+          <p className="text-xs text-muted-foreground">{t("earn.income.perUnit.hint")}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function IncomeSourceFormFields({
   source,
   title,
@@ -111,18 +224,7 @@ function IncomeSourceFormFields({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="expected_monthly_income">{t("earn.income.expectedMonthlyIncome")}</Label>
-          <Input
-            id="expected_monthly_income"
-            name="expected_monthly_income"
-            type="number"
-            step="any"
-            min="0"
-            defaultValue={source?.expected_monthly_income ?? ""}
-            required
-          />
-        </div>
+        <PayFields source={source} />
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">

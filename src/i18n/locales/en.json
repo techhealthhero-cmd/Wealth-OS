@@ -1896,6 +1896,23 @@
       "activeSourceCount": "Active income sources"
     },
     "income": {
+      "perUnit": {
+        "payBasisLabel": "How you're paid",
+        "fixed": "A set amount per month",
+        "perUnit": "Per piece of work",
+        "rate": "Pay per unit (THB)",
+        "unitLabel": "Unit name",
+        "unitPlaceholder": "e.g. drink, job, delivery, hour",
+        "units": "Units in a typical month",
+        "hint": "Use a typical month, not your best one — the app works out the monthly income",
+        "result": "About {amount} a month",
+        "formula": "{rate} × {units} {unit}",
+        "defaultUnit": "unit",
+        "cardRate": "{rate} per {unit}",
+        "rateRequired": "Enter the pay per unit",
+        "unitsRequired": "Enter how many per month",
+        "migrationPending": "This can't be saved yet — the database is being updated. Please try again later."
+      },
       "title": "Income Sources",
       "subtitle": "Manage your income sources and see your income overview",
       "addSource": "Add income source",
@@ -1929,6 +1946,7 @@
       },
       "frequencies": {
         "monthly": "Monthly",
+        "semimonthly": "15th and end of month",
         "biweekly": "Biweekly",
         "weekly": "Weekly",
         "irregular": "Irregular",

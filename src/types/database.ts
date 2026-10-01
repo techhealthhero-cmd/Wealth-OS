@@ -75,7 +75,8 @@ export type IncomeSourceType =
   | "other";
 
 export type IncomeStability = "stable" | "variable";
-export type IncomeFrequency = "monthly" | "biweekly" | "weekly" | "irregular" | "one_time";
+export type IncomePayBasis = "fixed" | "per_unit";
+export type IncomeFrequency = "monthly" | "semimonthly" | "biweekly" | "weekly" | "irregular" | "one_time";
 export type IncomePlanEarningUnit = "hour" | "person" | "session" | "job" | "item";
 export type IncomePlanGrowthFocus = "steady" | "more_clients" | "raise_rate" | "scale";
 
@@ -734,6 +735,11 @@ export interface Database {
           frequency: IncomeFrequency;
           is_active: boolean;
           notes: string | null;
+          /** 0036 — absent on a database that has not applied the migration yet. */
+          pay_basis?: IncomePayBasis;
+          unit_rate?: string | null;
+          unit_label?: string | null;
+          expected_units_per_month?: string | null;
           created_at: string;
           updated_at: string;
         };

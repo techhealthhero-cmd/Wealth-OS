@@ -35,8 +35,17 @@ export function IncomeSourceCard({ source }: { source: IncomeSource }) {
             ) : null}
           </div>
           <p className="mt-1 truncate text-sm text-muted-foreground">
-            {t(`earn.income.types.${source.source_type}`)} · {t(`earn.income.stabilities.${source.stability}`)}
+            {t(`earn.income.types.${source.source_type}`)} · {t(`earn.income.stabilities.${source.stability}`)} ·{" "}
+            {t(`earn.income.frequencies.${source.frequency}`)}
           </p>
+          {source.pay_basis === "per_unit" && source.unit_rate ? (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {t("earn.income.perUnit.cardRate")
+                .replace("{rate}", formatMoneyFromDecimal(source.unit_rate))
+                .replace("{unit}", source.unit_label?.trim() || t("earn.income.perUnit.defaultUnit"))}
+              {source.expected_units_per_month ? ` × ${Number(source.expected_units_per_month)}` : ""}
+            </p>
+          ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <p className="font-medium">{formatMoneyFromDecimal(source.expected_monthly_income)}</p>
