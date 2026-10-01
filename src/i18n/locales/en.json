@@ -2160,6 +2160,7 @@
     "noCompletedDescription": "Missions you complete will be saved here.",
     "completedOn": "Completed {date}",
     "saveFailed": "Failed to save the mission. Please try again.",
+    "pathManaged": "This mission belongs to an income path — continue it from the path so its result and next step are recorded correctly.",
       "emptyTitle": "No missions yet",
       "emptyState": "Choose an income opportunity to start building your missions",
       "statuses": {

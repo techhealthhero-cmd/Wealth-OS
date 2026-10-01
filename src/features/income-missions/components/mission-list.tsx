@@ -1,4 +1,4 @@
-import { getIncomeMissions } from "@/features/income-missions/queries";
+import { getLegacyIncomeMissions } from "@/features/income-missions/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -10,7 +10,7 @@ import { LockedFeatureCard } from "@/features/billing/components/locked-feature-
 
 export async function MissionList() {
   const [missions, profile, missionsMax] = await Promise.all([
-    getIncomeMissions(),
+    getLegacyIncomeMissions(),
     getProfile(),
     getFeatureLimit("incomeMissionsMax"),
   ]);

@@ -77,13 +77,17 @@ export async function updateMissionStatus(missionId: string, status: MissionStat
 
   const { data: mission, error: fetchError } = await supabase
     .from("income_missions")
-    .select("mission_type")
+    .select("mission_type, income_path_id")
     .eq("id", missionId)
     .eq("user_id", user.id)
     .maybeSingle();
   if (fetchError || !mission) {
     return { error: friendlyDbError(fetchError ?? { message: "not found" }, "updateMissionStatus", dict.earn.missions.saveFailed) };
   }
+  // Earn V2 path missions have their own lifecycle (result recording,
+  // roadmap progression) in features/earn/v2-actions.ts. Completing or
+  // skipping one here would bypass it and strand the path.
+  if (mission.income_path_id) return { error: dict.earn.missions.pathManaged };
 
   const { error } = await supabase
     .from("income_missions")
@@ -118,11 +122,12 @@ export async function incrementMissionProgress(missionId: string, targetQuantity
 
   const { data: mission, error: fetchError } = await supabase
     .from("income_missions")
-    .select("progress_quantity, mission_type")
+    .select("progress_quantity, mission_type, income_path_id")
     .eq("id", missionId)
     .eq("user_id", user.id)
     .maybeSingle();
   if (fetchError || !mission) return { error: friendlyDbError(fetchError ?? { message: "not found" }, "incrementMissionProgress", dict.earn.missions.saveFailed) };
+  if (mission.income_path_id) return { error: dict.earn.missions.pathManaged };
 
   const nextProgress = Number(mission.progress_quantity) + 1;
   const status: MissionStatus = targetQuantity !== null && nextProgress >= targetQuantity ? "completed" : "in_progress";

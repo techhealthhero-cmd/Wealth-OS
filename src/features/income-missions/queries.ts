@@ -19,9 +19,24 @@ export async function getIncomeMissions(): Promise<IncomeMission[]> {
   return data ?? [];
 }
 
+/**
+ * Legacy (opportunity-sequence) missions only — Earn V2 path missions
+ * (`income_path_id` set) are managed by the path-aware UI and actions.
+ */
+export async function getLegacyIncomeMissions(): Promise<IncomeMission[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("income_missions")
+    .select("*")
+    .is("income_path_id", null)
+    .order("sequence_order", { ascending: true });
+  if (error) throwDbError(error, "income-missions.getLegacyIncomeMissions", "Failed to load income missions");
+  return data ?? [];
+}
+
 /** The single next actionable mission — the first not completed/skipped, in sequence order. Used for "Today's Income Mission." */
 export async function getTodayMission(): Promise<IncomeMission | null> {
-  const missions = await getIncomeMissions();
+  const missions = await getLegacyIncomeMissions();
   return missions.find((m) => m.status === "not_started" || m.status === "in_progress") ?? null;
 }
 

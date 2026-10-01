@@ -216,7 +216,8 @@ export async function completeEarnMission(missionId: string): Promise<EarnAction
     .eq("id", missionId)
     .eq("user_id", user.id)
     .maybeSingle();
-  if (!mission) return { error: dict.earn.v2.missions.notFound };
+  // Legacy (non-path) missions keep their own lifecycle in income-missions/actions.ts.
+  if (!mission || !mission.income_path_id) return { error: dict.earn.v2.missions.notFound };
 
   if (mission.status !== "completed") {
     const { error } = await supabase
