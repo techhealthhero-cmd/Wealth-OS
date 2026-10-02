@@ -158,11 +158,14 @@ export function useSwipeToDismiss({ enabled, onDismiss }: { enabled: boolean; on
         isExpanded = false;
         setExpanded(false);
         sheet.style.height = `${collapsedHeight}px`;
-        // Back to natural height afterwards, so new content can resize it.
-        clearTimer = setTimeout(() => {
-          if (!isExpanded) sheet.style.height = "";
-        }, SETTLE_MS + 20);
       }
+      // After settling: hand transitions back to the stylesheet (so the sheet
+      // glides with the keyboard again) and, when collapsed, return to its
+      // natural height so new content can resize it.
+      clearTimer = setTimeout(() => {
+        sheet.style.transition = "";
+        if (!isExpanded) sheet.style.height = "";
+      }, SETTLE_MS + 20);
     }
 
     sheet.addEventListener("touchstart", onStart, { passive: true });

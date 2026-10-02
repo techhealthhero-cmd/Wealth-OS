@@ -7,6 +7,7 @@ import { ArrowLeftRight, Camera, ImageUp, Loader2, PencilLine, TrendingUp, X } f
 
 import type { Account, Category } from "@/types/database";
 import { useTranslation } from "@/i18n/client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SuccessBadge } from "@/components/illustrations";
@@ -571,12 +572,20 @@ export function QuickCaptureSheet({
       <SheetContent
         ref={sheetRef}
         side="bottom"
-        className="flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-t-3xl p-0 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:mx-auto sm:max-w-lg"
+        className="flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-t-3xl p-0 pb-[calc(env(safe-area-inset-bottom)+12px)] transition-[bottom,height,max-height,opacity,translate,transform] duration-200 ease-out motion-reduce:transition-none sm:mx-auto sm:max-w-lg"
         // iOS overlays the keyboard instead of resizing the page — lift the
-        // sheet above it and cap its height to the space left visible.
+        // sheet above it. While the keyboard is up the sheet takes ALL the
+        // space above it (a fixed height, not its content's), so typing the
+        // first letter — which adds the preview card — never makes the sheet
+        // grow and its top jump. It glides with the keyboard (transition).
         style={
           keyboardInset > 0
-            ? { bottom: keyboardInset, maxHeight: `calc(100dvh - ${keyboardInset}px - 1rem)`, paddingBottom: 12 }
+            ? {
+                bottom: keyboardInset,
+                height: `calc(100dvh - ${keyboardInset}px - 1rem)`,
+                maxHeight: `calc(100dvh - ${keyboardInset}px - 1rem)`,
+                paddingBottom: 12,
+              }
             : undefined
         }
       >
@@ -640,8 +649,16 @@ export function QuickCaptureSheet({
               ) : null}
             </form>
 
-            {!text && receipt.status === "idle" ? (
-              <div className="flex flex-wrap gap-1.5">
+            {/* Examples fold away smoothly once typing starts (no one-frame jump). */}
+            <div
+              aria-hidden={Boolean(text) || receipt.status !== "idle"}
+              inert={Boolean(text) || receipt.status !== "idle"}
+              className={cn(
+                "grid transition-[grid-template-rows,opacity,margin] duration-200 ease-out motion-reduce:transition-none",
+                !text && receipt.status === "idle" ? "grid-rows-[1fr] opacity-100" : "-mt-3 grid-rows-[0fr] opacity-0"
+              )}
+            >
+              <div className="flex min-h-0 flex-wrap gap-1.5 overflow-hidden">
                 {(["example1", "example2", "recap.example"] as const).map((key) => (
                   <button
                     key={key}
@@ -656,7 +673,7 @@ export function QuickCaptureSheet({
                   </button>
                 ))}
               </div>
-            ) : null}
+            </div>
 
             {/* Capture methods — the mic is the hero: hold, talk through the day, release. */}
             <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 pt-1">
