@@ -93,9 +93,18 @@ test("Quick Capture sheet moves freely: scrolls, drops the keyboard, expands, co
     const entry = page.getByLabel(/บันทึกรายการแบบพิมพ์|quick entry text/i);
     await entry.focus();
     await expect(entry).toBeFocused();
-    await touchDrag(cdp, x, box.y + 200, box.y + 320);
+    // Start just below the text box (on content, not on the mic).
+    const entryBox = (await entry.boundingBox())!;
+    await touchDrag(cdp, x, entryBox.y + entryBox.height + 8, entryBox.y + entryBox.height + 128);
     await expect(entry).not.toBeFocused();
     await expect(sheet(page)).toBeVisible();
+
+    // 3b) Holding the mic and dragging down records — it never pulls the sheet closed.
+    const mic = page.getByRole("button", { name: /เริ่มพูด|start talking/i });
+    const micBox = (await mic.boundingBox())!;
+    await touchDrag(cdp, micBox.x + micBox.width / 2, micBox.y + micBox.height / 2, micBox.y + micBox.height / 2 + 200);
+    await page.waitForTimeout(500);
+    await expect(sheet(page), "dragging from the mic keeps the sheet open").toBeVisible();
 
     // 4) On a taller screen the window itself moves: pull the header up to
     //    expand to near full height, pull it down to shrink back.
@@ -108,7 +117,8 @@ test("Quick Capture sheet moves freely: scrolls, drops the keyboard, expands, co
     // Expands to its maximum (92% of the screen), whatever its resting size.
     expect(tall.height, "pulled up, the sheet expands").toBeGreaterThan(resting.height + 40);
     expect(tall.height, "to near full height").toBeGreaterThanOrEqual(Math.floor(844 * 0.92) - 2);
-    await touchDrag(cdp, x, tall.y + 30, tall.y + 260);
+    // Pull down by the expansion plus a little (well under the close threshold).
+    await touchDrag(cdp, x, tall.y + 30, tall.y + 30 + (tall.height - resting.height) + 30, 14, 40);
     await page.waitForTimeout(450);
     const back = (await sheet(page).boundingBox())!;
     expect(Math.abs(back.height - resting.height), "pulled down, it returns to its resting size").toBeLessThan(12);

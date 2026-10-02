@@ -76,7 +76,10 @@ export function useSwipeToDismiss({ enabled, onDismiss }: { enabled: boolean; on
       clearTimeout(clearTimer);
       const scroller = scrollRef.current;
       startedOnContent = !!scroller && scroller.contains(e.target as Node);
-      mode = "undecided";
+      // Nested scrollers (e.g. a date wheel) marked data-sheet-nodrag scroll
+      // themselves; the sheet never takes over a gesture that starts there.
+      const target = e.target as Element | null;
+      mode = target?.closest?.("[data-sheet-nodrag]") ? "scroll" : "undecided";
       keyboardDropped = false;
       startY = e.touches[0].clientY;
       startTime = performance.now();

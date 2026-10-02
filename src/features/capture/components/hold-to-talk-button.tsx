@@ -80,6 +80,8 @@ export function HoldToTalkButton({
           aria-label={label}
           aria-pressed={listening}
           disabled={disabled}
+          // Holding the mic and letting the finger drift must never pull the sheet closed.
+          data-sheet-nodrag=""
           onPointerDown={(e) => {
             if (e.pointerType === "mouse" && e.button !== 0) return;
             e.currentTarget.setPointerCapture?.(e.pointerId);

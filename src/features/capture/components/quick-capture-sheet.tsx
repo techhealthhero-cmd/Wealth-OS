@@ -28,6 +28,7 @@ import {
 import { buildCaptureSaveInput, canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
 import { mergeAIParse, needsAIAssist, recapItemsNeedingAI, type AIParseFields } from "@/lib/capture/ai-fallback";
 import { isMultiItemRecap, parseRecap } from "@/lib/capture/recap";
+import { applyCaptureDate } from "@/lib/capture/capture-date";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { TransactionPrefill } from "@/features/transactions/components/transaction-form";
 import { deleteTransaction } from "@/features/transactions/actions";
@@ -48,6 +49,7 @@ import { TransactionPreview } from "./transaction-preview";
 import { HoldToTalkButton } from "./hold-to-talk-button";
 import { RecapReview, type RecapRow } from "./recap-review";
 import { MicPermissionTip } from "./mic-permission-tip";
+import { CaptureDatePicker } from "./capture-date-picker";
 
 interface QuickCaptureSheetProps {
   open: boolean;
@@ -99,6 +101,7 @@ export function QuickCaptureSheet({
     enabled: open,
     onDismiss: () => {
       speech.stop();
+      setPickedDate(null);
       onOpenChange(false);
     },
   });
@@ -132,6 +135,9 @@ export function QuickCaptureSheet({
   const [recapProgress, setRecapProgress] = useState<{ done: number; total: number } | null>(null);
   const recapRequestIdsRef = useRef<Record<string, string>>({});
   const recapAICallsRef = useRef(0);
+  // The day being recorded: null = today (so it follows the clock), or a
+  // day the user picked to catch up on. Reset whenever the sheet closes.
+  const [pickedDate, setPickedDate] = useState<string | null>(null);
 
   const speech = useSpeechInput(locale, (transcript) => {
     setTextSource("voice");
@@ -163,6 +169,7 @@ export function QuickCaptureSheet({
     if (open) aiCallsRef.current = 0;
   }, [open]);
 
+  const captureDate = pickedDate ?? ctx.today;
   const textKey = normalizeText(text);
   const localParsed = useMemo(() => (textKey ? parseCaptureText(textKey, ctx) : null), [textKey, ctx]);
   // Two or more priced items in one sentence ("ข้าว 40 น้ำ 10 เงินเดือนออก
@@ -183,14 +190,14 @@ export function QuickCaptureSheet({
         accountId: item.accountId,
         merchant: item.merchant,
         description: item.description,
-        date: item.date,
+        date: applyCaptureDate(item.date, ctx.today, captureDate),
         confidence: aiCategory ? "medium" : item.confidence,
         source: textSource,
         categoryConfirmedByUser: false,
       };
       return [{ id, sourceText: item.sourceText, draft: { ...base, ...recapOverrides[id] } }];
     });
-  }, [recapMode, recapItems, recapRemoved, recapAI, recapOverrides, textSource]);
+  }, [recapMode, recapItems, recapRemoved, recapAI, recapOverrides, textSource, ctx.today, captureDate]);
   const aiReading = aiReadings[textKey] ?? null;
 
   // One AI pass only for a sentence the rules could not fully read (never for
@@ -269,13 +276,13 @@ export function QuickCaptureSheet({
       accountId: parsed.accountId,
       merchant: parsed.merchant,
       description: parsed.description,
-      date: parsed.date,
+      date: applyCaptureDate(parsed.date, ctx.today, captureDate),
       confidence: parsed.confidence,
       source: textSource,
       categoryConfirmedByUser: false,
       ...overrides,
     };
-  }, [localParsed, aiReading, textKey, ctx, textSource, overrides]);
+  }, [localParsed, aiReading, textKey, ctx, textSource, overrides, captureDate]);
 
   const activeDraft = receipt.status !== "idle" ? receiptDraft : textDraft;
 
@@ -291,6 +298,7 @@ export function QuickCaptureSheet({
     setRecapRemoved(new Set());
     setRecapAI({});
     setRecapProgress(null);
+    setPickedDate(null);
   }
 
   function clearReceipt() {
@@ -565,7 +573,10 @@ export function QuickCaptureSheet({
     <Sheet
       open={open}
       onOpenChange={(next) => {
-        if (!next) speech.stop();
+        if (!next) {
+          speech.stop();
+          setPickedDate(null);
+        }
         onOpenChange(next);
       }}
     >
@@ -648,6 +659,8 @@ export function QuickCaptureSheet({
                 </button>
               ) : null}
             </form>
+
+            <CaptureDatePicker value={captureDate} today={ctx.today} onChange={(d) => setPickedDate(d === ctx.today ? null : d)} />
 
             {/* Examples fold away smoothly once typing starts (no one-frame jump). */}
             <div
