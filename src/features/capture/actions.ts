@@ -33,6 +33,7 @@ import {
   RECAP_AI_MAX_ITEMS,
   buildAIParseSystemPrompt,
   buildRecapCategoryPrompt,
+  recapCategoryMaxTokens,
   needsAIAssist,
   normalizeAIParseOutput,
   normalizeRecapCategoryOutput,
@@ -506,6 +507,7 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
     const result = await provider.generate({
       system: buildAIParseSystemPrompt(today, categories),
       maxTokens: 300,
+      thinking: "off",
       messages: [{ role: "user", content: input }],
     });
     await recordAIUsage({
@@ -566,7 +568,8 @@ export async function assistRecapCategories(items: RecapAIItem[]): Promise<Recap
   try {
     const result = await provider.generate({
       system: buildRecapCategoryPrompt(categories ?? []),
-      maxTokens: 400,
+      maxTokens: recapCategoryMaxTokens(clean.length),
+      thinking: "off",
       messages: [{ role: "user", content: JSON.stringify(clean.map((item, i) => ({ i, text: item.description, type: item.type }))) }],
     });
     await recordAIUsage({

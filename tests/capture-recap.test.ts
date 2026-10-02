@@ -142,3 +142,19 @@ describe("recap AI category pass — validated, categories only", () => {
     expect(normalizeRecapCategoryOutput("not json", asked, CTX.categories)).toEqual({});
   });
 });
+
+describe("recap AI category pass — a reply cut off by the token limit", () => {
+  it("keeps every complete entry instead of losing the whole batch", async () => {
+    const { normalizeRecapCategoryOutput, recapCategoryMaxTokens } = await import("@/lib/capture/ai-fallback");
+    const asked = [
+      { description: "ค่าอะไหล่", type: "expense" as const },
+      { description: "เงินเดือนออก", type: "income" as const },
+      { description: "ตั๋วหนัง", type: "expense" as const },
+    ];
+    const truncated = '[{"i":0,"category":"Transport"},{"i":1,"category":"Salary"},{"i":2,"categ';
+    expect(normalizeRecapCategoryOutput(truncated, asked, CTX.categories)).toEqual({ 0: "cat-transport", 1: "cat-salary" });
+    // The budget grows with the batch, so a full batch is never cut off in the first place.
+    expect(recapCategoryMaxTokens(20)).toBeGreaterThan(recapCategoryMaxTokens(2));
+    expect(recapCategoryMaxTokens(20)).toBeGreaterThanOrEqual(600);
+  });
+});

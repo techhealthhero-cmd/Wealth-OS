@@ -46,6 +46,7 @@ export class AIReceiptParser implements ReceiptParser {
     const result = await this.provider.generate({
       system: SYSTEM_PROMPT,
       maxTokens: 400,
+      thinking: "off",
       messages: [
         {
           role: "user",

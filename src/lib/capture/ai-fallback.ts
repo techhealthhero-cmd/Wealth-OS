@@ -272,7 +272,7 @@ export function buildRecapCategoryPrompt(categories: CaptureCategory[]): string 
   const list = categories.map((c) => `- ${c.name_en} (${c.name_th}) [${c.type}]`).join("\n");
   return `You label short Thai or English money items with a category.
 You get a JSON array of {"i": number, "text": string, "type": "expense"|"income"}.
-Return ONLY a JSON array of {"i": number, "category": string|null} — one entry per input item.
+Return ONLY a compact JSON array (no spaces, no code fences) of {"i": number, "category": string|null} — one entry per input item.
 category must be exactly one name_en from this list whose [type] matches the item's type (or [both]), or null if none clearly fits:
 ${list}
 Never change amounts, types or text. Never invent items.`;
@@ -291,6 +291,24 @@ function firstJsonArray(text: string): unknown {
   }
 }
 
+/** Complete {"i": n, "category": ...} objects from a possibly truncated reply. */
+function salvageRecapEntries(rawText: string): { i: number; category?: string | null }[] {
+  const out: { i: number; category?: string | null }[] = [];
+  for (const m of rawText.matchAll(/\{\s*"i"\s*:\s*(\d+)\s*,\s*"category"\s*:\s*(null|"(?:[^"\\]|\\.)*")\s*\}/g)) {
+    try {
+      out.push({ i: Number(m[1]), category: JSON.parse(m[2]) as string | null });
+    } catch {
+      // skip a malformed entry
+    }
+  }
+  return out;
+}
+
+/** Output budget for a recap pass: enough for every item's entry, so the reply is never cut off. */
+export function recapCategoryMaxTokens(itemCount: number): number {
+  return 80 + 30 * itemCount;
+}
+
 /**
  * Validated AI categories by item index. Only an index that was asked
  * about, a category from the user's own list, and a category whose type
@@ -302,9 +320,11 @@ export function normalizeRecapCategoryOutput(
   categories: CaptureCategory[]
 ): Record<number, string> {
   const parsed = recapCategorySchema.safeParse(firstJsonArray(rawText));
-  if (!parsed.success) return {};
+  // A reply cut off by the token limit is not valid JSON as a whole — keep
+  // every entry that did arrive complete instead of losing the whole batch.
+  const entries = parsed.success ? parsed.data : salvageRecapEntries(rawText);
   const out: Record<number, string> = {};
-  for (const entry of parsed.data) {
+  for (const entry of entries) {
     const item = items[entry.i];
     const name = clean(entry.category, 80)?.toLowerCase();
     if (!item || !name) continue;

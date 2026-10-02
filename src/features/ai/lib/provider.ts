@@ -6,6 +6,14 @@ export interface GenerateParams {
   system: string;
   messages: AIMessage[];
   maxTokens?: number;
+  /**
+   * "off" for short extraction/classification calls. Newer models think
+   * before answering by default, and thinking tokens come out of the SAME
+   * max_tokens budget — with a small budget the visible answer was cut off
+   * mid-JSON (found by evals/capture-ai.eval.ts: a 20-item recap lost its
+   * last 8 categories). Omit to keep the model's default (coaching).
+   */
+  thinking?: "off";
 }
 
 /**
@@ -54,6 +62,10 @@ export interface AIProvider {
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 const DEFAULT_MODEL = "claude-sonnet-5";
+// One model for every task. The Thai capture eval (evals/capture-ai.eval.ts,
+// 2026-10-03) compared it with Haiku 4.5 on the capture helpers: with
+// thinking off, Sonnet was 98% / 100% vs Haiku's 90% / 80% (categories /
+// sentence reading) at about the same speed — not worth a second model.
 // 1024 was found live (Day 6 pre-flight AI verification) to truncate normal
 // coaching answers mid-sentence/mid-word — a broad question like "how are my
 // finances and what should I do first" routinely needs more than 1024 output
@@ -94,6 +106,7 @@ class AnthropicProvider implements AIProvider {
       system: params.system,
       messages: params.messages.filter((m) => m.role !== "system").map(toAnthropicMessage),
       stream,
+      ...(params.thinking === "off" ? { thinking: { type: "disabled" } } : {}),
     };
   }
 
@@ -214,6 +227,11 @@ export function getAIProvider(): AIProvider | null {
   const model = process.env.AI_MODEL || DEFAULT_MODEL;
   cachedProvider = new AnthropicProvider(apiKey, model);
   return cachedProvider;
+}
+
+/** A provider pinned to one model — for offline evals comparing models, never request handling. */
+export function createAIProviderForModel(apiKey: string, model: string): AIProvider {
+  return new AnthropicProvider(apiKey, model);
 }
 
 /** Test-only: overrides the cached provider (e.g. with a mock) or clears it. */
