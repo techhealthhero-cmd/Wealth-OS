@@ -16,14 +16,18 @@ typical month, e.g. ฿200 per drink × 150 = ฿30,000; the server derives
 `calculatePerUnitMonthlyCents`, never trusting the client total) and have
 a **"15th and end of month"** (`semimonthly`) frequency. Migration
 `0036_income_source_pay_basis.sql` (additive columns + widened frequency
-check) is **committed but NOT applied** — the agent's dry-run was denied,
-so it needs `supabase db push --linked --dry-run` then
-`supabase db push --linked` by the user. Remote was verified at 0035
-(local = remote) before 0036 was written. Until applied, fixed-pay
-sources keep saving (verified against the real DB with a disposable user:
-new-column insert → `PGRST204`, legacy retry → OK; `semimonthly` →
-`23514`), and per-unit/semimonthly saves show a clear "database is being
-updated" message instead of failing.
+check) is **applied to production** (2026-10-02, pushed by the user;
+`migration list --linked` shows local = remote through 0036).
+
+Verified on the real database with disposable users (cleaned up, 0 rows
+left): per-unit + semimonthly saves through RLS; old-style rows still
+save and default to `fixed`; per-unit without units, a zero rate, and an
+unknown frequency are all rejected (`23514`). Permanent E2E
+`tests/e2e/income-per-unit-live.spec.ts` drives the real form (฿200 × 150
+ดื่ม → preview ฿30,000 → stored 30,000, semimonthly → card shows rate and
+frequency). The pre-migration fallback in `income-sources/actions.ts`
+(`PGRST204`/`42703`/`23514` → legacy row shape) stays as harmless defence
+but can be removed in a later cleanup now that 0036 is everywhere.
 
 ## Earn V2 — 2026-09-30
 
