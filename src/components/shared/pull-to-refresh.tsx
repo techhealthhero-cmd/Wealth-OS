@@ -210,7 +210,11 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
       startXRef.current = e.touches[0].clientX;
       isPullingRef.current = false;
       axisRef.current = null;
-      skipSwipeNavRef.current = isInsideHorizontalScroller(e.target, boundary);
+      // Elements with their own horizontal gesture (swipe-to-delete rows)
+      // opt out explicitly: their swipe must never also switch tabs.
+      skipSwipeNavRef.current =
+        isInsideHorizontalScroller(e.target, boundary) ||
+        (e.target instanceof Element && e.target.closest("[data-no-swipe-nav]") !== null);
     }
 
     function handleTouchMove(e: TouchEvent) {

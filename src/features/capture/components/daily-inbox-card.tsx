@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Check, ChevronDown, Inbox, Pencil } from "lucide-react";
 
@@ -14,6 +14,8 @@ import { categoryEmoji, formatFriendlyDate } from "@/lib/transaction-ui";
 import { CategoryPicker } from "@/features/transactions/components/category-picker";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { confirmInboxTransaction } from "@/features/capture/actions";
+import { deleteTransaction } from "@/features/transactions/actions";
+import { SwipeToDelete } from "@/components/shared/swipe-to-delete";
 import type { DailyInbox, InboxTransaction } from "@/features/capture/queries";
 import { canBulkConfirm, inboxReviewReasons } from "@/lib/capture/inbox";
 
@@ -38,11 +40,13 @@ function InboxItem({
   categories,
   accounts,
   onConfirmed,
+  onDelete,
 }: {
   item: InboxTransaction;
   categories: Category[];
   accounts: Account[];
   onConfirmed: (id: string) => void;
+  onDelete: (item: InboxTransaction) => void;
 }) {
   const { t, locale } = useTranslation();
   const [picking, setPicking] = useState(false);
@@ -65,7 +69,14 @@ function InboxItem({
   }
 
   return (
-    <li className={cn("space-y-2 rounded-2xl border bg-background p-3 transition-opacity", pending && "opacity-50")}>
+    <SwipeToDelete
+      as="li"
+      className="rounded-2xl"
+      deleteLabel={t("capture.inbox.delete")}
+      a11yLabel={`${t("capture.inbox.delete")}: ${label} ${formatMoneyFromDecimal(item.amount)}`}
+      onDelete={() => onDelete(item)}
+    >
+    <div className={cn("space-y-2 rounded-2xl border bg-background p-3 transition-opacity", pending && "opacity-50")}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className={cn("text-lg font-bold tabular-nums", item.type === "income" && "text-emerald-600")}>
@@ -149,9 +160,13 @@ function InboxItem({
         open={editing}
         onOpenChange={setEditing}
       />
-    </li>
+    </div>
+    </SwipeToDelete>
   );
 }
+
+/** How long a swiped-away item can still be brought back. */
+const UNDO_WINDOW_MS = 5000;
 
 /**
  * Daily Inbox — "capture first, organize later". Everything captured today
@@ -171,12 +186,72 @@ export function DailyInboxCard({
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [showConfirmed, setShowConfirmed] = useState(false);
   const [confirmingAll, startConfirmAll] = useTransition();
+  // Swiped-away items: hidden at once, actually deleted only once the undo
+  // toast is gone — a mis-swipe costs nothing. Leaving the page commits any
+  // that are still waiting.
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const pendingDeletes = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
-  const pending = inbox.items.filter((i) => i.review_status === "needs_review" && !confirmedIds.has(i.id));
+  async function commitDelete(id: string) {
+    if (!pendingDeletes.current.has(id)) return; // undone, or already sent
+    pendingDeletes.current.delete(id);
+    const res = await deleteTransaction(id);
+    if (!res.success) {
+      setHiddenIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      toast.error(res.error ?? t("capture.saveFailed"));
+    }
+  }
+
+  function deleteItem(item: InboxTransaction) {
+    // Our own timer decides when the delete happens — not the toast's
+    // lifecycle, which pauses while the screen is being touched.
+    pendingDeletes.current.set(
+      item.id,
+      setTimeout(() => void commitDelete(item.id), UNDO_WINDOW_MS)
+    );
+    setHiddenIds((prev) => new Set(prev).add(item.id));
+    toast(t("capture.inbox.deleted"), {
+      description: `${item.description || item.merchant || t("capture.inbox.unknownMerchant")} · ${formatMoneyFromDecimal(item.amount)}`,
+      duration: UNDO_WINDOW_MS,
+      action: {
+        label: t("capture.undo"),
+        onClick: () => {
+          const timer = pendingDeletes.current.get(item.id);
+          if (timer === undefined) return; // already deleted
+          clearTimeout(timer);
+          pendingDeletes.current.delete(item.id);
+          setHiddenIds((prev) => {
+            const next = new Set(prev);
+            next.delete(item.id);
+            return next;
+          });
+        },
+      },
+    });
+  }
+
+  // Leaving the page never loses a delete the user asked for.
+  useEffect(() => {
+    const waiting = pendingDeletes.current;
+    return () => {
+      for (const [id, timer] of waiting) {
+        clearTimeout(timer);
+        void deleteTransaction(id);
+      }
+      waiting.clear();
+    };
+  }, []);
+
+  const visible = inbox.items.filter((i) => !hiddenIds.has(i.id));
+  const pending = visible.filter((i) => i.review_status === "needs_review" && !confirmedIds.has(i.id));
   // Only complete items may be bulk-confirmed; undecided categories need a pick.
   const bulkConfirmable = pending.filter((i) => canBulkConfirm(i, categories));
   const needsPick = pending.length - bulkConfirmable.length;
-  const confirmedToday = inbox.items.filter(
+  const confirmedToday = visible.filter(
     (i) => i.transaction_date === inbox.today && (i.review_status === "confirmed" || confirmedIds.has(i.id))
   );
 
@@ -241,10 +316,12 @@ export function DailyInboxCard({
           <p className="text-xs text-muted-foreground">{t("capture.inbox.needsPickHint").replace("{count}", String(needsPick))}</p>
         ) : null}
 
+        {pending.length > 0 ? <p className="text-[11px] text-muted-foreground">{t("capture.inbox.swipeHint")}</p> : null}
+
         {pending.length > 0 ? (
           <ul className="space-y-2">
             {pending.map((item) => (
-              <InboxItem key={item.id} item={item} categories={categories} accounts={accounts} onConfirmed={markConfirmed} />
+              <InboxItem key={item.id} item={item} categories={categories} accounts={accounts} onConfirmed={markConfirmed} onDelete={deleteItem} />
             ))}
           </ul>
         ) : null}
@@ -265,7 +342,14 @@ export function DailyInboxCard({
                 {confirmedToday.map((item) => {
                   const category = categories.find((c) => c.id === item.category_id);
                   return (
-                    <li key={item.id} className="flex items-center justify-between gap-2 py-1.5">
+                    <SwipeToDelete
+                      key={item.id}
+                      as="li"
+                      deleteLabel={t("capture.inbox.delete")}
+                      a11yLabel={`${t("capture.inbox.delete")}: ${item.description || item.merchant || "—"} ${formatMoneyFromDecimal(item.amount)}`}
+                      onDelete={() => deleteItem(item)}
+                    >
+                    <div className="flex items-center justify-between gap-2 bg-card py-2">
                       <span className="flex min-w-0 items-center gap-2">
                         <span aria-hidden="true">{categoryEmoji(category?.icon ?? null)}</span>
                         <span className="truncate">{item.description || item.merchant || "—"}</span>
@@ -273,7 +357,8 @@ export function DailyInboxCard({
                       <span className={cn("shrink-0 tabular-nums", item.type === "income" && "text-emerald-600")}>
                         {formatMoneyFromDecimal(item.amount)}
                       </span>
-                    </li>
+                    </div>
+                    </SwipeToDelete>
                   );
                 })}
               </ul>
