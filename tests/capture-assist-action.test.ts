@@ -8,8 +8,14 @@ vi.mock("@/features/ai/lib/provider", () => ({
   getAIProvider: () => ({ name: "test", model: "test-model", generate, stream: vi.fn() }),
 }));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: async () => ({ allowed: true }) }));
+const { recordAIUsage, getAIUsageStatus } = vi.hoisted(() => ({
+  recordAIUsage: vi.fn(async (input: { feature: string }) => void input),
+  getAIUsageStatus: vi.fn(async () => ({ limitReached: false, remaining: 10, used: 0, limit: 10, resetDate: "2026-10-01" })),
+}));
 vi.mock("@/lib/billing/ai-usage", () => ({
-  getAIUsageStatus: async () => ({ limitReached: false, remaining: 10, used: 0, limit: 10, resetDate: "2026-10-01" }),
+  getAIUsageStatus,
+  getCaptureAIUsageStatus: async () => ({ limitReached: false, remaining: 60, used: 0, limit: 60, resetDate: "2026-10-01" }),
+  recordAIUsage,
 }));
 vi.mock("@/features/profile/queries", () => ({ getProfile: async () => ({ timezone: "Asia/Bangkok" }) }));
 vi.mock("@/i18n/server", () => ({ getLocale: async () => "en" }));
@@ -68,5 +74,8 @@ describe("assistCaptureParse server-side cost gate", () => {
     const result = await assistCaptureParse("เมื่อคืนพาแฟนไปกินข้าวที่ร้าน Fuji จ่ายไป 1280 จาก KBank");
     expect(result.status).toBe("ok");
     expect(generate).toHaveBeenCalledTimes(1);
+    // Capture help spends the capture quota — never the AI Coach chat messages.
+    expect(recordAIUsage).toHaveBeenCalledWith(expect.objectContaining({ feature: "capture" }));
+    expect(getAIUsageStatus).not.toHaveBeenCalled();
   });
 });

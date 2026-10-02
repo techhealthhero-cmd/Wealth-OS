@@ -716,6 +716,8 @@ export interface Database {
           model: string;
           input_tokens: number;
           output_tokens: number;
+          /** 0037 — which quota the call spent. */
+          feature: "chat" | "capture";
           created_at: string;
         };
         Insert: Partial<Omit<Database["public"]["Tables"]["ai_usage_log"]["Row"], "id" | "created_at">> & {

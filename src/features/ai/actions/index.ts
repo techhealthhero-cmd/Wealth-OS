@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { recordAIUsage } from "@/lib/billing/ai-usage";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
@@ -56,13 +57,7 @@ export async function logUsage(
   inputTokens: number,
   outputTokens: number
 ): Promise<void> {
-  const supabase = await createClient();
-  await supabase.from("ai_usage_log").insert({
-    user_id: userId,
-    model,
-    input_tokens: inputTokens,
-    output_tokens: outputTokens,
-  });
+  await recordAIUsage({ userId, model, inputTokens, outputTokens, feature: "chat" });
 }
 
 /**

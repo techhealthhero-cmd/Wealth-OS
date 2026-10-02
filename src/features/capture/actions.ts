@@ -13,7 +13,7 @@ import { detectSubscriptions } from "@/lib/financial/subscription-detector";
 import { normalizeMerchant, parseCaptureText } from "@/lib/capture/transaction-parser";
 import { todayInTimeZone } from "@/lib/date";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getAIUsageStatus } from "@/lib/billing/ai-usage";
+import { getCaptureAIUsageStatus, recordAIUsage } from "@/lib/billing/ai-usage";
 import { getAIProvider } from "@/features/ai/lib/provider";
 import type { AIImageMediaType } from "@/features/ai/types";
 import {
@@ -415,7 +415,7 @@ export async function scanReceipt(formData: FormData): Promise<ReceiptScanResult
 
   const isMock = process.env.CAPTURE_OCR_MOCK === "1";
   if (!isMock) {
-    const usage = await getAIUsageStatus(user.id);
+    const usage = await getCaptureAIUsageStatus(user.id);
     if (usage.limitReached) return { status: "limit", message: dict.capture.scanLimitReached };
   }
 
@@ -426,11 +426,12 @@ export async function scanReceipt(formData: FormData): Promise<ReceiptScanResult
       todayInTimeZone(timezone)
     );
     if (result.usage) {
-      await supabase.from("ai_usage_log").insert({
-        user_id: user.id,
+      await recordAIUsage({
+        userId: user.id,
         model: result.usage.model,
-        input_tokens: result.usage.inputTokens,
-        output_tokens: result.usage.outputTokens,
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        feature: "capture",
       });
     }
     return { status: "ok", extraction: result.extraction, mock: result.mock };
@@ -498,7 +499,7 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
 
   const burst = await checkRateLimit(`capture-assist:user:${user.id}`, { windowSeconds: 60, maxRequests: 10 });
   if (!burst.allowed) return { status: "limit" };
-  const usage = await getAIUsageStatus(user.id);
+  const usage = await getCaptureAIUsageStatus(user.id);
   if (usage.limitReached) return { status: "limit" };
 
   try {
@@ -507,11 +508,12 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
       maxTokens: 300,
       messages: [{ role: "user", content: input }],
     });
-    await supabase.from("ai_usage_log").insert({
-      user_id: user.id,
+    await recordAIUsage({
+      userId: user.id,
       model: result.model,
-      input_tokens: result.usage.inputTokens,
-      output_tokens: result.usage.outputTokens,
+      inputTokens: result.usage.inputTokens,
+      outputTokens: result.usage.outputTokens,
+      feature: "capture",
     });
     return { status: "ok", fields: normalizeAIParseOutput(result.content, { text: input, today, categories }) };
   } catch (error) {
@@ -558,7 +560,7 @@ export async function assistRecapCategories(items: RecapAIItem[]): Promise<Recap
   if (!provider) return { status: "unavailable" };
   const burst = await checkRateLimit(`capture-assist:user:${user.id}`, { windowSeconds: 60, maxRequests: 10 });
   if (!burst.allowed) return { status: "limit" };
-  const usage = await getAIUsageStatus(user.id);
+  const usage = await getCaptureAIUsageStatus(user.id);
   if (usage.limitReached) return { status: "limit" };
 
   try {
@@ -567,11 +569,12 @@ export async function assistRecapCategories(items: RecapAIItem[]): Promise<Recap
       maxTokens: 400,
       messages: [{ role: "user", content: JSON.stringify(clean.map((item, i) => ({ i, text: item.description, type: item.type }))) }],
     });
-    await supabase.from("ai_usage_log").insert({
-      user_id: user.id,
+    await recordAIUsage({
+      userId: user.id,
       model: result.model,
-      input_tokens: result.usage.inputTokens,
-      output_tokens: result.usage.outputTokens,
+      inputTokens: result.usage.inputTokens,
+      outputTokens: result.usage.outputTokens,
+      feature: "capture",
     });
     return { status: "ok", categories: normalizeRecapCategoryOutput(result.content, clean, categories ?? []) };
   } catch (err) {

@@ -48,6 +48,13 @@ export type FeatureId = (typeof FEATURES)[keyof typeof FEATURES];
 export interface PlanLimits {
   /** AI Money Coach messages allowed per calendar-month billing period. */
   aiMessagesPerMonth: number;
+  /**
+   * Quick Capture AI helpers (slip scan, sentence reading, recap
+   * categories) per billing period — a separate counter (migration 0037)
+   * so capturing money never uses up the chat allowance. Sized for daily
+   * use on every plan; it exists to bound cost, not to upsell.
+   */
+  aiCaptureAssistsPerMonth: number;
   /** Active (non-archived) financial goals. */
   activeGoalsMax: number | null;
   /** Rows shown from the Income Opportunity catalog (Day 5 Earn). */
@@ -116,6 +123,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     billingPeriod: "monthly",
     limits: {
       aiMessagesPerMonth: 15,
+      aiCaptureAssistsPerMonth: 60,
       activeGoalsMax: 3,
       incomeOpportunitiesMax: 3,
       incomeMissionsMax: 3,
@@ -145,6 +153,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     billingPeriod: "monthly",
     limits: {
       aiMessagesPerMonth: 150,
+      aiCaptureAssistsPerMonth: 300,
       activeGoalsMax: null,
       incomeOpportunitiesMax: null,
       incomeMissionsMax: null,
@@ -174,6 +183,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     billingPeriod: "monthly",
     limits: {
       aiMessagesPerMonth: 500,
+      aiCaptureAssistsPerMonth: 1000,
       activeGoalsMax: null,
       incomeOpportunitiesMax: null,
       incomeMissionsMax: null,
