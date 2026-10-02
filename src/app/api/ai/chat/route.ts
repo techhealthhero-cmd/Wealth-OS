@@ -5,7 +5,7 @@ import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { buildFinancialContext } from "@/features/ai/lib/context-builder";
-import { buildSystemPrompt } from "@/features/ai/prompts/money-coach";
+import { buildSystemPrompt, buildSystemPromptStablePrefix } from "@/features/ai/prompts/money-coach";
 import { getAIProvider } from "@/features/ai/lib/provider";
 import {
   containsDistressSignal,
@@ -24,6 +24,13 @@ import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 import { isPrivacyLockedFor } from "@/features/account-privacy/types";
 
 const MAX_HISTORY_MESSAGES = 20;
+/**
+ * Coach replies are Thai and token-heavy: a detailed "analyse everything"
+ * answer measured ~2,200 tokens and was cut off mid-sentence at the old
+ * 2,048 limit (worse with thinking on, which spent ~700 of them). With
+ * thinking off and this budget it completes (evals/debug runs, 2026-10-03).
+ */
+const COACH_MAX_TOKENS = 4000;
 
 /**
  * Streaming chat endpoint. Emits newline-delimited JSON events rather than
@@ -164,14 +171,32 @@ export async function POST(request: Request) {
     async start(controller) {
       send(controller, { type: "conversation", conversationId: finalConversationId });
       try {
-        const generator = provider.stream({ system, messages: conversationMessages });
+        const generator = provider.stream({
+          system,
+          messages: conversationMessages,
+          maxTokens: COACH_MAX_TOKENS,
+          // The numbers are pre-computed by deterministic tools — the Coach
+          // narrates and advises, so thinking only cost budget and latency.
+          thinking: "off",
+          // Same input, cheaper and faster: the fixed instructions and the
+          // earlier turns are cached between messages.
+          cacheablePrefix: buildSystemPromptStablePrefix(context.locale),
+          cacheConversation: true,
+        });
         let result = await generator.next();
         while (!result.done) {
           send(controller, { type: "delta", text: result.value });
           result = await generator.next();
         }
         const final = result.value;
-        await appendMessage(user.id, finalConversationId, "assistant", final.content);
+        // Never leave an answer stopping mid-sentence without saying so.
+        let content = final.content;
+        if (final.stopReason === "max_tokens") {
+          const note = `\n\n_${dict.aiCoach.answerCutOff}_`;
+          send(controller, { type: "delta", text: note });
+          content += note;
+        }
+        await appendMessage(user.id, finalConversationId, "assistant", content);
         await touchConversation(finalConversationId, user.id);
         await logUsage(user.id, final.model, final.usage.inputTokens, final.usage.outputTokens);
         // `usage` was resolved before this request's own reply was logged,

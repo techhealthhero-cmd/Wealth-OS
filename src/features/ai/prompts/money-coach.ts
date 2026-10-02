@@ -213,6 +213,15 @@ export function renderFinancialContext(ctx: FinancialContext): string {
   return lines.join("\n");
 }
 
+/**
+ * The part of the Coach system prompt that never changes for a locale —
+ * sent as a cached prefix (prompt caching). buildSystemPrompt() always
+ * starts with exactly this string.
+ */
+export function buildSystemPromptStablePrefix(locale: Locale): string {
+  return [CORE_SYSTEM_PROMPT, "", LOCALE_INSTRUCTIONS[locale]].join("\n");
+}
+
 export function buildSystemPrompt(ctx: FinancialContext): string {
   return [
     CORE_SYSTEM_PROMPT,

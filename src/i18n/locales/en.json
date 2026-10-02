@@ -1033,6 +1033,7 @@
     }
   },
   "aiCoach": {
+    "answerCutOff": "This answer was too long to show at once — type \"continue\" to read the rest.",
     "title": "AI Money Coach",
     "subtitle": "Your personal financial assistant",
     "openFullPage": "Open full page",

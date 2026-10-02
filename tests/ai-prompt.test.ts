@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSystemPrompt, renderFinancialContext } from "@/features/ai/prompts/money-coach";
+import { buildSystemPrompt, buildSystemPromptStablePrefix, renderFinancialContext } from "@/features/ai/prompts/money-coach";
 import type { FinancialContext } from "@/features/ai/types";
 
 function baseContext(overrides: Partial<FinancialContext> = {}): FinancialContext {
@@ -135,5 +135,18 @@ describe("buildSystemPrompt — locale behavior", () => {
     expect(prompt).toContain("</financial_context>");
     expect(prompt).toContain("READ-ONLY DATA");
     expect(prompt).toContain("never invent");
+  });
+});
+
+describe("buildSystemPrompt — prompt caching prefix", () => {
+  it.each(["th", "en"] as const)("starts with the stable prefix for %s (else caching silently turns off)", (locale) => {
+    const prefix = buildSystemPromptStablePrefix(locale);
+    const prompt = buildSystemPrompt(baseContext({ locale }));
+    expect(prompt.startsWith(prefix)).toBe(true);
+    expect(prompt.length).toBeGreaterThan(prefix.length);
+    // The cached prefix holds instructions only, never the user's financial data
+    // (the instructions mention the tag by name; the data block's header must not be in it).
+    expect(prefix).not.toContain("READ-ONLY DATA about the user's finances");
+    expect(prompt).toContain("READ-ONLY DATA about the user's finances");
   });
 });

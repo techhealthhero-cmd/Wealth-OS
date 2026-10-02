@@ -32,3 +32,42 @@ describe("AI provider — thinking control", () => {
     expect(bodies[1]).not.toHaveProperty("thinking");
   });
 });
+
+describe("AI provider — prompt caching", () => {
+  it("splits the system prompt into a cached stable prefix + the changing rest", async () => {
+    const bodies = mockFetch();
+    const provider = createAIProviderForModel("test-key", "claude-sonnet-5");
+    await provider.generate({ system: "RULES\n\nCONTEXT", cacheablePrefix: "RULES", messages: [{ role: "user", content: "x" }] });
+    expect(bodies[0].system).toEqual([
+      { type: "text", text: "RULES", cache_control: { type: "ephemeral" } },
+      { type: "text", text: "\n\nCONTEXT" },
+    ]);
+  });
+
+  it("ignores a prefix that doesn't match, and keeps a plain string when no prefix is given", async () => {
+    const bodies = mockFetch();
+    const provider = createAIProviderForModel("test-key", "claude-sonnet-5");
+    await provider.generate({ system: "OTHER", cacheablePrefix: "RULES", messages: [{ role: "user", content: "x" }] });
+    await provider.generate({ system: "PLAIN", messages: [{ role: "user", content: "x" }] });
+    expect(bodies[0].system).toBe("OTHER");
+    expect(bodies[1].system).toBe("PLAIN");
+  });
+
+  it("caches the conversation up to (not including) the newest message", async () => {
+    const bodies = mockFetch();
+    const provider = createAIProviderForModel("test-key", "claude-sonnet-5");
+    await provider.generate({
+      system: "s",
+      cacheConversation: true,
+      messages: [
+        { role: "user", content: "q1" },
+        { role: "assistant", content: "a1" },
+        { role: "user", content: "q2" },
+      ],
+    });
+    const messages = bodies[0].messages as { role: string; content: unknown }[];
+    expect(messages[0].content).toBe("q1");
+    expect(messages[1].content).toEqual([{ type: "text", text: "a1", cache_control: { type: "ephemeral" } }]);
+    expect(messages[2].content).toBe("q2");
+  });
+});

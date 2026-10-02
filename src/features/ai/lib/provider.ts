@@ -14,6 +14,41 @@ export interface GenerateParams {
    * last 8 categories). Omit to keep the model's default (coaching).
    */
   thinking?: "off";
+  /**
+   * Prompt caching. `cacheablePrefix`: the leading part of `system` that is
+   * identical on every request (e.g. the Coach's instructions) — cached so
+   * repeat requests re-read it cheaply instead of paying for it in full.
+   * `cacheConversation`: also cache everything before the newest message,
+   * so a back-and-forth chat doesn't re-pay for its whole history each turn.
+   * Pure cost/latency optimisations — the model sees exactly the same input.
+   */
+  cacheablePrefix?: string;
+  cacheConversation?: boolean;
+}
+
+const EPHEMERAL = { type: "ephemeral" } as const;
+
+/** The system prompt, split into a cached stable prefix + the rest when a prefix is given. */
+function buildSystem(params: GenerateParams): string | { type: "text"; text: string; cache_control?: typeof EPHEMERAL }[] {
+  const prefix = params.cacheablePrefix;
+  if (!prefix || !params.system.startsWith(prefix) || params.system.length === prefix.length) return params.system;
+  return [
+    { type: "text", text: prefix, cache_control: EPHEMERAL },
+    { type: "text", text: params.system.slice(prefix.length) },
+  ];
+}
+
+/** Messages, with a cache breakpoint on the one before the newest when asked. */
+function buildMessages(params: GenerateParams): { role: string; content: unknown }[] {
+  const messages = params.messages.filter((m) => m.role !== "system").map(toAnthropicMessage);
+  if (!params.cacheConversation || messages.length < 2) return messages;
+  const at = messages.length - 2;
+  const target = messages[at];
+  const blocks = typeof target.content === "string" ? [{ type: "text", text: target.content }] : (target.content as Record<string, unknown>[]);
+  if (blocks.length === 0) return messages;
+  const last = { ...blocks[blocks.length - 1], cache_control: EPHEMERAL };
+  messages[at] = { role: target.role, content: [...blocks.slice(0, -1), last] };
+  return messages;
 }
 
 /**
@@ -40,8 +75,11 @@ function toAnthropicMessage(m: AIMessage): { role: string; content: unknown } {
 
 export interface GenerateResult {
   content: string;
-  usage: { inputTokens: number; outputTokens: number };
+  /** inputTokens = uncached input only; cache reads/writes are reported separately. */
+  usage: { inputTokens: number; outputTokens: number; cacheReadTokens?: number; cacheWriteTokens?: number };
   model: string;
+  /** "max_tokens" = the answer was cut off by the output budget. */
+  stopReason?: string;
 }
 
 /**
@@ -78,9 +116,9 @@ const DEFAULT_MAX_TOKENS = 2048;
 // risks generating and billing a second response for one user message.
 const REQUEST_TIMEOUT_MS = 30_000;
 // Streaming needs more headroom than a single non-streaming call: the
-// timeout covers the entire response, and a full DEFAULT_MAX_TOKENS reply
-// can legitimately take longer than 30s to finish streaming.
-const STREAM_TIMEOUT_MS = 60_000;
+// timeout covers the entire response. Measured 2026-10-03: ~85 output
+// tokens/s, so a full COACH_MAX_TOKENS reply needs ~50s — 90s leaves room.
+const STREAM_TIMEOUT_MS = 90_000;
 
 /**
  * Direct `fetch` against the Anthropic Messages API — no SDK dependency,
@@ -103,8 +141,8 @@ class AnthropicProvider implements AIProvider {
     return {
       model: this.model,
       max_tokens: params.maxTokens ?? DEFAULT_MAX_TOKENS,
-      system: params.system,
-      messages: params.messages.filter((m) => m.role !== "system").map(toAnthropicMessage),
+      system: buildSystem(params),
+      messages: buildMessages(params),
       stream,
       ...(params.thinking === "off" ? { thinking: { type: "disabled" } } : {}),
     };
@@ -138,8 +176,11 @@ class AnthropicProvider implements AIProvider {
       usage: {
         inputTokens: data.usage?.input_tokens ?? 0,
         outputTokens: data.usage?.output_tokens ?? 0,
+        cacheReadTokens: data.usage?.cache_read_input_tokens ?? 0,
+        cacheWriteTokens: data.usage?.cache_creation_input_tokens ?? 0,
       },
       model: this.model,
+      stopReason: data.stop_reason,
     };
   }
 
@@ -166,6 +207,9 @@ class AnthropicProvider implements AIProvider {
     let fullText = "";
     let inputTokens = 0;
     let outputTokens = 0;
+    let cacheReadTokens = 0;
+    let cacheWriteTokens = 0;
+    let stopReason: string | undefined;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -194,16 +238,23 @@ class AnthropicProvider implements AIProvider {
             yield delta.text;
           }
         } else if (event.type === "message_start") {
-          const usage = (event.message as { usage?: { input_tokens?: number } } | undefined)?.usage;
+          const usage = (
+            event.message as
+              | { usage?: { input_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } }
+              | undefined
+          )?.usage;
           inputTokens = usage?.input_tokens ?? 0;
+          cacheReadTokens = usage?.cache_read_input_tokens ?? 0;
+          cacheWriteTokens = usage?.cache_creation_input_tokens ?? 0;
         } else if (event.type === "message_delta") {
           const usage = event.usage as { output_tokens?: number } | undefined;
           outputTokens = usage?.output_tokens ?? outputTokens;
+          stopReason = (event.delta as { stop_reason?: string } | undefined)?.stop_reason ?? stopReason;
         }
       }
     }
 
-    return { content: fullText, usage: { inputTokens, outputTokens }, model: this.model };
+    return { content: fullText, usage: { inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens }, model: this.model, stopReason };
   }
 }
 

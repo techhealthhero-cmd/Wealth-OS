@@ -92,7 +92,8 @@ describe("AnthropicProvider.stream — SSE parsing", () => {
 
     expect(chunks.join("")).toBe("สวัสดีครับ");
     expect(step.value.content).toBe("สวัสดีครับ");
-    expect(step.value.usage).toEqual({ inputTokens: 42, outputTokens: 7 });
+    // Cache reads/writes are reported separately (0 here — no cache in the fixture).
+    expect(step.value.usage).toEqual({ inputTokens: 42, outputTokens: 7, cacheReadTokens: 0, cacheWriteTokens: 0 });
   });
 
   it("throws a descriptive error when the API responds with a non-OK status", async () => {

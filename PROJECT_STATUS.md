@@ -8,6 +8,31 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-10-02
 
+## AI cost & quality pass — 2026-10-03
+
+- **Separate quotas** (migration `0037_ai_usage_feature.sql`, **committed,
+  NOT yet applied** — run `supabase db push --linked --dry-run` then
+  `supabase db push --linked`): Quick Capture AI (slip scan, sentence
+  reading, recap categories) no longer uses up AI Coach chat messages; it
+  has its own monthly cap (`aiCaptureAssistsPerMonth` 60/300/1000). Until
+  0037 is applied, counting/logging fall back to the old shared quota.
+- **Thai capture eval** `evals/capture-ai.eval.ts` (real API, not in
+  `npm test`; `npx vitest run --config vitest.eval.config.ts`). Found that
+  the model's default thinking shares `max_tokens`, cutting short answers
+  mid-JSON; capture helpers now send `thinking: "off"`, the recap budget
+  scales with item count, and truncated replies keep complete entries.
+  Result: claude-sonnet-5 98% categories / 100% sentences vs Haiku 4.5
+  90% / 80% — the planned switch to Haiku was **dropped**; one model.
+- **AI Coach**: detailed Thai answers were cut off mid-sentence at 2,048
+  tokens. Now thinking off + 4,000-token budget (measured: complete
+  ~2,200-token answer in 26s, first token 1.2s), stream timeout 90s, and
+  an explicit "type ต่อ to continue" note if a reply is still cut off.
+- **Prompt caching** for the Coach: stable instructions + earlier turns
+  are cached (`evals/coach-cache.eval.ts` verified on the real API: 2nd
+  message read 1,259 tokens from cache, 3rd 1,507; uncached input 26/12).
+- Live E2E `tests/e2e/ai-coach-live.spec.ts`: two-turn chat streams,
+  saves, answers with the real balance, logs two chat usage rows.
+
 ## Income sources: per-unit pay + semimonthly frequency — 2026-10-02
 
 Income sources can be paid **per piece of work** (rate × units in a
