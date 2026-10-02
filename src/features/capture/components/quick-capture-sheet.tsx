@@ -46,6 +46,7 @@ import { prepareReceiptImage } from "@/features/capture/lib/image";
 import { TransactionPreview } from "./transaction-preview";
 import { HoldToTalkButton } from "./hold-to-talk-button";
 import { RecapReview, type RecapRow } from "./recap-review";
+import { MicPermissionTip } from "./mic-permission-tip";
 
 interface QuickCaptureSheetProps {
   open: boolean;
@@ -691,6 +692,7 @@ export function QuickCaptureSheet({
                 {t("capture.manual")}
               </button>
             </div>
+            {speech.supported && !speech.listening ? <MicPermissionTip /> : null}
             {!speech.supported ? <p className="text-xs text-muted-foreground">{t("capture.voiceUnsupported")}</p> : null}
             {speech.error ? <p className="text-xs text-amber-700 dark:text-amber-400">{t("capture.voiceError")}</p> : null}
 

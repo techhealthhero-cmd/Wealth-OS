@@ -67,6 +67,11 @@
     "importStatement": "Import CSV"
   },
   "capture": {
+    "micTip": {
+      "title": "Tired of the microphone prompt?",
+      "steps": "Set it once: iPhone Settings → Apps → Safari → Microphone → choose \"Allow\"",
+      "dismiss": "Hide this tip"
+    },
     "recap": {
       "placeholder": "Type, or hold the mic and talk through your day…",
       "example": "lunch 40 water 10 bike taxi 40 salary 20,000",

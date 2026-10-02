@@ -39,6 +39,7 @@ interface SpeechRecognitionLike {
   onerror: ((event: { error?: string }) => void) | null;
   start: () => void;
   stop: () => void;
+  abort: () => void;
 }
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 
@@ -47,6 +48,18 @@ function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
   const w = window as unknown as { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
+
+/** Set once the user has actually granted the mic and been heard — lets the UI offer the "always allow" tip. */
+export const MIC_USED_KEY = "wos.mic.used";
+
+// ONE recognizer for the page's lifetime. iOS Safari can show the
+// microphone prompt again for every new SpeechRecognition object, and
+// hold-to-talk restarts recognition after each pause — so a fresh object
+// per start meant a prompt per pause. Reusing one keeps it to (at most)
+// one prompt per app session.
+let sharedRecognizer: SpeechRecognitionLike | null = null;
+let recognizerBusy = false;
+let sessionGeneration = 0;
 
 /** On-device/browser recognition (Safari, Chrome). Nothing is sent to our servers. */
 export const browserSpeechProvider: SpeechProvider = {
@@ -59,19 +72,62 @@ export const browserSpeechProvider: SpeechProvider = {
       onEnd();
       return { stop() {} };
     }
-    const recognition = new Ctor();
-    recognition.lang = lang;
-    recognition.interimResults = true;
-    recognition.continuous = continuous;
-    recognition.onresult = (event) => {
-      const results = Array.from(event.results);
-      const text = results.map((r) => r[0]?.transcript ?? "").join("");
-      onTranscript(text, results.every((r) => r.isFinal !== false));
+    sharedRecognizer ??= new Ctor();
+    const recognition = sharedRecognizer;
+    // Events from an older session must never reach this one's callbacks.
+    const generation = ++sessionGeneration;
+    const current = () => generation === sessionGeneration;
+
+    const begin = () => {
+      if (!current()) return;
+      recognition.lang = lang;
+      recognition.interimResults = true;
+      recognition.continuous = continuous;
+      recognition.onresult = (event) => {
+        if (!current()) return;
+        const results = Array.from(event.results);
+        const text = results.map((r) => r[0]?.transcript ?? "").join("");
+        try {
+          window.localStorage.setItem(MIC_USED_KEY, "1");
+        } catch {
+          // Private mode etc. — the tip is optional.
+        }
+        onTranscript(text, results.every((r) => r.isFinal !== false));
+      };
+      recognition.onerror = (event) => {
+        if (current()) onError(event?.error ?? "error");
+      };
+      recognition.onend = () => {
+        recognizerBusy = false;
+        if (current()) onEnd();
+      };
+      try {
+        recognition.start();
+        recognizerBusy = true;
+      } catch {
+        recognizerBusy = false;
+        onError("start-failed");
+        onEnd();
+      }
     };
-    recognition.onend = onEnd;
-    recognition.onerror = (event) => onError(event?.error ?? "error");
-    recognition.start();
-    return { stop: () => recognition.stop() };
+
+    if (recognizerBusy) {
+      // Still finishing a previous session: stop it quietly, then start.
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = () => {
+        recognizerBusy = false;
+        begin();
+      };
+      recognition.abort();
+    } else {
+      begin();
+    }
+    return {
+      stop: () => {
+        if (current() && recognizerBusy) recognition.stop();
+      },
+    };
   },
 };
 
