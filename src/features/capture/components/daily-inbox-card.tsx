@@ -75,6 +75,9 @@ function InboxItem({
       deleteLabel={t("capture.inbox.delete")}
       a11yLabel={`${t("capture.inbox.delete")}: ${label} ${formatMoneyFromDecimal(item.amount)}`}
       onDelete={() => onDelete(item)}
+      // Swipe right = the same editor as the ✏️ button.
+      editLabel={t("capture.edit")}
+      onEdit={() => setEditing(true)}
     >
     <div className={cn("space-y-2 rounded-2xl border bg-background p-3 transition-opacity", pending && "opacity-50")}>
       <div className="flex items-start gap-3">
@@ -182,6 +185,7 @@ export function DailyInboxCard({
   const { t } = useTranslation();
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [showConfirmed, setShowConfirmed] = useState(false);
+  const [editingConfirmed, setEditingConfirmed] = useState<InboxTransaction | null>(null);
   const [confirmingAll, startConfirmAll] = useTransition();
   // Swiped-away items: hidden at once, deleted after the undo window.
   const { hiddenIds, deleteWithUndo } = useUndoableDelete({
@@ -299,6 +303,8 @@ export function DailyInboxCard({
                       deleteLabel={t("capture.inbox.delete")}
                       a11yLabel={`${t("capture.inbox.delete")}: ${item.description || item.merchant || "—"} ${formatMoneyFromDecimal(item.amount)}`}
                       onDelete={() => deleteItem(item)}
+                      editLabel={t("capture.edit")}
+                      onEdit={() => setEditingConfirmed(item)}
                     >
                     <div className="flex items-center justify-between gap-2 bg-card py-2">
                       <span className="flex min-w-0 items-center gap-2">
@@ -315,6 +321,23 @@ export function DailyInboxCard({
               </ul>
             ) : null}
           </div>
+        ) : null}
+
+        {/* Confirmed rows have no inline editor of their own — one shared
+            form, opened by swiping a confirmed row right. */}
+        {editingConfirmed ? (
+          <TransactionForm
+            key={editingConfirmed.id}
+            defaultType={editingConfirmed.type === "income" ? "income" : "expense"}
+            accounts={accounts}
+            categories={categories}
+            transaction={toEditableTransaction(editingConfirmed)}
+            trigger={null}
+            open
+            onOpenChange={(open) => {
+              if (!open) setEditingConfirmed(null);
+            }}
+          />
         ) : null}
       </CardContent>
     </Card>

@@ -88,7 +88,7 @@ test("Daily Inbox: swipe to delete, undo, and the tap-to-delete reveal", async (
     await page.waitForURL(/\/dashboard/, { timeout: 20_000 });
     const cdp = await page.context().newCDPSession(page);
 
-    await expect(page.getByText("ปัดรายการไปทางซ้ายหรือขวาเพื่อลบ", { exact: false })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("ปัดซ้ายเพื่อลบ · ปัดขวาเพื่อแก้ไข", { exact: false })).toBeVisible({ timeout: 20_000 });
 
     // 1) Full swipe LEFT → gone at once, deleted after the undo window; ✓ was never pressed.
     const first = row(page, "ไก่ทอดหาดใหญ่");
@@ -100,12 +100,24 @@ test("Daily Inbox: swipe to delete, undo, and the tap-to-delete reveal", async (
     const { data: stillPending } = await admin.from("transactions").select("review_status").eq("id", idOf("แม่ให้ผิด")).single();
     expect(stillPending!.review_status).toBe("needs_review");
 
-    // 2) Full swipe RIGHT, then undo → it comes back and is NOT deleted.
+    // 2) Full swipe LEFT, then undo → it comes back and is NOT deleted.
     box = await centred(page, "แม่ให้ผิด");
-    await touchSwipe(cdp, box.y + 40, box.x + 20, box.x + box.width - 20);
+    await touchSwipe(cdp, box.y + 40, box.x + box.width - 30, box.x + 20);
     await page.getByRole("button", { name: "เลิกทำ" }).click();
     await expect(row(page, "แม่ให้ผิด")).toBeVisible();
     await page.waitForTimeout(6_500);
+    expect(await exists("แม่ให้ผิด")).toBe(1);
+
+    // 2b) Full swipe RIGHT → that item's edit form opens; nothing is deleted.
+    box = await centred(page, "แม่ให้ผิด");
+    await touchSwipe(cdp, box.y + 40, box.x + 20, box.x + box.width - 20);
+    const amount = page.getByRole("dialog", { name: /แก้ไขรายการ/ }).getByRole("textbox", { name: "จำนวนเงิน" });
+    await expect(amount).toBeVisible({ timeout: 10_000 });
+    await expect(amount).toHaveValue("80");
+    await page.screenshot({ path: testInfo.outputPath("inbox-swipe-edit-390.png") });
+    await page.getByRole("button", { name: "ปิด" }).first().click();
+    await expect(amount).toHaveCount(0);
+    await expect(page.getByText("ลบรายการแล้ว")).toHaveCount(0);
     expect(await exists("แม่ให้ผิด")).toBe(1);
 
     // 3) Short swipe → the red "ลบ" stays open; tapping it deletes.
