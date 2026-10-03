@@ -187,6 +187,9 @@
  *   sheets/dialogs/sections 180-280ms -> --motion-normal / --motion-slow
  *   financial values/progress 400-700ms -> --motion-value
  *   charts                  500-800ms -> --motion-chart
+ *   closing any window       1100ms  -> --motion-close / --ease-close
+ *     (requested 2026-10-03: every sheet/dialog/panel slides down slowly
+ *     and visibly when it closes; MinimizableFormShell's CLOSE_MS mirrors it)
  * All of these are plain CSS custom properties (not @theme tokens) so they
  * can be used directly as Tailwind v4 arbitrary values, e.g.
  * `duration-(--motion-fast)` or `ease-(--ease-standard)`.
@@ -199,6 +202,8 @@
   --motion-chart: 650ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-close: 1100ms;
+  --ease-close: cubic-bezier(0.45, 0, 0.55, 1);
 }
 
 /*

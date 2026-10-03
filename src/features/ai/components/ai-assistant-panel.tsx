@@ -148,12 +148,14 @@ export function AiAssistantPanel({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} modal="trap-focus">
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/15 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/15 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-(--motion-close) data-ending-style:ease-(--ease-close)" />
         <DialogPrimitive.Popup
           style={placement}
           className={cn(
             "fixed z-50 flex w-[min(calc(100vw-1.5rem),25rem)] flex-col overflow-hidden rounded-3xl border bg-popover text-popover-foreground shadow-2xl transition duration-150 ease-out",
-            "data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0",
+            // Closing slides down off-screen slowly (--motion-close), like every
+            // other sheet/dialog; opening keeps the quick scale-in.
+            "data-ending-style:translate-y-[100dvh] data-ending-style:duration-(--motion-close) data-ending-style:ease-(--ease-close) data-starting-style:scale-95 data-starting-style:opacity-0",
             anchor && anchor.x + anchor.size / 2 < (typeof window === "undefined" ? 0 : window.innerWidth / 2)
               ? "origin-bottom-left"
               : "origin-bottom-right"
