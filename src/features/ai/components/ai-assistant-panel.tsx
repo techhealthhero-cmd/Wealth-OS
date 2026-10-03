@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import {
@@ -112,6 +112,20 @@ export function AiAssistantPanel({
   const [loadFailed, setLoadFailed] = useState(false);
   const [tab, setTab] = useState<TabKey>("chat");
   const [placement, setPlacement] = useState<CSSProperties>({});
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  // Requested 2026-10-04: closing shrinks the panel back INTO the AI button,
+  // so the transform origin must sit exactly on the button's center, in the
+  // popup's own coordinates. offsetLeft/Top (not getBoundingClientRect) so the
+  // in-flight scale transform doesn't skew the measurement. Runs on close too
+  // (the popup stays mounted through its exit transition).
+  useLayoutEffect(() => {
+    const el = popupRef.current;
+    if (!el || !anchor) return;
+    const cx = anchor.x + anchor.size / 2 - el.offsetLeft;
+    const cy = anchor.y + anchor.size / 2 - el.offsetTop;
+    el.style.transformOrigin = `${cx}px ${cy}px`;
+  }, [open, anchor, placement]);
 
   useEffect(() => {
     if (!open) return;
@@ -150,12 +164,17 @@ export function AiAssistantPanel({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/15 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-(--motion-close) data-ending-style:ease-(--ease-close)" />
         <DialogPrimitive.Popup
+          ref={popupRef}
           style={placement}
           className={cn(
             "fixed z-50 flex w-[min(calc(100vw-1.5rem),25rem)] flex-col overflow-hidden rounded-3xl border bg-popover text-popover-foreground shadow-2xl transition duration-150 ease-out",
-            // Closing slides down off-screen slowly (--motion-close), like every
-            // other sheet/dialog; opening keeps the quick scale-in.
-            "data-ending-style:translate-y-[100dvh] data-ending-style:duration-(--motion-close) data-ending-style:ease-(--ease-close) data-starting-style:scale-95 data-starting-style:opacity-0",
+            // Closing: unlike every other sheet/dialog (which slide down), the
+            // AI panel slowly shrinks back into the AI button (--motion-close);
+            // transform-origin is set to the button's center by the layout
+            // effect above. The fade is held back to the last stretch so the
+            // panel stays visible while it shrinks. Opening keeps the quick
+            // scale-in.
+            "data-ending-style:scale-[0.04] data-ending-style:opacity-0 data-ending-style:[transition:scale_var(--motion-close)_var(--ease-close),opacity_300ms_ease-in_800ms] data-starting-style:scale-95 data-starting-style:opacity-0",
             anchor && anchor.x + anchor.size / 2 < (typeof window === "undefined" ? 0 : window.innerWidth / 2)
               ? "origin-bottom-left"
               : "origin-bottom-right"
