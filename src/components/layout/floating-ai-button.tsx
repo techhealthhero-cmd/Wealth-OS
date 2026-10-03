@@ -238,10 +238,11 @@ export function FloatingAiButton() {
             background: "var(--primary)",
           }}
         >
-          {/* Requested 2026-10-04: the wizard avatar replaces the sparkle icon.
+          {/* Requested 2026-10-04: the wizard avatar replaces the sparkle icon
+              (swapped to the hooded wizard the same day).
               draggable={false} so a drag moves the button, not a ghost image. */}
           <Image
-            src="/ai/wizard-avatar.png"
+            src="/ai/wizard-hooded.png"
             alt=""
             width={BUTTON_SIZE_PX}
             height={BUTTON_SIZE_PX}
