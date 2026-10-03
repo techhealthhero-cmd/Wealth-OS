@@ -242,7 +242,7 @@ export function FloatingAiButton() {
               (swapped to the hooded spirit the same day).
               draggable={false} so a drag moves the button, not a ghost image. */}
           <Image
-            src="/ai/hooded-spirit.png"
+            src="/companions/spirits/hooded.png"
             alt=""
             width={BUTTON_SIZE_PX}
             height={BUTTON_SIZE_PX}
