@@ -16,10 +16,12 @@ const DISMISS_THRESHOLD_PX = 70;
 // pull-to-refresh.tsx: don't call preventDefault()/start visually
 // dragging until there's real, deliberate downward movement.
 const DRAG_START_THRESHOLD_PX = 6;
-// Close animation: the sheet slides down off-screen (like dragging it away)
-// with an iOS-like ease-out, then onClose() unmounts it.
-const CLOSE_MS = 280;
-const CLOSE_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+// Close animation: the sheet slides down off-screen (like dragging it away),
+// then onClose() unmounts it. Requested slower (2026-10-03) so the slide is
+// visible: 280ms with a front-loaded ease-out looked like it vanished, so
+// it's now 550ms with an even ease-in-out — the whole descent is visible.
+const CLOSE_MS = 550;
+const CLOSE_EASE = "cubic-bezier(0.45, 0, 0.55, 1)";
 
 interface MinimizableFormShellProps {
   /** ReactNode, not just a string — some forms' headers are more than plain text (e.g. TransactionForm's type badge above the title). */
@@ -170,7 +172,7 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
       <div
         onClick={closeAnimated}
         className={cn(
-          "fixed inset-0 isolate z-50 bg-black/10 transition-opacity duration-300 supports-backdrop-filter:backdrop-blur-xs",
+          "fixed inset-0 isolate z-50 bg-black/10 transition-opacity duration-500 supports-backdrop-filter:backdrop-blur-xs",
           closing && "pointer-events-none opacity-0"
         )}
         aria-hidden="true"
