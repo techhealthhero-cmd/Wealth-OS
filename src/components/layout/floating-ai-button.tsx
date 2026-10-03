@@ -239,10 +239,10 @@ export function FloatingAiButton() {
           }}
         >
           {/* Requested 2026-10-04: the wizard avatar replaces the sparkle icon
-              (swapped to the mint spirit the same day).
+              (swapped to the hooded spirit the same day).
               draggable={false} so a drag moves the button, not a ghost image. */}
           <Image
-            src="/ai/mint-spirit.png"
+            src="/ai/hooded-spirit.png"
             alt=""
             width={BUTTON_SIZE_PX}
             height={BUTTON_SIZE_PX}
