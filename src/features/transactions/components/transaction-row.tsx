@@ -69,6 +69,9 @@ interface TransactionRowProps {
   defaultDetailsOpen?: boolean;
   /** Draw the row's own bottom divider. Off when a wrapper (e.g. SwipeToDelete) draws it instead. */
   divider?: boolean;
+  /** Optional control of the edit form, e.g. opened by a swipe in the parent list. */
+  editOpen?: boolean;
+  onEditOpenChange?: (open: boolean) => void;
 }
 
 export function TransactionRow({
@@ -77,10 +80,14 @@ export function TransactionRow({
   categories,
   defaultDetailsOpen = false,
   divider = true,
+  editOpen: controlledEditOpen,
+  onEditOpenChange,
 }: TransactionRowProps) {
   const { t, locale } = useTranslation();
   const [isPending, startTransition] = useTransition();
-  const [editOpen, setEditOpen] = useState(false);
+  const [internalEditOpen, setInternalEditOpen] = useState(false);
+  const editOpen = controlledEditOpen ?? internalEditOpen;
+  const setEditOpen = onEditOpenChange ?? setInternalEditOpen;
   const [detailsOpen, setDetailsOpen] = useState(defaultDetailsOpen);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const Icon = TYPE_ICONS[transaction.type];

@@ -94,9 +94,9 @@ test("Transactions: month/day headings, swipe to delete, undo", async ({ page, b
 
     const cdp = await page.context().newCDPSession(page);
 
-    // 1) Full swipe RIGHT → gone, and deleted after the undo window; the ⋮ menu never opened.
+    // 1) Full swipe LEFT → gone, and deleted after the undo window; the ⋮ menu never opened.
     let box = await centred(page, "ไก่ทอดทดสอบ");
-    await touchSwipe(cdp, box.y + box.height / 2, box.x + 5, 385);
+    await touchSwipe(cdp, box.y + box.height / 2, 320, 5);
     await expect(page.getByText("ลบรายการแล้ว")).toBeVisible();
     await expect(page.getByText("ไก่ทอดทดสอบ", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("menu")).toHaveCount(0);
@@ -109,6 +109,19 @@ test("Transactions: month/day headings, swipe to delete, undo", async ({ page, b
     await expect(page.getByText("ไปเที่ยวทดสอบ", { exact: true })).toBeVisible();
     await page.waitForTimeout(6_500);
     expect(await exists("ไปเที่ยวทดสอบ")).toBe(1);
+
+    // 3) Full swipe RIGHT → the edit form opens for THAT row, nothing is deleted.
+    box = await centred(page, "แม่ให้ทดสอบ");
+    await touchSwipe(cdp, box.y + box.height / 2, box.x + 5, 385);
+    const dialog = page.getByRole("dialog", { name: /แก้ไขรายการ/ });
+    // The dialog root itself reports as zero-size ("hidden") to Playwright;
+    // its content is what's actually on screen.
+    const amount = dialog.getByRole("textbox", { name: "จำนวนเงิน" });
+    await expect(amount).toBeVisible({ timeout: 10_000 });
+    await expect(amount).toHaveValue("2000");
+    await page.screenshot({ path: testInfo.outputPath("transactions-swipe-edit-390.png") });
+    await expect(page.getByText("ลบรายการแล้ว")).toHaveCount(0);
+    expect(await exists("แม่ให้ทดสอบ")).toBe(1);
   } finally {
     if (userId) await admin.auth.admin.deleteUser(userId);
   }

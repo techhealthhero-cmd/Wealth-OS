@@ -38,8 +38,9 @@ interface TransactionListBodyProps {
  * never fetching more than the user actually asked to see.
  *
  * Requested (2026-10-03): rows are grouped under month → day headings
- * ("ตุลาคม 2569" → "วันที่ 20"), and swipe left/right to delete with undo,
- * exactly like the Daily Inbox (same SwipeToDelete + useUndoableDelete).
+ * ("ตุลาคม 2569" → "วันที่ 20"). Swipe LEFT deletes with undo, exactly like
+ * the Daily Inbox (same SwipeToDelete + useUndoableDelete); swipe RIGHT
+ * opens the row's edit form.
  */
 export function TransactionListBody({
   initialTransactions,
@@ -53,6 +54,8 @@ export function TransactionListBody({
   const [transactions, setTransactions] = useState(initialTransactions);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isPending, startTransition] = useTransition();
+  // Swipe right opens this row's edit form.
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { hiddenIds, deleteWithUndo } = useUndoableDelete({
     deleted: t("transactions.deleted"),
     undo: t("capture.undo"),
@@ -116,6 +119,8 @@ export function TransactionListBody({
                           `${rowTitle(transaction)} · ${formatMoneyFromDecimal(transaction.amount, transaction.currency_code)}`
                         )
                       }
+                      editLabel={t("common.edit")}
+                      onEdit={() => setEditingId(transaction.id)}
                     >
                       <div className="bg-card">
                         <TransactionRow
@@ -124,6 +129,8 @@ export function TransactionListBody({
                           categories={categories}
                           defaultDetailsOpen={defaultDetailsOpen}
                           divider={false}
+                          editOpen={editingId === transaction.id}
+                          onEditOpenChange={(open) => setEditingId(open ? transaction.id : null)}
                         />
                       </div>
                     </SwipeToDelete>

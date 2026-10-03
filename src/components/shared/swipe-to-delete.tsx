@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -20,16 +20,27 @@ const SETTLE = "transform 200ms ease-out";
  * red "ลบ" button showing. Swipes never trigger the row's own buttons.
  * A visually hidden button keeps delete reachable without swiping
  * (keyboard, VoiceOver, switch control).
+ *
+ * With `onEdit` (requested 2026-10-03 for the transaction list): swiping
+ * RIGHT edits instead — a green "แก้ไข" action on the left; a long swipe
+ * or flick opens the editor and the row springs back, a shorter one leaves
+ * the button open to tap. Swiping LEFT still deletes. Without `onEdit`
+ * (Daily Inbox), both directions delete as before.
  */
 export function SwipeToDelete({
   onDelete,
   deleteLabel,
   a11yLabel,
+  onEdit,
+  editLabel,
   children,
   className,
   as: Tag = "div",
 }: {
   onDelete: () => void;
+  onEdit?: () => void;
+  /** Visible on the edit action; required with `onEdit`. */
+  editLabel?: string;
   /** Visible on the red action, and the accessible name of the delete control. */
   deleteLabel: string;
   /** Fuller name for the non-swipe delete control, e.g. "ลบ: ไก่ทอด ฿40". */
@@ -54,6 +65,14 @@ export function SwipeToDelete({
     window.setTimeout(onDelete, 200);
   }
 
+  function edit() {
+    setDragging(false);
+    setOffset(0);
+    onEdit?.();
+  }
+
+  // Right-hand swipe (positive offset) is "edit" only when an editor exists.
+  const editSide = offset > 0 && onEdit !== undefined;
   const open = !dragging && Math.abs(offset) >= REVEAL - 1 && !removing;
 
   return (
@@ -71,13 +90,14 @@ export function SwipeToDelete({
       <div
         aria-hidden="true"
         className={cn(
-          "absolute inset-0 flex items-center bg-destructive px-6 text-sm font-semibold text-white",
+          "absolute inset-0 flex items-center px-6 text-sm font-semibold text-white",
+          editSide ? "bg-primary text-primary-foreground" : "bg-destructive",
           offset >= 0 ? "justify-start" : "justify-end"
         )}
       >
         <span className="flex flex-col items-center gap-1">
-          <Trash2 className="size-5" />
-          {deleteLabel}
+          {editSide ? <Pencil className="size-5" /> : <Trash2 className="size-5" />}
+          {editSide ? editLabel : deleteLabel}
         </span>
       </div>
       ) : null}
@@ -86,7 +106,7 @@ export function SwipeToDelete({
           type="button"
           tabIndex={-1}
           aria-hidden="true"
-          onClick={() => remove(offset > 0 ? 1 : -1)}
+          onClick={() => (editSide ? edit() : remove(offset > 0 ? 1 : -1))}
           className={cn("absolute inset-y-0 z-10", offset > 0 ? "left-0" : "right-0")}
           style={{ width: REVEAL }}
         />
@@ -129,7 +149,10 @@ export function SwipeToDelete({
           const velocity = (e.clientX - s.x) / Math.max(1, performance.now() - s.t);
           const direction: 1 | -1 = final >= 0 ? 1 : -1;
           const flick = Math.abs(velocity) > FLICK_VELOCITY && Math.abs(final) > FLICK_MIN && Math.sign(velocity) === direction;
-          if (Math.abs(final) > width * FULL_SWIPE_RATIO || flick) remove(direction);
+          if (Math.abs(final) > width * FULL_SWIPE_RATIO || flick) {
+            if (direction === 1 && onEdit) edit();
+            else remove(direction);
+          }
           else if (Math.abs(final) > REVEAL * 0.6) setOffset(direction * REVEAL);
           else setOffset(0);
         }}
