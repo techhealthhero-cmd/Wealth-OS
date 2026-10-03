@@ -14,7 +14,6 @@ import type { Locale } from "@/i18n/config";
 import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedNumber } from "@/components/shared/animated-number";
-import { ClickableCard } from "@/components/shared/clickable-card";
 import { InlineLoadError } from "@/components/shared/inline-load-error";
 import { NetWorthMiniChart } from "./charts-lazy";
 import { NetWorthInfoPopover } from "./net-worth-info-popover";
@@ -109,8 +108,13 @@ export async function NetWorthHero() {
   // was negative — which read as an alarm, against UX_GUIDELINES.md's
   // "never shame" coaching tone. A negative figure is still unmistakable
   // (minus sign + soft rose on green), just not styled as a warning.
+  //
+  // Requested (2026-10-03): tapping the hero no longer navigates to
+  // /money/net-worth — it stays on Home. The card keeps its press feel
+  // (.card-interactive's :active scale is pure CSS, independent of any
+  // click handler), and "ดูรายละเอียด" still expands the breakdown in place.
   return (
-    <ClickableCard href="/money/net-worth" ariaLabel={dict.netWorth.currentNetWorth}>
+    <section aria-label={dict.netWorth.currentNetWorth}>
       <Card
         variant="highlight"
         className="card-interactive relative overflow-hidden rounded-3xl transition-opacity hover:opacity-90"
@@ -184,6 +188,6 @@ export async function NetWorthHero() {
           />
         </CardContent>
       </Card>
-    </ClickableCard>
+    </section>
   );
 }
