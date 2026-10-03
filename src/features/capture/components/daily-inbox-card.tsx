@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Check, ChevronDown, Inbox, Pencil } from "lucide-react";
 
@@ -14,8 +14,8 @@ import { categoryEmoji, formatFriendlyDate } from "@/lib/transaction-ui";
 import { CategoryPicker } from "@/features/transactions/components/category-picker";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { confirmInboxTransaction } from "@/features/capture/actions";
-import { deleteTransaction } from "@/features/transactions/actions";
 import { SwipeToDelete } from "@/components/shared/swipe-to-delete";
+import { useUndoableDelete } from "@/components/shared/use-undoable-delete";
 import type { DailyInbox, InboxTransaction } from "@/features/capture/queries";
 import { canBulkConfirm, inboxReviewReasons } from "@/lib/capture/inbox";
 
@@ -165,9 +165,6 @@ function InboxItem({
   );
 }
 
-/** How long a swiped-away item can still be brought back. */
-const UNDO_WINDOW_MS = 5000;
-
 /**
  * Daily Inbox — "capture first, organize later". Everything captured today
  * plus anything still marked needs_review, with one-tap ✓, one-tap
@@ -186,65 +183,19 @@ export function DailyInboxCard({
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [showConfirmed, setShowConfirmed] = useState(false);
   const [confirmingAll, startConfirmAll] = useTransition();
-  // Swiped-away items: hidden at once, actually deleted only once the undo
-  // toast is gone — a mis-swipe costs nothing. Leaving the page commits any
-  // that are still waiting.
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
-  const pendingDeletes = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-
-  async function commitDelete(id: string) {
-    if (!pendingDeletes.current.has(id)) return; // undone, or already sent
-    pendingDeletes.current.delete(id);
-    const res = await deleteTransaction(id);
-    if (!res.success) {
-      setHiddenIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      toast.error(res.error ?? t("capture.saveFailed"));
-    }
-  }
+  // Swiped-away items: hidden at once, deleted after the undo window.
+  const { hiddenIds, deleteWithUndo } = useUndoableDelete({
+    deleted: t("capture.inbox.deleted"),
+    undo: t("capture.undo"),
+    failed: t("capture.saveFailed"),
+  });
 
   function deleteItem(item: InboxTransaction) {
-    // Our own timer decides when the delete happens — not the toast's
-    // lifecycle, which pauses while the screen is being touched.
-    pendingDeletes.current.set(
+    deleteWithUndo(
       item.id,
-      setTimeout(() => void commitDelete(item.id), UNDO_WINDOW_MS)
+      `${item.description || item.merchant || t("capture.inbox.unknownMerchant")} · ${formatMoneyFromDecimal(item.amount)}`
     );
-    setHiddenIds((prev) => new Set(prev).add(item.id));
-    toast(t("capture.inbox.deleted"), {
-      description: `${item.description || item.merchant || t("capture.inbox.unknownMerchant")} · ${formatMoneyFromDecimal(item.amount)}`,
-      duration: UNDO_WINDOW_MS,
-      action: {
-        label: t("capture.undo"),
-        onClick: () => {
-          const timer = pendingDeletes.current.get(item.id);
-          if (timer === undefined) return; // already deleted
-          clearTimeout(timer);
-          pendingDeletes.current.delete(item.id);
-          setHiddenIds((prev) => {
-            const next = new Set(prev);
-            next.delete(item.id);
-            return next;
-          });
-        },
-      },
-    });
   }
-
-  // Leaving the page never loses a delete the user asked for.
-  useEffect(() => {
-    const waiting = pendingDeletes.current;
-    return () => {
-      for (const [id, timer] of waiting) {
-        clearTimeout(timer);
-        void deleteTransaction(id);
-      }
-      waiting.clear();
-    };
-  }, []);
 
   const visible = inbox.items.filter((i) => !hiddenIds.has(i.id));
   const pending = visible.filter((i) => i.review_status === "needs_review" && !confirmedIds.has(i.id));

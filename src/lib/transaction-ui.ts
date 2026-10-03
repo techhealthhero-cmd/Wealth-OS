@@ -93,3 +93,56 @@ export function formatFriendlyDate(
     year: "numeric",
   }).format(date);
 }
+
+export interface TransactionDayGroup<T> {
+  /** YYYY-MM-DD */
+  date: string;
+  items: T[];
+}
+
+export interface TransactionMonthGroup<T> {
+  /** YYYY-MM */
+  month: string;
+  days: TransactionDayGroup<T>[];
+}
+
+/**
+ * Groups a date-sorted (newest first) list into month → day sections for
+ * the transaction list. Keeps the input order within each day, and starts a
+ * new section whenever the date changes, so it never reorders anything.
+ */
+export function groupTransactionsByMonthAndDay<T extends { transaction_date: string }>(
+  transactions: T[]
+): TransactionMonthGroup<T>[] {
+  const months: TransactionMonthGroup<T>[] = [];
+  for (const tx of transactions) {
+    const date = tx.transaction_date.slice(0, 10);
+    const month = date.slice(0, 7);
+    let monthGroup = months[months.length - 1];
+    if (!monthGroup || monthGroup.month !== month) {
+      monthGroup = { month, days: [] };
+      months.push(monthGroup);
+    }
+    let dayGroup = monthGroup.days[monthGroup.days.length - 1];
+    if (!dayGroup || dayGroup.date !== date) {
+      dayGroup = { date, items: [] };
+      monthGroup.days.push(dayGroup);
+    }
+    dayGroup.items.push(tx);
+  }
+  return months;
+}
+
+/** "ตุลาคม 2569" / "October 2026" */
+export function formatMonthHeading(month: string, locale: "th" | "en"): string {
+  const date = new Date(`${month}-01T00:00:00`);
+  if (Number.isNaN(date.getTime())) return month;
+  return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "long", year: "numeric" }).format(date);
+}
+
+/** Short weekday for a day heading, e.g. "พฤ." / "Thu" — the long Thai form ("วันพฤหัสบดี") repeats "วัน" after "วันที่ 20". */
+export function formatWeekday(isoDate: string, locale: "th" | "en"): string {
+  const date = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { weekday: "short" }).format(date);
+}

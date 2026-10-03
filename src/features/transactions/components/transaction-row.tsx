@@ -67,6 +67,8 @@ interface TransactionRowProps {
   accounts: Account[];
   categories: Category[];
   defaultDetailsOpen?: boolean;
+  /** Draw the row's own bottom divider. Off when a wrapper (e.g. SwipeToDelete) draws it instead. */
+  divider?: boolean;
 }
 
 export function TransactionRow({
@@ -74,6 +76,7 @@ export function TransactionRow({
   accounts,
   categories,
   defaultDetailsOpen = false,
+  divider = true,
 }: TransactionRowProps) {
   const { t, locale } = useTranslation();
   const [isPending, startTransition] = useTransition();
@@ -128,7 +131,7 @@ export function TransactionRow({
   );
 
   return (
-    <div className="border-b py-3 last:border-0">
+    <div className={cn("py-3", divider && "border-b last:border-0")}>
       <div className="flex items-center justify-between gap-3">
         {hasNotes ? (
           <button
