@@ -122,6 +122,14 @@ test("Transactions: month/day headings, swipe to delete, undo", async ({ page, b
     await page.screenshot({ path: testInfo.outputPath("transactions-swipe-edit-390.png") });
     await expect(page.getByText("ลบรายการแล้ว")).toHaveCount(0);
     expect(await exists("แม่ให้ทดสอบ")).toBe(1);
+
+    // 4) Tapping the dimmed backdrop outside the card CLOSES the form (slides
+    //    down), it does not minimize it into the floating "resume" pill.
+    await page.touchscreen.tap(195, 40);
+    await page.waitForTimeout(120);
+    await page.screenshot({ path: testInfo.outputPath("form-closing-midway-390.png") });
+    await expect(amount).toHaveCount(0, { timeout: 3_000 });
+    await expect(page.getByRole("dialog", { name: /แก้ไขรายการ/ })).toHaveCount(0);
   } finally {
     if (userId) await admin.auth.admin.deleteUser(userId);
   }

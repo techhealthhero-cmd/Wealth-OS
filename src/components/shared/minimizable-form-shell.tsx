@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Minus, X } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
@@ -16,6 +16,10 @@ const DISMISS_THRESHOLD_PX = 70;
 // pull-to-refresh.tsx: don't call preventDefault()/start visually
 // dragging until there's real, deliberate downward movement.
 const DRAG_START_THRESHOLD_PX = 6;
+// Close animation: the sheet slides down off-screen (like dragging it away)
+// with an iOS-like ease-out, then onClose() unmounts it.
+const CLOSE_MS = 280;
+const CLOSE_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
 
 interface MinimizableFormShellProps {
   /** ReactNode, not just a string — some forms' headers are more than plain text (e.g. TransactionForm's type badge above the title). */
@@ -35,10 +39,9 @@ interface MinimizableFormShellProps {
  * classes, copied from src/components/ui/dialog.tsx and sheet.tsx) so a
  * form adopting this shell looks identical to before.
  *
- * Escape and backdrop click both MINIMIZE rather than close — this
- * component's whole purpose is to never silently discard a draft the
- * ordinary way a modal would. The header's explicit "X" is the only close
- * action, matching the close behavior every retrofitted form already had.
+ * Escape and the header's "−" MINIMIZE (keep the draft). Requested
+ * 2026-10-03: tapping the backdrop outside the card now CLOSES, like the
+ * header's "X" — both slide the sheet down smoothly before unmounting.
  *
  * Known, deliberate simplification: basic aria-modal/labelledby semantics,
  * not a full keyboard focus trap — reasonable for this first pass of new,
@@ -50,6 +53,27 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
   const titleId = useId();
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragHandleRef = useRef<HTMLDivElement>(null);
+  const [closing, setClosing] = useState(false);
+
+  function closeAnimated() {
+    if (closing) return;
+    const sheet = sheetRef.current;
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!sheet || reducedMotion) {
+      onClose();
+      return;
+    }
+    setClosing(true);
+    sheet.style.transition = `transform ${CLOSE_MS}ms ${CLOSE_EASE}, opacity ${CLOSE_MS}ms ease-out`;
+    if (variant === "sheet") {
+      sheet.style.transform = "translateY(100%)";
+    } else {
+      // The centered dialog keeps its -50%/-50% centering while it drops and fades.
+      sheet.style.transform = "translate(-50%, -50%) translateY(48px)";
+      sheet.style.opacity = "0";
+    }
+    window.setTimeout(onClose, CLOSE_MS);
+  }
 
   useEffect(() => {
     if (minimized) return;
@@ -144,8 +168,11 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
   return (
     <div role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div
-        onClick={minimize}
-        className="fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs"
+        onClick={closeAnimated}
+        className={cn(
+          "fixed inset-0 isolate z-50 bg-black/10 transition-opacity duration-300 supports-backdrop-filter:backdrop-blur-xs",
+          closing && "pointer-events-none opacity-0"
+        )}
         aria-hidden="true"
       />
       <div
@@ -175,7 +202,7 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
               >
                 <Minus aria-hidden="true" />
               </Button>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label={t("common.close")} onClick={onClose}>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={t("common.close")} onClick={closeAnimated}>
                 <X aria-hidden="true" />
               </Button>
             </div>
