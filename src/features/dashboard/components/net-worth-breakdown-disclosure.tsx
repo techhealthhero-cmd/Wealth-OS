@@ -68,7 +68,16 @@ export function NetWorthBreakdownDisclosure({
         >
           <div className="grid grid-cols-2 gap-3 text-sm sm:gap-6">
             <div className="flex min-w-0 items-start gap-2">
-              <IconChip icon={Wallet} tone="mint" className="size-9" />
+              {/* On the dark hero, the mint chip's light-mode icon color
+                  (#1F4D3E) nearly vanished against the green card — a soft
+                  mint at 70% keeps it readable without competing with the
+                  amounts. `!` because `cn` here doesn't dedupe conflicting
+                  Tailwind classes. */}
+              <IconChip
+                icon={Wallet}
+                tone="mint"
+                className={cn("size-9", tone === "on-dark" && "text-[#7FD6B2]/70!")}
+              />
               <div className="min-w-0">
                 <p className={mutedClass}>{assetsLabel}</p>
                 <p className="whitespace-nowrap text-sm font-semibold tracking-tight tabular-nums sm:text-base">
