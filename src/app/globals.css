@@ -314,6 +314,21 @@
   box-shadow: 0 1px 2px rgba(28, 37, 33, 0.04), 0 2px 6px -4px rgba(28, 37, 33, 0.1);
 }
 
+/* Reported (2026-10-03): tapping a chart to see its tooltip drew a blue
+   focus box around it. Recharts' accessibility layer makes the chart
+   focusable, so the browser's default focus outline appeared on every tap.
+   The tooltip already gives the tap feedback, so the outline is removed for
+   all charts. Matches :focus and :focus-visible, since iOS Safari can
+   report a tap as focus-visible. */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-wrapper:focus-visible,
+.recharts-surface:focus-visible {
+  outline: none;
+}
+
 /* GoalIllustration's "always moving toward the goal" motion cue: a small
    dot traveling the same dashed path toward the flag, on a slow, calm
    loop — deliberately an abstract cue, never a character/mascot walking
