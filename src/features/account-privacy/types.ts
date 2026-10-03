@@ -14,6 +14,12 @@ export interface AccountPrivacyState {
   isUnlocked: boolean;
   unlockedUntil: string | null;
   lockedUntil: string | null;
+  /**
+   * True only on the fail-closed fallback (settings couldn't be loaded) —
+   * distinguishes it from a user who deliberately chose the "unavailable"
+   * display style as a disguise, where a retry button would give it away.
+   */
+  loadFailed?: boolean;
 }
 
 export const DEFAULT_ACCOUNT_PRIVACY_STATE: AccountPrivacyState = {
@@ -48,6 +54,7 @@ export const FAIL_CLOSED_ACCOUNT_PRIVACY_STATE: AccountPrivacyState = {
   isUnlocked: false,
   unlockedUntil: null,
   lockedUntil: null,
+  loadFailed: true,
 };
 
 export interface AccountPrivacyActionState {

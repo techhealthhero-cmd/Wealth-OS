@@ -392,7 +392,8 @@
     "invalidPin": "That PIN is incorrect",
     "tooManyAttempts": "Too many incorrect attempts. Wait 5 minutes and try again.",
     "saveFailed": "Could not save privacy settings. Please try again.",
-    "unlockFailed": "Could not unlock your data. Please try again."
+    "unlockFailed": "Could not unlock your data. Please try again.",
+    "retry": "Try again"
   },
   "export": {
     "exportCsv": "Export CSV",

@@ -392,7 +392,8 @@
     "invalidPin": "PIN ไม่ถูกต้อง",
     "tooManyAttempts": "ใส่ PIN ผิดหลายครั้ง กรุณารอ 5 นาทีแล้วลองใหม่",
     "saveFailed": "บันทึกการตั้งค่าไม่สำเร็จ กรุณาลองใหม่",
-    "unlockFailed": "ปลดล็อกไม่สำเร็จ กรุณาลองใหม่"
+    "unlockFailed": "ปลดล็อกไม่สำเร็จ กรุณาลองใหม่",
+    "retry": "ลองใหม่"
   },
   "export": {
     "exportCsv": "Export CSV",

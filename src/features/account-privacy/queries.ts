@@ -41,9 +41,18 @@ export const getAccountPrivacyState = cache(async (): Promise<AccountPrivacyStat
   const cookieStore = await cookies();
   const unlockToken = cookieStore.get(ACCOUNT_PRIVACY_COOKIE)?.value ?? null;
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_account_privacy_state", {
-    p_unlock_token: unlockToken,
-  });
+  const fetchState = () => supabase.rpc("get_account_privacy_state", { p_unlock_token: unlockToken });
+
+  // Reported (2026-10-03): Home sometimes opened to a full-page
+  // "ข้อมูลส่วนนี้ไม่พร้อมใช้งาน" cover — a single transient RPC failure
+  // (network blip, token refresh race) dropped straight to the fail-closed
+  // state. One short retry absorbs those; a persistent failure still fails
+  // closed exactly as before.
+  let { data, error } = await fetchState();
+  if (error) {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    ({ data, error } = await fetchState());
+  }
 
   if (error) {
     captureError(new Error(error.message), {

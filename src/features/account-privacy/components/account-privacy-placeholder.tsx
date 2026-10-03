@@ -3,6 +3,7 @@ import { CircleSlash2, CloudOff, EyeOff, Gem, WalletCards } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { AccountPrivacyState } from "../types";
+import { PrivacyRetryButton } from "./privacy-retry-button";
 
 export function AccountPrivacyPlaceholder({
   privacy,
@@ -81,6 +82,7 @@ export function AccountPrivacyPlaceholder({
         {presentation.description ? (
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">{presentation.description}</p>
         ) : null}
+        {privacy.loadFailed ? <PrivacyRetryButton label={copy.retry} /> : null}
       </CardContent>
     </Card>
   );
