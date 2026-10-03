@@ -34,13 +34,16 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
     "ข้าว", "กิน", "อาหาร", "ก๋วยเตี๋ยว", "กาแฟ", "ชานม", "ชาเขียว", "ขนม", "ส้มตำ", "หมูกระทะ", "ชาบู",
     "บุฟเฟ่ต์", "บุฟเฟ่", "พิซซ่า", "ข้าวมันไก่", "ผัดไทย", "เบเกอรี่", "ร้านอาหาร", "มื้อเที่ยง", "มื้อเย็น",
     "ชา", "น้ำ",
+    // Everyday street food that otherwise fell to "อื่นๆ" (2026-10-03 voice-capture probe).
+    "ไก่", "หมู", "ลูกชิ้น", "ไส้กรอก", "หมูปิ้ง", "กะเพรา", "กระเพรา", "ชาไทย", "ชาดำ", "โจ๊ก", "ขนมจีน",
+    "ไข่", "แกง", "ต้มยำ", "ข้าวเหนียว", "น้ำแข็ง", "น้ำเปล่า", "ผลไม้", "ไอติม", "ไอศกรีม",
     "coffee", "cafe", "lunch", "dinner", "breakfast", "food", "restaurant", "kfc", "mcdonald", "mcdonalds",
     "starbucks", "amazon", "cafe amazon", "mk", "sukiya", "yayoi", "sizzler", "swensen", "after you",
     "grabfood", "grab food", "lineman", "line man", "foodpanda", "robinhood", "7-eleven", "7-11", "เซเว่น",
     "family mart", "familymart", "lawson",
   ],
   Transport: [
-    "แท็กซี่", "รถไฟฟ้า", "น้ำมัน", "เติมน้ำมัน", "มอไซค์", "วินมอไซค์", "มอไซต์", "วินมอไซต์", "มอเตอร์ไซค์", "วินมอเตอร์ไซค์", "ทางด่วน", "จอดรถ", "รถเมล์", "ค่ารถ",
+    "แท็กซี่", "รถไฟฟ้า", "ล้างรถ", "น้ำมัน", "เติมน้ำมัน", "มอไซค์", "วินมอไซค์", "มอไซต์", "วินมอไซต์", "มอเตอร์ไซค์", "วินมอเตอร์ไซค์", "ทางด่วน", "จอดรถ", "รถเมล์", "ค่ารถ",
     "เดินทาง", "ตั๋ว", "grab", "bolt", "taxi", "bts", "mrt", "ptt", "shell", "bangchak", "esso", "caltex",
     "parking", "bus", "fuel", "gas", "easy pass", "m-flow", "airasia", "nok air", "thai airways",
   ],
@@ -74,8 +77,8 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
 
 export const INCOME_CATEGORY_KEYWORDS: Record<Exclude<IncomeCategoryKey, "Other">, string[]> = {
   Salary: ["เงินเดือน", "salary", "payroll"],
-  Freelance: ["ฟรีแลนซ์", "freelance", "ค่าจ้าง"],
-  Business: ["ขายของ", "ยอดขาย", "sales"],
+  Freelance: ["ฟรีแลนซ์", "freelance", "ค่าจ้าง", "ค่าคอม", "คอมมิชชัน", "คอมมิชชั่น", "commission"],
+  Business: ["ขายของ", "ยอดขาย", "ขาย", "sales"],
   Bonus: ["โบนัส", "bonus"],
   Interest: ["ดอกเบี้ย", "interest", "ปันผล", "dividend"],
   "Cashback/Refund": ["เงินคืน", "cashback", "refund", "คืนเงิน"],
@@ -87,6 +90,9 @@ export const INCOME_MARKERS = [
   // Someone GAVE me money ("แม่ให้ 2000"); the reverse order ("ให้แม่") is a Family expense.
   "แม่ให้", "พ่อให้", "ยายให้", "ตาให้", "ปู่ให้", "ย่าให้", "พี่ให้", "น้องให้", "แฟนให้", "เพื่อนให้", "ลูกให้",
   "ให้มา", "โอนมาให้", "เงินเข้า", "เงินเดือนออก", "ขายได้", "ได้ทิป",
+  // Added 2026-10-03 after a probe of everyday spoken recaps.
+  "ขาย", "โอนมา", "ลูกค้าโอน", "ลูกค้าจ่าย", "ถูกหวย", "ถูกรางวัล", "ได้ค่า", "ค่าคอม", "คอมมิชชัน", "คอมมิชชั่น",
+  "ปันผล", "ดอกเบี้ยรับ", "เงินปันผล",
 ];
 
 /**

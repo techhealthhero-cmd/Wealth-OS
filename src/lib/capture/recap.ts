@@ -30,7 +30,7 @@ import {
 /** A unit word right after a number makes it a quantity, not a price. */
 const QUANTITY_UNITS = [
   "จาน", "แก้ว", "ขวด", "ชิ้น", "อัน", "ห่อ", "กล่อง", "ถุง", "ชาม", "ลูก", "ตัว", "ใบ", "เม็ด", "แพ็ค", "แพ็ก",
-  "คน", "ที่", "ถ้วย", "กระป๋อง", "ซอง", "หลอด", "กิโล", "กก", "kg", "pcs", "x",
+  "คน", "ที่", "ถ้วย", "กระป๋อง", "ซอง", "หลอด", "กิโล", "กก", "kg", "pcs", "x", "ไม้", "ชุด",
 ];
 
 /**
@@ -99,9 +99,15 @@ function maskNonAmounts(text: string): string {
   return masked;
 }
 
+/**
+ * The unit must be a whole word: "ข้าว 2 จาน 120" is a quantity, but in
+ * "Grab 230 ลูกชิ้น 40" the "ลูก" is the start of the NEXT item's name
+ * (ลูกชิ้น), so 230 is a price. Reported 2026-10-03: the old prefix check
+ * merged that into one ฿40 item.
+ */
 function isQuantity(masked: string, end: number): boolean {
   const after = masked.slice(end).trimStart().toLowerCase();
-  return QUANTITY_UNITS.some((u) => after.startsWith(u));
+  return QUANTITY_UNITS.some((u) => after.startsWith(u) && !/^[\p{L}\p{M}]/u.test(after.slice(u.length)));
 }
 
 function stripLeading(text: string, words: string[]): string {

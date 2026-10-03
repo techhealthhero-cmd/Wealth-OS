@@ -158,3 +158,42 @@ describe("recap AI category pass — a reply cut off by the token limit", () => 
     expect(recapCategoryMaxTokens(20)).toBeGreaterThanOrEqual(600);
   });
 });
+
+/** "-230" expense / "+500" income, in order — the shape a user checks on screen. */
+function summary(text: string): string[] {
+  return parseRecap(text, CTX).map((i) => `${i.type === "income" ? "+" : "-"}${(i.amountCents ?? 0) / 100}`);
+}
+
+describe("everyday spoken recaps (reported 2026-10-03)", () => {
+  it("does not mistake the start of the next item's name for a quantity unit", () => {
+    // "ลูก" is a unit, but here it starts "ลูกชิ้น" — 230 is Grab's price.
+    expect(splitRecap("Grab 230 ลูกชิ้น 40")).toEqual(["Grab 230", "ลูกชิ้น 40"]);
+    expect(splitRecap("Grab 230 และ ลูกชิ้น 40")).toEqual(["Grab 230", "ลูกชิ้น 40"]);
+    expect(summary("Grab 230 ลูกชิ้น 40")).toEqual(["-230", "-40"]);
+    // A real unit word still makes a quantity.
+    expect(splitRecap("ลูกชิ้น 5 ไม้ 20 น้ำแข็ง 12")).toEqual(["ลูกชิ้น 5 ไม้ 20", "น้ำแข็ง 12"]);
+    expect(splitRecap("ข้าวผัด 2 จาน 120 น้ำ 3 ขวด 30")).toEqual(["ข้าวผัด 2 จาน 120", "น้ำ 3 ขวด 30"]);
+  });
+
+  it("knows how many items, and which are income or expense", () => {
+    expect(summary("ข้าวมันไก่ 50 ชาไทย 35 วินมอไซค์ 20")).toEqual(["-50", "-35", "-20"]);
+    expect(summary("ขายของได้ 1500 ซื้อของเข้าร้าน 600")).toEqual(["+1500", "-600"]);
+    expect(summary("ได้ค่าจ้าง 3000 จ่ายค่าห้อง 4500")).toEqual(["+3000", "-4500"]);
+    expect(summary("เงินเดือนเข้า 25000 โอนให้แม่ 5000")).toEqual(["+25000", "-5000"]);
+    expect(summary("ลูกค้าโอนมา 5000 ค่าคอม 800")).toEqual(["+5000", "+800"]);
+    expect(summary("ถูกหวย 2000")).toEqual(["+2000"]);
+    expect(summary("ขายตูด 500")).toEqual(["+500"]);
+    expect(summary("ซื้อจากแม่ค้า 60 ขายเสื้อได้ 300")).toEqual(["-60", "+300"]);
+  });
+
+  it("keeps shops that merely sell things as expenses", () => {
+    expect(summary("ร้านขายยา 120 ซื้อของร้านขายของชำ 80")).toEqual(["-120", "-80"]);
+  });
+
+  it("files everyday street food under food", () => {
+    for (const text of ["ลูกชิ้น 40", "ไก่ทอด 40", "ไก่ย่าง 80", "ชาไทย 35", "กะเพราหมูกรอบ 60"]) {
+      expect(parseRecap(text, CTX)[0].categoryId, text).toBe("cat-food");
+    }
+    expect(parseRecap("ล้างรถ 150", CTX)[0].categoryId).toBe("cat-transport");
+  });
+});

@@ -309,8 +309,22 @@ export function matchAccount(text: string, accounts: CaptureAccount[]): { accoun
   return best ? { accountId: best.accountId, span: best.span } : null;
 }
 
+/**
+ * "ขาย" means I SOLD something ("ขายตูด 500" = income) — except where it only
+ * names a shop or seller I bought from ("ร้านขายยา 120", "ซื้อจากคนขาย").
+ * Those phrases are removed before looking for income words.
+ */
+const SELLER_PHRASES = ["ร้านขาย", "ที่ขาย", "คนขาย", "พ่อค้า", "แม่ค้า", "ซื้อขาย"];
+
+function withoutSellerPhrases(lower: string): string {
+  let out = lower;
+  for (const phrase of SELLER_PHRASES) out = out.split(phrase).join(" ");
+  return out;
+}
+
 function hasExplicitIncomeMarker(lower: string): boolean {
-  return lower.startsWith("+") || INCOME_MARKERS.some((m) => findKeyword(lower, m) !== null);
+  const text = withoutSellerPhrases(lower);
+  return text.startsWith("+") || INCOME_MARKERS.some((m) => findKeyword(text, m) !== null);
 }
 
 /** Flips the detected type only when a learned preference of the OTHER type matches and none of this type does. */
@@ -330,9 +344,10 @@ function learnedTypeOverride(
 
 function detectType(lower: string): "expense" | "income" {
   if (lower.startsWith("+")) return "income";
-  if (INCOME_MARKERS.some((m) => findKeyword(lower, m))) return "income";
+  const text = withoutSellerPhrases(lower);
+  if (INCOME_MARKERS.some((m) => findKeyword(text, m))) return "income";
   const incomeHit = longestMatch(
-    lower,
+    text,
     Object.values(INCOME_CATEGORY_KEYWORDS).map((keywords) => ({ value: true, keywords }))
   );
   return incomeHit ? "income" : "expense";
