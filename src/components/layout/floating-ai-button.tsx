@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 import { AI_NAV_ITEM } from "./nav-items";
@@ -234,11 +235,20 @@ export function FloatingAiButton() {
             left: position.x,
             top: position.y,
             opacity: sheetOpen || active ? 1 : idleOpacity / 100,
-            background:
-              "radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.16), transparent 70%), var(--primary)",
+            background: "var(--primary)",
           }}
         >
-          <AI_NAV_ITEM.icon className="h-6 w-6" aria-hidden="true" />
+          {/* Requested 2026-10-04: the wizard avatar replaces the sparkle icon.
+              draggable={false} so a drag moves the button, not a ghost image. */}
+          <Image
+            src="/ai/wizard-avatar.png"
+            alt=""
+            width={BUTTON_SIZE_PX}
+            height={BUTTON_SIZE_PX}
+            draggable={false}
+            loading="eager"
+            className="pointer-events-none size-full rounded-full object-cover select-none"
+          />
           {sheetOpen ? (
             <span
               aria-hidden="true"
