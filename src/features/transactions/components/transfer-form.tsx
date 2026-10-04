@@ -3,6 +3,7 @@
 import { cloneElement, useActionState, useEffect, useState, type ReactElement } from "react";
 import { ArrowDown } from "lucide-react";
 import { toast } from "sonner";
+import { cheerCompanion } from "@/features/companions/presence";
 
 import { createTransfer, updateTransfer } from "@/features/transactions/actions";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
@@ -160,6 +161,7 @@ function TransferFormFields({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setClientRequestId(crypto.randomUUID());
     toast.success(t("transactions.savedTransfer"), { icon: <SuccessBadge /> });
+    cheerCompanion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 

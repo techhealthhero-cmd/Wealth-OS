@@ -1,14 +1,50 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { AI_NAV_ITEM } from "./nav-items";
 import { X } from "lucide-react";
 
+import { useTranslation } from "@/i18n/client";
 import { AiAssistantPanel } from "@/features/ai/components/ai-assistant-panel";
+import { getCompanionTip, syncCompanionUnlocks } from "@/features/companions/actions";
+import {
+  COMPANION_CHEER_EVENT,
+  isDue,
+  stamp,
+  useCompanionPresenceEnabled,
+} from "@/features/companions/presence";
 import { useAiFabEnabled, useAiFabIdleOpacity } from "./ai-fab-preferences";
+
+/** What the layout tells the button about the user's active companion. */
+export interface FloatingCompanion {
+  id: string;
+  image: string;
+  emoji: string;
+  /** Plus/Pro (COMPANION_PRESENCE): animation, reactions, proactive tips. */
+  presence: boolean;
+}
+
+interface Bubble {
+  text: string;
+  href: string | null;
+  /** Bumped per bubble so a new message replays the pop-in animation. */
+  key: number;
+}
+
+const UNLOCK_SYNC_KEY = "wealth-os:companion-last-sync";
+const UNLOCK_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000;
+// "Proactive" without being naggy (PRODUCT_OUTCOMES.md: no engagement
+// loops): at most one unprompted tip per 4 hours, a few seconds after the
+// app opens, and only ever from real data.
+const TIP_KEY = "wealth-os:companion-last-tip";
+const TIP_INTERVAL_MS = 4 * 60 * 60 * 1000;
+const TIP_DELAY_MS = 5000;
+const TIP_VISIBLE_MS = 10000;
+const CHEER_VISIBLE_MS = 3200;
+const BUBBLE_GAP_PX = 10;
 
 const BUTTON_SIZE_PX = 56;
 const EDGE_MARGIN_PX = 12;
@@ -49,6 +85,23 @@ function loadStoredPosition(): Position | null {
   return null;
 }
 
+/**
+ * Speech bubble beside the companion: above it (below it when the button is
+ * near the top), aligned to whichever screen edge the button sits on so it
+ * always opens toward the middle of the screen.
+ */
+function bubbleStyle(pos: Position): CSSProperties {
+  const onRight = pos.x + BUTTON_SIZE_PX / 2 >= window.innerWidth / 2;
+  const horizontal = onRight
+    ? { right: Math.max(EDGE_MARGIN_PX, window.innerWidth - (pos.x + BUTTON_SIZE_PX)) }
+    : { left: Math.max(EDGE_MARGIN_PX, pos.x) };
+  const vertical =
+    pos.y < 140
+      ? { top: pos.y + BUTTON_SIZE_PX + BUBBLE_GAP_PX }
+      : { bottom: window.innerHeight - pos.y + BUBBLE_GAP_PX };
+  return { ...horizontal, ...vertical };
+}
+
 function defaultPosition(): Position {
   // Bottom-right, comfortably above the bottom nav's floating pill (same
   // ~112px reservation every page's own content uses — see bottom-nav.tsx).
@@ -84,8 +137,16 @@ function defaultPosition(): Position {
  * closes it again. The full /ai page still exists (the panel's "open full
  * page" link, or the desktop sidebar).
  */
-export function FloatingAiButton() {
+export function FloatingAiButton({ companion }: { companion: FloatingCompanion }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { t } = useTranslation();
+  const presenceEnabled = useCompanionPresenceEnabled();
+  const alive = companion.presence && presenceEnabled;
+  const [bubble, setBubble] = useState<Bubble | null>(null);
+  const [hopKey, setHopKey] = useState(0);
+  const bubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const companionName = t(`companions.names.${companion.id}`);
   const onEarnPage = pathname === "/earn" || pathname.startsWith("/earn/");
   const [position, setPosition] = useState<Position | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -130,6 +191,86 @@ export function FloatingAiButton() {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     idleTimerRef.current = setTimeout(() => setActive(false), IDLE_DELAY_MS);
   }
+
+  function showBubble(text: string, href: string | null, visibleMs: number) {
+    if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    setBubble((prev) => ({ text, href, key: (prev?.key ?? 0) + 1 }));
+    setActive(true);
+    bubbleTimerRef.current = setTimeout(() => {
+      setBubble(null);
+      scheduleIdle();
+    }, visibleMs);
+  }
+
+  function hideBubble() {
+    if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    setBubble(null);
+  }
+
+  // Earned-spirit check, every plan (spirits are never paywalled): at most
+  // every 6 hours. A newly unlocked one is celebrated once, then the layout
+  // refreshes so the picker and avatar know about it.
+  useEffect(() => {
+    if (!isDue(UNLOCK_SYNC_KEY, UNLOCK_SYNC_INTERVAL_MS)) return;
+    stamp(UNLOCK_SYNC_KEY);
+    let cancelled = false;
+    syncCompanionUnlocks()
+      .then((ids) => {
+        if (cancelled || ids.length === 0) return;
+        const name = t(`companions.names.${ids[0]}`);
+        showBubble(t("companions.unlockedBubble").replace("{name}", name), "/companions", TIP_VISIBLE_MS);
+        router.refresh();
+      })
+      .catch(() => {
+        // Best-effort; the next due check (or the companions page) retries.
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Mount-only by design; the interval gate lives in localStorage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Proactive tip (Plus/Pro): one real-data tip, at most every 4 hours.
+  useEffect(() => {
+    if (!alive || !isDue(TIP_KEY, TIP_INTERVAL_MS)) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      getCompanionTip()
+        .then((tip) => {
+          if (cancelled || !tip) return;
+          stamp(TIP_KEY);
+          showBubble(`${companion.emoji} ${tip.text}`, tip.href, TIP_VISIBLE_MS);
+        })
+        .catch(() => {
+          // A tip is a nice-to-have; failing silently is correct here.
+        });
+    }, TIP_DELAY_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alive]);
+
+  // Cheer after a money save: a hop plus a short line (Plus/Pro).
+  useEffect(() => {
+    if (!alive) return;
+    function handleCheer() {
+      setHopKey((k) => k + 1);
+      const lines = (t("companions.cheer") as unknown as string[]) ?? [];
+      const line = Array.isArray(lines) && lines.length > 0 ? lines[Math.floor(Math.random() * lines.length)] : null;
+      if (line) showBubble(line, null, CHEER_VISIBLE_MS);
+    }
+    window.addEventListener(COMPANION_CHEER_EVENT, handleCheer);
+    return () => window.removeEventListener(COMPANION_CHEER_EVENT, handleCheer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alive]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (sheetOpen) hideBubble();
+  }, [sheetOpen]);
 
   // Start the idle countdown on mount, and again whenever the panel closes.
   useEffect(() => {
@@ -230,7 +371,7 @@ export function FloatingAiButton() {
           onPointerCancel={handlePointerUp}
           className={`fixed flex size-14 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg transition-opacity duration-500 md:hidden ${
             sheetOpen ? "z-[60] ring-4 ring-primary/25" : "z-40"
-          }`}
+          } ${alive && !sheetOpen ? "motion-safe:animate-[companion-float_6s_ease-in-out_infinite]" : ""}`}
           style={{
             left: position.x,
             top: position.y,
@@ -238,18 +379,25 @@ export function FloatingAiButton() {
             background: "var(--primary)",
           }}
         >
-          {/* Requested 2026-10-04: the wizard avatar replaces the sparkle icon
-              (swapped to the hooded spirit the same day).
+          {/* The user's active companion (src/lib/companions/catalog.ts).
+              Plus/Pro: it gently floats/sways and hops when money is saved.
               draggable={false} so a drag moves the button, not a ghost image. */}
-          <Image
-            src="/companions/spirits/hooded.png"
-            alt=""
-            width={BUTTON_SIZE_PX}
-            height={BUTTON_SIZE_PX}
-            draggable={false}
-            loading="eager"
-            className="pointer-events-none size-full rounded-full object-cover select-none"
-          />
+          <span
+            key={hopKey}
+            className={`pointer-events-none size-full ${
+              hopKey > 0 ? "motion-safe:animate-[companion-hop_700ms_ease-out]" : ""
+            }`}
+          >
+            <Image
+              src={companion.image}
+              alt=""
+              width={BUTTON_SIZE_PX}
+              height={BUTTON_SIZE_PX}
+              draggable={false}
+              loading="eager"
+              className="size-full rounded-full object-cover select-none"
+            />
+          </span>
           {sheetOpen ? (
             <span
               aria-hidden="true"
@@ -260,10 +408,40 @@ export function FloatingAiButton() {
           ) : null}
         </button>
       ) : null}
+      {showButton && position && bubble && !sheetOpen ? (
+        <div
+          key={bubble.key}
+          role="status"
+          className="fixed z-40 flex max-w-[15rem] items-start gap-1 rounded-2xl border bg-popover py-2 pr-1 pl-3 text-sm text-popover-foreground shadow-lg motion-safe:animate-[companion-bubble-in_260ms_var(--ease-emphasized)] md:hidden"
+          style={bubbleStyle(position)}
+        >
+          <button
+            type="button"
+            className="min-w-0 flex-1 text-left leading-snug"
+            onClick={() => {
+              hideBubble();
+              if (bubble.href) router.push(bubble.href);
+              else setSheetOpen(true);
+            }}
+          >
+            <span className="mb-0.5 block text-[11px] font-semibold text-primary">{companionName}</span>
+            {bubble.text}
+          </button>
+          <button
+            type="button"
+            aria-label={t("companions.bubbleDismiss")}
+            onClick={hideBubble}
+            className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      ) : null}
       <AiAssistantPanel
         open={sheetOpen && !onEarnPage}
         onOpenChange={setSheetOpen}
         anchor={anchor}
+        companionImage={companion.image}
       />
     </>
   );

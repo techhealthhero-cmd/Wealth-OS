@@ -2,6 +2,7 @@
 
 import { cloneElement, useActionState, useEffect, useMemo, useState, type ReactElement } from "react";
 import { toast } from "sonner";
+import { cheerCompanion } from "@/features/companions/presence";
 
 import { createTransaction, updateTransaction } from "@/features/transactions/actions";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
@@ -217,6 +218,7 @@ function TransactionFormFields({
         ? `${t("transactions.savedIncome")} ${formatted}`
         : `${t("transactions.savedExpense")} ${formatted}`;
     toast.success(toastText, { icon: <SuccessBadge /> });
+    cheerCompanion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 

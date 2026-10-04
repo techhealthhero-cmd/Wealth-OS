@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import {
@@ -102,10 +103,13 @@ export function AiAssistantPanel({
   open,
   onOpenChange,
   anchor,
+  companionImage,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   anchor: PanelAnchor | null;
+  /** The active companion's avatar, shown in the header. */
+  companionImage?: string;
 }) {
   const { t } = useTranslation();
   const [data, setData] = useState<AiOverlayData | null>(null);
@@ -189,7 +193,11 @@ export function AiAssistantPanel({
             }}
           >
             <div className="flex min-w-0 items-start gap-2.5">
-              <Sparkles className="mt-0.5 size-7 shrink-0" aria-hidden="true" />
+              {companionImage ? (
+                <Image src={companionImage} alt="" width={40} height={40} className="size-10 shrink-0 rounded-full object-cover ring-2 ring-white/30" />
+              ) : (
+                <Sparkles className="mt-0.5 size-7 shrink-0" aria-hidden="true" />
+              )}
               <div className="min-w-0">
                 <DialogPrimitive.Title className="truncate font-heading text-lg font-semibold leading-tight">
                   {title}

@@ -40,6 +40,17 @@ export const FEATURES = {
   MONEY_YEAR_COMPARE: "MONEY_YEAR_COMPARE",
   /** Designed, shareable PDF financial report (distinct from DATA_EXPORT's raw CSV). Pro only. */
   PDF_REPORT: "PDF_REPORT",
+  /**
+   * The selected companion comes alive: idle animation, reactions, and
+   * proactive speech-bubble tips from real data. Plus+. Without it the
+   * companion is still the user's avatar (progress-earned spirits are never
+   * paywalled — see src/lib/companions/catalog.ts).
+   */
+  COMPANION_PRESENCE: "COMPANION_PRESENCE",
+  /** Plus-tier wizard companions (planning / income specialists). Plus+. */
+  COMPANION_WIZARDS: "COMPANION_WIZARDS",
+  /** The Pro-tier wizard companion (deep-insights specialist). Pro only. */
+  COMPANION_PRO_WIZARD: "COMPANION_PRO_WIZARD",
 } as const;
 
 export type FeatureId = (typeof FEATURES)[keyof typeof FEATURES];
@@ -144,6 +155,9 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       AI_CHAT_HISTORY: false,
       MONEY_YEAR_COMPARE: false,
       PDF_REPORT: false,
+      COMPANION_PRESENCE: false,
+      COMPANION_WIZARDS: false,
+      COMPANION_PRO_WIZARD: false,
     },
   },
   plus: {
@@ -174,6 +188,9 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       AI_CHAT_HISTORY: true,
       MONEY_YEAR_COMPARE: true,
       PDF_REPORT: false,
+      COMPANION_PRESENCE: true,
+      COMPANION_WIZARDS: true,
+      COMPANION_PRO_WIZARD: false,
     },
   },
   pro: {
@@ -204,6 +221,9 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       AI_CHAT_HISTORY: true,
       MONEY_YEAR_COMPARE: true,
       PDF_REPORT: true,
+      COMPANION_PRESENCE: true,
+      COMPANION_WIZARDS: true,
+      COMPANION_PRO_WIZARD: true,
     },
   },
 };

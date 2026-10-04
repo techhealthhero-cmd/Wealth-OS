@@ -2770,7 +2770,7 @@
     "navLabel": "How to use",
     "title": "How to use WEALTH OS",
     "subtitle": "Know your money, grow your income, build your wealth — an easy guide to every feature in the app.",
-    "lastUpdated": "Last updated Sep 30, 2026 · updated every time a new feature ships",
+    "lastUpdated": "Last updated Oct 4, 2026 · updated every time a new feature ships",
     "philosophy": {
       "track": "Track",
       "analyze": "Analyze",
@@ -2894,6 +2894,8 @@
           { "emoji": "💬", "title": "Ask anything about money", "description": "Like \"did I overspend this month?\" — the AI pulls your real data to answer." },
           { "emoji": "🫧", "title": "Floating AI button on every page", "description": "Tap the floating AI button (drag it anywhere) to open the assistant over the current page — Chat · Summary · Analyze · Tools tabs, one-tap starter cards, and voice input where your browser supports it. Tap the button again to close." },
           { "emoji": "🌫️", "title": "Adjust the AI button's opacity", "description": "Settings → Floating AI button → Idle opacity (15–100%, default 40%). The button fades after 3 seconds untouched, like iPhone's AssistiveTouch. You can also hide the button with the \"Show floating AI button\" switch on the same card." },
+          { "emoji": "🧚", "title": "Companions", "description": "Pick a spirit or wizard to be your AI button and chat partner in Settings → Companion. Each has a specialty (big picture · spending · saving · debt hunting · planning · income · deep insights). Spirits are earned only through real financial progress — never bought, and yours for good; wizards come with Plus/Pro." },
+          { "emoji": "💫", "title": "Living companion", "description": "Your companion floats and sways, hops happily when you log money, and now and then shares a tip from your real data (at most every 4 hours). Tap the bubble to act on it; turn it off on the Companion page.", "badge": "plus" },
           { "emoji": "📷", "title": "Attach a photo", "description": "Attach a screenshot or photo — like a form field you don't understand — and the AI can explain it (never saved, used only for that one reply)." },
           { "emoji": "✨", "title": "Daily insights", "description": "Short, useful observations about your financial habits." },
           { "emoji": "🔢", "title": "Monthly message limit", "description": "Free: 15 · Plus: 150 · Pro: 500 messages per month." }
@@ -2925,5 +2927,82 @@
       "limitedFree": "Limited on Free"
     },
     "disclaimer": "WEALTH OS never promises you'll get rich. It's a tool to help you see your finances clearly and make better decisions — not investment advice."
+  },
+  "companions": {
+    "navLabel": "Companion",
+    "pageTitle": "Your companions",
+    "pageSubtitle": "A friend that lives in the app with you. Spirits unlock through your own financial progress; wizards come with Plus/Pro.",
+    "spiritsTitle": "Spirits — earned through progress",
+    "spiritsHint": "Can't be bought — only earned by looking after your money, and yours forever once earned.",
+    "wizardsTitle": "Wizards — Plus/Pro specialists",
+    "wizardsHint": "Each wizard specializes in features that plan already includes.",
+    "selected": "With you now",
+    "choose": "Choose",
+    "chosenToast": "{name} is with you now",
+    "locked": "Locked",
+    "starter": "Starter",
+    "howToUnlock": "How to unlock",
+    "needsPlus": "Comes with Plus",
+    "needsPro": "Comes with Pro",
+    "seePlans": "See plans",
+    "unlockedBubble": "{name} unlocked! 🎉 Tap to meet them",
+    "presenceTitle": "Living companion",
+    "presenceOnHint": "Your companion moves, cheers when you log money, and now and then shares a tip from your real data (at most every 4 hours).",
+    "presenceToggle": "Let my companion greet me and move",
+    "presenceLockedHint": "Plus/Pro members: your companion moves, cheers with you, and shares tips from your real data now and then.",
+    "bubbleDismiss": "Dismiss",
+    "focusLabel": "Specialty",
+    "names": {
+      "spirit-mint": "Mint Spirit",
+      "spirit-flame": "Flame Spirit",
+      "spirit-leaf": "Leaf Spirit",
+      "spirit-hooded": "Shadow Spirit",
+      "wizard-hat": "Star-Hat Wizard",
+      "wizard-caped": "Caped Wizard",
+      "wizard-hooded": "Emerald Hood Wizard"
+    },
+    "focus": {
+      "overview": "The big picture — what matters most right now",
+      "spending": "Spending and budgets",
+      "saving": "Saving and your emergency fund",
+      "debt": "Hunting debt and leaking subscriptions",
+      "planning": "Yearly planning, goals and forecasts",
+      "income": "Growing income and income missions",
+      "insights": "Deep insights across all your data"
+    },
+    "unlockRules": {
+      "budget_month_kept": "Stay within your budget for a full month (last month)",
+      "emergency_fund_one_month": "Build an emergency fund covering 1 month of essential expenses",
+      "money_leaks_handled": "Decide on every detected subscription, or log a debt payment in the last 30 days"
+    },
+    "progressMonths": "{current} / {target} months",
+    "cheer": [
+      "Saved — nice one! ✨",
+      "Another step forward 💪",
+      "Your picture just got clearer 🌱",
+      "Noted it for you 📒"
+    ],
+    "tips": {
+      "subscriptionsPending": "I found {n} subscriptions you haven't reviewed yet. Take a look?",
+      "budgetOver": "You're over budget this month — let's see which category could ease off.",
+      "budgetNearLimit": "This month's budget is almost used up. Go gently.",
+      "noBudget": "No budget for this month yet — setting one makes spending easier to steer.",
+      "emergencyFundProgress": "Your emergency fund now covers about {months} months.",
+      "allGood": "Everything looks good right now. I'm here if you want to ask anything.",
+      "insights": {
+        "spending_increase": "{category} is up {percent}% compared with last month.",
+        "savings_rate_drop": "Your savings rate dropped {percent} points from last month.",
+        "debt_progress": "You've paid {amount} toward debt this month. Great work!",
+        "goal_ahead": "Your goal \"{goal}\" is ahead of plan ({percent}%).",
+        "net_worth_growth": "Your net worth grew {amount} since last month."
+      }
+    },
+    "errors": {
+      "signedOut": "Please sign in again.",
+      "locked": "This companion isn't unlocked yet.",
+      "notReady": "Companions aren't available yet (database not updated).",
+      "saveFailed": "Couldn't save. Please try again."
+    },
+    "persona": "Persona: you are \"{name}\", the user's companion character inside WEALTH OS. Your specialty is {focus}. When the user's question is open-ended, lead with your specialty if the data shows something relevant there; otherwise answer normally. The persona changes only your focus and a light, friendly character voice — every rule above still applies, and you never invent data."
   }
 }

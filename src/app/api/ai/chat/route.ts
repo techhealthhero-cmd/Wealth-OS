@@ -21,6 +21,7 @@ import { trackEvent } from "@/lib/analytics";
 import { checkRateLimit } from "@/lib/rate-limit";
 import type { AIImageMediaType, AIMessage, AIMessageImage } from "@/features/ai/types";
 import { getAccountPrivacyState } from "@/features/account-privacy/queries";
+import { getCompanionState } from "@/features/companions/queries";
 import { isPrivacyLockedFor } from "@/features/account-privacy/types";
 
 const MAX_HISTORY_MESSAGES = 20;
@@ -143,12 +144,22 @@ export async function POST(request: Request) {
     return Response.json({ error: dict.aiCoach.notConfigured }, { status: 503 });
   }
 
-  const [context, history] = await Promise.all([
+  const [context, history, companionState] = await Promise.all([
     buildFinancialContext(),
     conversationId ? getMessages(conversationId, user.id) : Promise.resolve([]),
+    getCompanionState(),
   ]);
 
   let system = buildSystemPrompt(context);
+  // The selected companion's persona (src/lib/companions/catalog.ts) — read
+  // server-side from the user's own validated state, never from the
+  // request. Appended after the cached prefix so prompt caching is intact.
+  const companion = companionState.active;
+  system +=
+    "\n\n" +
+    dict.companions.persona
+      .replace("{name}", dict.companions.names[companion.id as keyof typeof dict.companions.names])
+      .replace("{focus}", dict.companions.focus[companion.focus]);
   if (requestsGuaranteedReturns(trimmedMessage)) {
     system +=
       "\n\nThe user's latest message appears to be asking for a guaranteed return or guaranteed profit. Firmly and clearly reiterate that no investment return can ever be guaranteed, without being preachy about it.";

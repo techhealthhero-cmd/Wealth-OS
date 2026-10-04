@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -5,6 +6,7 @@ import type { Metadata } from "next";
 import { getProfile } from "@/features/profile/queries";
 import { ProfileForm } from "@/features/profile/components/profile-form";
 import { getEntitlements } from "@/lib/billing/entitlements";
+import { getCompanionState } from "@/features/companions/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,9 +27,10 @@ export default async function ProfilePage() {
   // (app)/layout.tsx already redirects unauthenticated users before this
   // page renders at all, so `!profile` here is a rare defensive case, not
   // the normal signed-out path.
-  const [profile, entitlements] = await Promise.all([
+  const [profile, entitlements, companion] = await Promise.all([
     getProfile(),
     getEntitlements(),
+    getCompanionState(),
   ]);
   if (!profile) redirect("/login");
   const accountPrivacy = await getAccountPrivacyState();
@@ -54,6 +57,34 @@ export default async function ProfilePage() {
             <span className="flex items-center gap-2">
               {dict.billing.currentPlan}
               <Badge variant={entitlements.plan === "free" ? "outline" : "default"}>{entitlements.definition.displayName}</Badge>
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <Button
+            nativeButton={false}
+            render={<Link href="/companions" />}
+            variant="ghost"
+            className="h-auto w-full justify-between px-0 py-1 hover:bg-transparent"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <Image
+                src={companion.active.image}
+                alt=""
+                width={44}
+                height={44}
+                className="size-11 shrink-0 rounded-full object-cover"
+              />
+              <span className="min-w-0 text-left">
+                <span className="block text-sm font-semibold">{dict.companions.navLabel}</span>
+                <span className="block truncate text-xs font-normal text-muted-foreground">
+                  {dict.companions.names[companion.active.id as keyof typeof dict.companions.names]}
+                </span>
+              </span>
             </span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </Button>

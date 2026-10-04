@@ -363,6 +363,60 @@
   }
 }
 
+/* Living companion (Plus/Pro, 2026-10-04) — see FloatingAiButton.
+   float: a slow breathing bob with a small curious tilt near the end of
+   each cycle, so it reads as "alive" without demanding attention.
+   hop: a one-shot happy jump after a money save.
+   bubble-in: the speech bubble popping out beside it. */
+@keyframes companion-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  35% {
+    transform: translateY(-4px) rotate(0deg);
+  }
+  70% {
+    transform: translateY(0) rotate(0deg);
+  }
+  78% {
+    transform: translateY(-1px) rotate(-6deg);
+  }
+  86% {
+    transform: translateY(0) rotate(4deg);
+  }
+  92% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+@keyframes companion-hop {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-14px) scale(1.06);
+  }
+  55% {
+    transform: translateY(0) scale(1.06, 0.94);
+  }
+  75% {
+    transform: translateY(-5px) scale(1);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes companion-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /*
  * Day 8 accessibility audit (STEP 8): honors prefers-reduced-motion
  * app-wide in one place, rather than adding a reduced-motion variant to

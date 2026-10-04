@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { cheerCompanion } from "@/features/companions/presence";
 import { ArrowLeftRight, Camera, ImageUp, Loader2, PencilLine, TrendingUp, X } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
@@ -457,6 +458,7 @@ export function QuickCaptureSheet({
 
       const needsReview = !(draft.confidence === "high" || draft.categoryConfirmedByUser);
       const savedId = result.transactionId;
+      cheerCompanion();
       toast.success(`${needsReview ? t("capture.savedNeedsReview") : t("capture.saved")} ${formatMoney(payload.amountCents)}`, {
         icon: <SuccessBadge />,
         action: savedId
@@ -526,6 +528,7 @@ export function QuickCaptureSheet({
     setRecapProgress(null);
 
     if (savedRowIds.length > 0) {
+      cheerCompanion();
       toast.success(t("capture.recap.saved").replace("{n}", String(savedRowIds.length)), {
         icon: <SuccessBadge />,
         description: needsReview > 0 ? t("capture.recap.savedReview").replace("{n}", String(needsReview)) : undefined,

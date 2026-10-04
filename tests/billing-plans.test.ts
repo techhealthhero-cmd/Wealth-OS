@@ -86,7 +86,11 @@ describe("planHasFeature / getPlanLimit — feature entitlement (STEP 17)", () =
 
   it("a Free -> Plus transition unlocks every Plus-tier premium feature", () => {
     const plusFeatures = Object.values(FEATURES).filter(
-      (f) => f !== FEATURES.ADVANCED_INSIGHTS && f !== FEATURES.DATA_EXPORT && f !== FEATURES.PDF_REPORT
+      (f) =>
+        f !== FEATURES.ADVANCED_INSIGHTS &&
+        f !== FEATURES.DATA_EXPORT &&
+        f !== FEATURES.PDF_REPORT &&
+        f !== FEATURES.COMPANION_PRO_WIZARD
     );
     for (const feature of plusFeatures) {
       expect(planHasFeature("plus", feature)).toBe(true);

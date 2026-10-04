@@ -11,6 +11,7 @@ import { logNav } from "@/lib/dev-diagnostics";
 import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { FloatingAiButton } from "@/components/layout/floating-ai-button";
+import { getCompanionState } from "@/features/companions/queries";
 import { Header } from "@/components/layout/header";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { PlanBadge } from "@/features/billing/components/plan-badge";
@@ -57,11 +58,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // also calls them with the same arguments (e.g. dashboard's display-safe
   // account query)
   // with no options) dedupes against this call instead of re-querying.
-  const [locale, accounts, categories] = await Promise.all([
+  const [locale, accounts, categories, companionState] = await Promise.all([
     getLocale(profile.preferred_language),
     getDisplayAccounts(),
     getCategories(),
+    getCompanionState(),
   ]);
+  const companion = {
+    id: companionState.active.id,
+    image: companionState.active.image,
+    emoji: companionState.active.emoji,
+    presence: companionState.presence,
+  };
   const dict = getDictionary(locale);
 
   return (
@@ -105,7 +113,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Outside `main` so its fixed-position pill/panel is never affected
             by any ancestor transform/overflow. */}
         <MinimizableFormHost />
-        <FloatingAiButton />
+        <FloatingAiButton companion={companion} />
       </MinimizableFormProvider>
       <Toaster position="top-center" />
     </I18nProvider>

@@ -228,6 +228,8 @@ export interface Database {
           currency_code: string;
           timezone: string;
           onboarding_completed: boolean;
+          /** Migration 0038. Optional: absent on a database that hasn't applied it yet. */
+          selected_companion_id?: string | null;
           created_at: string;
           updated_at: string;
         };

@@ -6,7 +6,49 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-02
+Last updated: 2026-10-04
+
+## AI companions (ภูติ / จอมเวท) — 2026-10-04
+
+- **Migration `0038_companions.sql` — committed, NOT yet applied.** Run
+  `supabase db push --linked --dry-run` (expect 0037 + 0038 if 0037 is
+  still pending) then `supabase db push --linked`. Until applied, the app
+  works with the starter companion only: unlock checks and selection fail
+  softly (`isCompanionSchemaMissing` in `features/companions/queries.ts`)
+  and the picker shows a "database not updated" message on select.
+- **Catalog** `src/lib/companions/catalog.ts` (pure config, like
+  `plans.ts`): 4 spirits (`spirit-mint` starter · `spirit-flame` spending ·
+  `spirit-leaf` saving · `spirit-hooded` debt/subscriptions) and 3 wizards
+  (`wizard-hat` planning, `wizard-caped` income → Plus; `wizard-hooded`
+  insights → Pro). Images in `public/companions/{spirits,wizards}/`.
+- **Rules** `src/lib/companions/unlock.ts` — deterministic, relative to the
+  user's own data (never a baht threshold): budget kept last month; emergency
+  fund ≥ 1 month of essentials; every detected subscription decided or a
+  debt payment in 30 days. Spirits are never purchasable on any plan;
+  unlocks are permanent (`user_companions`, no client insert policy — written
+  server-side with the service-role client after the check). Wizards are
+  derived from the plan on every read. `profiles.selected_companion_id` is a
+  preference validated on read (falls back to the starter).
+- **Plan flags** (`plans.ts`): `COMPANION_PRESENCE` + `COMPANION_WIZARDS`
+  (Plus/Pro), `COMPANION_PRO_WIZARD` (Pro).
+- **Presence (Plus/Pro)** in `FloatingAiButton`: idle float/sway animation,
+  hop + cheer line after a transaction / transfer / quick-capture save
+  (`cheerCompanion()`), and one proactive tip per 4 h (`getCompanionTip`,
+  server-gated, built by `src/lib/companions/tips.ts` from the Priority
+  Engine, insights, budget status and subscriptions — focus decides which
+  real fact is raised first). Per-device on/off on `/companions`. Unlock
+  check runs for every plan at most every 6 h, and on visiting `/companions`.
+- **AI chat persona**: `api/ai/chat` appends the active companion's name +
+  specialty after the cached prompt prefix; all data rules unchanged.
+- **UI**: `/companions` picker (locked states, progress bar, Plus/Pro
+  links), entry card on `/profile`, companion avatar in the AI panel header,
+  help guide items in the AI section.
+- **Verified**: typecheck, lint, 898 tests (new `tests/companions.test.ts`:
+  rules, availability, fallback, tip picking), production build. **Not
+  yet verified in a real browser / against a migrated database.**
+- **Known tension**: `GRAPHICS_PLAN.md` says "never detailed character art";
+  the owner explicitly asked for character companions (2026-10-04) — the
+  owner's request wins, the plan doc has not been rewritten.
 
 ## AI cost & quality pass — 2026-10-03
 
