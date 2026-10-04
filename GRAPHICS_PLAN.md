@@ -143,6 +143,21 @@ category-chip `active:scale-95`).
 Avoid: bouncy/spring animations, long blocking transitions, distracting
 motion, excessive confetti.
 
+### Named window motions (owner-approved, 2026-10-04)
+
+Windows deliberately run longer than the 150–250ms default above — the
+owner asked for slow, clearly visible open/close motion. Tokens live in
+`src/app/globals.css`.
+
+| Name | Used for | What it does | Tokens |
+|---|---|---|---|
+| **Companion grow** | Opening any window: AI companion panel, Quick Capture, sheets, dialogs, forms | Grows/slides into place from its trigger (or edge) on a soft decelerating curve | `--motion-companion-open` (560ms), `--ease-companion` |
+| **Companion shrink** | Closing the AI companion panel | Shrinks back into the companion button (which stays on top), fading only at the end | `--motion-companion-close` (680ms), `--ease-companion` |
+| **Black Hole** | Closing Quick Capture into the center "+" | The window accelerates into the "+" — slight spin, rounds into a disc, blurs, fades — while a copy of the "+" is raised above it and swells ("gulps") as it swallows | `--ease-black-hole`, `black-hole-gulp` keyframes, `SheetContent motion="grow"` |
+| **Slide-down close** | Closing other sheets, dialogs and forms | Slides slowly down off-screen | `--motion-close` (1100ms), `--ease-close` |
+
+All of them respect `prefers-reduced-motion`.
+
 ## What WEALTH OS is *not*
 
 - a crypto dashboard
