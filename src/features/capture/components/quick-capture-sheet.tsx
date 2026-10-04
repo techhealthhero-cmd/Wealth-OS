@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { cheerCompanion } from "@/features/companions/presence";
@@ -106,6 +106,29 @@ export function QuickCaptureSheet({
       onOpenChange(false);
     },
   });
+  // Requested 2026-10-04: the sheet unfolds OUT of the center "+" button and
+  // folds back INTO it, like the companion window (SheetContent
+  // motion="grow"). The scale origin must sit on the + button's center, in
+  // the sheet's own coordinates — set when the sheet mounts (before its
+  // first animated frame) and again whenever it moves (keyboard lift).
+  const sheetElRef = useRef<HTMLElement | null>(null);
+  const aimAtFab = useCallback((el: HTMLElement | null) => {
+    const fab = document.querySelector("[data-fab-trigger]");
+    if (!el || !fab) return;
+    const r = fab.getBoundingClientRect();
+    el.style.transformOrigin = `${r.left + r.width / 2 - el.offsetLeft}px ${r.top + r.height / 2 - el.offsetTop}px`;
+  }, []);
+  const attachSheet = useCallback(
+    (el: HTMLElement | null) => {
+      sheetElRef.current = el;
+      sheetRef(el);
+      aimAtFab(el);
+    },
+    [sheetRef, aimAtFab]
+  );
+  useLayoutEffect(() => {
+    aimAtFab(sheetElRef.current);
+  }, [open, keyboardInset, aimAtFab]);
   const [text, setText] = useState("");
   const [textSource, setTextSource] = useState<"quick_text" | "voice">("quick_text");
   const [overrides, setOverrides] = useState<Partial<CaptureDraft>>({});
@@ -584,9 +607,10 @@ export function QuickCaptureSheet({
       }}
     >
       <SheetContent
-        ref={sheetRef}
+        ref={attachSheet}
+        motion="grow"
         side="bottom"
-        className="flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-t-3xl p-0 pb-[calc(env(safe-area-inset-bottom)+12px)] transition-[bottom,height,max-height,opacity,translate,transform] duration-200 ease-out motion-reduce:transition-none sm:mx-auto sm:max-w-lg"
+        className="flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-t-3xl p-0 pb-[calc(env(safe-area-inset-bottom)+12px)] motion-reduce:transition-none sm:mx-auto sm:max-w-lg"
         // iOS overlays the keyboard instead of resizing the page — lift the
         // sheet above it. While the keyboard is up the sheet takes ALL the
         // space above it (a fixed height, not its content's), so typing the
