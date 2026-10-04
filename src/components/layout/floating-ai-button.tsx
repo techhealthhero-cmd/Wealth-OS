@@ -17,7 +17,7 @@ import {
   useCompanionPresenceEnabled,
 } from "@/features/companions/presence";
 import { useAiFabEnabled, useAiFabIdleOpacity } from "./ai-fab-preferences";
-import type { CompanionTheme } from "@/lib/companions/catalog";
+import type { CompanionFocus, CompanionTheme } from "@/lib/companions/catalog";
 
 /** What the layout tells the button about the user's active companion. */
 export interface FloatingCompanion {
@@ -25,6 +25,7 @@ export interface FloatingCompanion {
   image: string;
   emoji: string;
   theme: CompanionTheme;
+  focus: CompanionFocus;
   /** Plus/Pro (COMPANION_PRESENCE): animation, reactions, proactive tips. */
   presence: boolean;
 }

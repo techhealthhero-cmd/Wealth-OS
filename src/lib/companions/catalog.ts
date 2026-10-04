@@ -131,6 +131,22 @@ export const COMPANIONS: readonly CompanionDefinition[] = [
   },
 ];
 
+/**
+ * The 3 one-tap questions the AI window offers, by companion focus
+ * (2026-10-04 simplification: replaces the 6 quick-action cards + the
+ * shuffled example list, which did the same job twice). Keys index
+ * `aiCoach.suggestedPrompts` — existing, already-translated prompts.
+ */
+export const COMPANION_SUGGESTION_KEYS: Record<CompanionFocus, readonly [string, string, string]> = {
+  overview: ["monthSummary", "topFocus", "financialProgressQuestion"],
+  spending: ["overspending", "upcomingBillsQuestion", "safeToSpendExplain"],
+  saving: ["reachGoalFaster", "financialProgressQuestion", "monthSummary"],
+  debt: ["debtAdvice", "unusedSubscriptionQuestion", "upcomingBillsQuestion"],
+  planning: ["reachGoalFaster", "whatMissionToday", "wealthScoreExplain"],
+  income: ["reachExtraIncome", "fastestSkill", "sideHustleForMyTime"],
+  insights: ["wealthScoreExplain", "overspending", "financialProgressQuestion"],
+};
+
 export function getCompanion(id: string | null | undefined): CompanionDefinition | null {
   if (!id) return null;
   return COMPANIONS.find((c) => c.id === id) ?? null;

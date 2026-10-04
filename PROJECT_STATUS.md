@@ -43,6 +43,19 @@ Last updated: 2026-10-04
 - **UI**: `/companions` picker (locked states, progress bar, Plus/Pro
   links), entry card on `/profile`, companion avatar in the AI panel header,
   help guide items in the AI section.
+- **AI window = the companion's window** (same day): header shows the
+  companion's name + tagline (not "{user} AI"), its own gradient/glow
+  (`theme` in the catalog), scoped `--primary` for accents, and its own
+  greeting + avatar in the chat.
+- **AI window simplified** (same day, ~20 tap targets → ~8): Summary /
+  Analyze / Tools tabs removed (duplicated the dashboard + bottom nav; the
+  full `/ai` page via ⧉ still has them), the 6 quick-action cards + shuffled
+  example list replaced by 3 suggestions per companion focus
+  (`COMPANION_SUGGESTION_KEYS`), and the summarize/attach/read-slip chip row
+  removed (📎 remains; slips are read in Quick Capture). The greeting now
+  carries one real fact (`buildCompanionTip`, shared with the speech
+  bubble, shown on every plan); overlay data is re-fetched on each open and
+  no longer loads snapshot/insights/health check.
 - **Verified**: typecheck, lint, 898 tests (new `tests/companions.test.ts`:
   rules, availability, fallback, tip picking), production build. **Not
   yet verified in a real browser / against a migrated database.**

@@ -5,26 +5,16 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowUp,
-  BarChart3,
-  Calculator,
-  Camera,
   Check,
-  ChevronRight,
   Copy,
-  FileText,
   History,
   ImagePlus,
-  Lightbulb,
   Lock,
   MessageSquarePlus,
   Mic,
   Paperclip,
-  RefreshCw,
   Search,
   SendHorizontal,
-  Target,
-  TrendingUp,
-  Upload,
   X,
 } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
@@ -79,25 +69,8 @@ const SUGGESTED_PROMPT_KEYS = [
   "financialProgressQuestion",
 ] as const;
 
-// Requested: match a reference floating-widget design's "start with this"
-// card grid — each card sends its own title as the chat message rather than
-// needing a second dedicated prompt string per card, one less dictionary
-// key to keep in sync per entry.
-const QUICK_ACTION_CARDS = [
-  { key: "monthSummary", icon: FileText, tone: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
-  { key: "analyzeSpending", icon: BarChart3, tone: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  { key: "setGoal", icon: Target, tone: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
-  { key: "calculateGoal", icon: Calculator, tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-  { key: "reduceIdeas", icon: Lightbulb, tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-  { key: "trendAnalysis", icon: TrendingUp, tone: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
-] as const;
-
-const EXAMPLE_QUESTIONS_COUNT = 4;
-
-function pickRandomKeys<T>(keys: readonly T[], count: number): T[] {
-  const shuffled = [...keys].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
-}
+// Overlay fallback when no companion focus is passed.
+const DEFAULT_OVERLAY_SUGGESTION_KEYS = ["monthSummary", "topFocus", "financialProgressQuestion"] as const;
 
 const TEXTAREA_MAX_HEIGHT_PX = 160;
 
@@ -290,6 +263,7 @@ export function AICoachChat({
   displayName,
   greeting,
   avatarImage,
+  suggestionKeys = DEFAULT_OVERLAY_SUGGESTION_KEYS,
 }: {
   initialConversationId?: string;
   initialMessages?: ChatMessage[];
@@ -311,13 +285,12 @@ export function AICoachChat({
   greeting?: { title: string; body: string };
   /** Overlay only: the active companion's avatar beside the greeting. */
   avatarImage?: string;
+  /** Overlay only: `aiCoach.suggestedPrompts` keys offered under the greeting. */
+  suggestionKeys?: readonly string[];
 }) {
   const { t, locale } = useTranslation();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages ?? []);
-  const [exampleKeys, setExampleKeys] = React.useState(() =>
-    pickRandomKeys(SUGGESTED_PROMPT_KEYS, EXAMPLE_QUESTIONS_COUNT)
-  );
   const [input, setInput] = React.useState("");
   const [conversationId, setConversationId] = React.useState<string | undefined>(initialConversationId);
   const [isSending, setIsSending] = React.useState(false);
@@ -599,57 +572,21 @@ export function AICoachChat({
               </div>
             </div>
 
-            <div>
-              <p className="mb-2 text-sm font-medium">{t("aiCoach.quickActionsTitle")}</p>
-              <div className="grid grid-cols-2 gap-2">
-                {QUICK_ACTION_CARDS.map(({ key, icon: Icon, tone }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => void sendMessage(t(`aiCoach.quickActions.${key}.title`))}
-                    className="flex min-w-0 items-center gap-2 rounded-xl border bg-card p-2 text-left shadow-xs transition-colors hover:bg-accent/50"
-                  >
-                    <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", tone)}>
-                      <Icon className="size-4" aria-hidden="true" />
-                    </span>
-                    <span className="flex min-w-0 flex-col">
-                      <span className="text-xs font-semibold leading-snug">{t(`aiCoach.quickActions.${key}.title`)}</span>
-                      <span className="text-[11px] leading-snug text-muted-foreground">
-                        {t(`aiCoach.quickActions.${key}.description`)}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{t("aiCoach.examplesTitle")}</p>
-                <Button
+            {/* 3 one-tap questions chosen by the companion's specialty
+                (2026-10-04: replaces 6 cards + a shuffled example list that
+                did the same job twice). Indented under the greeting so they
+                read as the companion's own offer. */}
+            <div className="flex flex-col items-start gap-1.5 pl-[3.375rem]">
+              {suggestionKeys.map((key) => (
+                <button
+                  key={key}
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="-mr-2 h-7 text-foreground"
-                  onClick={() => setExampleKeys(pickRandomKeys(SUGGESTED_PROMPT_KEYS, EXAMPLE_QUESTIONS_COUNT))}
+                  onClick={() => void sendMessage(t(`aiCoach.suggestedPrompts.${key}`))}
+                  className="max-w-full rounded-full border border-primary/30 bg-primary/5 px-3.5 py-1.5 text-left text-[13px] text-foreground transition-colors hover:bg-primary/10"
                 >
-                  <RefreshCw className="mr-1 size-3.5" aria-hidden="true" />
-                  {t("aiCoach.examplesRefresh")}
-                </Button>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                {exampleKeys.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => void sendMessage(t(`aiCoach.suggestedPrompts.${key}`))}
-                    className="flex items-center justify-between gap-2 rounded-full border px-3.5 py-2 text-left text-[13px] hover:bg-accent/50"
-                  >
-                    <span className="min-w-0">{t(`aiCoach.suggestedPrompts.${key}`)}</span>
-                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  </button>
-                ))}
-              </div>
+                  {t(`aiCoach.suggestedPrompts.${key}`)}
+                </button>
+              ))}
             </div>
           </div>
         ) : (
@@ -824,44 +761,9 @@ export function AICoachChat({
               <SendHorizontal className="size-4.5" aria-hidden="true" />
             </Button>
           </form>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-full px-2 text-xs"
-              disabled={isSending}
-              onClick={() => void sendMessage(t("aiCoach.summarizePagePrompt"))}
-            >
-              <FileText className="mr-1 size-3.5" aria-hidden="true" />
-              {t("aiCoach.shortcutSummarizePage")}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-full px-2 text-xs"
-              disabled={isSending}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="mr-1 size-3.5" aria-hidden="true" />
-              {t("aiCoach.shortcutAttachFile")}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-full px-2 text-xs"
-              disabled={isSending}
-              onClick={() => {
-                setInput(t("aiCoach.readReceiptPrompt"));
-                fileInputRef.current?.click();
-              }}
-            >
-              <Camera className="mr-1 size-3.5" aria-hidden="true" />
-              {t("aiCoach.shortcutReadReceipt")}
-            </Button>
-          </div>
+          {/* The summarize / attach / read-slip shortcut row was removed
+              (2026-10-04): attaching already lives on 📎, and slips are
+              read in Quick Capture (+). */}
         </div>
       ) : (
       <form onSubmit={handleSubmit}>

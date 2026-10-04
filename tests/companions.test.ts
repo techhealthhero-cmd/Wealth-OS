@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { PLANS } from "@/lib/billing/plans";
-import { COMPANIONS, STARTER_COMPANION_ID, getCompanion } from "@/lib/companions/catalog";
+import { COMPANIONS, COMPANION_SUGGESTION_KEYS, STARTER_COMPANION_ID, getCompanion } from "@/lib/companions/catalog";
 import {
   findNewlyEarnedCompanionIds,
   getUnlockProgress,
@@ -111,6 +111,21 @@ describe("availability and the active companion", () => {
     expect(PLANS.free.features.COMPANION_PRESENCE).toBe(false);
     expect(PLANS.plus.features.COMPANION_PRESENCE).toBe(true);
     expect(PLANS.pro.features.COMPANION_PRESENCE).toBe(true);
+  });
+});
+
+describe("AI window suggestions", () => {
+  it("every companion focus offers exactly 3 suggestions that exist in both languages", async () => {
+    const th = (await import("@/i18n/locales/th.json")).default.aiCoach.suggestedPrompts as Record<string, string>;
+    const en = (await import("@/i18n/locales/en.json")).default.aiCoach.suggestedPrompts as Record<string, string>;
+    for (const c of COMPANIONS) {
+      const keys = COMPANION_SUGGESTION_KEYS[c.focus];
+      expect(new Set(keys).size).toBe(3);
+      for (const key of keys) {
+        expect(th[key], `th ${key}`).toBeTruthy();
+        expect(en[key], `en ${key}`).toBeTruthy();
+      }
+    }
   });
 });
 

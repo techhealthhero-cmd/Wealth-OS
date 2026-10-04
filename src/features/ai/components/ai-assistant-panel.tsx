@@ -4,44 +4,13 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import Image from "next/image";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import {
-  ChartLine,
-  CircleDollarSign,
-  ExternalLink,
-  FileChartColumn,
-  Landmark,
-  LayoutGrid,
-  MessageCircle,
-  ShieldCheck,
-  Target,
-  X,
-} from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
-import type { CompanionTheme } from "@/lib/companions/catalog";
+import { COMPANION_SUGGESTION_KEYS, type CompanionFocus, type CompanionTheme } from "@/lib/companions/catalog";
 import { getAiOverlayData, type AiOverlayData } from "@/features/ai/actions/get-overlay-data";
 import { AICoachChat } from "./ai-coach-chat";
-import { FinancialSnapshotStrip } from "./financial-snapshot-strip";
-import { NextBestActionCard } from "./next-best-action-card";
-import { InsightCards } from "./insight-card";
-import { MonthlyHealthCheckCard } from "./monthly-health-check-card";
-
-type TabKey = "chat" | "summary" | "analyze" | "tools";
-
-const TABS = [
-  { key: "chat", icon: MessageCircle },
-  { key: "summary", icon: FileChartColumn },
-  { key: "analyze", icon: ChartLine },
-  { key: "tools", icon: LayoutGrid },
-] as const;
-
-const TOOLS_TAB_LINKS = [
-  { key: "debt", href: "/plan/debt", icon: Landmark },
-  { key: "emergencyFund", href: "/plan/emergency-fund", icon: ShieldCheck },
-  { key: "netWorth", href: "/money/net-worth", icon: CircleDollarSign },
-  { key: "goals", href: "/plan/goals", icon: Target },
-] as const;
 
 /** Where the floating AI button currently sits (px from the viewport's top-left). */
 export interface PanelAnchor {
@@ -95,9 +64,8 @@ function computePlacement(anchor: PanelAnchor | null): CSSProperties {
  * working — needed so the floating button (rendered above the backdrop)
  * can be tapped again to close the panel, like the reference's "×" badge.
  *
- * Summary and Analyze reuse the exact cards the full /ai page renders, so
- * the numbers can't drift from that page. The chat opens fresh each time on
- * its greeting/quick-action screen (see getAiOverlayData).
+ * The chat opens fresh each time on the companion's greeting and its 3
+ * suggestions (see getAiOverlayData).
  */
 export function AiAssistantPanel({
   open,
@@ -115,14 +83,13 @@ export function AiAssistantPanel({
    * gradient, glow, and `--primary` for tabs/send button), its avatar and
    * its own greeting in the chat.
    */
-  companion: { id: string; image: string; emoji: string; theme: CompanionTheme };
+  companion: { id: string; image: string; emoji: string; focus: CompanionFocus; theme: CompanionTheme };
   /** Plus/Pro presence on: the header avatar floats like the button does. */
   alive?: boolean;
 }) {
   const { t } = useTranslation();
   const [data, setData] = useState<AiOverlayData | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [tab, setTab] = useState<TabKey>("chat");
   const [placement, setPlacement] = useState<CSSProperties>({});
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -146,14 +113,11 @@ export function AiAssistantPanel({
     setPlacement(computePlacement(anchor));
   }, [open, anchor]);
 
+  // Re-fetched on every open (the previous data stays on screen meanwhile)
+  // so the greeting's real-data line is current and matches the companion
+  // the user may have switched to since last time.
   useEffect(() => {
-    // Every open starts on the chat tab, like the reference design.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (open) setTab("chat");
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || data) return;
+    if (!open) return;
     let cancelled = false;
     getAiOverlayData()
       .then((result) => {
@@ -167,14 +131,17 @@ export function AiAssistantPanel({
     return () => {
       cancelled = true;
     };
-  }, [open, data]);
+  }, [open]);
 
   const title = t(`companions.names.${companion.id}`);
   const userName = data?.displayName ?? t("companions.you");
   const tagline = t(`companions.taglines.${companion.id}`).replace("{name}", userName);
+  // The greeting carries one real fact from the user's data when there is
+  // one (same deterministic tip the companion's speech bubble uses);
+  // otherwise the companion's own introduction line.
   const greeting = {
     title: t(`companions.greetings.${companion.id}.title`).replace("{name}", userName),
-    body: t(`companions.greetings.${companion.id}.body`),
+    body: data?.greetingTip ?? t(`companions.greetings.${companion.id}.body`),
   };
   const { theme } = companion;
   // Re-theme everything inside the panel that uses the app's primary color
@@ -264,81 +231,24 @@ export function AiAssistantPanel({
             </div>
           </div>
 
-          {/* Tabs — icon + label, active one filled dark green. */}
-          <div role="tablist" aria-label={title} className="grid shrink-0 grid-cols-4 gap-1 border-b bg-muted/40 px-2 py-2">
-            {TABS.map(({ key, icon: Icon }) => {
-              const active = tab === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setTab(key)}
-                  className={cn(
-                    "flex min-w-0 items-center justify-center gap-1 rounded-full px-1.5 py-2 text-xs font-medium transition-colors",
-                    active ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{t(`aiCoach.tabs.${key}`)}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div role="tabpanel" className="flex min-h-0 flex-1 flex-col">
+          {/* Chat only (2026-10-04 simplification): the Summary / Analyze /
+              Tools tabs repeated the dashboard and the bottom nav, so the
+              window is now just "talk to your companion". The full /ai page
+              (header ⧉) still has everything. */}
+          <div className="flex min-h-0 flex-1 flex-col">
             {!data ? (
               <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted-foreground">
                 {loadFailed ? t("aiCoach.errorGeneric") : t("common.loading")}
               </div>
             ) : (
-              <>
-              {/* Kept mounted (just hidden) on other tabs so an in-progress
-                  conversation survives a peek at Summary/Analyze. */}
-              <div className={cn("flex min-h-0 flex-1 flex-col", tab !== "chat" && "hidden")}>
-                <AICoachChat
-                  variant="overlay"
-                  displayName={data.displayName}
-                  historyEnabled={data.historyEnabled}
-                  greeting={greeting}
-                  avatarImage={companion.image}
-                />
-              </div>
-              {tab === "chat" ? null : (
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3">
-                {tab === "summary" ? (
-                  <>
-                    <FinancialSnapshotStrip snapshot={data.snapshot} />
-                    <MonthlyHealthCheckCard health={data.healthCheck} showPriorityAction={false} />
-                  </>
-                ) : tab === "analyze" ? (
-                  <>
-                    <NextBestActionCard priority={data.priority} />
-                    {data.insights.length > 0 ? (
-                      <InsightCards insights={data.insights} />
-                    ) : (
-                      <p className="py-6 text-center text-sm text-muted-foreground">{t("aiCoach.analyzeTabEmpty")}</p>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex flex-col divide-y rounded-xl border">
-                    {TOOLS_TAB_LINKS.map(({ key, href, icon: Icon }) => (
-                      <Link
-                        key={key}
-                        href={href}
-                        onClick={() => onOpenChange(false)}
-                        className="flex items-center gap-3 px-3 py-3 text-sm font-medium hover:bg-accent/50"
-                      >
-                        <Icon className="size-4 text-primary" aria-hidden="true" />
-                        {t(`aiCoach.toolsTab.${key}`)}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-              )}
-              </>
+              <AICoachChat
+                variant="overlay"
+                displayName={data.displayName}
+                historyEnabled={data.historyEnabled}
+                greeting={greeting}
+                avatarImage={companion.image}
+                suggestionKeys={COMPANION_SUGGESTION_KEYS[companion.focus]}
+              />
             )}
           </div>
         </DialogPrimitive.Popup>
