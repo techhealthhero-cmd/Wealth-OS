@@ -8,7 +8,7 @@ import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
-import { categoryEmoji, formatFriendlyDate } from "@/lib/transaction-ui";
+import { formatFriendlyDate, itemEmoji } from "@/lib/transaction-ui";
 import { canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
 import { recapTotals } from "@/lib/capture/recap";
 import { CategoryPicker } from "@/features/transactions/components/category-picker";
@@ -114,7 +114,8 @@ export function RecapReview({
                 className="flex min-h-14 w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               >
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-base" aria-hidden="true">
-                  {categoryEmoji(category?.icon ?? null)}
+                  {/* Per-item icon: a drink shows a drink, not the food bowl. */}
+                  {itemEmoji(d.description || row.sourceText || d.merchant, category?.icon ?? null)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{label}</span>

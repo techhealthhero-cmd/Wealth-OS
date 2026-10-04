@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatMoneyFromDecimal } from "@/lib/financial/money";
-import { categoryEmoji, formatFriendlyDate } from "@/lib/transaction-ui";
+import { categoryEmoji, formatFriendlyDate, itemEmoji } from "@/lib/transaction-ui";
 import { CategoryPicker } from "@/features/transactions/components/category-picker";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { confirmInboxTransaction } from "@/features/capture/actions";
@@ -308,7 +308,7 @@ export function DailyInboxCard({
                     >
                     <div className="flex items-center justify-between gap-2 bg-card py-2">
                       <span className="flex min-w-0 items-center gap-2">
-                        <span aria-hidden="true">{categoryEmoji(category?.icon ?? null)}</span>
+                        <span aria-hidden="true">{itemEmoji(item.description || item.merchant, category?.icon ?? null)}</span>
                         <span className="truncate">{item.description || item.merchant || "—"}</span>
                       </span>
                       <span className={cn("shrink-0 tabular-nums", item.type === "income" && "text-emerald-600")}>

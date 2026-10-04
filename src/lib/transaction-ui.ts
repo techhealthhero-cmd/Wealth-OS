@@ -33,6 +33,50 @@ export function categoryEmoji(icon: string | null): string {
   return CATEGORY_ICON_EMOJI[icon] ?? "🏷️";
 }
 
+/**
+ * Drinks, most specific first (2026-10-04: "น้ำมะพร้าว should look like a
+ * drink, not a noodle bowl"). Matched against the item's own text, so a
+ * food-category row still shows what was actually bought. Thai + English.
+ */
+const DRINK_EMOJI_RULES: ReadonlyArray<readonly [RegExp, string]> = [
+  [/มะพร้าว|coconut/i, "🥥"],
+  [/ชานม|ไข่มุก|ชาไทย|ชาเย็น|bubble|boba|milk ?tea/i, "🧋"],
+  [/กาแฟ|ลาเต้|ลาเต|อเมริกาโน|เอสเพรสโซ|คาปู|มอคค่า|coffee|latte|americano|espresso|cappuccino|mocha/i, "☕"],
+  [/ชาเขียว|มัทฉะ|ชา(?!ร์จ|บู|ม)|\btea\b|matcha/i, "🍵"],
+  [/เบียร์|beer/i, "🍺"],
+  [/ไวน์|wine/i, "🍷"],
+  [/เหล้า|ค็อกเทล|วิสกี้|cocktail|whisk(e)?y/i, "🍸"],
+  [/โกโก้|cocoa|นมสด|นมเย็น|นมจืด|นมชมพู|โยเกิร์ตพร้อมดื่ม|^นม(?!ปัง)|milk/i, "🥛"],
+  [/น้ำเปล่า|น้ำดื่ม|\bwater\b/i, "💧"],
+  [/น้ำส้ม|น้ำผลไม้|น้ำแตงโม|น้ำ.*ปั่น|สมูทตี้|juice|smoothie/i, "🧃"],
+  [/โค้ก|เป๊ปซี่|สไปรท์|โซดา|น้ำอัดลม|น้ำแดง|น้ำเขียว|cola|coke|pepsi|soda/i, "🥤"],
+];
+
+// Thai words that start with น้ำ but aren't drinks (fuel, dipping sauce,
+// soup, the water bill…), so the generic "น้ำ…" rule below skips them.
+const NOT_A_DRINK = /น้ำมัน|น้ำพริก|น้ำจิ้ม|น้ำซุป|น้ำตก|น้ำปลา|น้ำยา|น้ำหอม|น้ำประปา|ค่าน้ำ|น้ำไฟ/;
+
+/** Category icons whose rows may show a more specific per-item icon. */
+const ITEM_ICON_CATEGORIES = new Set(["utensils"]);
+
+/**
+ * The icon for one captured/recorded ITEM: a drink icon when the item is a
+ * drink, otherwise its category's icon. Only refines food (or not yet
+ * categorized) rows — "ค่าน้ำ" under utilities stays 💡, never a drink.
+ */
+export function itemEmoji(text: string | null | undefined, categoryIcon: string | null): string {
+  const label = (text ?? "").trim();
+  const refinable = categoryIcon === null || ITEM_ICON_CATEGORIES.has(categoryIcon);
+  if (label && refinable && !NOT_A_DRINK.test(label)) {
+    for (const [pattern, emoji] of DRINK_EMOJI_RULES) {
+      if (pattern.test(label)) return emoji;
+    }
+    // Anything else that starts with "น้ำ" is a drink ("น้ำลำไย", "น้ำเก๊กฮวย").
+    if (/^น้ำ/.test(label)) return "🥤";
+  }
+  return categoryEmoji(categoryIcon);
+}
+
 export const ACCOUNT_TYPE_EMOJI: Record<AccountType, string> = {
   cash: "💵",
   bank: "💳",
