@@ -638,7 +638,7 @@ export function QuickCaptureSheet({
           <SheetDescription>{t("capture.subtitle")}</SheetDescription>
         </SheetHeader>
 
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div ref={scrollRef} className="edge-fade-y min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="space-y-3 px-4">
             {/* Type — the primary path. Enter saves when the preview is ready. */}
             <form

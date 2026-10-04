@@ -550,7 +550,7 @@ export function AICoachChat({
           the /ai page's layout is exactly what it was before. */}
       <div
         ref={isOverlay ? scrollAreaRef : undefined}
-        className={isOverlay ? "flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3" : "contents"}
+        className={isOverlay ? "edge-fade-y flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3" : "contents"}
       >
       {historyOpen ? <ChatHistoryPanel onSelectConversation={(id) => void loadConversation(id)} onClose={() => setHistoryOpen(false)} /> : null}
 

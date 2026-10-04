@@ -37,7 +37,7 @@ export function MoneyStoryGallery({ pages, pageLabel }: MoneyStoryGalleryProps) 
       <div
         ref={scrollerRef}
         onScroll={handleScroll}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="edge-fade-x flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {pages.map((page, i) => (
           <div key={page.src} className="w-full shrink-0 snap-center overflow-hidden rounded-xl border bg-muted">

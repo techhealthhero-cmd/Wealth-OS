@@ -114,6 +114,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
         {/* Outside `main` so its fixed-position pill/panel is never affected
             by any ancestor transform/overflow. */}
+        {/* Top edge fade (2026-10-04, like ChatGPT's chat view): page
+            content scrolling up under the status bar softly blurs and fades
+            into the background instead of being cut by a hard edge — the
+            same idea as BottomNav's frosted fade at the bottom. Mobile only;
+            purely visual, never blocks taps. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-x-0 top-0 z-30 h-[calc(env(safe-area-inset-top)+14px)] bg-gradient-to-b from-background via-background/70 to-transparent backdrop-blur-[6px] [-webkit-mask-image:linear-gradient(to_bottom,black_55%,transparent)] [mask-image:linear-gradient(to_bottom,black_55%,transparent)] md:hidden"
+        />
         <MinimizableFormHost />
         <FloatingAiButton companion={companion} />
       </MinimizableFormProvider>

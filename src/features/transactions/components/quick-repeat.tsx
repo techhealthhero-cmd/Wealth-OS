@@ -37,7 +37,7 @@ export function QuickRepeat({ candidates, accounts, categories }: QuickRepeatPro
         <h2 className="text-sm font-medium">{t("transactions.quickRepeat")}</h2>
         <p className="text-xs text-muted-foreground">{t("transactions.quickRepeatHint")}</p>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="edge-fade-x flex gap-2 overflow-x-auto pb-1">
         {candidates.map((candidate, index) => {
           const category = candidate.categoryId ? categoryById.get(candidate.categoryId) : undefined;
           const label =

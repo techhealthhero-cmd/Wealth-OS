@@ -159,6 +159,15 @@ owner asked for slow, clearly visible open/close motion. Tokens live in
 
 All of them respect `prefers-reduced-motion`.
 
+**Edge fade** (2026-10-04): content scrolling under an edge softly fades
+(and, at the screen's top, blurs) instead of being cut by a hard line.
+`.edge-fade-y` / `.edge-fade-x` in globals.css are scroll-linked — a fade
+only shows on a side that has more content. Use only on scroll areas
+without their own background (the mask fades backgrounds too): the AI
+window's chat list, Quick Capture's content, horizontal chip rows. The
+screen top has a fixed status-bar fade in `(app)/layout.tsx`; the bottom
+already had BottomNav's frosted fade.
+
 ## What WEALTH OS is *not*
 
 - a crypto dashboard

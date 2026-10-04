@@ -481,4 +481,78 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  /* Edge fades are scroll-linked, not motion — keep them tracking scroll. */
+  .edge-fade-y,
+  .edge-fade-x {
+    animation-duration: auto !important;
+  }
+}
+
+/*
+ * Edge fade (2026-10-04, inspired by ChatGPT's chat view): content softly
+ * fades out where it scrolls under an edge instead of being cut off by a
+ * hard line. Scroll-linked where supported (animation-timeline: scroll), so
+ * the fade only appears on a side that actually has more content — at the
+ * very top there's no top fade, at the very end no bottom fade, and a
+ * container that doesn't overflow gets none at all (an inactive scroll
+ * timeline falls back to the 0px initial values). Browsers without
+ * scroll-driven animations simply show no fade.
+ *
+ * Only for scroll areas WITHOUT their own background/border (a mask fades
+ * the element's background too) — e.g. the chat list inside the AI window,
+ * Quick Capture's content, horizontal chip rows.
+ */
+@property --edge-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --edge-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+.edge-fade-y {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--edge-fade-start),
+    #000 calc(100% - var(--edge-fade-end)),
+    transparent 100%
+  );
+}
+.edge-fade-x {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--edge-fade-start),
+    #000 calc(100% - var(--edge-fade-end)),
+    transparent 100%
+  );
+}
+@supports (animation-timeline: scroll()) {
+  .edge-fade-y {
+    animation: edge-fade linear both;
+    animation-timeline: scroll(self block);
+  }
+  .edge-fade-x {
+    animation: edge-fade linear both;
+    animation-timeline: scroll(self inline);
+  }
+}
+@keyframes edge-fade {
+  0% {
+    --edge-fade-start: 0px;
+    --edge-fade-end: 28px;
+  }
+  8% {
+    --edge-fade-start: 28px;
+  }
+  92% {
+    --edge-fade-end: 28px;
+  }
+  100% {
+    --edge-fade-start: 28px;
+    --edge-fade-end: 0px;
+  }
 }
