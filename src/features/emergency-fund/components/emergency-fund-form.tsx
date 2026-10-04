@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { saveEmergencyFund } from "@/features/emergency-fund/actions";
 import { EMERGENCY_FUND_MONTH_PRESETS } from "@/lib/financial/emergency-fund";
@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
+import { flyAmountInto } from "@/lib/motion/black-hole";
 
 const NO_LINK = "__none__";
 const CUSTOM = "__custom__";
@@ -36,12 +38,45 @@ export function EmergencyFundForm({ emergencyFund, accounts, goals }: EmergencyF
   const [linkedAccountId, setLinkedAccountId] = useState(emergencyFund?.linked_account_id ?? NO_LINK);
   const [linkedGoalId, setLinkedGoalId] = useState(emergencyFund?.linked_goal_id ?? NO_LINK);
 
+  // Black Hole (2026-10-04): when a save adds money, the added amount flies
+  // up and is swallowed by the progress bar — "your money went HERE".
+  // Values are captured at submit time: by the time the success state
+  // arrives, the revalidated `emergencyFund` prop may already be the new one.
+  const submittedRef = useRef<{ before: number; after: number } | null>(null);
+
   useEffect(() => {
-    if (state?.success) window.scrollTo({ top: 0, behavior: "smooth" });
+    if (!state?.success) return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    const submitted = submittedRef.current;
+    submittedRef.current = null;
+    if (!submitted) return;
+    const addedCents = submitted.after - submitted.before;
+    if (addedCents <= 0) return;
+    // Let the smooth scroll bring the progress bar into view first.
+    const timer = window.setTimeout(() => {
+      const target = document.querySelector("[data-ef-progress]");
+      if (!target) return;
+      void flyAmountInto(
+        `+${formatMoney(addedCents)}`,
+        { x: window.innerWidth / 2, y: window.innerHeight * 0.62 },
+        target
+      );
+    }, 550);
+    return () => window.clearTimeout(timer);
   }, [state]);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        const value = new FormData(e.currentTarget).get("current_amount");
+        submittedRef.current = {
+          before: parseMoneyToCents(emergencyFund?.current_amount ?? "0"),
+          after: parseMoneyToCents(typeof value === "string" && value !== "" ? value : "0"),
+        };
+      }}
+      className="space-y-4"
+    >
       <input type="hidden" name="linked_account_id" value={linkedAccountId === NO_LINK ? "" : linkedAccountId} />
       <input type="hidden" name="linked_goal_id" value={linkedGoalId === NO_LINK ? "" : linkedGoalId} />
       <input type="hidden" name="target_months" value={targetMode === CUSTOM ? "" : targetMode} />

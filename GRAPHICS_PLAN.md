@@ -154,6 +154,7 @@ owner asked for slow, clearly visible open/close motion. Tokens live in
 | **Companion grow** | Opening any window: AI companion panel, Quick Capture, sheets, dialogs, forms | Grows/slides into place from its trigger (or edge) on a soft decelerating curve | `--motion-companion-open` (560ms), `--ease-companion` |
 | **Companion shrink** | Closing the AI companion panel | Shrinks back into the companion button (which stays on top), fading only at the end | `--motion-companion-close` (680ms), `--ease-companion` |
 | **Black Hole** | Closing Quick Capture into the center "+" | The window accelerates into the "+" — slight spin, rounds into a disc, blurs, fades — while a copy of the "+" is raised above it and swells ("gulps") as it swallows | `--ease-black-hole`, `black-hole-gulp` keyframes, `SheetContent motion="grow"` |
+| **Black Hole** (stored into a destination) | Minimizing a form ("−" / Esc) into its resume pill — and restoring grows back out of the pill; saving money into a goal (form → that goal's progress bar); saving money into the emergency fund (a "+฿X" chip → its progress bar) | Same motion via `src/lib/motion/black-hole.ts` (`blackHoleInto`, `gulp`, `flyAmountInto`): travels to the target while readable, collapses at the end, target gulps. Rule: only when something is successfully KEPT somewhere visible — never for deleting | `BLACK_HOLE_MS` |
 | **Slide-down close** | Closing other sheets, dialogs and forms | Slides slowly down off-screen | `--motion-close` (1100ms), `--ease-close` |
 
 All of them respect `prefers-reduced-motion`.

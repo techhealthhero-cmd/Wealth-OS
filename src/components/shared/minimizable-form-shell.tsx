@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { Minus, X } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
 import { useMinimizableForm } from "./minimizable-form-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { BLACK_HOLE_MS, blackHoleInto, gulp, prefersReducedMotion } from "@/lib/motion/black-hole";
 
 // How far down a drag must go before releasing counts as "minimize" —
 // same threshold pull-to-refresh.tsx uses, for a consistent feel.
@@ -32,6 +33,27 @@ interface MinimizableFormShellProps {
   className?: string;
   /** "dialog" (centered, matches ui/dialog.tsx) or "sheet" (bottom sheet with a drag handle, matches ui/sheet.tsx's side="bottom") — whichever the form used before adopting this shell. Defaults to "dialog". */
   variant?: "dialog" | "sheet";
+  /** Imperative handle — e.g. a form that wants to close INTO something it just saved to (Black Hole). */
+  handleRef?: Ref<MinimizableFormShellHandle>;
+}
+
+export interface MinimizableFormShellHandle {
+  /**
+   * Closes the form with the Black Hole motion into the element matching
+   * `selector` (e.g. the goal's progress bar it just added money to), which
+   * then gulps. Falls back to an instant close when the target isn't on
+   * screen or the user prefers reduced motion.
+   */
+  closeInto: (selector: string) => void;
+}
+
+function isOnScreen(el: Element): boolean {
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
+}
+
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
 }
 
 /**
@@ -50,8 +72,20 @@ interface MinimizableFormShellProps {
  * not a full keyboard focus trap — reasonable for this first pass of new,
  * carefully-scoped infrastructure rather than a wholesale a11y rewrite.
  */
-export function MinimizableFormShell({ title, onClose, children, className, variant = "dialog" }: MinimizableFormShellProps) {
-  const { minimize, minimized } = useMinimizableForm();
+export function MinimizableFormShell({
+  title,
+  onClose,
+  children,
+  className,
+  variant = "dialog",
+  handleRef,
+}: MinimizableFormShellProps) {
+  const { minimize, beginMinimize, minimized } = useMinimizableForm();
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const busyRef = useRef(false);
+  // Where the resume pill was, so a restore can grow back out of it.
+  const pillPointRef = useRef<{ x: number; y: number } | null>(null);
+  const wasMinimizedRef = useRef(minimized);
   const { t } = useTranslation();
   const titleId = useId();
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -81,6 +115,60 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
     window.setTimeout(onClose, CLOSE_MS);
   }
 
+  function fadeBackdrop() {
+    backdropRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: BLACK_HOLE_MS,
+      easing: "ease-in",
+      fill: "forwards",
+    });
+  }
+
+  // "−" / Escape (requested 2026-10-04): the form is pulled into the resume
+  // pill with the Black Hole motion instead of just vanishing, so it's clear
+  // where the draft went. The pill is shown (above the form) first, then
+  // the form is hidden once it has been swallowed.
+  async function minimizeAnimated() {
+    const sheet = sheetRef.current;
+    if (!sheet || prefersReducedMotion()) {
+      minimize();
+      return;
+    }
+    if (busyRef.current) return;
+    busyRef.current = true;
+    beginMinimize();
+    await nextFrame();
+    await nextFrame();
+    const pill = document.querySelector("[data-minimized-pill]");
+    if (!pill) {
+      busyRef.current = false;
+      minimize();
+      return;
+    }
+    const r = pill.getBoundingClientRect();
+    pillPointRef.current = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    fadeBackdrop();
+    await blackHoleInto(sheet, pill);
+    busyRef.current = false;
+    minimize();
+  }
+
+  async function closeInto(selector: string) {
+    const sheet = sheetRef.current;
+    const target = document.querySelector(selector);
+    if (!sheet || !target || !isOnScreen(target) || prefersReducedMotion()) {
+      onClose();
+      return;
+    }
+    if (busyRef.current || closing) return;
+    busyRef.current = true;
+    fadeBackdrop();
+    await blackHoleInto(sheet, target);
+    onClose();
+    gulp(target, 1.06);
+  }
+
+  useImperativeHandle(handleRef, () => ({ closeInto }));
+
   useEffect(() => {
     if (minimized) return;
     const previousOverflow = document.body.style.overflow;
@@ -93,11 +181,43 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
   useEffect(() => {
     if (minimized) return;
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") minimize();
+      if (e.key === "Escape") void minimizeAnimated();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [minimized, minimize]);
+
+  // Restore: grow back OUT of the pill (Companion grow), instead of the
+  // generic slide-in — the pill is where the draft visibly went.
+  useLayoutEffect(() => {
+    const wasMinimized = wasMinimizedRef.current;
+    wasMinimizedRef.current = minimized;
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    if (minimized) {
+      // Now hidden (display:none): drop the finished Black Hole animations
+      // so the form is whole again the next time it's shown.
+      sheet.getAnimations().forEach((a) => a.cancel());
+      backdropRef.current?.getAnimations().forEach((a) => a.cancel());
+      return;
+    }
+    const from = pillPointRef.current;
+    if (!wasMinimized || !from || prefersReducedMotion()) return;
+    // Replace the CSS slide-in (it would restart on display) with a grow
+    // from the pill; it only ever plays on mount otherwise.
+    sheet.style.animation = "none";
+    const rect = sheet.getBoundingClientRect();
+    sheet.style.transformOrigin = `${from.x - rect.left}px ${from.y - rect.top}px`;
+    sheet.animate(
+      [
+        { transform: "scale(0.04)", opacity: 0 },
+        { opacity: 1, offset: 0.35 },
+        { transform: "scale(1)", opacity: 1 },
+      ],
+      { duration: 560, easing: "cubic-bezier(0.32, 0.72, 0, 1)" }
+    );
+  }, [minimized]);
 
   // The sheet stays mounted while minimized (an ancestor toggles
   // display:none, this component never unmounts — see
@@ -174,6 +294,7 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
   return (
     <div role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div
+        ref={backdropRef}
         onClick={closeAnimated}
         className={cn(
           "fixed inset-0 isolate z-50 bg-black/10 transition-opacity duration-1000 supports-backdrop-filter:backdrop-blur-xs motion-safe:animate-[window-backdrop-in_var(--motion-companion-open)_var(--ease-companion)]",
@@ -206,7 +327,7 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
                 variant="ghost"
                 size="icon-sm"
                 aria-label={t("common.minimizeForm")}
-                onClick={minimize}
+                onClick={() => void minimizeAnimated()}
               >
                 <Minus aria-hidden="true" />
               </Button>

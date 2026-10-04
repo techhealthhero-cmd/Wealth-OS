@@ -75,8 +75,12 @@ export function EmergencyFundView({
           <p className="text-3xl font-bold">
             {monthsProtected.toFixed(1)} <span className="text-lg font-normal text-muted-foreground">{t("emergencyFund.months")}</span>
           </p>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-card">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
+          {/* data-ef-progress: the Black Hole target when money is added (emergency-fund-form.tsx). */}
+          <div data-ef-progress="" className="h-2 w-full overflow-hidden rounded-full bg-card">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-(--motion-value) ease-(--ease-standard)"
+              style={{ width: `${progress}%` }}
+            />
           </div>
           <div className="grid grid-cols-3 gap-2 text-center text-sm">
             <div>

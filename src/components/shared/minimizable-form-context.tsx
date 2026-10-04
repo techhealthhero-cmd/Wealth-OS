@@ -24,6 +24,12 @@ interface MinimizableFormActions {
    */
   openForm: (form: ActiveForm) => void;
   minimize: () => void;
+  /**
+   * Black Hole minimize (2026-10-04): shows the resume pill ABOVE the form
+   * right away (so the form can be pulled into it), before `minimize()`
+   * hides the form once its animation has finished.
+   */
+  beginMinimize: () => void;
   restore: () => void;
   close: () => void;
 }
@@ -31,6 +37,8 @@ interface MinimizableFormActions {
 interface MinimizableFormState {
   active: ActiveForm | null;
   minimized: boolean;
+  /** The form is being pulled into the pill (see beginMinimize). */
+  minimizing: boolean;
 }
 
 // Split into two contexts deliberately: a form component (e.g. GoalForm)
@@ -56,6 +64,7 @@ const MinimizableFormStateContext = createContext<MinimizableFormState | null>(n
 export function MinimizableFormProvider({ children }: { children: ReactNode }) {
   const [active, setActive] = useState<ActiveForm | null>(null);
   const [minimized, setMinimized] = useState(false);
+  const [minimizing, setMinimizing] = useState(false);
 
   const openForm = useCallback((form: ActiveForm) => {
     setActive((current) => {
@@ -70,19 +79,24 @@ export function MinimizableFormProvider({ children }: { children: ReactNode }) {
     setMinimized(false);
   }, []);
 
-  const minimize = useCallback(() => setMinimized(true), []);
+  const minimize = useCallback(() => {
+    setMinimized(true);
+    setMinimizing(false);
+  }, []);
+  const beginMinimize = useCallback(() => setMinimizing(true), []);
   const restore = useCallback(() => setMinimized(false), []);
   const close = useCallback(() => {
     setActive(null);
     setMinimized(false);
+    setMinimizing(false);
   }, []);
 
   // Every dependency here is a stable (empty-deps) useCallback, so this
   // object itself never changes reference across renders — consumers of
   // ONLY the actions context (i.e. form components) never re-render due
   // to active/minimized changing.
-  const actions = useMemo(() => ({ openForm, minimize, restore, close }), [openForm, minimize, restore, close]);
-  const state = useMemo(() => ({ active, minimized }), [active, minimized]);
+  const actions = useMemo(() => ({ openForm, minimize, beginMinimize, restore, close }), [openForm, minimize, beginMinimize, restore, close]);
+  const state = useMemo(() => ({ active, minimized, minimizing }), [active, minimized, minimizing]);
 
   return (
     <MinimizableFormActionsContext.Provider value={actions}>
@@ -113,7 +127,7 @@ export function useMinimizableForm() {
  * distinction is the whole point of this mechanism.
  */
 export function MinimizableFormHost() {
-  const { active, minimized, restore } = useMinimizableForm();
+  const { active, minimized, minimizing, restore } = useMinimizableForm();
   const { t } = useTranslation();
 
   if (!active) return null;
@@ -121,15 +135,20 @@ export function MinimizableFormHost() {
   return (
     <>
       <div style={{ display: minimized ? "none" : undefined }}>{active.content}</div>
-      {minimized ? (
+      {minimized || minimizing ? (
         <button
           type="button"
           onClick={restore}
+          // Measured by MinimizableFormShell as the Black Hole's target.
+          data-minimized-pill=""
           // Mirrors QuickAdd's floating FAB (quick-add.tsx: "fixed bottom-20
           // right-4 z-40 ... md:bottom-6") on the opposite side, so the two
           // floating actions never collide.
           className={cn(
-            "fixed bottom-20 left-4 z-40 flex max-w-[calc(100%-5rem)] items-center gap-2 rounded-full bg-primary py-2.5 pr-4 pl-3 text-primary-foreground shadow-lg transition-opacity active:opacity-90 md:bottom-6"
+            "fixed bottom-20 left-4 z-40 flex max-w-[calc(100%-5rem)] items-center gap-2 rounded-full bg-primary py-2.5 pr-4 pl-3 text-primary-foreground shadow-lg transition-opacity active:opacity-90 md:bottom-6",
+            // While the form is being pulled in, sit above it (z-60) and
+            // swell as it swallows — the same Black Hole the "+" does.
+            minimizing && "pointer-events-none z-[60] animate-[black-hole-gulp_var(--motion-companion-close)_ease-in-out_forwards]"
           )}
         >
           <Sparkle className="size-4 shrink-0" aria-hidden="true" />

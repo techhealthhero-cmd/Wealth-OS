@@ -109,7 +109,8 @@ export function GoalCard({ goal, accounts }: { goal: FinancialGoal; accounts: Ac
           </DropdownMenu>
         </div>
 
-        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+        {/* data-goal-progress: the Black Hole target when money is added to this goal (goal-form.tsx). */}
+        <div data-goal-progress={goal.id} className="h-2 w-full overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-[width] duration-(--motion-value) ease-(--ease-standard)"
             style={{ width: `${progress}%` }}

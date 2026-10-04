@@ -1,6 +1,6 @@
 "use client";
 
-import { cloneElement, useActionState, useEffect, useState, type ReactElement } from "react";
+import { cloneElement, useActionState, useEffect, useRef, useState, type ReactElement } from "react";
 import { toast } from "sonner";
 
 import { createGoal, updateGoal } from "@/features/goals/actions";
@@ -22,7 +22,7 @@ import {
 import { Plus } from "lucide-react";
 import { CelebrationBadge } from "@/components/illustrations";
 import { useMinimizableFormActions } from "@/components/shared/minimizable-form-context";
-import { MinimizableFormShell } from "@/components/shared/minimizable-form-shell";
+import { MinimizableFormShell, type MinimizableFormShellHandle } from "@/components/shared/minimizable-form-shell";
 
 /** Never throws on a half-typed amount — mirrors transaction-form.tsx's `safeAmountCents`. */
 function safeCents(raw: string): number {
@@ -123,6 +123,7 @@ function GoalFormFields({ goal, accounts, title, onOpenChange }: GoalFormFieldsP
   const [linkedAccountId, setLinkedAccountId] = useState(goal?.linked_account_id ?? NO_LINK);
   const [targetAmount, setTargetAmount] = useState(goal?.target_amount ?? "");
   const [currentAmount, setCurrentAmount] = useState(goal?.current_amount ?? "0");
+  const shellRef = useRef<MinimizableFormShellHandle>(null);
 
   const action = goal ? updateGoal.bind(null, goal.id) : createGoal;
   const [state, formAction, isPending] = useActionState(action, undefined);
@@ -149,6 +150,14 @@ function GoalFormFields({ goal, accounts, title, onOpenChange }: GoalFormFieldsP
       toast.success(t("goals.reachedToast"), { icon: <CelebrationBadge /> });
     }
 
+    // Black Hole (2026-10-04): when this save put more money into an
+    // existing goal, the form is pulled into that goal's progress bar —
+    // "your money went HERE". Any other save closes normally.
+    const added = goal ? safeCents(currentAmount) > safeCents(goal.current_amount) : false;
+    if (goal && added && shellRef.current) {
+      shellRef.current.closeInto(`[data-goal-progress="${goal.id}"]`);
+      return;
+    }
     handleClose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
@@ -157,7 +166,7 @@ function GoalFormFields({ goal, accounts, title, onOpenChange }: GoalFormFieldsP
     value === NO_LINK ? t("assets.noLink") : accounts.find((a) => a.id === value)?.name ?? t("assets.noLink");
 
   return (
-    <MinimizableFormShell title={title} onClose={handleClose}>
+    <MinimizableFormShell title={title} onClose={handleClose} handleRef={shellRef}>
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="linked_account_id" value={linkedAccountId === NO_LINK ? "" : linkedAccountId} />
 
