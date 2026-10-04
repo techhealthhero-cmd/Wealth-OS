@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
@@ -11,6 +10,9 @@ import { useActiveNavIndex } from "@/components/layout/use-active-nav-index";
 
 const PULL_THRESHOLD_PX = 70;
 const MAX_PULL_PX = 110;
+// Progress ring geometry (24-unit viewBox).
+const RING_R = 9;
+const RING_C = 2 * Math.PI * RING_R;
 // Pulling 1px of finger movement moves the indicator less than 1px —
 // mirrors the "rubber band" resistance of native pull-to-refresh instead
 // of a 1:1 drag, which reads as physically real rather than sluggish.
@@ -317,19 +319,56 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
   const showIndicator = pullDistance > 0 || isPending;
   const indicatorHeight = isPending ? PULL_THRESHOLD_PX : pullDistance;
   const readyToRelease = pullDistance >= PULL_THRESHOLD_PX;
+  // 0 → 1 as the finger pulls to the release point (1 while refreshing).
+  const progress = isPending ? 1 : Math.min(pullDistance / PULL_THRESHOLD_PX, 1);
+  const label = isPending ? t("common.refreshing") : readyToRelease ? t("common.releaseToRefresh") : t("common.pullToRefresh");
 
   return (
     <div ref={containerRef}>
       <div
         aria-hidden={!showIndicator}
-        className="flex items-center justify-center overflow-hidden text-muted-foreground transition-[height] duration-150 ease-(--ease-standard)"
+        className="flex items-center justify-center overflow-hidden transition-[height] duration-150 ease-(--ease-standard)"
         style={{ height: showIndicator ? indicatorHeight : 0 }}
       >
-        <RefreshCw
-          className={cn("size-5", isPending && "animate-spin")}
-          style={!isPending ? { transform: `rotate(${Math.min(pullDistance / PULL_THRESHOLD_PX, 1) * 360}deg)` } : undefined}
-          aria-hidden="true"
-        />
+        {/* Redesigned 2026-10-04 (the bare spinning arrows "didn't look
+            nice"): a small frosted pill whose ring FILLS as you pull — so
+            you can see how far is left — turns the app's green and pops
+            slightly once releasing will refresh, then becomes a spinning
+            arc with a shimmering "refreshing…" while it works. */}
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-full border bg-card/90 py-2 pr-4 pl-2.5 shadow-md backdrop-blur-md transition-[scale,border-color] duration-200 ease-(--ease-companion)",
+            readyToRelease || isPending ? "scale-100 border-primary/40" : "scale-95"
+          )}
+          style={{ opacity: isPending ? 1 : Math.min(1, progress * 1.6) }}
+        >
+          <svg viewBox="0 0 24 24" className={cn("size-[22px] shrink-0", isPending && "animate-spin")} aria-hidden="true">
+            <circle cx="12" cy="12" r={RING_R} fill="none" strokeWidth="2.5" className="stroke-muted" />
+            <circle
+              cx="12"
+              cy="12"
+              r={RING_R}
+              fill="none"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              stroke="var(--primary)"
+              strokeDasharray={RING_C}
+              // While refreshing, a 30% arc spins; while pulling, the ring
+              // fills clockwise from the top in step with the finger.
+              strokeDashoffset={isPending ? RING_C * 0.7 : RING_C * (1 - progress)}
+              transform="rotate(-90 12 12)"
+              className="transition-[stroke-dashoffset] duration-75"
+            />
+          </svg>
+          <span
+            className={cn(
+              "text-[13px] font-medium whitespace-nowrap",
+              isPending ? "live-status-text" : readyToRelease ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            {label}
+          </span>
+        </div>
         <span className="sr-only" role="status">
           {isPending ? t("common.refreshing") : readyToRelease ? t("common.releaseToRefresh") : ""}
         </span>

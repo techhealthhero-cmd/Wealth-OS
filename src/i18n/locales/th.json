@@ -1,5 +1,6 @@
 {
   "common": {
+    "pullToRefresh": "ดึงลงเพื่อรีเฟรช",
     "elapsedSeconds": "{n} วิ",
     "appName": "Wealth OS",
     "save": "บันทึก",

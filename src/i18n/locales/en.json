@@ -1,5 +1,6 @@
 {
   "common": {
+    "pullToRefresh": "Pull to refresh",
     "elapsedSeconds": "{n}s",
     "appName": "Wealth OS",
     "save": "Save",
