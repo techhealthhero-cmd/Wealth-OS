@@ -50,6 +50,9 @@ const TIP_DELAY_MS = 5000;
 const TIP_VISIBLE_MS = 10000;
 const CHEER_VISIBLE_MS = 3200;
 const BUBBLE_GAP_PX = 10;
+// The window's shrink takes --motion-companion-close (680ms); the button
+// pops back slightly before it ends so the hand-off looks continuous.
+const STEP_ASIDE_RETURN_MS = 520;
 
 const BUTTON_SIZE_PX = 56;
 const EDGE_MARGIN_PX = 12;
@@ -137,10 +140,11 @@ function defaultPosition(): Position {
  *
  * Requested again: tapping should open a floating chat widget over the
  * current page ("หน้าต่างลอยขึ้นมา") instead of navigating to /ai — see
- * AiAssistantPanel, which floats next to this button. While it's open the
- * button stays above the panel's backdrop with a small "×" badge, and a tap
- * closes it again. The full /ai page still exists (the panel's "open full
- * page" link, or the desktop sidebar).
+ * AiAssistantPanel, which grows out of this button into a fixed window frame
+ * and shrinks back into it. While it's open the button steps aside (the
+ * window header shows the same companion) and pops back after closing. The
+ * full /ai page still exists (the panel's "open full page" link, or the
+ * desktop sidebar).
  */
 export function FloatingAiButton({ companion }: { companion: FloatingCompanion }) {
   const pathname = usePathname();
@@ -155,6 +159,18 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
   const onEarnPage = pathname === "/earn" || pathname.startsWith("/earn/");
   const [position, setPosition] = useState<Position | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // True while the window is open AND while it is still shrinking back
+  // into the button after closing (the button reappears near the end).
+  const [stepAside, setStepAside] = useState(false);
+  useEffect(() => {
+    if (sheetOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStepAside(true);
+      return;
+    }
+    const timer = setTimeout(() => setStepAside(false), STEP_ASIDE_RETURN_MS);
+    return () => clearTimeout(timer);
+  }, [sheetOpen]);
   const idleOpacity = useAiFabIdleOpacity();
   const fabEnabled = useAiFabEnabled();
   const [active, setActive] = useState(true);
@@ -374,13 +390,19 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className={`fixed flex size-14 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg transition-opacity duration-500 md:hidden ${
-            sheetOpen ? "z-[60] ring-4 ring-primary/25" : "z-40"
-          } ${alive && !sheetOpen ? "motion-safe:animate-[companion-float_6s_ease-in-out_infinite]" : ""}`}
+          // While the window is open the button steps aside — it has
+          // "become" the window (whose header shows the same companion) —
+          // and once the window has shrunk back into this spot it pops back
+          // in with a small spring, as if the window turned back into it.
+          className={`fixed z-40 flex size-14 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg transition-[opacity,scale] md:hidden ${
+            stepAside
+              ? "pointer-events-none scale-[0.55] duration-200 ease-out"
+              : "scale-100 duration-[420ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+          } ${alive && !stepAside ? "motion-safe:animate-[companion-float_6s_ease-in-out_infinite]" : ""}`}
           style={{
             left: position.x,
             top: position.y,
-            opacity: sheetOpen || active ? 1 : idleOpacity / 100,
+            opacity: stepAside ? 0 : active ? 1 : idleOpacity / 100,
             background: "var(--primary)",
           }}
         >
@@ -403,14 +425,6 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
               className="size-full rounded-full object-cover select-none"
             />
           </span>
-          {sheetOpen ? (
-            <span
-              aria-hidden="true"
-              className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full border bg-background text-foreground shadow-sm"
-            >
-              <X className="size-3" strokeWidth={3} />
-            </span>
-          ) : null}
         </button>
       ) : null}
       {showButton && position && bubble && !sheetOpen ? (

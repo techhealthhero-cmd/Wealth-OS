@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
@@ -25,38 +25,28 @@ export interface PanelAnchor {
   size: number;
 }
 
-const GAP_PX = 8;
 const EDGE_PX = 12;
-const TOP_RESERVE_PX = 56; // keeps the panel clear of the status bar / page header
+const TOP_RESERVE_PX = 64; // clear of the status bar / page header
 const BOTTOM_NAV_RESERVE_PX = 104;
 const MAX_HEIGHT_PX = 720;
-const MIN_COMFORTABLE_HEIGHT_PX = 420;
 
 /**
- * Places the panel next to the floating button, on the button's side of the
- * screen — above it when the button is in the lower half (the default spot),
- * below it otherwise. Falls back to a centered full-height layout when the
- * button's position leaves too little room either way.
+ * One fixed frame for the window, wherever the companion button sits
+ * (2026-10-04): it used to be sized/placed around the button — short when
+ * the button was low, the button floating on top of it when it was mid-
+ * screen — so the window looked different every time. Now it always
+ * occupies the same comfortable spot (full width minus equal margins,
+ * resting just above the bottom nav, as tall as fits up to 720px) and the
+ * freedom lives in the motion: it still grows out of — and shrinks back
+ * into — the button, wherever the user dragged it.
  */
-function computePlacement(anchor: PanelAnchor | null): CSSProperties {
-  if (typeof window === "undefined" || !anchor) {
-    return { top: TOP_RESERVE_PX, bottom: BOTTOM_NAV_RESERVE_PX, right: EDGE_PX };
-  }
-  const vh = window.innerHeight;
-  const horizontal: CSSProperties =
-    anchor.x + anchor.size / 2 >= window.innerWidth / 2 ? { right: EDGE_PX } : { left: EDGE_PX };
-
-  const spaceAbove = anchor.y - GAP_PX - TOP_RESERVE_PX;
-  const spaceBelow = vh - (anchor.y + anchor.size + GAP_PX) - BOTTOM_NAV_RESERVE_PX;
-
-  if (spaceAbove >= MIN_COMFORTABLE_HEIGHT_PX && spaceAbove >= spaceBelow) {
-    return { ...horizontal, bottom: vh - anchor.y + GAP_PX, height: Math.min(spaceAbove, MAX_HEIGHT_PX) };
-  }
-  if (spaceBelow >= MIN_COMFORTABLE_HEIGHT_PX) {
-    return { ...horizontal, top: anchor.y + anchor.size + GAP_PX, height: Math.min(spaceBelow, MAX_HEIGHT_PX) };
-  }
-  return { ...horizontal, top: TOP_RESERVE_PX, bottom: BOTTOM_NAV_RESERVE_PX };
-}
+const PANEL_FRAME: CSSProperties = {
+  left: EDGE_PX,
+  right: EDGE_PX,
+  marginInline: "auto",
+  bottom: BOTTOM_NAV_RESERVE_PX,
+  height: `min(${MAX_HEIGHT_PX}px, calc(100dvh - env(safe-area-inset-top) - ${TOP_RESERVE_PX + BOTTOM_NAV_RESERVE_PX}px))`,
+};
 
 /**
  * Requested: match a reference design's floating AI widget — a card that
@@ -67,8 +57,8 @@ function computePlacement(anchor: PanelAnchor | null): CSSProperties {
  * positioning.
  *
  * `modal="trap-focus"`: focus stays inside, but pointer events outside keep
- * working — needed so the floating button (rendered above the backdrop)
- * can be tapped again to close the panel, like the reference's "×" badge.
+ * working. While open, the floating button itself steps aside (it "becomes"
+ * the window — see FloatingAiButton); the header × and a tap outside close.
  *
  * The chat opens fresh each time on the companion's greeting and its 3
  * suggestions (see getAiOverlayData).
@@ -98,7 +88,6 @@ export function AiAssistantPanel({
 }) {
   const { t } = useTranslation();
   const [data, setData] = useState<AiOverlayData | null>(null);
-  const [placement, setPlacement] = useState<CSSProperties>({});
   const popupRef = useRef<HTMLDivElement>(null);
 
   // Requested 2026-10-04: closing shrinks the panel back INTO the AI button,
@@ -106,24 +95,28 @@ export function AiAssistantPanel({
   // popup's own coordinates. offsetLeft/Top (not getBoundingClientRect) so the
   // in-flight scale transform doesn't skew the measurement. Runs on close too
   // (the popup stays mounted through its exit transition).
+  const aimAtButton = useCallback(
+    (el: HTMLDivElement | null) => {
+      if (!el || !anchor) return;
+      const cx = anchor.x + anchor.size / 2 - el.offsetLeft;
+      const cy = anchor.y + anchor.size / 2 - el.offsetTop;
+      el.style.transformOrigin = `${cx}px ${cy}px`;
+    },
+    [anchor]
+  );
+  // Ref callback: aims the instant the window element mounts, before its
+  // first animated frame (the portal can mount after this component's own
+  // layout effects). The layout effect re-aims if the button moved.
+  const setPopupEl = useCallback(
+    (el: HTMLDivElement | null) => {
+      popupRef.current = el;
+      aimAtButton(el);
+    },
+    [aimAtButton]
+  );
   useLayoutEffect(() => {
-    const el = popupRef.current;
-    if (!el || !anchor) return;
-    const cx = anchor.x + anchor.size / 2 - el.offsetLeft;
-    const cy = anchor.y + anchor.size / 2 - el.offsetTop;
-    el.style.transformOrigin = `${cx}px ${cy}px`;
-  }, [open, anchor, placement]);
-
-  // Layout effect (not a plain effect): placement must be applied before the
-  // first painted frame of the open animation. With a plain effect the panel
-  // first painted at the previous/empty position and then jumped mid-grow,
-  // which is what made opening feel jerky.
-  useLayoutEffect(() => {
-    if (!open) return;
-    // Depends on window size + where the button was dragged — client-only.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPlacement(computePlacement(anchor));
-  }, [open, anchor]);
+    aimAtButton(popupRef.current);
+  }, [open, aimAtButton]);
 
   // Re-fetched on every open (the previous data stays on screen meanwhile)
   // so the greeting's real-data line is current and matches the companion
@@ -183,10 +176,10 @@ export function AiAssistantPanel({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/15 transition-opacity duration-(--motion-companion-open) ease-(--ease-companion) data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-(--motion-companion-close)" />
         <DialogPrimitive.Popup
-          ref={popupRef}
-          style={{ ...placement, ...themeVars }}
+          ref={setPopupEl}
+          style={{ ...PANEL_FRAME, ...themeVars }}
           className={cn(
-            "fixed z-50 flex w-[min(calc(100vw-1.5rem),25rem)] flex-col overflow-hidden rounded-3xl border bg-popover text-popover-foreground shadow-2xl [will-change:scale,opacity]",
+            "fixed z-50 flex max-w-[25rem] flex-col overflow-hidden rounded-3xl border bg-popover text-popover-foreground shadow-2xl [will-change:scale,opacity]",
             // Requested 2026-10-04 ("smoother — grow open slowly, shrink
             // closed slowly"): the window grows OUT of the companion button
             // and shrinks back INTO it, both from the button's exact center
@@ -196,10 +189,7 @@ export function AiAssistantPanel({
             // it visible while it shrinks and fades only at the very end.
             "[transition:scale_var(--motion-companion-open)_var(--ease-companion),opacity_220ms_ease-out]",
             "data-starting-style:scale-[0.04] data-starting-style:opacity-0",
-            "data-ending-style:scale-[0.04] data-ending-style:opacity-0 data-ending-style:[transition:scale_var(--motion-companion-close)_var(--ease-companion),opacity_260ms_ease-in_calc(var(--motion-companion-close)_-_260ms)]",
-            anchor && anchor.x + anchor.size / 2 < (typeof window === "undefined" ? 0 : window.innerWidth / 2)
-              ? "origin-bottom-left"
-              : "origin-bottom-right"
+            "data-ending-style:scale-[0.04] data-ending-style:opacity-0 data-ending-style:[transition:scale_var(--motion-companion-close)_var(--ease-companion),opacity_260ms_ease-in_calc(var(--motion-companion-close)_-_260ms)]"
           )}
         >
           {/* Header — the companion's own colors: its gradient, a glow taken
