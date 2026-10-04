@@ -112,7 +112,11 @@ export function AiAssistantPanel({
     el.style.transformOrigin = `${cx}px ${cy}px`;
   }, [open, anchor, placement]);
 
-  useEffect(() => {
+  // Layout effect (not a plain effect): placement must be applied before the
+  // first painted frame of the open animation. With a plain effect the panel
+  // first painted at the previous/empty position and then jumped mid-grow,
+  // which is what made opening feel jerky.
+  useLayoutEffect(() => {
     if (!open) return;
     // Depends on window size + where the button was dragged — client-only.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -175,19 +179,22 @@ export function AiAssistantPanel({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} modal="trap-focus">
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/15 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-(--motion-close) data-ending-style:ease-(--ease-close)" />
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/15 transition-opacity duration-(--motion-companion-open) ease-(--ease-companion) data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-(--motion-companion-close)" />
         <DialogPrimitive.Popup
           ref={popupRef}
           style={{ ...placement, ...themeVars }}
           className={cn(
-            "fixed z-50 flex w-[min(calc(100vw-1.5rem),25rem)] flex-col overflow-hidden rounded-3xl border bg-popover text-popover-foreground shadow-2xl transition duration-150 ease-out",
-            // Closing: unlike every other sheet/dialog (which slide down), the
-            // AI panel slowly shrinks back into the AI button (--motion-close);
-            // transform-origin is set to the button's center by the layout
-            // effect above. The fade is held back to the last stretch so the
-            // panel stays visible while it shrinks. Opening keeps the quick
-            // scale-in.
-            "data-ending-style:scale-[0.04] data-ending-style:opacity-0 data-ending-style:[transition:scale_var(--motion-close)_var(--ease-close),opacity_300ms_ease-in_800ms] data-starting-style:scale-95 data-starting-style:opacity-0",
+            "fixed z-50 flex w-[min(calc(100vw-1.5rem),25rem)] flex-col overflow-hidden rounded-3xl border bg-popover text-popover-foreground shadow-2xl [will-change:scale,opacity]",
+            // Requested 2026-10-04 ("smoother — grow open slowly, shrink
+            // closed slowly"): the window grows OUT of the companion button
+            // and shrinks back INTO it, both from the button's exact center
+            // (transform-origin set by the layout effect above), on one
+            // soft decelerating curve (--ease-companion). Opening fades in
+            // quickly so the growing shape is visible at once; closing keeps
+            // it visible while it shrinks and fades only at the very end.
+            "[transition:scale_var(--motion-companion-open)_var(--ease-companion),opacity_220ms_ease-out]",
+            "data-starting-style:scale-[0.04] data-starting-style:opacity-0",
+            "data-ending-style:scale-[0.04] data-ending-style:opacity-0 data-ending-style:[transition:scale_var(--motion-companion-close)_var(--ease-companion),opacity_260ms_ease-in_calc(var(--motion-companion-close)_-_260ms)]",
             anchor && anchor.x + anchor.size / 2 < (typeof window === "undefined" ? 0 : window.innerWidth / 2)
               ? "origin-bottom-left"
               : "origin-bottom-right"

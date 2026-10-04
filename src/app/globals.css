@@ -204,6 +204,12 @@
   --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
   --motion-close: 1100ms;
   --ease-close: cubic-bezier(0.45, 0, 0.55, 1);
+  /* Companion AI window grow/shrink (2026-10-04): a soft, decelerating
+     curve (iOS-sheet-like) so the window flows out of / back into the
+     companion button instead of snapping. */
+  --motion-companion-open: 560ms;
+  --motion-companion-close: 680ms;
+  --ease-companion: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /*
