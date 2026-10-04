@@ -56,6 +56,12 @@ Last updated: 2026-10-04
   carries one real fact (`buildCompanionTip`, shared with the speech
   bubble, shown on every plan); overlay data is re-fetched on each open and
   no longer loads snapshot/insights/health check.
+- **Companion identity ("สาย")** (same day): the AI window header shows the
+  name + a specialty-line chip (`companions.lines`, e.g. สายเพิ่มรายได้) + a
+  family/tier chip (ภูติ · ตัวเริ่มต้น / ปลดล็อกแล้ว, จอมเวท · Plus/Pro);
+  the whole block links to `/companions`. The line also appears on the
+  speech bubble, picker cards and the profile card; the greeting's real-data
+  line is prefixed "📌 เรื่องสำคัญตอนนี้:".
 - **Verified**: typecheck, lint, 898 tests (new `tests/companions.test.ts`:
   rules, availability, fallback, tip picking), production build. **Not
   yet verified in a real browser / against a migrated database.**

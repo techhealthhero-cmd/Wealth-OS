@@ -4,11 +4,17 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import Image from "next/image";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { ExternalLink, X } from "lucide-react";
+import { ChevronRight, ExternalLink, X } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
-import { COMPANION_SUGGESTION_KEYS, type CompanionFocus, type CompanionTheme } from "@/lib/companions/catalog";
+import {
+  COMPANION_SUGGESTION_KEYS,
+  getCompanion,
+  type CompanionFocus,
+  type CompanionTheme,
+} from "@/lib/companions/catalog";
+import { FEATURES } from "@/lib/billing/plans";
 import { getAiOverlayData, type AiOverlayData } from "@/features/ai/actions/get-overlay-data";
 import { AICoachChat } from "./ai-coach-chat";
 
@@ -136,12 +142,25 @@ export function AiAssistantPanel({
   const title = t(`companions.names.${companion.id}`);
   const userName = data?.displayName ?? t("companions.you");
   const tagline = t(`companions.taglines.${companion.id}`).replace("{name}", userName);
+  // "สาย" (line) = the specialty; family = spirit/wizard + how it was gained.
+  const definition = getCompanion(companion.id);
+  const lineLabel = t(`companions.lines.${companion.focus}`);
+  const familyLabel =
+    definition?.access.type === "plan"
+      ? `${t(`companions.kinds.${definition.kind}`)} · ${
+          definition.access.feature === FEATURES.COMPANION_PRO_WIZARD ? "Pro" : "Plus"
+        }`
+      : `${t(`companions.kinds.${definition?.kind ?? "spirit"}`)} · ${
+          definition?.access.type === "starter" ? t("companions.starter") : t("companions.earned")
+        }`;
   // The greeting carries one real fact from the user's data when there is
   // one (same deterministic tip the companion's speech bubble uses);
   // otherwise the companion's own introduction line.
   const greeting = {
     title: t(`companions.greetings.${companion.id}.title`).replace("{name}", userName),
-    body: data?.greetingTip ?? t(`companions.greetings.${companion.id}.body`),
+    body: data?.greetingTip
+      ? `${t("companions.greetingTipLead")} ${data.greetingTip}`
+      : t(`companions.greetings.${companion.id}.body`),
   };
   const { theme } = companion;
   // Re-theme everything inside the panel that uses the app's primary color
@@ -189,7 +208,16 @@ export function AiAssistantPanel({
             >
               {companion.emoji}
             </span>
-            <div className="relative flex min-w-0 items-center gap-3">
+            {/* Identity block (2026-10-04): who you're talking to and what
+                "line" (สาย) they specialize in, at a glance — name, a
+                specialty chip, a family/tier chip, then the tagline. The
+                whole block links to /companions to switch. */}
+            <Link
+              href="/companions"
+              onClick={() => onOpenChange(false)}
+              aria-label={`${title} · ${lineLabel} — ${t("companions.switchCompanion")}`}
+              className="relative flex min-w-0 items-center gap-3 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+            >
               <span
                 className={cn(
                   "shrink-0 rounded-full",
@@ -200,19 +228,31 @@ export function AiAssistantPanel({
                 <Image src={companion.image} alt="" width={48} height={48} className="size-12 rounded-full object-cover" />
               </span>
               <div className="min-w-0">
-                <DialogPrimitive.Title className="truncate font-heading text-lg font-semibold leading-tight">
-                  {title}
+                <DialogPrimitive.Title className="flex items-center gap-1 font-heading text-lg font-semibold leading-tight">
+                  <span className="truncate">{title}</span>
+                  <ChevronRight className="size-4 shrink-0 text-white/60" aria-hidden="true" />
                 </DialogPrimitive.Title>
-                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/85">
+                <div className="mt-1 flex flex-wrap items-center gap-1">
                   <span
-                    className="size-1.5 shrink-0 rounded-full"
-                    style={{ background: theme.glow, boxShadow: `0 0 6px ${theme.glow}` }}
-                    aria-hidden="true"
-                  />
-                  <span className="truncate">{tagline}</span>
-                </p>
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                    style={{
+                      // White text on a glow-tinted fill: readable on every
+                      // header, light (leaf/mint) or near-black (shadow).
+                      background: `color-mix(in oklab, ${theme.glow} 30%, rgba(0,0,0,0.25))`,
+                      color: "white",
+                      boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${theme.glow} 65%, transparent)`,
+                    }}
+                  >
+                    <span aria-hidden="true">{companion.emoji}</span>
+                    {lineLabel}
+                  </span>
+                  <span className="rounded-full px-2 py-0.5 text-[11px] font-medium text-white/80 ring-1 ring-white/25">
+                    {familyLabel}
+                  </span>
+                </div>
+                <p className="mt-1 truncate text-xs text-white/75">{tagline}</p>
               </div>
-            </div>
+            </Link>
             <div className="relative flex shrink-0 items-center gap-0.5">
               <Link
                 href="/ai"

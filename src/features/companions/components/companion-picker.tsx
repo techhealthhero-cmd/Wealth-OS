@@ -140,6 +140,7 @@ function CompanionCard({
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold">{name}</p>
+          <p className="mt-0.5 text-[11px] font-semibold text-primary">{t(`companions.lines.${card.focus}`)}</p>
           <p className="text-xs text-muted-foreground">{t(`companions.focus.${card.focus}`)}</p>
         </div>
 

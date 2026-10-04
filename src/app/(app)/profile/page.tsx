@@ -82,7 +82,7 @@ export default async function ProfilePage() {
               <span className="min-w-0 text-left">
                 <span className="block text-sm font-semibold">{dict.companions.navLabel}</span>
                 <span className="block truncate text-xs font-normal text-muted-foreground">
-                  {dict.companions.names[companion.active.id as keyof typeof dict.companions.names]}
+                  {dict.companions.names[companion.active.id as keyof typeof dict.companions.names]} · {dict.companions.lines[companion.active.focus]}
                 </span>
               </span>
             </span>

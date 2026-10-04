@@ -427,7 +427,9 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
               else setSheetOpen(true);
             }}
           >
-            <span className="mb-0.5 block text-[11px] font-semibold text-primary">{companionName}</span>
+            <span className="mb-0.5 block text-[11px] font-semibold text-primary">
+              {companionName} · {t(`companions.lines.${companion.focus}`)}
+            </span>
             {bubble.text}
           </button>
           <button

@@ -3015,6 +3015,22 @@
         "body": "The Emerald Hood Wizard is ready to analyze all your data in depth. What should I look into first?"
       }
     },
+    "lines": {
+      "overview": "Big-picture line",
+      "spending": "Spending line",
+      "saving": "Saving line",
+      "debt": "Debt-hunter line",
+      "planning": "Planning line",
+      "income": "Income line",
+      "insights": "Deep-insight line"
+    },
+    "kinds": {
+      "spirit": "Spirit",
+      "wizard": "Wizard"
+    },
+    "earned": "Earned",
+    "switchCompanion": "tap to switch companion",
+    "greetingTipLead": "📌 What matters right now:",
     "progressMonths": "{current} / {target} months",
     "cheer": [
       "Saved — nice one! ✨",
