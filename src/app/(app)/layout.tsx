@@ -68,6 +68,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     id: companionState.active.id,
     image: companionState.active.image,
     emoji: companionState.active.emoji,
+    theme: companionState.active.theme,
     presence: companionState.presence,
   };
   const dict = getDictionary(locale);

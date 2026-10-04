@@ -2894,7 +2894,7 @@
           { "emoji": "💬", "title": "Ask anything about money", "description": "Like \"did I overspend this month?\" — the AI pulls your real data to answer." },
           { "emoji": "🫧", "title": "Floating AI button on every page", "description": "Tap the floating AI button (drag it anywhere) to open the assistant over the current page — Chat · Summary · Analyze · Tools tabs, one-tap starter cards, and voice input where your browser supports it. Tap the button again to close." },
           { "emoji": "🌫️", "title": "Adjust the AI button's opacity", "description": "Settings → Floating AI button → Idle opacity (15–100%, default 40%). The button fades after 3 seconds untouched, like iPhone's AssistiveTouch. You can also hide the button with the \"Show floating AI button\" switch on the same card." },
-          { "emoji": "🧚", "title": "Companions", "description": "Pick a spirit or wizard to be your AI button and chat partner in Settings → Companion. Each has a specialty (big picture · spending · saving · debt hunting · planning · income · deep insights). Spirits are earned only through real financial progress — never bought, and yours for good; wizards come with Plus/Pro." },
+          { "emoji": "🧚", "title": "Companions", "description": "Pick a spirit or wizard to be your AI button and chat partner in Settings → Companion. Each has a specialty (big picture · spending · saving · debt hunting · planning · income · deep insights). Spirits are earned only through real financial progress — never bought, and yours for good; wizards come with Plus/Pro. The AI window takes on your companion's name, colors and greeting." },
           { "emoji": "💫", "title": "Living companion", "description": "Your companion floats and sways, hops happily when you log money, and now and then shares a tip from your real data (at most every 4 hours). Tap the bubble to act on it; turn it off on the Companion page.", "badge": "plus" },
           { "emoji": "📷", "title": "Attach a photo", "description": "Attach a screenshot or photo — like a form field you don't understand — and the AI can explain it (never saved, used only for that one reply)." },
           { "emoji": "✨", "title": "Daily insights", "description": "Short, useful observations about your financial habits." },
@@ -2974,6 +2974,46 @@
       "budget_month_kept": "Stay within your budget for a full month (last month)",
       "emergency_fund_one_month": "Build an emergency fund covering 1 month of essential expenses",
       "money_leaks_handled": "Decide on every detected subscription, or log a debt payment in the last 30 days"
+    },
+    "you": "you",
+    "taglines": {
+      "spirit-mint": "Keeping an eye on the big picture for {name}",
+      "spirit-flame": "Watching every baht {name} spends",
+      "spirit-leaf": "Saving slowly, growing steadily with {name}",
+      "spirit-hooded": "Hunting debt and subscriptions for {name}",
+      "wizard-hat": "Planning the whole year for {name}",
+      "wizard-caped": "Growing {name}'s income, step by step",
+      "wizard-hooded": "Reading every signal in {name}'s data"
+    },
+    "greetings": {
+      "spirit-mint": {
+        "title": "Hi {name}! 🌱",
+        "body": "I'm Mint Spirit. I keep an eye on the big picture and tell you what matters most right now. Ask me anything."
+      },
+      "spirit-flame": {
+        "title": "Hey {name}! 🔥",
+        "body": "Flame Spirit, ready to go! Budgets and spending are my thing — want to find where money's leaking?"
+      },
+      "spirit-leaf": {
+        "title": "Hello {name} 🍃",
+        "body": "I'm Leaf Spirit. Saving and your emergency fund are my specialty — slow and steady. What would you like to save for?"
+      },
+      "spirit-hooded": {
+        "title": "…here, {name} 🖤",
+        "body": "Shadow Spirit. I hunt down debt and the subscriptions quietly draining your money. Where should we start?"
+      },
+      "wizard-hat": {
+        "title": "Welcome, {name} 🎩",
+        "body": "The Star-Hat Wizard is ready to plan your year, set goals and look ahead. Which goal shall we start with?"
+      },
+      "wizard-caped": {
+        "title": "{name}, you're here! 📖",
+        "body": "The Caped Wizard specializes in growing income — my spellbook has income missions waiting. How much more would you like to earn?"
+      },
+      "wizard-hooded": {
+        "title": "Hello {name} 🔮",
+        "body": "The Emerald Hood Wizard is ready to analyze all your data in depth. What should I look into first?"
+      }
     },
     "progressMonths": "{current} / {target} months",
     "cheer": [

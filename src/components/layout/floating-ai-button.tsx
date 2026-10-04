@@ -17,12 +17,14 @@ import {
   useCompanionPresenceEnabled,
 } from "@/features/companions/presence";
 import { useAiFabEnabled, useAiFabIdleOpacity } from "./ai-fab-preferences";
+import type { CompanionTheme } from "@/lib/companions/catalog";
 
 /** What the layout tells the button about the user's active companion. */
 export interface FloatingCompanion {
   id: string;
   image: string;
   emoji: string;
+  theme: CompanionTheme;
   /** Plus/Pro (COMPANION_PRESENCE): animation, reactions, proactive tips. */
   presence: boolean;
 }
@@ -441,7 +443,8 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
         open={sheetOpen && !onEarnPage}
         onOpenChange={setSheetOpen}
         anchor={anchor}
-        companionImage={companion.image}
+        companion={companion}
+        alive={alive}
       />
     </>
   );

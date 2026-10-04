@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowUp,
@@ -287,6 +288,8 @@ export function AICoachChat({
   historyEnabled = false,
   variant = "page",
   displayName,
+  greeting,
+  avatarImage,
 }: {
   initialConversationId?: string;
   initialMessages?: ChatMessage[];
@@ -304,6 +307,10 @@ export function AICoachChat({
   variant?: "page" | "overlay";
   /** Only used by the "overlay" variant's greeting ("Hi {name}!"). */
   displayName?: string | null;
+  /** Overlay only: the active companion's own greeting, replacing the generic one. */
+  greeting?: { title: string; body: string };
+  /** Overlay only: the active companion's avatar beside the greeting. */
+  avatarImage?: string;
 }) {
   const { t, locale } = useTranslation();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
@@ -578,12 +585,17 @@ export function AICoachChat({
         variant === "overlay" ? (
           <div className="flex flex-col gap-4">
             <div className="flex items-start gap-2.5">
-              <AICoachIllustration size={44} className="shrink-0" />
+              {avatarImage ? (
+                <Image src={avatarImage} alt="" width={44} height={44} className="size-11 shrink-0 rounded-full object-cover" />
+              ) : (
+                <AICoachIllustration size={44} className="shrink-0" />
+              )}
               <div className="min-w-0 rounded-2xl rounded-tl-md bg-muted px-3.5 py-2.5 text-sm/6">
                 <p className="font-semibold">
-                  {t("aiCoach.overlayGreetingTitle").replace(" {name}", displayName ? ` ${displayName}` : "")}
+                  {greeting?.title ??
+                    t("aiCoach.overlayGreetingTitle").replace(" {name}", displayName ? ` ${displayName}` : "")}
                 </p>
-                <p className="text-foreground/90">{t("aiCoach.overlayGreeting")}</p>
+                <p className="text-foreground/90">{greeting?.body ?? t("aiCoach.overlayGreeting")}</p>
               </div>
             </div>
 

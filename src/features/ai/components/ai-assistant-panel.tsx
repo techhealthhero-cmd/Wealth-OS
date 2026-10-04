@@ -13,13 +13,13 @@ import {
   LayoutGrid,
   MessageCircle,
   ShieldCheck,
-  Sparkles,
   Target,
   X,
 } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
+import type { CompanionTheme } from "@/lib/companions/catalog";
 import { getAiOverlayData, type AiOverlayData } from "@/features/ai/actions/get-overlay-data";
 import { AICoachChat } from "./ai-coach-chat";
 import { FinancialSnapshotStrip } from "./financial-snapshot-strip";
@@ -103,13 +103,21 @@ export function AiAssistantPanel({
   open,
   onOpenChange,
   anchor,
-  companionImage,
+  companion,
+  alive = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   anchor: PanelAnchor | null;
-  /** The active companion's avatar, shown in the header. */
-  companionImage?: string;
+  /**
+   * The active companion (2026-10-04): the panel becomes that companion's
+   * own window — its name and tagline in the header, its colors (header
+   * gradient, glow, and `--primary` for tabs/send button), its avatar and
+   * its own greeting in the chat.
+   */
+  companion: { id: string; image: string; emoji: string; theme: CompanionTheme };
+  /** Plus/Pro presence on: the header avatar floats like the button does. */
+  alive?: boolean;
 }) {
   const { t } = useTranslation();
   const [data, setData] = useState<AiOverlayData | null>(null);
@@ -161,7 +169,22 @@ export function AiAssistantPanel({
     };
   }, [open, data]);
 
-  const title = data?.displayName ? `${data.displayName} AI` : t("aiCoach.title");
+  const title = t(`companions.names.${companion.id}`);
+  const userName = data?.displayName ?? t("companions.you");
+  const tagline = t(`companions.taglines.${companion.id}`).replace("{name}", userName);
+  const greeting = {
+    title: t(`companions.greetings.${companion.id}.title`).replace("{name}", userName),
+    body: t(`companions.greetings.${companion.id}.body`),
+  };
+  const { theme } = companion;
+  // Re-theme everything inside the panel that uses the app's primary color
+  // (active tab, send button, focus ring, chips) to this companion's own.
+  // Mid-lightness primaries + white foreground read well in light and dark.
+  const themeVars = {
+    "--primary": theme.primary,
+    "--primary-foreground": "oklch(0.985 0 0)",
+    "--ring": theme.primary,
+  } as CSSProperties;
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} modal="trap-focus">
@@ -169,7 +192,7 @@ export function AiAssistantPanel({
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/15 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-(--motion-close) data-ending-style:ease-(--ease-close)" />
         <DialogPrimitive.Popup
           ref={popupRef}
-          style={placement}
+          style={{ ...placement, ...themeVars }}
           className={cn(
             "fixed z-50 flex w-[min(calc(100vw-1.5rem),25rem)] flex-col overflow-hidden rounded-3xl border bg-popover text-popover-foreground shadow-2xl transition duration-150 ease-out",
             // Closing: unlike every other sheet/dialog (which slide down), the
@@ -184,31 +207,46 @@ export function AiAssistantPanel({
               : "origin-bottom-right"
           )}
         >
-          {/* Header — dark green gradient, as in the reference design. */}
+          {/* Header — the companion's own colors: its gradient, a glow taken
+              from its art behind the avatar, and its emoji as a faint
+              watermark. */}
           <div
-            className="flex shrink-0 items-start justify-between gap-2 px-4 pt-4 pb-3 text-primary-foreground"
+            className="relative flex shrink-0 items-start justify-between gap-2 overflow-hidden px-4 pt-4 pb-3 text-white"
             style={{
-              background:
-                "radial-gradient(120% 90% at 0% 0%, rgba(255,255,255,0.14), transparent 60%), linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 78%, black))",
+              background: `radial-gradient(70% 140% at 12% 30%, color-mix(in oklab, ${theme.glow} 38%, transparent), transparent 70%), radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,0.10), transparent 55%), linear-gradient(135deg, ${theme.headerFrom}, ${theme.headerTo})`,
             }}
           >
-            <div className="flex min-w-0 items-start gap-2.5">
-              {companionImage ? (
-                <Image src={companionImage} alt="" width={40} height={40} className="size-10 shrink-0 rounded-full object-cover ring-2 ring-white/30" />
-              ) : (
-                <Sparkles className="mt-0.5 size-7 shrink-0" aria-hidden="true" />
-              )}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-2 -bottom-5 text-7xl leading-none opacity-[0.13] select-none"
+            >
+              {companion.emoji}
+            </span>
+            <div className="relative flex min-w-0 items-center gap-3">
+              <span
+                className={cn(
+                  "shrink-0 rounded-full",
+                  alive && "motion-safe:animate-[companion-float_6s_ease-in-out_infinite]"
+                )}
+                style={{ boxShadow: `0 0 0 2px color-mix(in oklab, ${theme.glow} 70%, transparent), 0 0 18px 2px color-mix(in oklab, ${theme.glow} 45%, transparent)` }}
+              >
+                <Image src={companion.image} alt="" width={48} height={48} className="size-12 rounded-full object-cover" />
+              </span>
               <div className="min-w-0">
                 <DialogPrimitive.Title className="truncate font-heading text-lg font-semibold leading-tight">
                   {title}
                 </DialogPrimitive.Title>
-                <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-primary-foreground/85">
-                  <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" aria-hidden="true" />
-                  {t("aiCoach.panelStatus")}
+                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/85">
+                  <span
+                    className="size-1.5 shrink-0 rounded-full"
+                    style={{ background: theme.glow, boxShadow: `0 0 6px ${theme.glow}` }}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate">{tagline}</span>
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-0.5">
+            <div className="relative flex shrink-0 items-center gap-0.5">
               <Link
                 href="/ai"
                 onClick={() => onOpenChange(false)}
@@ -259,7 +297,13 @@ export function AiAssistantPanel({
               {/* Kept mounted (just hidden) on other tabs so an in-progress
                   conversation survives a peek at Summary/Analyze. */}
               <div className={cn("flex min-h-0 flex-1 flex-col", tab !== "chat" && "hidden")}>
-                <AICoachChat variant="overlay" displayName={data.displayName} historyEnabled={data.historyEnabled} />
+                <AICoachChat
+                  variant="overlay"
+                  displayName={data.displayName}
+                  historyEnabled={data.historyEnabled}
+                  greeting={greeting}
+                  avatarImage={companion.image}
+                />
               </div>
               {tab === "chat" ? null : (
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3">
