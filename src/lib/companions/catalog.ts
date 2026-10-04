@@ -82,7 +82,7 @@ export const COMPANIONS: readonly CompanionDefinition[] = [
   {
     id: "spirit-leaf",
     kind: "spirit",
-    image: "/companions/spirits/leaf.png",
+    image: "/companions/spirits/leaf-plush.png",
     focus: "saving",
     access: { type: "progress", rule: "emergency_fund_one_month" },
     emoji: "🍃",
