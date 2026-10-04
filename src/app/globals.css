@@ -412,6 +412,26 @@
     transform: translateY(0) scale(1);
   }
 }
+/* Window opening (2026-10-04) for MinimizableFormShell, which isn't a Base
+   UI primitive and so has no data-starting-style: the same soft entrance as
+   the companion window, ui/sheet.tsx and ui/dialog.tsx. Plays again when a
+   minimized form is restored (display:none → shown restarts animations). */
+@keyframes window-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes window-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(2rem) scale(0.9);
+  }
+}
+@keyframes window-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
 @keyframes companion-bubble-in {
   from {
     opacity: 0;

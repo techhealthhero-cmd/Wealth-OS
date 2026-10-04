@@ -71,8 +71,11 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
     if (variant === "sheet") {
       sheet.style.transform = "translateY(100%)";
     } else {
-      // The centered dialog keeps its -50%/-50% centering while it drops and fades.
-      sheet.style.transform = "translate(-50%, -50%) translateY(48px)";
+      // Centering lives in the separate `translate` property (Tailwind v4's
+      // -translate-*), so `transform` only adds the drop. It used to repeat
+      // the -50%/-50% here too, which doubled the offset and made the
+      // dialog jump up-left as it closed.
+      sheet.style.transform = "translateY(48px)";
       sheet.style.opacity = "0";
     }
     window.setTimeout(onClose, CLOSE_MS);
@@ -173,7 +176,7 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
       <div
         onClick={closeAnimated}
         className={cn(
-          "fixed inset-0 isolate z-50 bg-black/10 transition-opacity duration-1000 supports-backdrop-filter:backdrop-blur-xs",
+          "fixed inset-0 isolate z-50 bg-black/10 transition-opacity duration-1000 supports-backdrop-filter:backdrop-blur-xs motion-safe:animate-[window-backdrop-in_var(--motion-companion-open)_var(--ease-companion)]",
           closing && "pointer-events-none opacity-0"
         )}
         aria-hidden="true"
@@ -181,9 +184,11 @@ export function MinimizableFormShell({ title, onClose, children, className, vari
       <div
         ref={sheetRef}
         className={cn(
+          // Opening (2026-10-04): slides up / grows in on the companion
+          // window's soft curve — see the window-*-in keyframes in globals.css.
           variant === "sheet"
-            ? "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92vh] w-full flex-col gap-4 overflow-y-auto rounded-t-2xl bg-popover p-4 text-sm text-popover-foreground shadow-lg outline-none sm:max-w-md sm:rounded-2xl sm:border"
-            : "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm",
+            ? "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92vh] w-full flex-col gap-4 overflow-y-auto rounded-t-2xl bg-popover p-4 text-sm text-popover-foreground shadow-lg outline-none sm:max-w-md sm:rounded-2xl sm:border motion-safe:animate-[window-sheet-in_var(--motion-companion-open)_var(--ease-companion)]"
+            : "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none sm:max-w-sm motion-safe:animate-[window-dialog-in_var(--motion-companion-open)_var(--ease-companion)]",
           className
         )}
       >
