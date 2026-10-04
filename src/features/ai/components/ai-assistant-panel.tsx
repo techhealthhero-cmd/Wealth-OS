@@ -56,9 +56,10 @@ const PANEL_FRAME: CSSProperties = {
  * UI's Dialog primitives since the shared `Sheet` only offers edge-anchored
  * positioning.
  *
- * `modal="trap-focus"`: focus stays inside, but pointer events outside keep
- * working. While open, the floating button itself steps aside (it "becomes"
- * the window — see FloatingAiButton); the header × and a tap outside close.
+ * Fully modal: focus is trapped and the page behind is scroll-locked, so a
+ * swipe inside the window never scrolls the page. While open, the floating
+ * button steps aside (it "becomes" the window — see FloatingAiButton); the
+ * header × and a tap outside close.
  *
  * The chat opens fresh each time on the companion's greeting and its 3
  * suggestions (see getAiOverlayData).
@@ -172,11 +173,19 @@ export function AiAssistantPanel({
   } as CSSProperties;
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} modal="trap-focus">
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      {/* modal (default true), not "trap-focus" (2026-10-04): trap-focus does
+          NOT lock page scroll, so a swipe the chat couldn't use scrolled the
+          page behind the window instead. It was only needed so the floating
+          button could be tapped while open — the button now steps aside. */}
       <DialogPrimitive.Portal>
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/15 transition-opacity duration-(--motion-companion-open) ease-(--ease-companion) data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-(--motion-companion-close)" />
         <DialogPrimitive.Popup
           ref={setPopupEl}
+          // Focus the window itself on open (not its first link, which drew
+          // a focus ring around the companion's name and, by touch, could
+          // pop the keyboard); keyboard users still get the default.
+          initialFocus={(openType) => (openType === "keyboard" ? true : popupRef.current)}
           style={{ ...PANEL_FRAME, ...themeVars }}
           className={cn(
             "fixed z-50 flex max-w-[25rem] flex-col overflow-hidden rounded-3xl border bg-popover text-popover-foreground shadow-2xl [will-change:scale,opacity]",
