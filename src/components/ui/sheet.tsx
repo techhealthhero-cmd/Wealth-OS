@@ -52,12 +52,18 @@ const SLIDE_MOTION =
   "transition duration-(--motion-companion-open) ease-(--ease-companion) data-ending-style:duration-(--motion-close) data-ending-style:ease-(--ease-close) data-[side=bottom]:data-ending-style:translate-y-full data-[side=bottom]:data-starting-style:translate-y-full data-[side=left]:data-ending-style:-translate-x-full data-[side=left]:data-starting-style:-translate-x-full data-[side=right]:data-ending-style:translate-x-full data-[side=right]:data-starting-style:translate-x-full data-[side=top]:data-ending-style:-translate-y-full data-[side=top]:data-starting-style:-translate-y-full"
 
 // Grow (2026-10-04, "unfold like the companion window"): the sheet grows
-// out of whatever opened it and shrinks back into it — exactly the AI
-// companion window's motion. The caller sets `transform-origin` on the
-// element to the trigger's center. bottom/height also glide so a sheet that
-// follows the iOS keyboard (Quick Capture) keeps moving smoothly.
+// out of whatever opened it on the companion window's soft curve. The
+// caller sets `transform-origin` on the element to the trigger's center.
+// bottom/height also glide so a sheet that follows the iOS keyboard (Quick
+// Capture) keeps moving smoothly.
+//
+// Closing is a "black hole" (requested same day — the old shrink left a
+// small thumbnail sitting on the button): the sheet ACCELERATES into the
+// trigger (ease-in, so it isn't left lingering tiny), spinning slightly,
+// rounding into a disc, blurring, and fading out over the last stretch. The
+// caller raises the trigger above it while closing so it vanishes inside.
 const GROW_MOTION =
-  "[will-change:scale,opacity] [transition:scale_var(--motion-companion-open)_var(--ease-companion),opacity_220ms_ease-out,bottom_200ms_ease-out,height_200ms_ease-out,max-height_200ms_ease-out] data-starting-style:scale-[0.04] data-starting-style:opacity-0 data-ending-style:scale-[0.04] data-ending-style:opacity-0 data-ending-style:[transition:scale_var(--motion-companion-close)_var(--ease-companion),opacity_260ms_ease-in_calc(var(--motion-companion-close)_-_260ms)]"
+  "[will-change:scale,opacity,filter] [transition:scale_var(--motion-companion-open)_var(--ease-companion),opacity_220ms_ease-out,bottom_200ms_ease-out,height_200ms_ease-out,max-height_200ms_ease-out] data-starting-style:scale-[0.04] data-starting-style:opacity-0 data-ending-style:scale-[0.02] data-ending-style:opacity-0 data-ending-style:rotate-[-14deg] data-ending-style:rounded-[50%] data-ending-style:blur-[6px] data-ending-style:[transition:scale_var(--motion-companion-close)_var(--ease-black-hole),rotate_var(--motion-companion-close)_var(--ease-black-hole),filter_var(--motion-companion-close)_ease-in,border-radius_400ms_ease-in,opacity_220ms_ease-in_calc(var(--motion-companion-close)_-_220ms)]"
 
 function SheetContent({
   className,

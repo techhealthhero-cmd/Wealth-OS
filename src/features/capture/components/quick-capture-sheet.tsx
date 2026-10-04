@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { toast } from "sonner";
 import { cheerCompanion } from "@/features/companions/presence";
@@ -113,7 +114,9 @@ export function QuickCaptureSheet({
   // first animated frame) and again whenever it moves (keyboard lift).
   const sheetElRef = useRef<HTMLElement | null>(null);
   const aimAtFab = useCallback((el: HTMLElement | null) => {
-    const fab = document.querySelector("[data-fab-trigger]");
+    // The visible floating circle (BottomNav), not the invisible nav-cell
+    // trigger under it — that sits lower, so the sheet would aim below the +.
+    const fab = document.querySelector("[data-fab-circle]") ?? document.querySelector("[data-fab-trigger]");
     if (!el || !fab) return;
     const r = fab.getBoundingClientRect();
     el.style.transformOrigin = `${r.left + r.width / 2 - el.offsetLeft}px ${r.top + r.height / 2 - el.offsetTop}px`;
@@ -596,6 +599,7 @@ export function QuickCaptureSheet({
   const receiptHeading = receipt.status === "done" && receipt.extraction?.isPaymentDocument ? t("capture.detected") : t("capture.preview");
 
   return (
+    <>
     <Sheet
       open={open}
       onOpenChange={(next) => {
@@ -905,5 +909,56 @@ export function QuickCaptureSheet({
         </div>
       </SheetContent>
     </Sheet>
+    <BlackHoleFab open={open} />
+    </>
+  );
+}
+
+// Must match --motion-companion-close in globals.css.
+const BLACK_HOLE_CLOSE_MS = 680;
+
+/**
+ * The "black hole" for Quick Capture's close (requested 2026-10-04): while
+ * the sheet is being pulled into the "+" button, a copy of that button is
+ * raised ABOVE the sheet (portaled to <body>, z-60 — the real one lives in
+ * BottomNav's own stacking context under the sheet), so the shrinking sheet
+ * disappears inside it instead of leaving a little thumbnail on top. It
+ * swells as it "swallows", then is removed once the close has finished.
+ * Shown only while closing; decorative (aria-hidden).
+ */
+function BlackHoleFab({ open }: { open: boolean }) {
+  const [hole, setHole] = useState<{ rect: DOMRect; background: string } | null>(null);
+  const wasOpenRef = useRef(open);
+
+  useLayoutEffect(() => {
+    const wasOpen = wasOpenRef.current;
+    wasOpenRef.current = open;
+    if (open || !wasOpen) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const circle = document.querySelector<HTMLElement>("[data-fab-circle]");
+    if (!circle) return;
+    // Closing just started: surface the + at the circle's exact spot/look.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHole({ rect: circle.getBoundingClientRect(), background: getComputedStyle(circle).background });
+    const timer = window.setTimeout(() => setHole(null), BLACK_HOLE_CLOSE_MS + 60);
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+  if (!hole) return null;
+  return createPortal(
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed z-[60] flex items-center justify-center rounded-full border border-white/25 shadow-[0_0_24px_4px_color-mix(in_oklab,var(--primary)_55%,transparent),inset_0_1px_0_rgba(255,255,255,0.35)] animate-[black-hole-gulp_var(--motion-companion-close)_ease-in-out_forwards]"
+      style={{
+        left: hole.rect.left,
+        top: hole.rect.top,
+        width: hole.rect.width,
+        height: hole.rect.height,
+        background: hole.background,
+      }}
+    >
+      <span className="text-3xl leading-none font-light text-white">+</span>
+    </div>,
+    document.body
   );
 }

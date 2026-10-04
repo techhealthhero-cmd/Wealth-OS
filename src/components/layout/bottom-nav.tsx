@@ -180,6 +180,8 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
               "group-has-[[data-fab-trigger]:focus-visible]/nav:ring-2 group-has-[[data-fab-trigger]:focus-visible]/nav:ring-white/70",
               "motion-reduce:transition-none"
             )}
+            // Read by QuickCaptureSheet to aim its grow/shrink at this circle.
+            data-fab-circle=""
             style={circleStyle(centerX)}
           >
             <span className="text-3xl leading-none font-light text-white transition-transform duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-has-[[data-fab-trigger]:active]/nav:scale-90 group-has-[[data-fab-trigger]:active]/nav:duration-150 motion-reduce:transition-none">

@@ -210,6 +210,8 @@
   --motion-companion-open: 560ms;
   --motion-companion-close: 680ms;
   --ease-companion: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Accelerating pull for the "sucked into the + button" close. */
+  --ease-black-hole: cubic-bezier(0.55, 0, 0.8, 0.15);
 }
 
 /*
@@ -425,6 +427,24 @@
   from {
     opacity: 0;
     transform: translateY(2rem) scale(0.9);
+  }
+}
+/* The + button "swallowing" Quick Capture as it closes: it surfaces above
+   the shrinking sheet, swells as the sheet is pulled in, then settles. */
+@keyframes black-hole-gulp {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  75% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 @keyframes window-backdrop-in {
