@@ -159,6 +159,16 @@ owner asked for slow, clearly visible open/close motion. Tokens live in
 
 All of them respect `prefers-reduced-motion`.
 
+**Live status** (2026-10-04, modeled on how Claude makes waits feel
+shorter): any wait says WHAT is happening, in true steps that advance
+(`LiveStatus`, `src/components/shared/live-status.tsx`), with a soft light
+sweeping across the text (`.live-status-text`) and elapsed seconds after
+4s. Used for the AI's reply (the companion's own line first, e.g.
+"จอมเวทผ้าคลุมกำลังเปิดคัมภีร์…"), slip scanning, and AI sentence reading.
+Never show fake progress (no invented percentages). Where a wait can be
+avoided entirely, avoid it: the AI window opens straight onto the greeting
+and the real-data line fades in when ready.
+
 **Edge fade** (2026-10-04): content scrolling under an edge softly fades
 (and, at the screen's top, blurs) instead of being cut by a hard line.
 `.edge-fade-y` / `.edge-fade-x` in globals.css are scroll-linked — a fade

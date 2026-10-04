@@ -70,6 +70,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     emoji: companionState.active.emoji,
     theme: companionState.active.theme,
     focus: companionState.active.focus,
+    displayName: profile.display_name,
     presence: companionState.presence,
   };
   const dict = getDictionary(locale);

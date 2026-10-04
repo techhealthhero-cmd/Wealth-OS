@@ -414,6 +414,38 @@
     transform: translateY(0) scale(1);
   }
 }
+/* Live status text (LiveStatus): a soft light sweeping across the words so
+   a wait never looks frozen — the app's version of Claude's shimmering
+   "Deliberating…". Tinted with the current --primary, so inside a
+   companion's window it takes that companion's color. Under reduced motion
+   the global rule stops the sweep and the text simply stays readable. */
+.live-status-text {
+  background: linear-gradient(
+      90deg,
+      var(--muted-foreground) 0%,
+      var(--muted-foreground) 40%,
+      color-mix(in oklab, var(--foreground) 88%, var(--primary)) 50%,
+      var(--muted-foreground) 60%,
+      var(--muted-foreground) 100%
+    )
+    0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: live-status-sweep 1.8s linear infinite;
+}
+@keyframes live-status-sweep {
+  /* With a 250%-wide background, 100% → -150% carries the bright band
+     from just left of the text to past its right edge: a left-to-right
+     sweep, like Claude's. */
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+
 /* Window opening (2026-10-04) for MinimizableFormShell, which isn't a Base
    UI primitive and so has no data-starting-style: the same soft entrance as
    the companion window, ui/sheet.tsx and ui/dialog.tsx. Plays again when a

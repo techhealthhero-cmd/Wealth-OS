@@ -26,6 +26,8 @@ export interface FloatingCompanion {
   emoji: string;
   theme: CompanionTheme;
   focus: CompanionFocus;
+  /** The user's display name, for an instant personal greeting. */
+  displayName: string | null;
   /** Plus/Pro (COMPANION_PRESENCE): animation, reactions, proactive tips. */
   presence: boolean;
 }
@@ -448,6 +450,7 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
         anchor={anchor}
         companion={companion}
         alive={alive}
+        displayName={companion.displayName}
       />
     </>
   );

@@ -1,5 +1,6 @@
 {
   "common": {
+    "elapsedSeconds": "{n}s",
     "appName": "Wealth OS",
     "save": "Save",
     "cancel": "Cancel",
@@ -67,6 +68,16 @@
     "importStatement": "Import CSV"
   },
   "capture": {
+    "scanningSteps": [
+      "Reading your slip…",
+      "Finding the amount and date…",
+      "Checking the merchant and category…",
+      "Almost done…"
+    ],
+    "aiAssistingSteps": [
+      "AI is reading this sentence…",
+      "Splitting out items and amounts…"
+    ],
     "date": {
       "label": "Date to record",
       "hint": "Swipe down to go back to earlier days",
@@ -1037,6 +1048,11 @@
     }
   },
   "aiCoach": {
+    "thinkingSteps": [
+      "Looking at your finances…",
+      "Thinking it through…",
+      "Putting it into words…"
+    ],
     "answerCutOff": "This answer was too long to show at once — type \"continue\" to read the rest.",
     "title": "AI Money Coach",
     "subtitle": "Your personal financial assistant",
@@ -2929,6 +2945,15 @@
     "disclaimer": "WEALTH OS never promises you'll get rich. It's a tool to help you see your finances clearly and make better decisions — not investment advice."
   },
   "companions": {
+    "thinking": {
+      "spirit-mint": "Mint Spirit is looking at the big picture…",
+      "spirit-flame": "Flame Spirit is going through your spending…",
+      "spirit-leaf": "Leaf Spirit is counting your savings…",
+      "spirit-hooded": "Shadow Spirit is tracking down debt…",
+      "wizard-hat": "The Star-Hat Wizard is unrolling the map…",
+      "wizard-caped": "The Caped Wizard is opening the spellbook…",
+      "wizard-hooded": "The Emerald Hood Wizard is reading the signs…"
+    },
     "navLabel": "Companion",
     "pageTitle": "Your companions",
     "pageSubtitle": "A friend that lives in the app with you. Spirits unlock through your own financial progress; wizards come with Plus/Pro.",

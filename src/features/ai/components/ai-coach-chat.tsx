@@ -21,6 +21,7 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 
 import { useTranslation } from "@/i18n/client";
+import { LiveStatus } from "@/components/shared/live-status";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -264,6 +265,7 @@ export function AICoachChat({
   greeting,
   avatarImage,
   suggestionKeys = DEFAULT_OVERLAY_SUGGESTION_KEYS,
+  thinkingLead,
 }: {
   initialConversationId?: string;
   initialMessages?: ChatMessage[];
@@ -287,6 +289,8 @@ export function AICoachChat({
   avatarImage?: string;
   /** Overlay only: `aiCoach.suggestedPrompts` keys offered under the greeting. */
   suggestionKeys?: readonly string[];
+  /** The active companion's own "working on it" line, shown first while waiting for the reply. */
+  thinkingLead?: string;
 }) {
   const { t, locale } = useTranslation();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
@@ -542,6 +546,11 @@ export function AICoachChat({
   );
 
   const isOverlay = variant === "overlay";
+  const thinkingSteps = t("aiCoach.thinkingSteps") as unknown;
+  const thinkingLines = [
+    ...(thinkingLead ? [thinkingLead] : []),
+    ...(Array.isArray(thinkingSteps) ? (thinkingSteps as string[]) : [t("aiCoach.thinking")]),
+  ];
 
   return (
     <div className={isOverlay ? "flex min-h-0 flex-1 flex-col" : "flex flex-col gap-3"}>
@@ -568,7 +577,10 @@ export function AICoachChat({
                   {greeting?.title ??
                     t("aiCoach.overlayGreetingTitle").replace(" {name}", displayName ? ` ${displayName}` : "")}
                 </p>
-                <p className="text-foreground/90">{greeting?.body ?? t("aiCoach.overlayGreeting")}</p>
+                {/* Keyed so the real-data line fades in when it replaces the default. */}
+                <p key={greeting?.body} className="text-foreground/90 animate-in fade-in duration-500">
+                  {greeting?.body ?? t("aiCoach.overlayGreeting")}
+                </p>
               </div>
             </div>
 
@@ -648,7 +660,8 @@ export function AICoachChat({
                   {isThinking ? (
                     <Bubble align={align} variant="ghost">
                       <BubbleContent>
-                        <span className="text-[15px]/6 text-muted-foreground animate-pulse">{t("aiCoach.thinking")}</span>
+                        {/* Live status (2026-10-04): what's happening, not just "thinking…". */}
+                        <LiveStatus className="text-[15px]/6" lines={thinkingLines} />
                       </BubbleContent>
                     </Bubble>
                   ) : (

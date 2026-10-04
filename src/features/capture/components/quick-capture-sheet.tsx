@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { toast } from "sonner";
 import { cheerCompanion } from "@/features/companions/presence";
+import { LiveStatus } from "@/components/shared/live-status";
 import { ArrowLeftRight, Camera, ImageUp, Loader2, PencilLine, TrendingUp, X } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
@@ -97,6 +98,11 @@ export function QuickCaptureSheet({
   onTransfer,
 }: QuickCaptureSheetProps) {
   const { t, locale } = useTranslation();
+  // A string-array dictionary entry (live-status steps), with a single-line fallback.
+  const tList = (key: string, fallbackKey: string): string[] => {
+    const value = t(key) as unknown;
+    return Array.isArray(value) ? (value as string[]) : [t(fallbackKey)];
+  };
   const keyboardInset = useKeyboardInset(open);
   // Pull down to close; content scrolls freely in its own area below the header.
   const { sheetRef, scrollRef } = useSwipeToDismiss({
@@ -796,9 +802,10 @@ export function QuickCaptureSheet({
                 <img src={receipt.previewUrl} alt="" className="size-14 shrink-0 rounded-xl object-cover" />
                 <div className="min-w-0 flex-1 text-sm">
                   {receipt.status === "scanning" ? (
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                      {t("capture.scanning")}
+                    <p className="flex min-w-0 items-center gap-2">
+                      <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
+                      {/* Live status: each step the slip reader actually does. */}
+                      <LiveStatus lines={tList("capture.scanningSteps", "capture.scanning")} />
                     </p>
                   ) : (
                     <>
@@ -851,9 +858,9 @@ export function QuickCaptureSheet({
                 duplicate={duplicate}
                 notice={
                   receipt.status !== "idle" ? undefined : aiPendingKey === textKey ? (
-                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-                      <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                      {t("capture.aiAssisting")}
+                    <p className="flex min-w-0 items-center gap-1.5 text-xs">
+                      <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
+                      <LiveStatus lines={tList("capture.aiAssistingSteps", "capture.aiAssisting")} />
                     </p>
                   ) : aiReading ? (
                     <p className="text-xs text-muted-foreground" aria-live="polite">

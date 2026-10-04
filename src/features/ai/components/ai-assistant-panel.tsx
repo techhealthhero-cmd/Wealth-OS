@@ -79,6 +79,7 @@ export function AiAssistantPanel({
   anchor,
   companion,
   alive = false,
+  displayName,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -92,10 +93,11 @@ export function AiAssistantPanel({
   companion: { id: string; image: string; emoji: string; focus: CompanionFocus; theme: CompanionTheme };
   /** Plus/Pro presence on: the header avatar floats like the button does. */
   alive?: boolean;
+  /** From the layout's profile, so the greeting is personal before any data loads. */
+  displayName?: string | null;
 }) {
   const { t } = useTranslation();
   const [data, setData] = useState<AiOverlayData | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
   const [placement, setPlacement] = useState<CSSProperties>({});
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -132,11 +134,11 @@ export function AiAssistantPanel({
     getAiOverlayData()
       .then((result) => {
         if (cancelled) return;
-        setLoadFailed(false);
         setData(result);
       })
       .catch(() => {
-        if (!cancelled) setLoadFailed(true);
+        // Non-blocking: the chat already works without it; the greeting just
+        // keeps the companion's default line.
       });
     return () => {
       cancelled = true;
@@ -144,7 +146,7 @@ export function AiAssistantPanel({
   }, [open]);
 
   const title = t(`companions.names.${companion.id}`);
-  const userName = data?.displayName ?? t("companions.you");
+  const userName = data?.displayName ?? displayName ?? t("companions.you");
   const tagline = t(`companions.taglines.${companion.id}`).replace("{name}", userName);
   // "สาย" (line) = the specialty; family = spirit/wizard + how it was gained.
   const definition = getCompanion(companion.id);
@@ -283,20 +285,19 @@ export function AiAssistantPanel({
               window is now just "talk to your companion". The full /ai page
               (header ⧉) still has everything. */}
           <div className="flex min-h-0 flex-1 flex-col">
-            {!data ? (
-              <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted-foreground">
-                {loadFailed ? t("aiCoach.errorGeneric") : t("common.loading")}
-              </div>
-            ) : (
-              <AICoachChat
-                variant="overlay"
-                displayName={data.displayName}
-                historyEnabled={data.historyEnabled}
-                greeting={greeting}
-                avatarImage={companion.image}
-                suggestionKeys={COMPANION_SUGGESTION_KEYS[companion.focus]}
-              />
-            )}
+            {/* No loading screen (2026-10-04, "never make them wait"): the
+                chat is usable the instant the window opens — the greeting
+                uses the companion's own line and the name from the layout,
+                and the real-data tip slides in when it arrives. */}
+            <AICoachChat
+              variant="overlay"
+              displayName={data?.displayName ?? displayName ?? null}
+              historyEnabled={data?.historyEnabled ?? false}
+              greeting={greeting}
+              avatarImage={companion.image}
+              suggestionKeys={COMPANION_SUGGESTION_KEYS[companion.focus]}
+              thinkingLead={t(`companions.thinking.${companion.id}`)}
+            />
           </div>
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
