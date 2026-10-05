@@ -93,6 +93,13 @@ export function HoldToTalkButton({
           }}
           onPointerUp={release}
           onPointerCancel={release}
+          // No synthetic "click" after the touch: when the sheet re-laid out
+          // under the finger, iOS delivered it to whatever was there — an
+          // example chip, which filled the box before a word was spoken
+          // (reported 2026-10-05). The mic works purely from pointer events.
+          onTouchEnd={(e) => {
+            if (e.cancelable) e.preventDefault();
+          }}
           onContextMenu={(e) => e.preventDefault()}
           onKeyDown={(e) => {
             if (e.key !== " " && e.key !== "Enter") return;

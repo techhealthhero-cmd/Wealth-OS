@@ -151,6 +151,7 @@ export function QuickCaptureSheet({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const micPressedAtRef = useRef(0);
   // Hybrid parsing: validated AI readings keyed by normalized sentence. A key
   // is claimed before its request starts, so re-renders, retyping the same
   // text or a failed call never trigger a second request for it.
@@ -749,7 +750,7 @@ export function QuickCaptureSheet({
             {/* Examples fold away smoothly once typing starts (no one-frame jump). */}
             <div
               aria-hidden={Boolean(text) || receipt.status !== "idle"}
-              inert={Boolean(text) || receipt.status !== "idle"}
+              inert={Boolean(text) || receipt.status !== "idle" || speech.listening}
               className={cn(
                 "grid transition-[grid-template-rows,opacity,margin] duration-200 ease-out motion-reduce:transition-none",
                 !text && receipt.status === "idle" ? "grid-rows-[1fr] opacity-100" : "-mt-3 grid-rows-[0fr] opacity-0"
@@ -761,6 +762,8 @@ export function QuickCaptureSheet({
                     key={key}
                     type="button"
                     onClick={() => {
+                      // A stray tap left over from pressing the mic is not a choice.
+                      if (speech.listening || Date.now() - micPressedAtRef.current < 800) return;
                       setText(t(`capture.${key}`));
                       setTextSource("quick_text");
                     }}
@@ -788,6 +791,7 @@ export function QuickCaptureSheet({
                 listening={speech.listening}
                 disabled={!speech.supported}
                 onStart={() => {
+                  micPressedAtRef.current = Date.now();
                   setError(null);
                   if (receipt.status !== "idle") clearReceipt();
                   textRef.current?.blur();
@@ -801,7 +805,10 @@ export function QuickCaptureSheet({
                   setRecapAI({});
                   speech.startHold("");
                 }}
-                onStop={() => speech.stopHold()}
+                onStop={() => {
+                  micPressedAtRef.current = Date.now();
+                  speech.stopHold();
+                }}
               />
               <button
                 type="button"
@@ -814,7 +821,9 @@ export function QuickCaptureSheet({
                 {t("capture.manual")}
               </button>
             </div>
-            {speech.supported && !speech.listening ? <MicPermissionTip /> : null}
+            {/* Not hidden while listening: removing it re-laid out the sheet
+                under the finger that just pressed the mic. */}
+            {speech.supported ? <MicPermissionTip /> : null}
             {!speech.supported ? <p className="text-xs text-muted-foreground">{t("capture.voiceUnsupported")}</p> : null}
             {speech.error ? <p className="text-xs text-amber-700 dark:text-amber-400">{t("capture.voiceError")}</p> : null}
 
