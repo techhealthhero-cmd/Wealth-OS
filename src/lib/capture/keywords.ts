@@ -60,6 +60,9 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
   Entertainment: [
     "หนัง", "ดูหนัง", "เกม", "คอนเสิร์ต", "คาราโอเกะ", "cinema", "movie", "major", "sf cinema", "game",
     "steam", "playstation", "concert",
+    // Recreational / nightlife (2026-10-05: "ปุ้น" — cannabis slang — had no category).
+    "กัญชา", "ปุ้น", "ปุ๊น", "ปุ๊นปุ้น", "ปุ้นปุ้น", "ใบเขียว", "บุหรี่", "บุหรี่ไฟฟ้า", "พอต", "เหล้า", "เบียร์",
+    "ผับ", "บาร์", "ปาร์ตี้", "เที่ยว", "weed", "cannabis", "beer", "bar",
   ],
   Education: ["หนังสือ", "คอร์ส", "ค่าเรียน", "ค่าเทอม", "course", "udemy", "coursera", "book", "books"],
   Utilities: [
@@ -81,7 +84,8 @@ export const INCOME_CATEGORY_KEYWORDS: Record<Exclude<IncomeCategoryKey, "Other"
   Business: ["ขายของ", "ยอดขาย", "ขาย", "sales"],
   Bonus: ["โบนัส", "bonus"],
   Interest: ["ดอกเบี้ย", "interest", "ปันผล", "dividend"],
-  "Cashback/Refund": ["เงินคืน", "cashback", "refund", "คืนเงิน"],
+  // A friend paying back / chipping in for a shared bill is money back to me.
+  "Cashback/Refund": ["เงินคืน", "cashback", "refund", "คืนเงิน", "มาคืน", "คืนมา"],
 };
 
 /** Words that mark a capture as INCOME rather than an expense. */
@@ -93,6 +97,8 @@ export const INCOME_MARKERS = [
   // Added 2026-10-03 after a probe of everyday spoken recaps.
   "ขาย", "โอนมา", "ลูกค้าโอน", "ลูกค้าจ่าย", "ถูกหวย", "ถูกรางวัล", "ได้ค่า", "ค่าคอม", "คอมมิชชัน", "คอมมิชชั่น",
   "ปันผล", "ดอกเบี้ยรับ", "เงินปันผล",
+  // 2026-10-05: money back from friends.
+  "มาคืน", "คืนมา", "เงินคืน",
 ];
 
 /**

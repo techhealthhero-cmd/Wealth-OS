@@ -55,7 +55,12 @@ const PREAMBLES = [
 /** Dates/times that look like amounts — masked before splitting. */
 const NON_AMOUNT_NUMBERS: RegExp[] = [
   /วันที่\s*\d{1,2}/g,
-  /\d{1,2}\s*[:.]\s*\d{2}\s*(?:น\.|นาฬิกา)?/g,
+  // Thai dates: "15 ก.ย.", "1-15 ก.ย.", "18 กันยา".
+  /\d{1,2}(?:\s*-\s*\d{1,2})?\s*(?:ม\.?ค|ก\.?พ|มี\.?ค|เม\.?ย|พ\.?ค|มิ\.?ย|ก\.?ค|ส\.?ค|ก\.?ย|ต\.?ค|พ\.?ย|ธ\.?ค|มกรา|กุมภา|มีนา|เมษา|พฤษภา|มิถุนา|กรกฎา|สิงหา|กันยา|ตุลา|พฤศจิกา|ธันวา)\S*/g,
+  // Clock times ("10:30", "8.15 น."). Only a standalone 1–2 digit hour —
+  // reported 2026-10-05: "1760.50 บาท" was read as 17 + the time "60.50" —
+  // and never a number followed by a currency word ("10.50 บาท" is money).
+  /(?<![\d.,])\d{1,2}\s*[:.]\s*\d{2}(?!\d)(?!\s*(?:บาท|baht|thb|฿|บ\.))\s*(?:น\.|นาฬิกา)?/g,
   /\d{1,2}\s*(?:โมง|ทุ่ม|นาฬิกา)/g,
   /(?:ตี|บ่าย)\s*\d{1,2}/g,
   // IDs, phone and account numbers: 9+ digits in a row is never a daily amount.

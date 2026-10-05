@@ -16,6 +16,25 @@ function isEditable(el: Element | null): el is HTMLElement {
 }
 
 /**
+ * The nearest box between `target` and the sheet's main scroller (exclusive)
+ * that has its own overflowing content — e.g. a long Quick Capture text box.
+ */
+function innerScroller(target: Element | null, stopAt: Element | null): HTMLElement | null {
+  for (let el = target as HTMLElement | null; el && el !== stopAt; el = el.parentElement) {
+    if (el.scrollHeight > el.clientHeight + 1) {
+      const overflowY = getComputedStyle(el).overflowY;
+      if (overflowY === "auto" || overflowY === "scroll" || el instanceof HTMLTextAreaElement) return el;
+    }
+  }
+  return null;
+}
+
+/** Can `el` still scroll in the finger's direction (dy > 0 = finger moving down = content scrolls up)? */
+function canScroll(el: HTMLElement, dy: number): boolean {
+  return dy > 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+}
+
+/**
  * Free-moving bottom sheet, chat-app style:
  *
  * - Content always scrolls natively in its own area — the sheet never locks.
@@ -60,6 +79,7 @@ export function useSwipeToDismiss({ enabled, onDismiss }: { enabled: boolean; on
     let maxHeight = 0;
     let mode: "undecided" | "scroll" | "drag" = "undecided";
     let startedOnContent = false;
+    let nested: HTMLElement | null = null;
     let keyboardDropped = false;
     let currentHeight = 0;
     let pullOffset = 0;
@@ -80,6 +100,7 @@ export function useSwipeToDismiss({ enabled, onDismiss }: { enabled: boolean; on
       // themselves; the sheet never takes over a gesture that starts there.
       const target = e.target as Element | null;
       mode = target?.closest?.("[data-sheet-nodrag]") ? "scroll" : "undecided";
+      nested = innerScroller(target, scroller);
       keyboardDropped = false;
       startY = e.touches[0].clientY;
       startTime = performance.now();
@@ -93,9 +114,18 @@ export function useSwipeToDismiss({ enabled, onDismiss }: { enabled: boolean; on
     function onMove(e: TouchEvent) {
       const dy = e.touches[0].clientY - startY;
 
+      // A box with its own scroll (the long text box) scrolls first: the
+      // sheet neither grabs the gesture nor drops the keyboard until that
+      // box reaches its end. Reported 2026-10-05: a long recap could not be
+      // scrolled back up to check its first lines.
+      if (mode === "undecided" && nested && Math.abs(dy) >= 2 && canScroll(nested, dy)) {
+        mode = "scroll";
+        return;
+      }
+
       // Chat-style: swiping down drops the keyboard first, never closes.
       const focused = document.activeElement;
-      if (!keyboardDropped && dy > KEYBOARD_DISMISS_DISTANCE && isEditable(focused) && sheet.contains(focused)) {
+      if (mode !== "scroll" && !keyboardDropped && dy > KEYBOARD_DISMISS_DISTANCE && isEditable(focused) && sheet.contains(focused)) {
         keyboardDropped = true;
         focused.blur();
         mode = "scroll";

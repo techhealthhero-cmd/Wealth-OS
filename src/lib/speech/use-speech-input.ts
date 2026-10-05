@@ -10,6 +10,13 @@ import { useEffect, useRef, useState } from "react";
  */
 export interface SpeechSession {
   stop(): void;
+  /**
+   * Hard stop: cancel immediately and ignore any late events from this
+   * session. Used as a fail-safe when the browser never reports the end of
+   * a stopped session (iOS Safari can skip `onend`, notably after an error
+   * or when it heard nothing) — otherwise the mic would stay "listening".
+   */
+  abort?(): void;
 }
 
 export interface SpeechProvider {
@@ -51,6 +58,9 @@ function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
 
 /** Set once the user has actually granted the mic and been heard — lets the UI offer the "always allow" tip. */
 export const MIC_USED_KEY = "wos.mic.used";
+
+/** How long stopHold() waits for the browser's own end event before finishing anyway. */
+const STOP_FALLBACK_MS = 800;
 
 // ONE recognizer for the page's lifetime. iOS Safari can show the
 // microphone prompt again for every new SpeechRecognition object, and
@@ -105,27 +115,64 @@ export const browserSpeechProvider: SpeechProvider = {
         recognition.start();
         recognizerBusy = true;
       } catch {
-        recognizerBusy = false;
-        onError("start-failed");
-        onEnd();
+        // Usually "already started" — the previous session never reported
+        // its end. Reset it and try once more before giving up.
+        try {
+          recognition.abort();
+        } catch {
+          // ignore
+        }
+        setTimeout(() => {
+          if (!current()) return;
+          try {
+            recognition.start();
+            recognizerBusy = true;
+          } catch {
+            recognizerBusy = false;
+            onError("start-failed");
+            onEnd();
+          }
+        }, 250);
       }
     };
 
     if (recognizerBusy) {
       // Still finishing a previous session: stop it quietly, then start.
-      recognition.onresult = null;
-      recognition.onerror = null;
-      recognition.onend = () => {
+      // If its end never arrives (iOS), start anyway after a short wait.
+      let begun = false;
+      const beginOnce = () => {
+        if (begun) return;
+        begun = true;
         recognizerBusy = false;
         begin();
       };
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = beginOnce;
       recognition.abort();
+      setTimeout(beginOnce, 600);
     } else {
       begin();
     }
     return {
       stop: () => {
-        if (current() && recognizerBusy) recognition.stop();
+        if (!current()) return;
+        try {
+          recognition.stop();
+        } catch {
+          // Not running — nothing to stop.
+        }
+      },
+      abort: () => {
+        if (!current()) return;
+        // Retire this session first so its late events are ignored.
+        sessionGeneration += 1;
+        recognizerBusy = false;
+        try {
+          recognition.abort();
+        } catch {
+          // ignore
+        }
       },
     };
   },
@@ -178,6 +225,9 @@ export function useSpeechInput(locale: string, onTranscript: (text: string, isFi
   const holdBaseRef = useRef("");
   const holdCurrentRef = useRef("");
   const holdRestartsRef = useRef(0);
+  // True from startHold() until the hold has been finalized exactly once.
+  const holdActiveRef = useRef(false);
+  const stopFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onTranscriptRef = useRef(onTranscript);
   useEffect(() => {
     onTranscriptRef.current = onTranscript;
@@ -213,11 +263,46 @@ export function useSpeechInput(locale: string, onTranscript: (text: string, isFi
 
   function stop() {
     holdingRef.current = false;
-    sessionRef.current?.stop();
+    const session = sessionRef.current;
+    session?.stop();
+    // Same iOS fail-safe as stopHold(): never leave the mic "listening".
+    // Bound to THIS session, so a new one started meanwhile is untouched.
+    if (stopFallbackRef.current) clearTimeout(stopFallbackRef.current);
+    stopFallbackRef.current = setTimeout(() => {
+      stopFallbackRef.current = null;
+      if (sessionRef.current !== session) return;
+      session?.abort?.();
+      setListening(false);
+    }, STOP_FALLBACK_MS);
   }
 
   function joinSpeech(a: string, b: string) {
-    return [a.trim(), b.trim()].filter(Boolean).join(" ");
+    const left = a.trim();
+    const right = b.trim();
+    // iOS can re-deliver everything heard so far in the restarted session —
+    // appending it again duplicated whole sentences.
+    if (left && right.startsWith(left)) return right;
+    if (right && left.endsWith(right)) return left;
+    return [left, right].filter(Boolean).join(" ");
+  }
+
+  /**
+   * Ends the hold exactly once: the UI leaves "listening" and the final
+   * transcript is delivered — whether the browser reported the session's
+   * end or not.
+   */
+  function finishHold() {
+    if (!holdActiveRef.current) return;
+    holdActiveRef.current = false;
+    holdingRef.current = false;
+    if (stopFallbackRef.current) {
+      clearTimeout(stopFallbackRef.current);
+      stopFallbackRef.current = null;
+    }
+    holdBaseRef.current = joinSpeech(holdBaseRef.current, holdCurrentRef.current);
+    holdCurrentRef.current = "";
+    setListening(false);
+    onTranscriptRef.current(holdBaseRef.current, true);
   }
 
   function startHoldSession(lang: string) {
@@ -242,13 +327,15 @@ export function useSpeechInput(locale: string, onTranscript: (text: string, isFi
             holdingRef.current = false;
           }
         }
-        setListening(false);
-        onTranscriptRef.current(holdBaseRef.current, true);
+        finishHold();
       },
       onError: (e) => {
-        if (e === "not-allowed" || e === "service-not-allowed" || e === "unsupported") {
-          holdingRef.current = false;
+        if (e === "not-allowed" || e === "service-not-allowed" || e === "unsupported" || e === "start-failed") {
+          // Fatal: stop right away instead of waiting for an end event that
+          // iOS may never send (that left the mic stuck "listening").
           setError(e);
+          sessionRef.current?.abort?.();
+          finishHold();
         }
       },
     });
@@ -262,20 +349,40 @@ export function useSpeechInput(locale: string, onTranscript: (text: string, isFi
     holdBaseRef.current = baseText;
     holdCurrentRef.current = "";
     holdRestartsRef.current = 0;
+    holdActiveRef.current = true;
     try {
       startHoldSession(locale === "th" ? "th-TH" : "en-US");
-      setListening(true);
+      // A fatal error can finish the hold synchronously during start.
+      if (holdActiveRef.current) setListening(true);
     } catch {
       holdingRef.current = false;
+      holdActiveRef.current = false;
       setListening(false);
       setError("start-failed");
     }
   }
 
-  /** Release: stop; the final transcript arrives through onTranscript(text, true). */
+  /**
+   * Release / tap-to-stop: ask the recognizer to stop; the final transcript
+   * arrives through onTranscript(text, true). If the browser hasn't
+   * reported the end shortly after (iOS can skip it), abort and finish
+   * anyway — the stop button must always work.
+   */
   function stopHold() {
+    if (!holdActiveRef.current) {
+      setListening(false);
+      return;
+    }
     holdingRef.current = false;
-    sessionRef.current?.stop();
+    const session = sessionRef.current;
+    session?.stop();
+    if (stopFallbackRef.current) clearTimeout(stopFallbackRef.current);
+    stopFallbackRef.current = setTimeout(() => {
+      stopFallbackRef.current = null;
+      if (!holdActiveRef.current || sessionRef.current !== session) return;
+      session?.abort?.();
+      finishHold();
+    }, STOP_FALLBACK_MS);
   }
 
   function toggle() {

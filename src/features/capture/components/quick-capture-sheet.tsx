@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -203,11 +203,18 @@ export function QuickCaptureSheet({
   }, [open]);
 
   const captureDate = pickedDate ?? ctx.today;
-  const textKey = normalizeText(text);
+  // Parsing (and re-rendering the list) trails the text box at low priority,
+  // so live dictation and typing stay smooth (the mic "stuttered" while every
+  // interim word re-parsed the whole recap synchronously).
+  const parseText = useDeferredValue(text);
+  const textKey = normalizeText(parseText);
   const localParsed = useMemo(() => (textKey ? parseCaptureText(textKey, ctx) : null), [textKey, ctx]);
   // Two or more priced items in one sentence ("ข้าว 40 น้ำ 10 เงินเดือนออก
   // 20,000") become a list confirmed together instead of a single preview.
-  const recapItems = useMemo(() => (text.trim() && receipt.status === "idle" ? parseRecap(text, ctx) : []), [text, ctx, receipt.status]);
+  const recapItems = useMemo(
+    () => (parseText.trim() && receipt.status === "idle" ? parseRecap(parseText, ctx) : []),
+    [parseText, ctx, receipt.status]
+  );
   const recapMode = isMultiItemRecap(recapItems);
   const recapRows: RecapRow[] = useMemo(() => {
     if (!recapMode) return [];
@@ -290,13 +297,53 @@ export function QuickCaptureSheet({
     return () => clearTimeout(timer);
   }, [open, recapMode, speech.listening, textKey, recapItems]);
 
-  // The text box grows with a long recap, up to a cap, then scrolls.
-  useEffect(() => {
+  // The text box grows with a long recap, up to a cap, then scrolls inside.
+  // Measured before paint and whenever the box (re)mounts or changes width —
+  // a measurement taken while the sheet was still opening left it stuck at
+  // two clipped lines. While dictating, it follows the newest words.
+  const fitText = useCallback(() => {
     const el = textRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, TEXT_MAX_HEIGHT)}px`;
-  }, [text, open]);
+  }, []);
+  useLayoutEffect(() => {
+    fitText();
+    const el = textRef.current;
+    if (el && speech.listening) el.scrollTop = el.scrollHeight;
+  }, [text, open, fitText, speech.listening]);
+  const textObserverRef = useRef<ResizeObserver | null>(null);
+  const attachText = useCallback(
+    (el: HTMLTextAreaElement | null) => {
+      textObserverRef.current?.disconnect();
+      textObserverRef.current = null;
+      textRef.current = el;
+      if (!el) return;
+      fitText();
+      if (typeof ResizeObserver === "undefined") return;
+      let width = el.clientWidth;
+      textObserverRef.current = new ResizeObserver(() => {
+        if (el.clientWidth === width) return;
+        width = el.clientWidth;
+        fitText();
+      });
+      textObserverRef.current.observe(el);
+    },
+    [fitText]
+  );
+
+  // Tapping the box: iOS scrolls the page to "reveal" the field while our
+  // sheet is also lifting above the keyboard, so the box ended up in the
+  // middle with its top cut off. Once the keyboard is up, undo the page
+  // scroll and bring the box back to the top of the sheet.
+  useEffect(() => {
+    if (keyboardInset === 0 || document.activeElement !== textRef.current) return;
+    const id = requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      scrollRef.current?.scrollTo({ top: 0 });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [keyboardInset, scrollRef]);
 
   const textDraft: CaptureDraft | null = useMemo(() => {
     if (!localParsed) return null;
@@ -659,7 +706,7 @@ export function QuickCaptureSheet({
               </label>
               <textarea
                 id="quick-capture-input"
-                ref={textRef}
+                ref={attachText}
                 rows={1}
                 value={text}
                 onChange={(e) => {
@@ -679,7 +726,7 @@ export function QuickCaptureSheet({
                 placeholder={speech.listening ? t("capture.listening") : t("capture.recap.placeholder")}
                 autoComplete="off"
                 enterKeyHint="done"
-                className="block min-h-13 w-full resize-none rounded-2xl border bg-background px-4 py-3 pr-11 text-base leading-relaxed outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
+                className="block min-h-13 w-full resize-none overflow-y-auto overscroll-contain rounded-2xl border bg-background px-4 py-3 pr-11 text-base leading-relaxed outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
               />
               {text ? (
                 <button
@@ -744,7 +791,15 @@ export function QuickCaptureSheet({
                   setError(null);
                   if (receipt.status !== "idle") clearReceipt();
                   textRef.current?.blur();
-                  speech.startHold(text);
+                  // A new recording is a new recap (reported 2026-10-05: old,
+                  // unrelated text was pulled into the fresh one) — no need to
+                  // tap X first.
+                  setText("");
+                  setOverrides({});
+                  setRecapOverrides({});
+                  setRecapRemoved(new Set());
+                  setRecapAI({});
+                  speech.startHold("");
                 }}
                 onStop={() => speech.stopHold()}
               />

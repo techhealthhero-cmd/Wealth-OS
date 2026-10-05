@@ -197,3 +197,32 @@ describe("everyday spoken recaps (reported 2026-10-03)", () => {
     expect(parseRecap("ล้างรถ 150", CTX)[0].categoryId).toBe("cat-transport");
   });
 });
+
+describe("real recap reported 2026-10-05", () => {
+  const TEXT =
+    "พี่เจนโอนเงินให้ค่าวันเกิด 1000 บาท ปุ้น 280 บาท เงินแท็ก 1-15 ก.ย. เข้า 25,400 อ๋องโอนเงินมาคืน 1760.50 บาท อ๋องโอนเงินค่า CQK ที่ไปกินเลี้ยงงานวันเกิดคืนมาให้ 484 บาท ตี๋กับแฟนตี๋โอนเงินมาให้ที่แชร์ค่า CQK เคที่ไปกินเลี้ยงงานวันเกิดเรา มาให้ 968 บาท ค่าแกร็บไปทำงาน 62 บาทกระเพราหมูสับไข่ดาว 70 บาท";
+
+  it("reads decimals as one amount and money coming in as income", () => {
+    const ctx = { ...CTX, categories: [...CTX.categories, SYS("cat-fun", "ความบันเทิง", "Entertainment", "expense"), SYS("cat-refund", "เงินคืน", "Cashback/Refund", "income")] };
+    const items = parseRecap(TEXT, ctx);
+    expect(items.map((i) => [i.type, i.amountCents])).toEqual([
+      ["income", 100000],
+      ["expense", 28000],
+      ["income", 2540000],
+      ["income", 176050],
+      ["income", 48400],
+      ["income", 96800],
+      ["expense", 6200],
+      ["expense", 7000],
+    ]);
+    expect(items[1].categoryId).toBe("cat-fun");
+    expect(items[3].categoryId).toBe("cat-refund");
+    expect(items[2].description).toContain("ก.ย.");
+  });
+
+  it("keeps transfers I sent as expenses", () => {
+    expect(parseCaptureText("โอนเงินให้แม่ 2000", CTX).type).toBe("expense");
+    expect(parseCaptureText("ฉันโอนเงินให้อ๋อง 500", CTX).type).toBe("expense");
+    expect(parseCaptureText("ค่าเข้า สวนสัตว์ 100", CTX).type).toBe("expense");
+  });
+});

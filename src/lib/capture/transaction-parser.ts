@@ -324,7 +324,12 @@ function withoutSellerPhrases(lower: string): string {
 
 function hasExplicitIncomeMarker(lower: string): boolean {
   const text = withoutSellerPhrases(lower);
-  return text.startsWith("+") || INCOME_MARKERS.some((m) => findKeyword(text, m) !== null);
+  return (
+    text.startsWith("+") ||
+    INCOME_MARKERS.some((m) => findKeyword(text, m) !== null) ||
+    isIncomingTransfer(text) ||
+    MONEY_IN_RE.test(text)
+  );
 }
 
 /** Flips the detected type only when a learned preference of the OTHER type matches and none of this type does. */
@@ -342,10 +347,43 @@ function learnedTypeOverride(
   return suggestCategory(text, merchant, other, ctx).source === "learned" ? other : detected;
 }
 
+/** "I/we" — the speaker is the one sending money. */
+const SELF_PRONOUNS = ["ฉัน", "เรา", "ผม", "หนู", "กู", "i"];
+/** "โอนเงินให้แม่" — a person right after ให้ is who RECEIVED it (an expense). */
+const RECIPIENT_WORDS = [
+  "แม่", "พ่อ", "พี่", "น้อง", "แฟน", "เพื่อน", "ลูก", "ยาย", "ตา", "ปู่", "ย่า", "ป้า", "ลุง", "น้า", "อา", "เขา",
+  "คน", "ร้าน", "ลูกค้า", "เจ้าของ", "บ้าน",
+];
+
+/**
+ * Money a SOMEONE ELSE sent me. Reported 2026-10-05: "อ๋องโอนเงินมาคืน",
+ * "ตี๋โอนเงินมาให้", "พี่เจนโอนเงินให้ค่าวันเกิด" were all read as expenses.
+ *  - "โอน(เงิน)มา…" always comes TO me.
+ *  - "<someone>โอน(เงิน)ให้/คืน…" — a named sender who isn't me, and no
+ *    recipient after ให้ ("ฉันโอนเงินให้แม่" stays an expense).
+ */
+function isIncomingTransfer(lower: string): boolean {
+  const m = /โอน(?:เงิน)?\s*(มา|คืน|ให้)/.exec(lower);
+  if (!m) return false;
+  if (m[1] === "มา") return true;
+  const subject = lower.slice(0, m.index).trim();
+  if (!subject || SELF_PRONOUNS.some((p) => (p === "i" ? /^i(?:\s|$)/.test(subject) : subject.startsWith(p)))) return false;
+  const after = lower.slice(m.index + m[0].length).trim();
+  return !RECIPIENT_WORDS.some((w) => after.startsWith(w));
+}
+
+/**
+ * "เงินแท็ก 1-15 ก.ย. เข้า 25,400" / "ฝากเข้า 5000": the word เข้า on its own
+ * (or ฝาก…เข้า / เข้าบัญชี) means money came INTO my account. "ค่าเข้า"
+ * (an entrance fee) is one word, so it never matches.
+ */
+const MONEY_IN_RE = /(?:^|\s)(?:เข้า|ฝากเข้า|เข้าบัญชี|ฝากเงิน)(?=\s|\d|$)/;
+
 function detectType(lower: string): "expense" | "income" {
   if (lower.startsWith("+")) return "income";
   const text = withoutSellerPhrases(lower);
   if (INCOME_MARKERS.some((m) => findKeyword(text, m))) return "income";
+  if (isIncomingTransfer(text) || MONEY_IN_RE.test(text)) return "income";
   const incomeHit = longestMatch(
     text,
     Object.values(INCOME_CATEGORY_KEYWORDS).map((keywords) => ({ value: true, keywords }))
@@ -370,7 +408,15 @@ function cleanDescription(text: string): string | null {
   // Apostrophes stay ("Joe's Diner"): turning them into a space here made the
   // learned key "joe s diner" while normalizeMerchant() of the typed text
   // gives "joes diner", so the preference never matched again.
-  out = out.replace(/[฿,.:;!?()"+]/g, " ").replace(/\s+/g, " ").trim();
+  out = out.replace(/[฿,:;!?()"+]/g, " ");
+  // Dots go too — except inside Thai abbreviations ("ก.ย.", "ม.ค."), which
+  // otherwise turned into a meaningless "ก ย".
+  out = out
+    .split(/\s+/)
+    .map((token) => (/^(?:[ก-ฮ]{1,2}\.)+[ก-ฮ]?$/.test(token) ? token : token.replace(/\./g, " ")))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
   for (const verb of LEADING_VERBS) {
     if (out.toLowerCase().startsWith(verb) && out.length > verb.length) {
       out = out.slice(verb.length).trim();

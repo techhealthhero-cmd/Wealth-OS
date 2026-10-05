@@ -27,7 +27,10 @@ export function HoldToTalkButton({
 }) {
   const { t } = useTranslation();
   const pressedAt = useRef<number | null>(null);
-  const [latched, setLatched] = useState(false);
+  // Is a finger holding the button right now? Drives the hint: "release to
+  // stop" only while actually held, otherwise "tap to stop" — the old
+  // latch flag could be stale and showed "release" after the finger lifted.
+  const [fingerDown, setFingerDown] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -37,7 +40,6 @@ export function HoldToTalkButton({
     return () => {
       clearInterval(id);
       setElapsed(0);
-      setLatched(false);
     };
   }, [listening]);
 
@@ -50,20 +52,22 @@ export function HoldToTalkButton({
       return;
     }
     pressedAt.current = Date.now();
+    setFingerDown(true);
     navigator.vibrate?.(10);
     onStart();
   }
 
   function release() {
+    setFingerDown(false);
     if (pressedAt.current === null) return;
     const heldFor = Date.now() - pressedAt.current;
     pressedAt.current = null;
-    if (heldFor < TAP_MS) setLatched(true);
-    else onStop();
+    // A quick tap latches listening on (tap again to stop); a hold stops on release.
+    if (heldFor >= TAP_MS) onStop();
   }
 
   const label = listening ? t("capture.recap.micStop") : t("capture.recap.micStart");
-  const hint = listening ? (latched ? t("capture.recap.listeningTap") : t("capture.recap.listeningHold")) : t("capture.recap.micHold");
+  const hint = listening ? (fingerDown ? t("capture.recap.listeningHold") : t("capture.recap.listeningTap")) : t("capture.recap.micHold");
   const time = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
 
   return (
@@ -95,10 +99,7 @@ export function HoldToTalkButton({
             e.preventDefault();
             if (e.repeat) return;
             if (listening) onStop();
-            else {
-              setLatched(true);
-              onStart();
-            }
+            else onStart();
           }}
           className={cn(
             "relative flex size-20 touch-none select-none items-center justify-center rounded-full text-primary-foreground shadow-[0_12px_28px_-10px_color-mix(in_oklab,var(--primary)_80%,transparent)] [-webkit-touch-callout:none]",
