@@ -6,7 +6,37 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-04
+Last updated: 2026-10-05
+
+## Quick Capture recap fixes + Gift category + iPhone performance — 2026-10-05
+
+- **Recap parsing**: decimals no longer split by the clock-time mask
+  ("1760.50 บาท" was 17 + "60 50"); Thai dates ("1-15 ก.ย.") masked;
+  incoming money read as income ("<someone> โอนเงินมา/ให้/คืน", "มาคืน",
+  standalone "เข้า"/ฝากเข้า) while "ฉันโอนเงินให้แม่" stays an expense;
+  cannabis/nightlife words → Entertainment. Tests in `capture-recap.test.ts`.
+- **Gift categories** — migration `0039_gift_categories.sql` (income
+  "ของขวัญ/เงินที่ได้รับ" 💝, expense "ของขวัญ" 🎁). **Written, not yet
+  applied to any database — needs `supabase db push`.** Until then the
+  keywords simply fall back to "Other" (categoryByKey finds no row).
+  Gift words choose the category but never flip expense → income.
+- **Quick Capture UI**: long text box scrolls before the sheet takes the
+  swipe; box re-measured on mount/resize; iOS focus page-jump undone; a new
+  recording starts a fresh recap; iOS re-delivered words deduped; parsing
+  deferred (`useDeferredValue`) so dictation doesn't stutter.
+- **iPhone performance pass** (finished from an earlier session): Quick
+  Capture/forms/AI panel load lazily (`next/dynamic`) and stay mounted
+  after first open so close animations still play; accounts/categories
+  for the nav "+" fetched on demand (`getQuickAddOptions`) instead of in the
+  persistent layout; Net Worth mini chart is a plain SVG (no Recharts on
+  first paint); blur filters removed from mobile chrome/close motion;
+  `AppFreshness` + `/api/app-version` reload the PWA only when the deployed
+  build changed, otherwise `router.refresh()` after ≥60 s in background.
+- **Companion privacy**: tips, unlock sync and `/companions` respect the
+  account privacy cover (`features/companions/privacy.ts`).
+- Not verified on a real iPhone from this session (no device); unit tests,
+  typecheck, lint and build pass. `tests/e2e/iphone-performance.spec.ts`
+  is a Playwright probe needing `.env.local` + a running app.
 
 ## AI companions (ภูติ / จอมเวท) — 2026-10-04
 

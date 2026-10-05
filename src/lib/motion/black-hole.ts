@@ -4,7 +4,7 @@
  * "Black Hole" — the app's named motion for something being STORED into a
  * visible destination (GRAPHICS_PLAN.md → Named window motions): the
  * element accelerates into the target, spinning slightly, rounding into a
- * disc, blurring and fading, and the target then "gulps" (a short swell).
+ * disc and fading, and the target then "gulps" (a short swell).
  *
  * Use it only when (1) the destination is on screen and (2) something was
  * successfully kept there — never for deleting (being sucked into a void
@@ -52,10 +52,10 @@ export function blackHoleInto(el: HTMLElement, target: Element): Promise<void> {
     `translate(${dx * p}px, ${dy * p}px) rotate(${deg}deg) scale(${scale})`;
   const anim = el.animate(
     [
-      { transform: at(0, 1, 0), filter: "blur(0px)", opacity: 1, borderRadius: radius, easing: "cubic-bezier(0.4, 0, 0.9, 0.6)" },
-      { transform: at(0.55, 0.72, -5), filter: "blur(1px)", opacity: 1, offset: 0.5, easing: "cubic-bezier(0.5, 0, 0.9, 0.5)" },
-      { transform: at(0.94, 0.22, -11), filter: "blur(3px)", opacity: 1, borderRadius: "50%", offset: 0.84, easing: "ease-in" },
-      { transform: at(1, 0.02, -14), filter: "blur(6px)", opacity: 0, borderRadius: "50%" },
+      { transform: at(0, 1, 0), opacity: 1, borderRadius: radius, easing: "cubic-bezier(0.4, 0, 0.9, 0.6)" },
+      { transform: at(0.55, 0.72, -5), opacity: 1, offset: 0.5, easing: "cubic-bezier(0.5, 0, 0.9, 0.5)" },
+      { transform: at(0.94, 0.22, -11), opacity: 1, borderRadius: "50%", offset: 0.84, easing: "ease-in" },
+      { transform: at(1, 0.02, -14), opacity: 0, borderRadius: "50%" },
     ],
     { duration: BLACK_HOLE_MS, fill: "forwards" }
   );

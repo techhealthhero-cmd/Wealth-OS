@@ -90,6 +90,15 @@ export function AiAssistantPanel({
   const { t } = useTranslation();
   const [data, setData] = useState<AiOverlayData | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
+  const handlePanelOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      // Clear real-data copy as part of the close event (rather than from
+      // an effect) so a later open can never paint a stale greeting first.
+      if (!nextOpen) setData(null);
+      onOpenChange(nextOpen);
+    },
+    [onOpenChange]
+  );
 
   // Requested 2026-10-04: closing shrinks the panel back INTO the AI button,
   // so the transform origin must sit exactly on the button's center, in the
@@ -173,7 +182,7 @@ export function AiAssistantPanel({
   } as CSSProperties;
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root open={open} onOpenChange={handlePanelOpenChange}>
       {/* modal (default true), not "trap-focus" (2026-10-04): trap-focus does
           NOT lock page scroll, so a swipe the chat couldn't use scrolled the
           page behind the window instead. It was only needed so the floating
@@ -222,7 +231,7 @@ export function AiAssistantPanel({
                 whole block links to /companions to switch. */}
             <Link
               href="/companions"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handlePanelOpenChange(false)}
               aria-label={`${title} · ${lineLabel} — ${t("companions.switchCompanion")}`}
               className="relative flex min-w-0 items-center gap-3 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
             >
@@ -264,7 +273,7 @@ export function AiAssistantPanel({
             <div className="relative flex shrink-0 items-center gap-0.5">
               <Link
                 href="/ai"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handlePanelOpenChange(false)}
                 aria-label={t("aiCoach.openFullPage")}
                 className="flex size-8 items-center justify-center rounded-full text-primary-foreground/85 hover:bg-primary-foreground/10 hover:text-primary-foreground"
               >

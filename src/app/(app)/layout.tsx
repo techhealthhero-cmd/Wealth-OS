@@ -2,8 +2,6 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { getProfile } from "@/features/profile/queries";
-import { getDisplayAccounts } from "@/features/accounts/queries";
-import { getCategories } from "@/features/categories/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { I18nProvider } from "@/i18n/client";
@@ -51,17 +49,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/onboarding");
   }
 
-  // Fetched here (not inside BottomNav itself, a Client Component) so the
-  // nav's new permanent center "+" can open the same expense/income/
-  // transfer dialogs QuickAdd already uses elsewhere — both cached via
-  // React's `cache()` (see those queries' own doc comments), so a page that
-  // also calls them with the same arguments (e.g. dashboard's display-safe
-  // account query)
-  // with no options) dedupes against this call instead of re-querying.
-  const [locale, accounts, categories, companionState] = await Promise.all([
+  // Quick Capture fetches its user-scoped accounts/categories on demand.
+  // Keeping those mutable rows out of this persistent layout both shortens
+  // the app-shell waterfall and prevents old options surviving navigation.
+  const [locale, companionState] = await Promise.all([
     getLocale(profile.preferred_language),
-    getDisplayAccounts(),
-    getCategories(),
     getCompanionState(),
   ]);
   const companion = {
@@ -110,7 +102,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-8">
               <PullToRefresh>{children}</PullToRefresh>
             </main>
-            <BottomNav accounts={accounts} categories={categories} />
+            <BottomNav />
           </div>
         </div>
         {/* Outside `main` so its fixed-position pill/panel is never affected
@@ -122,7 +114,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             purely visual, never blocks taps. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed inset-x-0 top-0 z-30 h-[calc(env(safe-area-inset-top)+14px)] bg-gradient-to-b from-background via-background/70 to-transparent backdrop-blur-[6px] [-webkit-mask-image:linear-gradient(to_bottom,black_55%,transparent)] [mask-image:linear-gradient(to_bottom,black_55%,transparent)] md:hidden"
+          className="pointer-events-none fixed inset-x-0 top-0 z-30 h-[calc(env(safe-area-inset-top)+14px)] bg-gradient-to-b from-background via-background/95 to-transparent md:hidden"
         />
         <MinimizableFormHost />
         <FloatingAiButton companion={companion} />

@@ -21,6 +21,15 @@ function resolveDefaultAppEnv(): "production" | "staging" | "development" {
 const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV ?? resolveDefaultAppEnv(),
+    // A deployment identity, not a data-cache key. The installed iOS PWA
+    // compares this with a no-store endpoint when it resumes; only a real
+    // version mismatch triggers a document reload so hashed Next assets can
+    // move together to the new build. Financial data refreshes separately.
+    NEXT_PUBLIC_APP_VERSION:
+      process.env.NEXT_PUBLIC_APP_VERSION ??
+      process.env.VERCEL_GIT_COMMIT_SHA ??
+      process.env.VERCEL_DEPLOYMENT_ID ??
+      "development",
   },
 };
 

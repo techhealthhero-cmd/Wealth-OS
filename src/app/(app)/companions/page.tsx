@@ -9,6 +9,9 @@ import { getLocale } from "@/i18n/server";
 import { COMPANIONS } from "@/lib/companions/catalog";
 import { getUnlockProgress, isCompanionAvailable } from "@/lib/companions/unlock";
 import { FEATURES } from "@/lib/billing/plans";
+import { getPrivacyGate } from "@/features/account-privacy/gate";
+import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
+import { COMPANION_FINANCIAL_SCOPES } from "@/features/companions/privacy";
 
 export const metadata: Metadata = { title: "Companions — Wealth OS" };
 
@@ -20,6 +23,11 @@ export const metadata: Metadata = { title: "Companions — Wealth OS" };
 export default async function CompanionsPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
+
+  const privacyGate = await getPrivacyGate(COMPANION_FINANCIAL_SCOPES);
+  if (privacyGate) {
+    return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
+  }
 
   const [state, facts, locale] = await Promise.all([
     getCompanionState(),

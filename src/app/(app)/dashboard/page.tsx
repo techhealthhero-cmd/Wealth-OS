@@ -10,7 +10,8 @@ import { WealthOverview } from "@/features/dashboard/components/wealth-overview"
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
 import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboard-details-toggle";
-import { IncomeVsExpenseChart, SpendingByCategoryChart, MonthlyDonutCard } from "@/features/dashboard/components/charts-lazy";
+import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
+import { MonthlyDonutCard } from "@/features/dashboard/components/summary-visuals";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { QuickAdd } from "@/features/transactions/components/quick-add";
 import { DailyInboxSection } from "@/features/capture/components/daily-inbox-section";

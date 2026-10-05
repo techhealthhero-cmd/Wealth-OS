@@ -60,10 +60,10 @@ const SLIDE_MOTION =
 // Closing is a "black hole" (requested same day — the old shrink left a
 // small thumbnail sitting on the button): the sheet ACCELERATES into the
 // trigger (ease-in, so it isn't left lingering tiny), spinning slightly,
-// rounding into a disc, blurring, and fading out over the last stretch. The
+// rounding into a disc and fading out over the last stretch. The
 // caller raises the trigger above it while closing so it vanishes inside.
 const GROW_MOTION =
-  "[will-change:scale,opacity,filter] [transition:scale_var(--motion-companion-open)_var(--ease-companion),opacity_220ms_ease-out,bottom_200ms_ease-out,height_200ms_ease-out,max-height_200ms_ease-out] data-starting-style:scale-[0.04] data-starting-style:opacity-0 data-ending-style:scale-[0.02] data-ending-style:opacity-0 data-ending-style:rotate-[-14deg] data-ending-style:rounded-[50%] data-ending-style:blur-[6px] data-ending-style:[transition:scale_var(--motion-companion-close)_var(--ease-black-hole),rotate_var(--motion-companion-close)_var(--ease-black-hole),filter_var(--motion-companion-close)_ease-in,border-radius_400ms_ease-in,opacity_220ms_ease-in_calc(var(--motion-companion-close)_-_220ms)]"
+  "[will-change:scale,opacity] [transition:scale_var(--motion-companion-open)_var(--ease-companion),opacity_220ms_ease-out,bottom_200ms_ease-out,height_200ms_ease-out,max-height_200ms_ease-out] data-starting-style:scale-[0.04] data-starting-style:opacity-0 data-ending-style:scale-[0.02] data-ending-style:opacity-0 data-ending-style:rotate-[-14deg] data-ending-style:rounded-[50%] data-ending-style:[transition:scale_var(--motion-companion-close)_var(--ease-black-hole),rotate_var(--motion-companion-close)_var(--ease-black-hole),border-radius_400ms_ease-in,opacity_220ms_ease-in_calc(var(--motion-companion-close)_-_220ms)]"
 
 function SheetContent({
   className,

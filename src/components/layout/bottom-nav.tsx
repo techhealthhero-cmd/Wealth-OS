@@ -9,7 +9,6 @@ import { buildNotchedBarPath, fitNotchToSlot, type NotchGeometry } from "./nav-n
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/client";
 import { QuickAdd } from "@/features/transactions/components/quick-add";
-import type { Account, Category } from "@/types/database";
 
 // "Classic FAB" style (requested 2026-09-30, reference image): a deep,
 // near-black green bar with a soft top sheen, a brighter glossy green "+"
@@ -30,7 +29,7 @@ const CIRCLE_GAP_PX = 5;
 const BAR_CORNER_RADIUS_PX = 24;
 const NAV_PADDING_X_PX = 8; // keep in sync with the <nav>'s `px-2`
 
-export function BottomNav({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
+export function BottomNav() {
   const activeIndex = useActiveNavIndex();
   const { t } = useTranslation();
   const navRef = useRef<HTMLElement>(null);
@@ -86,7 +85,7 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
           nav wrapper's own box so it never blurs page cards above it. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 backdrop-blur-lg [-webkit-mask-image:linear-gradient(to_top,black_55%,transparent_100%)] [mask-image:linear-gradient(to_top,black_55%,transparent_100%)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-background via-background/95 to-transparent"
       />
       <nav
         ref={navRef}
@@ -129,7 +128,7 @@ export function BottomNav({ accounts, categories }: { accounts: Account[]; categ
 
         {Array.from({ length: totalSlots }, (_, slot) => {
           if (slot === centerSlotIndex) {
-            return <QuickAdd key="quick-add" accounts={accounts} categories={categories} variant="nav-center" />;
+            return <QuickAdd key="quick-add" variant="nav-center" />;
           }
           const tabIndex = slot < centerSlotIndex ? slot : slot - 1;
           const item = NAV_ITEMS[tabIndex];

@@ -15,7 +15,7 @@ import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedNumber } from "@/components/shared/animated-number";
 import { InlineLoadError } from "@/components/shared/inline-load-error";
-import { NetWorthMiniChart } from "./charts-lazy";
+import { NetWorthMiniChart } from "./net-worth-mini-chart";
 import { NetWorthInfoPopover } from "./net-worth-info-popover";
 import { NetWorthBreakdownDisclosure } from "./net-worth-breakdown-disclosure";
 import type { NetWorthBreakdown } from "@/features/net-worth/queries";

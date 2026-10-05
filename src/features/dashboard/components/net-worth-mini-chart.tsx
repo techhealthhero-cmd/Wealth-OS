@@ -1,10 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Line, LineChart, ResponsiveContainer, Tooltip } from "recharts";
+import { useId, useMemo, useRef, useState } from "react";
 
 import { formatMoney } from "@/lib/financial/money";
-import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 
 interface NetWorthMiniChartPoint {
   date: string;
@@ -54,15 +52,30 @@ export function scrubIndexFromClientX(
  * keeps vertical page scrolling working when the drag starts on the chart.
  */
 export function NetWorthMiniChart({ data, tone }: NetWorthMiniChartProps) {
-  const reducedMotion = usePrefersReducedMotion();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const gradientId = useId().replace(/:/g, "");
 
   // #7FD6B2 matches the existing hardcoded positive-delta color used on the
   // dark "highlight" card background elsewhere in this component (see
   // net-worth-hero.tsx) â€” var(--color-chart-1) doesn't have enough contrast
   // against that same dark green background.
   const stroke = tone === "highlight" ? "#7FD6B2" : "var(--color-chart-1)";
+  const points = useMemo(() => {
+    if (data.length === 0) return [];
+    const values = data.map((point) => point.netWorth);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = Math.max(1, max - min);
+    return data.map((point, index) => ({
+      x: data.length === 1 ? 50 : (index / (data.length - 1)) * 100,
+      y: 58 - ((point.netWorth - min) / range) * 52,
+    }));
+  }, [data]);
+  const polyline = points.map((point) => `${point.x},${point.y}`).join(" ");
+  const areaPath = points.length > 0 ? `M ${points[0].x} 64 L ${polyline.replaceAll(",", " ")} L ${points.at(-1)!.x} 64 Z` : "";
+  const activePoint = activeIndex === null ? null : data[activeIndex];
+  const activeCoordinate = activeIndex === null ? null : points[activeIndex];
 
   // Where the current press started, to tell a drag apart from a tap.
   const pressStartXRef = useRef<number | null>(null);
@@ -98,41 +111,40 @@ export function NetWorthMiniChart({ data, tone }: NetWorthMiniChartProps) {
   }
 
   return (
-    <div className="relative">
-      <ResponsiveContainer width="100%" height={64}>
-        <LineChart data={data} margin={{ top: 4, right: CHART_MARGIN_X, left: CHART_MARGIN_X, bottom: 0 }}>
-          <Tooltip
-            active={activeIndex !== null}
-            defaultIndex={activeIndex ?? undefined}
-            cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
-            wrapperStyle={{ outline: "none" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.length) return null;
-              const point = payload[0].payload as NetWorthMiniChartPoint;
-              // A plain-language "{date}: {amount}" replaces Recharts' default
-              // tooltip, which showed the raw data key ("netWorth : ...") and
-              // fell back to a numeric point index for the label since this
-              // compact chart has no XAxis to derive a real date label from.
-              return (
-                <div className="rounded-lg border bg-popover px-2.5 py-1.5 text-xs shadow-card">
-                  <p className="text-muted-foreground">{point.date}</p>
-                  <p className="font-medium text-popover-foreground">{formatMoney(point.netWorth)}</p>
-                </div>
-              );
-            }}
-          />
-          <Line
-            type="monotone"
-            dataKey="netWorth"
-            stroke={stroke}
-            strokeWidth={2}
-            dot={false}
-            isAnimationActive={!reducedMotion}
-            animationDuration={650}
-            animationEasing="ease-out"
-          />
-        </LineChart>
-      </ResponsiveContainer>
+    <div className="relative h-16">
+      <svg aria-hidden="true" className="size-full overflow-visible" viewBox="0 0 100 64" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={stroke} stopOpacity="0.24" />
+            <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {areaPath ? <path d={areaPath} fill={`url(#${gradientId})`} /> : null}
+        <polyline points={polyline} fill="none" stroke={stroke} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        {activeCoordinate ? (
+          <>
+            <line
+              x1={activeCoordinate.x}
+              x2={activeCoordinate.x}
+              y1="0"
+              y2="64"
+              stroke="var(--border)"
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle cx={activeCoordinate.x} cy={activeCoordinate.y} r="2.5" fill={stroke} vectorEffect="non-scaling-stroke" />
+          </>
+        ) : null}
+      </svg>
+      {activePoint && activeCoordinate ? (
+        <div
+          className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 -translate-y-full rounded-lg border bg-popover px-2.5 py-1.5 text-xs shadow-card"
+          style={{ left: `${activeCoordinate.x}%` }}
+        >
+          <p className="text-muted-foreground">{activePoint.date}</p>
+          <p className="font-medium whitespace-nowrap text-popover-foreground">{formatMoney(activePoint.netWorth)}</p>
+        </div>
+      ) : null}
       <div
         ref={overlayRef}
         aria-hidden="true"

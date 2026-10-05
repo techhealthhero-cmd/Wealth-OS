@@ -17,6 +17,7 @@ import {
   isCompanionSchemaMissing,
 } from "./queries";
 import { buildCompanionTip, type CompanionTipResult } from "./tip-builder";
+import { getCompanionFinancialDataLocked } from "./privacy";
 
 /**
  * Checks the signed-in user's real data against every spirit's unlock rule
@@ -31,6 +32,10 @@ import { buildCompanionTip, type CompanionTipResult } from "./tip-builder";
 export async function syncCompanionUnlocks(): Promise<string[]> {
   const user = await getAuthUser();
   if (!user) return [];
+  // Unlock rules reveal facts such as emergency-fund coverage, budget
+  // performance and recent debt payments. Do not calculate or celebrate
+  // them while the user's financial privacy cover is active.
+  if (await getCompanionFinancialDataLocked()) return [];
 
   const [facts, unlocked] = await Promise.all([getCompanionUnlockFacts(), getUnlockedCompanionIds()]);
   const newlyEarned = findNewlyEarnedCompanionIds(facts, new Set(unlocked));
@@ -89,6 +94,7 @@ export async function selectCompanion(companionId: string): Promise<SelectCompan
 export async function getCompanionTip(): Promise<CompanionTipResult | null> {
   const user = await getAuthUser();
   if (!user) return null;
+  if (await getCompanionFinancialDataLocked()) return null;
   const state = await getCompanionState();
   if (!state.presence) return null;
   return buildCompanionTip(state.active);

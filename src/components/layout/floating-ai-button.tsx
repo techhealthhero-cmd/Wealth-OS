@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 
 import { AI_NAV_ITEM } from "./nav-items";
 import { X } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
-import { AiAssistantPanel } from "@/features/ai/components/ai-assistant-panel";
 import { getCompanionTip, syncCompanionUnlocks } from "@/features/companions/actions";
 import {
   COMPANION_CHEER_EVENT,
@@ -18,6 +18,12 @@ import {
 } from "@/features/companions/presence";
 import { useAiFabEnabled, useAiFabIdleOpacity } from "./ai-fab-preferences";
 import type { CompanionFocus, CompanionTheme } from "@/lib/companions/catalog";
+
+const loadAiAssistantPanel = () => import("@/features/ai/components/ai-assistant-panel");
+const AiAssistantPanel = dynamic(
+  () => loadAiAssistantPanel().then((module) => module.AiAssistantPanel),
+  { ssr: false }
+);
 
 /** What the layout tells the button about the user's active companion. */
 export interface FloatingCompanion {
@@ -162,6 +168,10 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
   // True while the window is open AND while it is still shrinking back
   // into the button after closing (the button reappears near the end).
   const [stepAside, setStepAside] = useState(false);
+  // The panel's code loads lazily on first open; after that it stays mounted
+  // so its shrink-into-the-button close animation always plays to the end.
+  const [panelMounted, setPanelMounted] = useState(false);
+  if (sheetOpen && !panelMounted) setPanelMounted(true);
   useEffect(() => {
     if (sheetOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -311,6 +321,7 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
   }
 
   function handlePointerDown(e: React.PointerEvent<HTMLButtonElement>) {
+    void loadAiAssistantPanel();
     if (!positionRef.current) return;
     // Touched → fully visible again, and stays so until released + idle.
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
@@ -458,14 +469,14 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
           </button>
         </div>
       ) : null}
-      <AiAssistantPanel
+      {panelMounted ? <AiAssistantPanel
         open={sheetOpen && !onEarnPage}
         onOpenChange={setSheetOpen}
         anchor={anchor}
         companion={companion}
         alive={alive}
         displayName={companion.displayName}
-      />
+      /> : null}
     </>
   );
 }

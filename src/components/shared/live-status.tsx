@@ -20,7 +20,9 @@ const SHOW_ELAPSED_AFTER_S = 4;
  * - After a few seconds, shows the elapsed seconds ("· 6 วิ") — knowing it
  *   is still working beats wondering whether it hung.
  *
- * Purely presentational; `aria-live="polite"` announces each step once.
+ * Purely presentational; the status line is announced when it changes,
+ * while the visual elapsed clock is hidden from assistive technology so it
+ * does not create a new screen-reader announcement every second.
  */
 export function LiveStatus({ lines, className }: { lines: readonly string[]; className?: string }) {
   const { t } = useTranslation();
@@ -40,12 +42,18 @@ export function LiveStatus({ lines, className }: { lines: readonly string[]; cla
   const line = lines[Math.min(index, lines.length - 1)] ?? "";
 
   return (
-    <span className={cn("inline-flex min-w-0 items-baseline gap-1.5", className)} aria-live="polite">
-      <span key={index} className="live-status-text truncate animate-in fade-in slide-in-from-bottom-0.5 duration-300">
+    <span className={cn("inline-flex min-w-0 items-baseline gap-1.5", className)}>
+      <span
+        key={index}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="live-status-text truncate animate-in fade-in slide-in-from-bottom-0.5 duration-300"
+      >
         {line}
       </span>
       {elapsed >= SHOW_ELAPSED_AFTER_S ? (
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+        <span aria-hidden="true" className="shrink-0 text-xs text-muted-foreground tabular-nums">
           · {t("common.elapsedSeconds").replace("{n}", String(elapsed))}
         </span>
       ) : null}

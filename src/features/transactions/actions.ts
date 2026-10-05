@@ -16,10 +16,23 @@ import {
 } from "@/features/transactions/queries";
 import { trackEvent } from "@/lib/analytics";
 import { learnMerchantCategory } from "@/features/capture/learning";
+import { getDisplayAccounts } from "@/features/accounts/queries";
+import { getCategories } from "@/features/categories/queries";
 
 export interface ActionResult {
   error?: string;
   success?: boolean;
+}
+
+/**
+ * The bottom navigation persists across routes, so baking account/category
+ * rows into that layout made its Quick Capture options stale after edits.
+ * Fetching them when the sheet is warmed/opened keeps user-scoped RLS data
+ * current without invalidating every route or clearing unrelated caches.
+ */
+export async function getQuickAddOptions() {
+  const [accounts, categories] = await Promise.all([getDisplayAccounts(), getCategories()]);
+  return { accounts, categories };
 }
 
 /** Postgres SQLSTATE this file branches on — see each call site for why. */

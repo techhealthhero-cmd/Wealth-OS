@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 import { getClientEnv } from "@/config/env";
+import { AppFreshness } from "@/components/shared/app-freshness";
 
 // IBM Plex Sans Thai covers both Thai and Latin glyphs in one family, so the
 // UI renders correctly for the Thai-first audience without a separate
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="th" className={`${bodyFont.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <AppFreshness />
           {children}
         </ThemeProvider>
       </body>

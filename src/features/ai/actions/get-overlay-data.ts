@@ -4,6 +4,7 @@ import { getProfile } from "@/features/profile/queries";
 import { canUseFeature, FEATURES } from "@/lib/billing/entitlements";
 import { getCompanionState } from "@/features/companions/queries";
 import { buildCompanionTip } from "@/features/companions/tip-builder";
+import { getCompanionFinancialDataLocked } from "@/features/companions/privacy";
 
 export interface AiOverlayData {
   displayName: string | null;
@@ -31,16 +32,17 @@ export interface AiOverlayData {
  * stay reachable via /ai and, for Plus+, the history panel.
  */
 export async function getAiOverlayData(): Promise<AiOverlayData> {
-  const [profile, historyEnabled, companion] = await Promise.all([
+  const [profile, historyEnabled, companion, privacyLocked] = await Promise.all([
     getProfile(),
     canUseFeature(FEATURES.AI_CHAT_HISTORY),
     getCompanionState(),
+    getCompanionFinancialDataLocked(),
   ]);
-  const tip = await buildCompanionTip(companion.active);
+  const tip = privacyLocked ? null : await buildCompanionTip(companion.active);
 
   return {
     displayName: profile?.display_name ?? null,
     historyEnabled,
-    greetingTip: tip.allGood ? null : tip.text,
+    greetingTip: !tip || tip.allGood ? null : tip.text,
   };
 }

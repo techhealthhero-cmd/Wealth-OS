@@ -10,7 +10,7 @@ import { getProfile } from "@/features/profile/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { InlineLoadError } from "@/components/shared/inline-load-error";
-import { GoalProgressRing } from "./charts-lazy";
+import { GoalProgressRing } from "./summary-visuals";
 import type { FinancialGoal } from "@/types/database";
 import { ChevronRight } from "lucide-react";
 
