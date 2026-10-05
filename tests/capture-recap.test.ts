@@ -226,3 +226,18 @@ describe("real recap reported 2026-10-05", () => {
     expect(parseCaptureText("ค่าเข้า สวนสัตว์ 100", CTX).type).toBe("expense");
   });
 });
+
+describe("Gift categories (migration 0039)", () => {
+  const ctx = { ...CTX, categories: [...CTX.categories, SYS("cat-gift-out", "ของขวัญ", "Gift", "expense")] };
+
+  it("files money received as a gift under income Gift", () => {
+    const got = parseCaptureText("พี่เจนโอนเงินให้ค่าวันเกิด 1000 บาท", ctx);
+    expect([got.type, got.categoryId]).toEqual(["income", "cat-gift"]);
+    expect(parseCaptureText("ได้อั่งเปา 500", ctx)).toMatchObject({ type: "income", categoryId: "cat-gift" });
+  });
+
+  it("gift words alone never turn a gift I bought into income", () => {
+    expect(parseCaptureText("ซื้อของขวัญให้แฟน 1200", ctx)).toMatchObject({ type: "expense", categoryId: "cat-gift-out" });
+    expect(parseCaptureText("อั่งเปาหลาน 500", ctx)).toMatchObject({ type: "expense", categoryId: "cat-gift-out" });
+  });
+});

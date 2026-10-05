@@ -26,6 +26,7 @@ export const CATEGORY_ICON_EMOJI: Record<string, string> = {
   percent: "📈",
   landmark: "🏦",
   "rotate-ccw": "↩️",
+  "gift-received": "💝",
 };
 
 export function categoryEmoji(icon: string | null): string {

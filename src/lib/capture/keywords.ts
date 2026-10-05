@@ -25,9 +25,10 @@ export type ExpenseCategoryKey =
   | "Subscriptions"
   | "Insurance"
   | "Family"
+  | "Gift"
   | "Other";
 
-export type IncomeCategoryKey = "Salary" | "Freelance" | "Business" | "Bonus" | "Interest" | "Cashback/Refund" | "Other";
+export type IncomeCategoryKey = "Salary" | "Freelance" | "Business" | "Bonus" | "Interest" | "Cashback/Refund" | "Gift" | "Other";
 
 export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Other">, string[]> = {
   "Food & Dining": [
@@ -76,6 +77,8 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
   ],
   Insurance: ["ประกัน", "เบี้ยประกัน", "insurance"],
   Family: ["ให้แม่", "ให้พ่อ", "ค่าขนมลูก", "family"],
+  // Buying/giving a gift (migration 0039).
+  Gift: ["ของขวัญ", "ซื้อของขวัญ", "อั่งเปา", "แต๊ะเอีย", "ใส่ซอง", "ซองงาน", "gift", "present"],
 };
 
 export const INCOME_CATEGORY_KEYWORDS: Record<Exclude<IncomeCategoryKey, "Other">, string[]> = {
@@ -86,6 +89,9 @@ export const INCOME_CATEGORY_KEYWORDS: Record<Exclude<IncomeCategoryKey, "Other"
   Interest: ["ดอกเบี้ย", "interest", "ปันผล", "dividend"],
   // A friend paying back / chipping in for a shared bill is money back to me.
   "Cashback/Refund": ["เงินคืน", "cashback", "refund", "คืนเงิน", "มาคืน", "คืนมา"],
+  // Money received as a gift (migration 0039). Never decides the TYPE on its
+  // own (see detectType) — "อั่งเปา 500" alone is one I gave.
+  Gift: ["ของขวัญ", "ค่าวันเกิด", "เงินวันเกิด", "วันเกิด", "อั่งเปา", "แต๊ะเอีย", "รับซอง", "gift"],
 };
 
 /** Words that mark a capture as INCOME rather than an expense. */
@@ -99,6 +105,7 @@ export const INCOME_MARKERS = [
   "ปันผล", "ดอกเบี้ยรับ", "เงินปันผล",
   // 2026-10-05: money back from friends.
   "มาคืน", "คืนมา", "เงินคืน",
+  "ได้ของขวัญ", "ได้อั่งเปา", "ได้แต๊ะเอีย", "ได้ซอง",
 ];
 
 /**

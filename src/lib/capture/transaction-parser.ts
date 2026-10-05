@@ -386,7 +386,11 @@ function detectType(lower: string): "expense" | "income" {
   if (isIncomingTransfer(text) || MONEY_IN_RE.test(text)) return "income";
   const incomeHit = longestMatch(
     text,
-    Object.values(INCOME_CATEGORY_KEYWORDS).map((keywords) => ({ value: true, keywords }))
+    // Gift words describe both directions (a gift I got / one I gave), so
+    // they pick the category but never flip an expense to income.
+    Object.entries(INCOME_CATEGORY_KEYWORDS)
+      .filter(([key]) => key !== "Gift")
+      .map(([, keywords]) => ({ value: true, keywords }))
   );
   return incomeHit ? "income" : "expense";
 }
