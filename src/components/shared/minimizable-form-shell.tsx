@@ -35,6 +35,29 @@ interface MinimizableFormShellProps {
   variant?: "dialog" | "sheet";
   /** Imperative handle — e.g. a form that wants to close INTO something it just saved to (Black Hole). */
   handleRef?: Ref<MinimizableFormShellHandle>;
+  /**
+   * The button that opened this form. When given, the form unfolds out of
+   * that button on open and folds back into it on close (X / backdrop) —
+   * falling back to the default slide when the button is gone or off screen.
+   */
+  origin?: HTMLElement | null;
+}
+
+// Unfold-from / fold-into the opening button (requested 2026-10-08).
+const ORIGIN_OPEN_MS = 600;
+const ORIGIN_CLOSE_MS = 560;
+
+/**
+ * A transform that lays `sheet` exactly over `button` (same box), so
+ * animating from/to it reads as the sheet growing out of / shrinking back
+ * into the button. Origin "0 0" plus translate+scale maps box onto box.
+ */
+function foldedOnto(sheet: HTMLElement, button: Element): string {
+  const s = sheet.getBoundingClientRect();
+  const b = button.getBoundingClientRect();
+  const sx = Math.max(b.width / s.width, 0.01);
+  const sy = Math.max(b.height / s.height, 0.01);
+  return `translate(${b.left - s.left}px, ${b.top - s.top}px) scale(${sx}, ${sy})`;
 }
 
 export interface MinimizableFormShellHandle {
@@ -79,6 +102,7 @@ export function MinimizableFormShell({
   className,
   variant = "dialog",
   handleRef,
+  origin,
 }: MinimizableFormShellProps) {
   const { minimize, beginMinimize, minimized } = useMinimizableForm();
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -98,6 +122,34 @@ export function MinimizableFormShell({
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (!sheet || reducedMotion) {
       onClose();
+      return;
+    }
+    if (busyRef.current) return;
+    if (origin && origin.isConnected && isOnScreen(origin)) {
+      // Fold back into the button that opened it.
+      busyRef.current = true;
+      setClosing(true);
+      sheet.style.transformOrigin = "0 0";
+      backdropRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: ORIGIN_CLOSE_MS,
+        easing: "ease-in",
+        fill: "forwards",
+      });
+      const radius = getComputedStyle(sheet).borderRadius || "0px";
+      sheet
+        .animate(
+          [
+            { transform: "none", opacity: 1, borderRadius: radius },
+            { opacity: 1, offset: 0.6 },
+            { transform: foldedOnto(sheet, origin), opacity: 0, borderRadius: "9999px" },
+          ],
+          { duration: ORIGIN_CLOSE_MS, easing: "cubic-bezier(0.55, 0, 0.45, 1)", fill: "forwards" }
+        )
+        .finished.catch(() => undefined)
+        .then(() => {
+          busyRef.current = false;
+          onClose();
+        });
       return;
     }
     setClosing(true);
@@ -187,6 +239,27 @@ export function MinimizableFormShell({
     return () => document.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [minimized, minimize]);
+
+  // Open: unfold out of the button that opened the form, replacing the
+  // generic CSS grow-in. Mount only — a restore from minimize grows out of
+  // the pill instead (below).
+  useLayoutEffect(() => {
+    const sheet = sheetRef.current;
+    if (!sheet || !origin || !origin.isConnected || !isOnScreen(origin) || prefersReducedMotion()) return;
+    sheet.style.animation = "none";
+    sheet.style.transformOrigin = "0 0";
+    const radius = getComputedStyle(sheet).borderRadius || "0px";
+    backdropRef.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ORIGIN_OPEN_MS, easing: "ease-out" });
+    sheet.animate(
+      [
+        { transform: foldedOnto(sheet, origin), opacity: 0, borderRadius: "9999px" },
+        { opacity: 1, offset: 0.3 },
+        { transform: "none", opacity: 1, borderRadius: radius },
+      ],
+      { duration: ORIGIN_OPEN_MS, easing: "cubic-bezier(0.32, 0.72, 0, 1)" }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Restore: grow back OUT of the pill (Companion grow), instead of the
   // generic slide-in — the pill is where the draft visibly went.

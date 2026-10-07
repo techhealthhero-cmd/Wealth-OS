@@ -1,6 +1,6 @@
 "use client";
 
-import { cloneElement, useActionState, useEffect, useRef, useState, type ReactElement } from "react";
+import { cloneElement, useActionState, useEffect, useRef, useState, type MouseEvent, type ReactElement } from "react";
 import { toast } from "sonner";
 
 import { createGoal, updateGoal } from "@/features/goals/actions";
@@ -64,6 +64,8 @@ export function GoalForm({ goal, accounts, trigger, open, onOpenChange }: GoalFo
   const { t } = useTranslation();
   const { openForm, close: closeMinimizable } = useMinimizableFormActions();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  // The trigger that was tapped — the form unfolds out of it and folds back in.
+  const [origin, setOrigin] = useState<HTMLElement | null>(null);
   const isControlled = open !== undefined;
   const dialogOpen = isControlled ? open : uncontrolledOpen;
   const setDialogOpen = isControlled ? onOpenChange! : setUncontrolledOpen;
@@ -76,7 +78,15 @@ export function GoalForm({ goal, accounts, trigger, open, onOpenChange }: GoalFo
       openForm({
         id: formId,
         title,
-        content: <GoalFormFields goal={goal} accounts={accounts} title={title} onOpenChange={setDialogOpen} />,
+        content: (
+          <GoalFormFields
+            goal={goal}
+            accounts={accounts}
+            title={title}
+            onOpenChange={setDialogOpen}
+            origin={origin}
+          />
+        ),
       });
     } else {
       closeMinimizable();
@@ -97,8 +107,11 @@ export function GoalForm({ goal, accounts, trigger, open, onOpenChange }: GoalFo
       </Button>
     );
 
-  return cloneElement(triggerElement as ReactElement<{ onClick?: () => void }>, {
-    onClick: () => setDialogOpen(true),
+  return cloneElement(triggerElement as ReactElement<{ onClick?: (e: MouseEvent<HTMLElement>) => void }>, {
+    onClick: (e: MouseEvent<HTMLElement>) => {
+      setOrigin(e.currentTarget);
+      setDialogOpen(true);
+    },
   });
 }
 
@@ -114,10 +127,12 @@ interface GoalFormFieldsProps {
    * regardless of whether this callback still points at anything live.
    */
   onOpenChange: (open: boolean) => void;
+  /** The button that opened the form (see MinimizableFormShell's `origin`). */
+  origin?: HTMLElement | null;
 }
 
 /** Owns every hook the form needs — useActionState, the linked-account select — entirely independent of GoalForm's own lifecycle. See GoalForm's doc comment for why that independence is the point. */
-function GoalFormFields({ goal, accounts, title, onOpenChange }: GoalFormFieldsProps) {
+function GoalFormFields({ goal, accounts, title, onOpenChange, origin }: GoalFormFieldsProps) {
   const { t } = useTranslation();
   const { close: closeMinimizable } = useMinimizableFormActions();
   const [linkedAccountId, setLinkedAccountId] = useState(goal?.linked_account_id ?? NO_LINK);
@@ -166,7 +181,7 @@ function GoalFormFields({ goal, accounts, title, onOpenChange }: GoalFormFieldsP
     value === NO_LINK ? t("assets.noLink") : accounts.find((a) => a.id === value)?.name ?? t("assets.noLink");
 
   return (
-    <MinimizableFormShell title={title} onClose={handleClose} handleRef={shellRef}>
+    <MinimizableFormShell title={title} onClose={handleClose} handleRef={shellRef} origin={origin}>
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="linked_account_id" value={linkedAccountId === NO_LINK ? "" : linkedAccountId} />
 
