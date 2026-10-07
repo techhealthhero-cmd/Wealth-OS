@@ -80,8 +80,6 @@ export function SwipeToDelete({
       ref={(el: HTMLElement | null) => {
         rowRef.current = el;
       }}
-      // Its own horizontal gesture — the app-wide swipe-between-tabs must not also fire.
-      data-no-swipe-nav=""
       className={cn("relative overflow-hidden", removing && "pointer-events-none opacity-0 transition-opacity delay-150 duration-150", className)}
     >
       {/* The red action behind the row, on whichever side is revealed —
