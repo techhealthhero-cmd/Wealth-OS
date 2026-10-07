@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { CalendarRange, ChartLine, HandCoins, ShieldCheck, Target } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
@@ -13,7 +14,7 @@ const TABS = [
   { href: "/plan/forecast", key: "forecast.title", icon: ChartLine },
 ] as const;
 
-export function PlanTabs() {
+export function PlanTabs({ children }: { children?: ReactNode }) {
   const { t } = useTranslation();
-  return <SegmentedTabs tabs={TABS.map((tab) => ({ href: tab.href, label: t(tab.key), icon: tab.icon }))} />;
+  return <SegmentedTabs tabs={TABS.map((tab) => ({ href: tab.href, label: t(tab.key), icon: tab.icon }))}>{children}</SegmentedTabs>;
 }

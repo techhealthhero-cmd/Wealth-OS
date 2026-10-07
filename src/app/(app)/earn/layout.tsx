@@ -14,8 +14,7 @@ export default async function EarnLayout({ children }: { children: React.ReactNo
         <h1 className="text-2xl font-semibold">{dict.nav.earn}</h1>
         <p className="text-sm text-muted-foreground">{dict.earn.subtitle}</p>
       </div>
-      <EarnTabs />
-      {children}
+      <EarnTabs>{children}</EarnTabs>
     </div>
   );
 }

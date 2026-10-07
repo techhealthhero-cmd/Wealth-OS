@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { CalendarClock, ChartColumn, ChartPie, CreditCard, FileSpreadsheet, Gem, ReceiptText, Repeat, Wallet } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
@@ -17,7 +18,7 @@ const TABS = [
   { href: "/money/subscriptions", key: "subscriptions.title", icon: CalendarClock },
 ] as const;
 
-export function MoneyTabs() {
+export function MoneyTabs({ children }: { children?: ReactNode }) {
   const { t } = useTranslation();
-  return <SegmentedTabs tabs={TABS.map((tab) => ({ href: tab.href, label: t(tab.key), icon: tab.icon }))} />;
+  return <SegmentedTabs tabs={TABS.map((tab) => ({ href: tab.href, label: t(tab.key), icon: tab.icon }))}>{children}</SegmentedTabs>;
 }

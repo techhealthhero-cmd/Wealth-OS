@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Banknote, LayoutGrid, ListChecks, type LucideIcon } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
@@ -11,12 +12,14 @@ const TABS: { href: string; key: string; icon: LucideIcon; isActive?: (pathname:
   { href: "/earn/income", key: "earn.tabs.income", icon: Banknote, isActive: (pathname) => pathname.startsWith("/earn/income") },
 ];
 
-export function EarnTabs() {
+export function EarnTabs({ children }: { children?: ReactNode }) {
   const { t } = useTranslation();
   return (
     <SegmentedTabs
       stretch
       tabs={TABS.map((tab) => ({ href: tab.href, label: t(tab.key), icon: tab.icon, isActive: tab.isActive }))}
-    />
+    >
+      {children}
+    </SegmentedTabs>
   );
 }

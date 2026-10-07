@@ -14,8 +14,7 @@ export default async function MoneyLayout({ children }: { children: React.ReactN
         <h1 className="text-2xl font-semibold">{dict.nav.money}</h1>
         <p className="text-sm text-muted-foreground">{dict.money.subtitle}</p>
       </div>
-      <MoneyTabs />
-      {children}
+      <MoneyTabs>{children}</MoneyTabs>
     </div>
   );
 }

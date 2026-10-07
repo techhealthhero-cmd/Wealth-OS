@@ -14,8 +14,7 @@ export default async function PlanLayout({ children }: { children: React.ReactNo
         <h1 className="text-2xl font-semibold">{dict.nav.plan}</h1>
         <p className="text-sm text-muted-foreground">{dict.plan.subtitle}</p>
       </div>
-      <PlanTabs />
-      {children}
+      <PlanTabs>{children}</PlanTabs>
     </div>
   );
 }

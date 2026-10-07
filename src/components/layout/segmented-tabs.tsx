@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { SwipeTabPages, type SwipeTabPagesHandle } from "./swipe-tab-pages";
 
 export interface SegmentedTabItem {
   href: string;
@@ -42,12 +43,24 @@ export interface SegmentedTabItem {
  * `stretch`: few tabs share the full width evenly (Earn has 3) instead of
  * hugging the left edge; scrolling bars with many tabs leave it off.
  */
-export function SegmentedTabs({ tabs, stretch = false }: { tabs: SegmentedTabItem[]; stretch?: boolean }) {
+export function SegmentedTabs({
+  tabs,
+  stretch = false,
+  children,
+}: {
+  tabs: SegmentedTabItem[];
+  stretch?: boolean;
+  /** The section's page content: when given, it can be swiped left/right between these tabs with a page-turn (see SwipeTabPages). */
+  children?: ReactNode;
+}) {
   const pathname = usePathname();
   const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
 
   const activeIndex = tabs.findIndex((tab) => (tab.isActive ? tab.isActive(pathname) : pathname.startsWith(tab.href)));
+  const pagesRef = useRef<SwipeTabPagesHandle>(null);
+  const hrefKey = tabs.map((tab) => tab.href).join("|");
+  const hrefs = useMemo(() => hrefKey.split("|"), [hrefKey]);
 
   useEffect(() => {
     function measure() {
@@ -69,69 +82,81 @@ export function SegmentedTabs({ tabs, stretch = false }: { tabs: SegmentedTabIte
   }, [activeIndex, tabs.length]);
 
   return (
-    <nav className="overflow-x-auto rounded-[1.75rem] border border-white/70 bg-white/95 p-1.5 shadow-[0_8px_32px_-12px_rgba(15,40,30,0.18),inset_0_1px_0_rgba(255,255,255,0.8)] [scrollbar-width:none] md:bg-white/45 md:backdrop-blur-xl md:backdrop-saturate-150 dark:border-white/10 dark:bg-background/95 dark:shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] md:dark:bg-white/5 [&::-webkit-scrollbar]:hidden">
-      <div className={cn("group/tabs relative flex min-w-max gap-1", stretch && "w-full")}>
-        {indicator && activeIndex >= 0 ? (
-          // Glossy brand-green tile: lighter green top fading into the same
-          // primary as the bottom nav, with a glass-edge highlight and glow.
-          // Pressing the active tab sinks this tile too (same soft-press feel
-          // as the bottom nav's "+"). Uses the standalone `scale` property
-          // (Tailwind v4) so it composes with the inline translateX slide.
-          <span
-            aria-hidden="true"
-            className={cn(
-              "absolute inset-y-0 left-0 rounded-[1.35rem] border border-white/40 dark:border-white/15",
-              "shadow-[0_8px_20px_-6px_color-mix(in_oklab,var(--primary)_65%,transparent),inset_0_1px_0_rgba(255,255,255,0.35)]",
-              "transition-[transform,width,scale,box-shadow,filter] duration-(--motion-normal) ease-(--ease-standard)",
-              "group-has-[[aria-current=page]:active]/tabs:scale-[0.93] group-has-[[aria-current=page]:active]/tabs:brightness-95",
-              "group-has-[[aria-current=page]:active]/tabs:shadow-[0_3px_8px_-3px_color-mix(in_oklab,var(--primary)_65%,transparent),inset_0_3px_8px_rgba(0,0,0,0.25)]",
-              "motion-reduce:transition-none"
-            )}
-            style={{
-              width: indicator.width,
-              transform: `translateX(${indicator.left}px)`,
-              background:
-                "radial-gradient(120% 80% at 50% -20%, rgba(255,255,255,0.28), transparent 65%), linear-gradient(180deg, color-mix(in oklab, var(--primary) 72%, #5fb88a), var(--primary))",
-            }}
-          />
-        ) : null}
-        {tabs.map((tab, i) => {
-          const active = i === activeIndex;
-          const Icon = tab.icon;
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              aria-current={active ? "page" : undefined}
-              ref={(el) => {
-                tabRefs.current[i] = el;
-              }}
-              // Soft press: quick ease-out sink on touch (scale down + inner
-              // shade on inactive tabs), then an overshooting spring curve on
-              // release so it bounces back like a cushioned physical key.
+    <>
+      <nav className="overflow-x-auto rounded-[1.75rem] border border-white/70 bg-white/95 p-1.5 shadow-[0_8px_32px_-12px_rgba(15,40,30,0.18),inset_0_1px_0_rgba(255,255,255,0.8)] [scrollbar-width:none] md:bg-white/45 md:backdrop-blur-xl md:backdrop-saturate-150 dark:border-white/10 dark:bg-background/95 dark:shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] md:dark:bg-white/5 [&::-webkit-scrollbar]:hidden">
+        <div className={cn("group/tabs relative flex min-w-max gap-1", stretch && "w-full")}>
+          {indicator && activeIndex >= 0 ? (
+            // Glossy brand-green tile: lighter green top fading into the same
+            // primary as the bottom nav, with a glass-edge highlight and glow.
+            // Pressing the active tab sinks this tile too (same soft-press feel
+            // as the bottom nav's "+"). Uses the standalone `scale` property
+            // (Tailwind v4) so it composes with the inline translateX slide.
+            <span
+              aria-hidden="true"
               className={cn(
-                stretch && "flex-1",
-                "relative flex min-w-18 shrink-0 touch-manipulation select-none flex-col items-center gap-1 whitespace-nowrap rounded-[1.35rem] px-3.5 py-2.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                "transform-gpu transition-[scale,translate,color,background-color,box-shadow] duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]",
-                "active:translate-y-px active:scale-[0.93] active:duration-150 active:ease-out",
-                "motion-reduce:transition-colors motion-reduce:active:scale-100 motion-reduce:active:translate-y-0",
-                active
-                  ? "font-semibold text-white"
-                  : "font-medium text-foreground/85 hover:text-foreground active:bg-foreground/6 active:shadow-[inset_0_2px_6px_rgba(0,0,0,0.12)] dark:active:bg-white/8"
+                "absolute inset-y-0 left-0 rounded-[1.35rem] border border-white/40 dark:border-white/15",
+                "shadow-[0_8px_20px_-6px_color-mix(in_oklab,var(--primary)_65%,transparent),inset_0_1px_0_rgba(255,255,255,0.35)]",
+                "transition-[transform,width,scale,box-shadow,filter] duration-(--motion-normal) ease-(--ease-standard)",
+                "group-has-[[aria-current=page]:active]/tabs:scale-[0.93] group-has-[[aria-current=page]:active]/tabs:brightness-95",
+                "group-has-[[aria-current=page]:active]/tabs:shadow-[0_3px_8px_-3px_color-mix(in_oklab,var(--primary)_65%,transparent),inset_0_3px_8px_rgba(0,0,0,0.25)]",
+                "motion-reduce:transition-none"
               )}
-            >
-              {Icon ? (
-                <Icon
-                  className="size-5"
-                  strokeWidth={active ? 2.25 : 1.75}
-                  aria-hidden="true"
-                />
-              ) : null}
-              {tab.label}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+              style={{
+                width: indicator.width,
+                transform: `translateX(${indicator.left}px)`,
+                background:
+                  "radial-gradient(120% 80% at 50% -20%, rgba(255,255,255,0.28), transparent 65%), linear-gradient(180deg, color-mix(in oklab, var(--primary) 72%, #5fb88a), var(--primary))",
+              }}
+            />
+          ) : null}
+          {tabs.map((tab, i) => {
+            const active = i === activeIndex;
+            const Icon = tab.icon;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={active ? "page" : undefined}
+                // Tapping a tab turns the page the same way a swipe does.
+                onClick={(e) => {
+                  if (active || activeIndex < 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  pagesRef.current?.beginFlip(i > activeIndex ? 1 : -1);
+                }}
+                ref={(el) => {
+                  tabRefs.current[i] = el;
+                }}
+                // Soft press: quick ease-out sink on touch (scale down + inner
+                // shade on inactive tabs), then an overshooting spring curve on
+                // release so it bounces back like a cushioned physical key.
+                className={cn(
+                  stretch && "flex-1",
+                  "relative flex min-w-18 shrink-0 touch-manipulation select-none flex-col items-center gap-1 whitespace-nowrap rounded-[1.35rem] px-3.5 py-2.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "transform-gpu transition-[scale,translate,color,background-color,box-shadow] duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]",
+                  "active:translate-y-px active:scale-[0.93] active:duration-150 active:ease-out",
+                  "motion-reduce:transition-colors motion-reduce:active:scale-100 motion-reduce:active:translate-y-0",
+                  active
+                    ? "font-semibold text-white"
+                    : "font-medium text-foreground/85 hover:text-foreground active:bg-foreground/6 active:shadow-[inset_0_2px_6px_rgba(0,0,0,0.12)] dark:active:bg-white/8"
+                )}
+              >
+                {Icon ? (
+                  <Icon
+                    className="size-5"
+                    strokeWidth={active ? 2.25 : 1.75}
+                    aria-hidden="true"
+                  />
+                ) : null}
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+      {children !== undefined ? (
+        <SwipeTabPages hrefs={hrefs} activeIndex={activeIndex} handleRef={pagesRef}>
+          {children}
+        </SwipeTabPages>
+      ) : null}
+    </>
   );
 }
