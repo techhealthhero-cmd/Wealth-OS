@@ -61,20 +61,19 @@ export async function getBudgets(): Promise<Budget[]> {
  */
 const getBudgetSummaryCached = cache(async (monthKey: string): Promise<BudgetSummary | null> => {
   const monthDate = new Date(`${monthKey}T00:00:00`);
+  const from = monthKey;
+  const to = toLocalDateString(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0));
+  // The month's transactions depend only on the month, not on the budget,
+  // so they load alongside the budget lookup instead of after it (one less
+  // round trip on every page that uses this — WealthOverview,
+  // getSafeToSpend(), getLifeStageAndPriorities()). Categories need the
+  // budget id. The no-op catch only covers the no-budget early return.
+  const transactionsPromise = getTransactions({ from, to });
+  transactionsPromise.catch(() => undefined);
   const budget = await getBudgetForMonth(monthKey);
   if (!budget) return null;
 
-  const from = monthKey;
-  const to = toLocalDateString(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0));
-  // Perf audit finding: these two only depend on `budget` (already
-  // resolved above), not on each other — were awaited sequentially instead
-  // of in parallel. This function is itself reused by WealthOverview,
-  // getSafeToSpend(), and getLifeStageAndPriorities(), so the extra
-  // latency was paid on most dashboard-adjacent pages.
-  const [categories, transactions] = await Promise.all([
-    getBudgetCategories(budget.id),
-    getTransactions({ from, to }),
-  ]);
+  const [categories, transactions] = await Promise.all([getBudgetCategories(budget.id), transactionsPromise]);
 
   const spentCents = calculateExpenses(transactions);
   const spendingByCategory = calculateSpendingByCategory(transactions).map((s) => ({

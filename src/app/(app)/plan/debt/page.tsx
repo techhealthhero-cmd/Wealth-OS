@@ -17,14 +17,17 @@ import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components
 export const metadata: Metadata = { title: "Debt Planner — Wealth OS" };
 
 export default async function DebtPlannerPage() {
-  const privacyGate = await getPrivacyGate("planning");
+  // None of these read financial rows or depend on each other, so they load
+  // together; the debt data itself still waits for the privacy gate.
+  const [privacyGate, profile, gate] = await Promise.all([
+    getPrivacyGate("planning"),
+    getProfile(),
+    requireFeature(FEATURES.DEBT_PLANNER),
+  ]);
   if (privacyGate) {
     return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
   }
 
-  // requireFeature() doesn't depend on profile — perf audit finding: these
-  // were sequential for no reason, each paying its own round-trip.
-  const [profile, gate] = await Promise.all([getProfile(), requireFeature(FEATURES.DEBT_PLANNER)]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 

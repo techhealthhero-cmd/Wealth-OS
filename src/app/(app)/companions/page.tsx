@@ -21,10 +21,10 @@ export const metadata: Metadata = { title: "Companions — Wealth OS" };
  * renders it and calls the validated `selectCompanion` action.
  */
 export default async function CompanionsPage() {
-  const profile = await getProfile();
+  // The privacy gate doesn't need the profile result — load both at once.
+  const [profile, privacyGate] = await Promise.all([getProfile(), getPrivacyGate(COMPANION_FINANCIAL_SCOPES)]);
   if (!profile) redirect("/login");
 
-  const privacyGate = await getPrivacyGate(COMPANION_FINANCIAL_SCOPES);
   if (privacyGate) {
     return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
   }

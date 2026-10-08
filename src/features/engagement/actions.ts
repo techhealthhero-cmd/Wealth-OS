@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { getWealthMissionInputs } from "@/features/engagement/queries";
 import { awardXpOnce } from "@/features/engagement/xp";
 import { generateWealthMissionCandidates, isMissionAutoCompletable } from "@/lib/financial/wealth-missions";
@@ -32,24 +32,25 @@ export interface ActionResult {
  * client-triggered interaction that needs the revalidation.
  */
 export async function syncWealthMissionsData(): Promise<ActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getAuthUser() still verifies the session with Supabase Auth (this is a
+  // callable server action too); during a render it is the request-cached
+  // result instead of another network call.
+  const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
   if (!user) return { error: "Not signed in" };
 
-  const inputs = await getWealthMissionInputs();
-  const candidates = generateWealthMissionCandidates(inputs);
-
-  const { data: existingMissions, error: fetchError } = await supabase
-    .from("wealth_missions")
-    .select("id, title, status, target_quantity, progress_quantity")
-    .eq("user_id", user.id);
+  // The live inputs and the existing missions are independent — load both at once.
+  const [inputs, { data: existingMissions, error: fetchError }] = await Promise.all([
+    getWealthMissionInputs(),
+    supabase.from("wealth_missions").select("id, title, status, target_quantity, progress_quantity").eq("user_id", user.id),
+  ]);
   if (fetchError) return { error: "Failed to sync missions" };
+  const candidates = generateWealthMissionCandidates(inputs);
 
   const activeByTemplateKey = new Map((existingMissions ?? []).filter((m) => m.status !== "completed" && m.status !== "skipped").map((m) => [m.title, m]));
 
-  for (const candidate of candidates) {
+  // Each candidate is a different mission template, so their writes are
+  // independent — run them together rather than one round trip at a time.
+  await Promise.all(candidates.map(async (candidate) => {
     const existing = activeByTemplateKey.get(candidate.templateKey);
 
     if (!existing) {
@@ -74,7 +75,7 @@ export async function syncWealthMissionsData(): Promise<ActionResult> {
           trackEvent("mission_completed", user.id);
         }
       }
-      continue;
+      return;
     }
 
     const autoCompleted = isMissionAutoCompletable(candidate);
@@ -95,7 +96,7 @@ export async function syncWealthMissionsData(): Promise<ActionResult> {
         trackEvent("mission_completed", user.id);
       }
     }
-  }
+  }));
 
   return { success: true };
 }

@@ -12,12 +12,13 @@ import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components
 export const metadata: Metadata = { title: "Subscriptions — Wealth OS" };
 
 export default async function MoneySubscriptionsPage() {
-  const privacyGate = await getPrivacyGate("activity");
+  // The plan check reads no financial rows, so it can run alongside the
+  // privacy gate; the subscription data itself still waits for the gate.
+  const [privacyGate, gate] = await Promise.all([getPrivacyGate("activity"), requireFeature(FEATURES.SUBSCRIPTION_DETECTOR)]);
   if (privacyGate) {
     return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
   }
 
-  const gate = await requireFeature(FEATURES.SUBSCRIPTION_DETECTOR);
   if (!gate.allowed) {
     const profile = await getProfile();
     const locale = await getLocale(profile?.preferred_language);

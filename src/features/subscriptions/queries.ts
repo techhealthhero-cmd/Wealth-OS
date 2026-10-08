@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { getTransactions } from "@/features/transactions/queries";
 import { detectSubscriptions } from "@/lib/financial/subscription-detector";
 import { parseMoneyToCents, centsToDecimalString } from "@/lib/financial/money";
@@ -36,10 +36,9 @@ function lookbackRange(): { from: string; to: string } {
  * memoization — same pattern as `getProfile()`).
  */
 export const getDetectedSubscriptions = cache(async (): Promise<DetectedSubscription[]> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // The request-cached getAuthUser(), not a fresh auth.getUser() network
+  // call — the proxy and getProfile() have usually resolved it already.
+  const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
   if (!user) return [];
 
   const { from, to } = lookbackRange();

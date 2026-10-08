@@ -15,11 +15,11 @@ export default async function ReviewPage() {
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
-  const profile = await getProfile();
+  // requireFeature() doesn't depend on the profile — load both at once.
+  const [profile, gate] = await Promise.all([getProfile(), requireFeature(FEATURES.MONTHLY_REVIEW)]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 
-  const gate = await requireFeature(FEATURES.MONTHLY_REVIEW);
   if (!gate.allowed) {
     return (
       <div className="mx-auto max-w-lg py-8">

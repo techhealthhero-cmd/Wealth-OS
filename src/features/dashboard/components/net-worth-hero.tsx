@@ -41,11 +41,10 @@ interface NetWorthHeroData {
  */
 async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
   try {
-    const profile = await getProfile();
+    // Independent — load the profile and the net-worth figures together.
+    const [profile, breakdown] = await Promise.all([getProfile(), getNetWorthBreakdown()]);
     const locale = await getLocale(profile?.preferred_language);
     const dict = getDictionary(locale);
-
-    const breakdown = await getNetWorthBreakdown();
     // Ensures at least today's row exists — previously only /money/net-worth
     // ever wrote a snapshot, so a user who only ever opens the dashboard
     // would never build up any history for this chart to show.

@@ -13,11 +13,11 @@ import { EmptyAccountsIllustration } from "@/components/illustrations";
 import { Plus } from "lucide-react";
 
 export async function AccountList() {
-  // Resolve the authenticated profile first so a refreshed access token is
-  // available before the privacy RPC decides whether financial rows may be
-  // fetched at all.
-  const profile = await getProfile();
-  const privacy = await getAccountPrivacyState();
+  // Profile and privacy state load together: getAccountPrivacyState() itself
+  // awaits the cached getAuthUser() before its RPC, so the token-refresh race
+  // that once made this concurrent call crash can't happen (same as
+  // asset-list.tsx). Account rows still wait for the privacy decision below.
+  const [profile, privacy] = await Promise.all([getProfile(), getAccountPrivacyState()]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 

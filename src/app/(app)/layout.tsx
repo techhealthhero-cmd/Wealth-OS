@@ -32,6 +32,12 @@ export const metadata: Metadata = {
 };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  // Started alongside the profile (it only needs the cached auth user), so
+  // its plan + unlocked-companions queries no longer wait behind the profile
+  // on every page. The no-op catch only stops an "unhandled rejection" if we
+  // redirect below before awaiting it; the await still throws normally.
+  const companionStatePromise = getCompanionState();
+  companionStatePromise.catch(() => undefined);
   const profile = await getProfile();
 
   if (!profile) {
@@ -54,7 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // the app-shell waterfall and prevents old options surviving navigation.
   const [locale, companionState] = await Promise.all([
     getLocale(profile.preferred_language),
-    getCompanionState(),
+    companionStatePromise,
   ]);
   const companion = {
     id: companionState.active.id,
