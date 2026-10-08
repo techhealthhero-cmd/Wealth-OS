@@ -1,3 +1,4 @@
+import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 
 /**
@@ -84,26 +85,44 @@ const AUTHENTICATED_ROUTES = [
 const email = process.env.E2E_TEST_EMAIL;
 const password = process.env.E2E_TEST_PASSWORD;
 
-test.describe("authenticated routes", () => {
-  test.skip(!email || !password, "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD (a disposable staging account) to run this suite.");
+/**
+ * Logs in ONCE per worker and reuses the saved session for every route
+ * (Playwright's documented worker-scoped storageState pattern). Logging in
+ * before each of the ~26 routes × viewports hit Supabase Auth's sign-in rate
+ * limit, so most cases timed out in the login step and never checked layout.
+ */
+const authTest = test.extend<object, { workerStorageState: string }>({
+  // Fixture callbacks named `provide` (not `use`) so the React hooks lint
+  // rule doesn't mistake Playwright's fixture callback for a React hook.
+  storageState: ({ workerStorageState }, provide) => provide(workerStorageState),
+  workerStorageState: [
+    async ({ browser }, provide, workerInfo) => {
+      const file = path.join(workerInfo.project.outputDir, `.auth-${workerInfo.parallelIndex}.json`);
+      const page = await browser.newPage({ baseURL: workerInfo.project.use.baseURL });
+      // Wait for the form to hydrate before typing — typing earlier was wiped
+      // when React took over, leaving the fields empty and the login stuck.
+      await page.goto("/login", { waitUntil: "networkidle" });
+      // By field id/name, not label text: the login form is in Thai ("อีเมล"),
+      // so the old /email/i label lookup never matched.
+      await page.locator("#email").fill(email!);
+      await page.locator("input[name=password]").fill(password!);
+      await page.locator("button[type=submit]").first().click();
+      // "commit": login lands via client-side navigation, which may never
+      // fire a fresh "load" event.
+      await page.waitForURL(/\/dashboard/, { timeout: 30000, waitUntil: "commit" });
+      await page.context().storageState({ path: file });
+      await page.close();
+      await provide(file);
+    },
+    { scope: "worker" },
+  ],
+});
 
-  test.beforeEach(async ({ page }) => {
-    // Wait for the form to hydrate before typing — typing earlier was wiped
-    // when React took over, leaving the fields empty and the login stuck.
-    await page.goto("/login", { waitUntil: "networkidle" });
-    // By field id/name, not label text: the login form is in Thai ("อีเมล"),
-    // so the old /email/i label lookup never matched and every route failed
-    // in this hook before checking anything.
-    await page.locator("#email").fill(email!);
-    await page.locator("input[name=password]").fill(password!);
-    await page.locator("button[type=submit]").first().click();
-    // "commit": login lands via client-side navigation, which may never fire
-    // a fresh "load" event.
-    await page.waitForURL(/\/dashboard/, { timeout: 30000, waitUntil: "commit" });
-  });
+authTest.describe("authenticated routes", () => {
+  authTest.skip(!email || !password, "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD (a disposable test account) to run this suite.");
 
   for (const route of AUTHENTICATED_ROUTES) {
-    test(`no horizontal overflow: ${route}`, async ({ page }) => {
+    authTest(`no horizontal overflow: ${route}`, async ({ page }) => {
       await assertNoHorizontalOverflow(page, route);
     });
   }

@@ -109,6 +109,7 @@
   --journal-highlight: rgba(233, 207, 122, 0.55); /* highlighter pen */
   --journal-tape: rgba(214, 196, 160, 0.7);
   --journal-note: #fdf3c4; /* sticky note */
+  --journal-dot: rgba(38, 51, 45, 0.14); /* dot-grid paper */
   /* Section divider tabs */
   --journal-tab-home: #a4b49b;
   --journal-tab-money: #e9cf7a;
@@ -165,6 +166,7 @@
   --journal-highlight: rgba(233, 207, 122, 0.22);
   --journal-tape: rgba(150, 132, 100, 0.45);
   --journal-note: #3a331f;
+  --journal-dot: rgba(243, 234, 215, 0.1);
   --journal-tab-home: #7f8f78;
   --journal-tab-money: #b89f55;
   --journal-tab-plan: #7d9fb0;
@@ -552,6 +554,14 @@
 }
 .dark .journal-binding::after {
   background: linear-gradient(to right, rgba(0, 0, 0, 0.35), transparent);
+}
+
+/* Dot-grid paper (the third paper style): faint dots every 14px. Used for
+   secondary-emphasis cards (Card variant="soft"). */
+.journal-dots {
+  background-image: radial-gradient(circle at 1px 1px, var(--journal-dot) 1px, transparent 1.4px);
+  background-size: 14px 14px;
+  background-position: 7px 7px;
 }
 
 /* Page title with a highlighter stroke behind its lower half. Apply to an

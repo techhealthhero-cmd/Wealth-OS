@@ -22,7 +22,9 @@ export function EmptyState({ title, description, action, ...visual }: EmptyState
     // wrapper removes that ambiguity entirely by giving the paragraph a
     // real 100%-of-parent block width to wrap within, instead of asking
     // flex sizing to get it right implicitly.
-    <div className="flex w-full min-w-0 max-w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-16 text-center">
+    // Journal (2026-10-09): an empty state is a taped sticky note — the
+    // first step of a task (UX_GUIDELINES.md #10), not a blank box.
+    <div className="journal-note journal-tape mt-3 flex w-full min-w-0 max-w-full flex-col items-center justify-center gap-3 rounded-md px-4 py-14 text-center">
       {"illustration" in visual && visual.illustration ? (
         <IllustrationFrame size={180}>{visual.illustration}</IllustrationFrame>
       ) : (

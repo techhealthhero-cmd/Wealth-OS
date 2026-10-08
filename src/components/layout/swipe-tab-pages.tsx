@@ -12,8 +12,9 @@ const AXIS_LOCK_PX = 10;
 const MAX_PEEL_DEG = 38;
 // Past edge-on, so the turning page is fully gone (backface hidden).
 const TURNED_DEG = -100;
-// Journal page turn (2026-10-08, owner-approved): 350–500ms brief → 450ms.
-const TURN_MS = 450;
+// Journal page turn: 450ms at first (2026-10-08 brief), slowed to 650ms on
+// the owner's request (2026-10-09) so the turn reads clearly.
+const TURN_MS = 650;
 const TURN_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const LAND_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const SETTLE_MS = 280;

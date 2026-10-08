@@ -19,7 +19,8 @@ const cardVariants = cva(
     variants: {
       variant: {
         default: "",
-        soft: "bg-secondary ring-0 shadow-none",
+        // Journal (2026-10-09): secondary-emphasis cards are dot-grid paper.
+        soft: "journal-dots bg-secondary ring-0 shadow-none",
         highlight: "bg-primary text-primary-foreground ring-0 [&_[data-slot=card-description]]:text-primary-foreground/70",
       },
     },
