@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getClientEnv } from "@/config/env";
 import { logNav } from "@/lib/dev-diagnostics";
+import { captureError } from "@/lib/observability";
+import { isTransientAuthError } from "@/lib/supabase/auth-errors";
 
 const PUBLIC_ROUTES = [
   "/login",
@@ -19,10 +21,19 @@ function isPublicRoute(pathname: string) {
   );
 }
 
+/** Carry any rotated or cleared Supabase cookies onto a redirect response. */
+export function redirectWithSessionCookies(url: URL, sessionResponse: NextResponse) {
+  const redirectResponse = NextResponse.redirect(url);
+  sessionResponse.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie);
+  });
+  return redirectResponse;
+}
+
 /**
  * Refreshes the Supabase session cookie on every request and redirects
  * unauthenticated users away from protected routes. Called from the root
- * `middleware.ts`.
+ * `src/proxy.ts`.
  *
  * IMPORTANT: this must create a response via `NextResponse.next({ request })`
  * up front and keep mutating that same response object — creating a new
@@ -58,20 +69,41 @@ export async function updateSession(request: NextRequest) {
   // route-protection logic below reads the user.
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  if (authError && isTransientAuthError(authError)) {
+    captureError(authError, {
+      route: pathname,
+      provider: "supabase",
+      operation: "refresh_session",
+      extra: {
+        status: authError.status ?? 0,
+        code: authError.code ?? "",
+      },
+    });
+
+    // Do not turn a temporary Auth/network failure into a logout. Continue
+    // with the session cookies untouched; protected rendering will either
+    // succeed on its own auth check or reach the retrying error boundary.
+    return supabaseResponse;
+  }
 
   if (!user && !isPublicRoute(pathname)) {
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("next", pathname);
     logNav({ from: pathname, to: "/login", reason: "no session", source: "middleware.updateSession" });
-    return NextResponse.redirect(redirectUrl);
+    return redirectWithSessionCookies(redirectUrl, supabaseResponse);
   }
 
   if (user && (pathname === "/login" || pathname === "/signup")) {
     logNav({ from: pathname, to: "/dashboard", reason: "already signed in", source: "middleware.updateSession" });
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return redirectWithSessionCookies(
+      new URL("/dashboard", request.url),
+      supabaseResponse
+    );
   }
 
   return supabaseResponse;

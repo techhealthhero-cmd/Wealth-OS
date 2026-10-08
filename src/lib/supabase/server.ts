@@ -4,6 +4,8 @@ import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 
 import { getClientEnv } from "@/config/env";
+import { captureError } from "@/lib/observability";
+import { isTransientAuthError } from "@/lib/supabase/auth-errors";
 
 /**
  * Supabase client for use in Server Components, Route Handlers, and Server
@@ -11,7 +13,7 @@ import { getClientEnv } from "@/config/env";
  *
  * In a Server Component, `cookies().set()` is a no-op (Next.js forbids
  * mutating cookies during render) — that's fine because the middleware
- * (`src/lib/supabase/middleware.ts`) is responsible for refreshing the
+ * (`src/proxy.ts`, via `src/lib/supabase/middleware.ts`) is responsible for refreshing the
  * session cookie on every request. This client only needs to *read* cookies
  * during render; Route Handlers and Server Actions can both read and write.
  *
@@ -59,6 +61,20 @@ export const getAuthUser = cache(async (): Promise<User | null> => {
   const supabase = await createClient();
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
+
+  if (error && isTransientAuthError(error)) {
+    captureError(error, {
+      route: "server-auth",
+      provider: "supabase",
+      operation: "get_user",
+      extra: { status: error.status ?? 0, code: error.code ?? "" },
+    });
+    throw new Error("Authentication service temporarily unavailable", {
+      cause: error,
+    });
+  }
+
   return user ?? null;
 });
