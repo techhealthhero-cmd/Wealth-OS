@@ -4,24 +4,26 @@ import { useEffect, useImperativeHandle, useLayoutEffect, useRef, type ReactNode
 import { useRouter } from "next/navigation";
 
 import { prefersReducedMotion } from "@/lib/motion/black-hole";
+import {
+  cornerAlongTurn,
+  curlTransforms,
+  dragCornerPosition,
+  easeOutCubic,
+  turnedCornerPosition,
+  type Point,
+} from "@/lib/motion/page-curl";
 
 // Same commit distance / axis dead-zone the old app-wide tab swipe used.
 const SWIPE_THRESHOLD_PX = 60;
 const AXIS_LOCK_PX = 10;
-// While dragging forward, the page peels up to this angle with the finger.
-const MAX_PEEL_DEG = 38;
-// Past edge-on, so the turning page is fully gone (backface hidden).
-const TURNED_DEG = -100;
 // Journal page turn: 450ms at first (2026-10-08 brief), slowed to 650ms on
 // the owner's request (2026-10-09) so the turn reads clearly.
 const TURN_MS = 650;
-const TURN_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
-const LAND_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const SETTLE_MS = 280;
-const SETTLE_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+const BOTTOM_NAV_CLEARANCE_PX = 96;
 // A forward turn waits here (paused) if the next page hasn't rendered yet,
-// so it never turns over onto a blank page.
-// With the ease-out turn curve, 8% of the time is ~30% of the turn.
+// so it never turns over onto a blank page. With the ease-out curve, 8% of
+// the time is ~22% of the turn.
 const HOLD_AT = 0.08;
 // If the new page never arrives (navigation failed), stop waiting for it.
 const MAX_WAIT_MS = 5000;
@@ -51,29 +53,40 @@ export interface SwipeTabPagesHandle {
 }
 
 /**
- * A snapshot of the on-screen part of the page, as a sheet of paper that can
- * turn: only `transform`/`opacity` animate, on a viewport-sized layer, so
- * the turn stays on the compositor (the first version animated filter and
- * box-shadow on a clone of the whole, possibly very long, page — janky).
+ * A snapshot of the on-screen part of the page as a sheet of paper that can
+ * CURL (2026-10-09, requested: "feel like holding real paper"). A corner is
+ * pulled; the paper folds along a slanted line (see src/lib/motion/
+ * page-curl.ts) and the lifted part flips over showing the paper's back,
+ * with a highlight/shadow along the fold so it reads as a curve, and a
+ * shadow cast on the page beneath. Transform-only — no repaint per frame.
  */
-interface Sheet {
+interface Curl {
   root: HTMLDivElement;
-  /** The paper itself — rotates about its left edge (the spine). */
-  page: HTMLDivElement;
-  /** Darkens the paper as it turns away from the light. */
-  shade: HTMLDivElement;
-  /** Spine shadow cast on whatever lies underneath the paper. */
-  under: HTMLDivElement;
+  frontWrap: HTMLDivElement;
+  frontInner: HTMLDivElement;
+  flapWrap: HTMLDivElement;
+  flapInner: HTMLDivElement;
+  cast: HTMLDivElement;
+  /** Darkens this sheet when another page lands on top of it. */
+  dim: HTMLDivElement;
+  w: number;
+  h: number;
+  /** Longer than the diagonal: the clipping wraps are 2L × L. */
+  l: number;
+  /** The corner being pulled (its resting place) and where it is now. */
+  c: Point;
+  p: Point;
+  cornerAtBottom: boolean;
 }
 
 interface Flight {
   dir: PageFlipDirection;
-  sheet: Sheet;
-  /** Back turns only: the previous page's sheet, turning in on top. */
-  incoming?: Sheet;
-  anims: Animation[];
+  /** The sheet that curls: the old page (forward) or the incoming one (back). */
+  curl: Curl | null;
+  /** Back turns only: the current page, lying flat underneath. */
+  under: Curl | null;
   arrived: boolean;
-  holdTimer: number;
+  stop: () => void;
   waitTimer: number;
 }
 
@@ -104,18 +117,24 @@ function ownsHorizontalDrag(target: EventTarget | null, boundary: HTMLElement): 
   return false;
 }
 
-function layer(styles: Partial<CSSStyleDeclaration>): HTMLDivElement {
+function box(styles: Partial<CSSStyleDeclaration>): HTMLDivElement {
   const div = document.createElement("div");
-  Object.assign(div.style, { position: "absolute", inset: "0", pointerEvents: "none" }, styles);
+  Object.assign(div.style, { position: "absolute", left: "0", top: "0", pointerEvents: "none", transformOrigin: "0 0" }, styles);
   return div;
 }
 
-/** Snapshots the visible part of `el` into a fixed sheet laid exactly over it. */
-function makeSheet(el: HTMLElement): Sheet | null {
+/** Snapshots the visible part of `el` into a curlable sheet laid exactly over it. */
+function makeCurl(el: HTMLElement, cornerAtBottom: boolean): Curl | null {
   const rect = el.getBoundingClientRect();
   const top = Math.max(rect.top, 0);
-  const bottom = Math.min(rect.bottom, window.innerHeight);
-  if (bottom - top < 1 || rect.width < 1) return null;
+  // The sheet runs to the bottom of the screen (not just the end of the
+  // content) so a curling flap is never cut off by a straight edge mid-page;
+  // below the content it's just more ruled paper, matching the page.
+  const bottom = window.innerHeight;
+  const w = rect.width;
+  const h = bottom - top;
+  if (h < 1 || w < 1) return null;
+  const l = Math.ceil(Math.hypot(w, h) * 2);
 
   const root = document.createElement("div");
   root.setAttribute("aria-hidden", "true");
@@ -123,27 +142,24 @@ function makeSheet(el: HTMLElement): Sheet | null {
     position: "fixed",
     left: `${rect.left}px`,
     top: `${top}px`,
-    width: `${rect.width}px`,
-    height: `${bottom - top}px`,
+    width: `${w}px`,
+    height: `${h}px`,
+    overflow: "hidden",
     zIndex: "20",
     pointerEvents: "none",
-    perspective: "1800px",
-    perspectiveOrigin: "0 50%",
   } satisfies Partial<CSSStyleDeclaration>);
 
-  const under = layer({
-    background: "linear-gradient(to right, rgba(0,0,0,0.32), rgba(0,0,0,0.08) 35%, rgba(0,0,0,0) 70%)",
-    opacity: "0",
-  });
-  const page = layer({
-    overflow: "hidden",
-    background: "var(--background)",
-    transformOrigin: "0 50%",
-    backfaceVisibility: "hidden",
+  // Shadow the lifted paper casts on the page beneath, right along the fold.
+  const cast = box({
+    width: `${2 * l}px`,
+    height: "64px",
+    background: "linear-gradient(to bottom, rgba(40,28,10,0.34), rgba(40,28,10,0.12) 30%, rgba(40,28,10,0) 100%)",
     willChange: "transform",
   });
-  // Ruled paper, like the page underneath (Journal).
-  page.classList.add("journal-page");
+
+  const frontWrap = box({ width: `${2 * l}px`, height: `${l}px`, overflow: "hidden", willChange: "transform" });
+  const frontInner = box({ width: `${w}px`, height: `${h}px`, background: "var(--background)", willChange: "transform" });
+  frontInner.classList.add("journal-page");
   const clone = el.cloneNode(true) as HTMLElement;
   clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
   clone.removeAttribute("style");
@@ -151,35 +167,100 @@ function makeSheet(el: HTMLElement): Sheet | null {
     position: "absolute",
     left: "0",
     top: `${rect.top - top}px`,
-    width: `${rect.width}px`,
+    width: `${w}px`,
     margin: "0",
   } satisfies Partial<CSSStyleDeclaration>);
-  const shade = layer({
-    background: "linear-gradient(to left, rgba(0,0,0,0.38), rgba(0,0,0,0.12))",
-    opacity: "0",
+  frontInner.append(clone);
+  frontWrap.append(frontInner);
+
+  // The flap: the paper's back (plain ruled paper, a shade warmer), with a
+  // curl highlight along the fold — dark crease, a bright band where the
+  // curve catches the light, then a soft fall-off.
+  const flapWrap = box({ width: `${2 * l}px`, height: `${l}px`, overflow: "hidden", willChange: "transform" });
+  const flapInner = box({
+    width: `${w}px`,
+    height: `${h}px`,
+    background: "color-mix(in oklab, var(--card) 82%, var(--journal-edge))",
+    willChange: "transform",
   });
-  page.append(clone, shade);
-  root.append(under, page);
+  flapInner.classList.add("journal-page");
+  const flapShade = box({
+    top: "auto",
+    bottom: "0",
+    width: `${2 * l}px`,
+    height: "110px",
+    background:
+      "linear-gradient(to top, rgba(40,28,10,0.32) 0, rgba(255,250,235,0.55) 9px, rgba(255,250,235,0) 34px, rgba(40,28,10,0.1) 70px, rgba(40,28,10,0) 110px)",
+  });
+  flapWrap.append(flapInner, flapShade);
+
+  const dim = box({ width: "100%", height: "100%", background: "rgba(20,14,6,1)", opacity: "0" });
+
+  root.append(cast, frontWrap, flapWrap, dim);
   document.body.appendChild(root);
-  return { root, page, shade, under };
+  // The bottom corner sits just above the bottom nav (which covers the
+  // screen's last ~96px), so the grabbed corner is never hidden behind it.
+  const c = { x: w, y: cornerAtBottom ? Math.max(h - BOTTOM_NAV_CLEARANCE_PX, h * 0.6) : 0 };
+  const curl: Curl = { root, frontWrap, frontInner, flapWrap, flapInner, cast, dim, w, h, l, c, p: c, cornerAtBottom };
+  applyCurl(curl, c);
+  return curl;
 }
 
-/** Pose of a forward-turning sheet at `deg` (0 = flat, TURNED_DEG = gone). */
-function setPeel(sheet: Sheet, deg: number) {
-  const t = Math.min(Math.abs(deg) / 90, 1);
-  sheet.page.style.transform = `rotateY(${deg}deg)`;
-  sheet.shade.style.opacity = String(t);
-  sheet.under.style.opacity = String(Math.min(t * 3, 1));
+/** Pose the sheet with its corner at `p`. */
+function applyCurl(curl: Curl, p: Point) {
+  curl.p = p;
+  const t = curlTransforms(curl.c, p, curl.l, curl.w);
+  curl.frontWrap.style.transform = t.frontWrap;
+  curl.frontInner.style.transform = t.frontInner;
+  curl.flapWrap.style.transform = t.flapWrap;
+  curl.flapInner.style.transform = t.flapInner;
+  curl.cast.style.transform = t.cast;
+  // The cast shadow fades in as the corner lifts and out as the page leaves.
+  curl.cast.style.opacity = String(Math.min(t.amount * 4, 1) * Math.max(0, 1 - Math.max(0, t.amount - 1.6) * 2));
+}
+
+/**
+ * Moves the corner from `from` to `to` over `duration` on an arc, frame by
+ * frame. `holdWhile` freezes progress at `holdAt` (the next page isn't
+ * ready yet) without skipping ahead once it resumes. Returns a stop
+ * function.
+ */
+function runCurl(
+  curl: Curl,
+  from: Point,
+  to: Point,
+  duration: number,
+  opts: { holdAt?: number; holdWhile?: () => boolean; onFrame?: (eased: number) => void; onDone: () => void }
+): () => void {
+  let elapsed = 0;
+  let last = performance.now();
+  let raf = 0;
+  const tick = (now: number) => {
+    elapsed += now - last;
+    last = now;
+    if (opts.holdAt !== undefined && opts.holdWhile?.()) elapsed = Math.min(elapsed, duration * opts.holdAt);
+    const t = Math.min(elapsed / duration, 1);
+    const eased = easeOutCubic(t);
+    applyCurl(curl, cornerAlongTurn(from, to, eased, curl.h, curl.cornerAtBottom));
+    opts.onFrame?.(eased);
+    if (t >= 1) {
+      opts.onDone();
+      return;
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(raf);
 }
 
 /**
  * Wraps a section's page content (Money / Plan / Earn) so a horizontal
  * swipe moves to the next/previous tab — requested 2026-10-08 — with a
- * book page-turn. Forward: the current page peels up from its right edge
- * as you drag and turns over toward the spine (left edge), revealing the
- * next page with a spine shadow. Back: the previous page turns back over
- * from the spine and lands on top of the current one. Tapping a tab
- * (SegmentedTabs calls `beginFlip`) plays the same turn.
+ * paper page-turn. Forward: grab the page and its corner curls up under
+ * your finger, folding along a slanted line, then turns over past the
+ * spine, revealing the next page. Back: the previous page curls back in
+ * from the spine and lands on top. Tapping a tab (SegmentedTabs calls
+ * `beginFlip`) plays the same turn.
  */
 export function SwipeTabPages({
   hrefs,
@@ -195,8 +276,8 @@ export function SwipeTabPages({
   const router = useRouter();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const flightRef = useRef<Flight | null>(null);
-  // The sheet being peeled by the finger before the swipe commits.
-  const dragSheetRef = useRef<Sheet | null>(null);
+  // The sheet being curled by the finger before the swipe commits.
+  const dragCurlRef = useRef<Curl | null>(null);
   const activeIndexRef = useRef(activeIndex);
   const hrefsRef = useRef(hrefs);
   useEffect(() => {
@@ -215,83 +296,70 @@ export function SwipeTabPages({
   function endFlight() {
     const flight = flightRef.current;
     if (!flight) return;
-    window.clearTimeout(flight.holdTimer);
+    flight.stop();
     window.clearTimeout(flight.waitTimer);
-    flight.anims.forEach((a) => a.cancel());
-    flight.sheet.root.remove();
-    flight.incoming?.root.remove();
+    flight.curl?.root.remove();
+    flight.under?.root.remove();
     flightRef.current = null;
     showLive();
   }
 
-  function dropDragSheet() {
-    dragSheetRef.current?.root.remove();
-    dragSheetRef.current = null;
+  function dropDragCurl() {
+    dragCurlRef.current?.root.remove();
+    dragCurlRef.current = null;
   }
 
-  /** Forward: turn `sheet` over from its current pose; holds at HOLD_AT until the next page has rendered. */
-  function turnForward(sheet: Sheet) {
-    const fromDeg = parseFloat(sheet.page.style.transform.replace(/[^-\d.]/g, "")) || 0;
-    const fromT = Math.min(Math.abs(fromDeg) / 90, 1);
-    const remaining = 1 - Math.abs(fromDeg) / Math.abs(TURNED_DEG);
-    const duration = Math.max(TURN_MS * remaining, 260);
-    const opts: KeyframeAnimationOptions = { duration, easing: TURN_EASE, fill: "forwards" };
-    const anims = [
-      sheet.page.animate([{ transform: `rotateY(${fromDeg}deg)` }, { transform: `rotateY(${TURNED_DEG}deg)` }], opts),
-      sheet.shade.animate([{ opacity: fromT }, { opacity: 1 }], opts),
-      sheet.under.animate(
-        [{ opacity: Math.min(fromT * 3, 1) }, { opacity: 1, offset: 0.35 }, { opacity: 0 }],
-        opts
-      ),
-    ];
+  /** Forward: curl the old page the rest of the way over; holds at HOLD_AT until the next page has rendered. */
+  function turnForward(curl: Curl) {
+    const to = turnedCornerPosition(curl.c, curl.w, curl.h);
+    const from = curl.p;
+    const remaining = Math.min(Math.max((from.x - to.x) / (curl.c.x - to.x), 0.4), 1);
     const flight: Flight = {
       dir: 1,
-      sheet,
-      anims,
+      curl,
+      under: null,
       arrived: false,
-      holdTimer: window.setTimeout(() => {
-        if (flightRef.current === flight && !flight.arrived) anims.forEach((a) => a.pause());
-      }, duration * HOLD_AT),
+      stop: () => undefined,
       waitTimer: window.setTimeout(endFlight, MAX_WAIT_MS),
     };
     flightRef.current = flight;
-    void anims[0].finished.then(
-      () => {
+    flight.stop = runCurl(curl, from, to, TURN_MS * remaining, {
+      holdAt: HOLD_AT,
+      holdWhile: () => !flight.arrived,
+      onDone: () => {
         if (flightRef.current === flight) endFlight();
       },
-      () => undefined
-    );
+    });
   }
 
-  /** Back: keep the current page as a sheet until the previous page renders, which then turns in on top. */
-  function holdForBack(sheet: Sheet) {
-    const flight: Flight = {
+  /** Back: keep the current page as a flat sheet until the previous page renders, which then curls in on top. */
+  function holdForBack(under: Curl) {
+    flightRef.current = {
       dir: -1,
-      sheet,
-      anims: [],
+      curl: null,
+      under,
       arrived: false,
-      holdTimer: 0,
+      stop: () => undefined,
       waitTimer: window.setTimeout(endFlight, MAX_WAIT_MS),
     };
-    flightRef.current = flight;
   }
 
-  function start(dir: PageFlipDirection, sheetFromDrag: Sheet | null) {
+  function start(dir: PageFlipDirection, curlFromDrag: Curl | null) {
     endFlight();
     const el = wrapperRef.current;
     if (!el || prefersReducedMotion()) {
-      dropDragSheet();
+      dropDragCurl();
       return;
     }
     el.style.transition = "";
     el.style.transform = "";
-    const sheet = sheetFromDrag ?? makeSheet(el);
-    dragSheetRef.current = null;
-    if (!sheet) return;
+    const curl = curlFromDrag ?? makeCurl(el, true);
+    dragCurlRef.current = null;
+    if (!curl) return;
     // The sheet stands in for the live page until the new one renders.
     el.style.opacity = "0";
-    if (dir === 1) turnForward(sheet);
-    else holdForBack(sheet);
+    if (dir === 1) turnForward(curl);
+    else holdForBack(curl);
   }
 
   useImperativeHandle(handleRef, () => ({ beginFlip: (dir) => start(dir, null) }));
@@ -305,39 +373,33 @@ export function SwipeTabPages({
     window.clearTimeout(flight.waitTimer);
 
     if (flight.dir === 1) {
-      // The next page is ready underneath — let the turn carry on.
+      // The next page is ready underneath — the turn carries on by itself
+      // (runCurl's hold releases once `arrived` is true).
       el.style.opacity = "";
-      flight.anims.forEach((a) => {
-        if (a.playState === "paused") a.play();
-      });
       return;
     }
 
-    // Back: snapshot the previous page and turn it in over the current one.
+    // Back: snapshot the previous page and curl it in from the spine.
     el.style.opacity = "";
-    const incoming = makeSheet(el);
+    const incoming = makeCurl(el, true);
     if (!incoming) {
       endFlight();
       return;
     }
     el.style.opacity = "0";
-    const old = flight.sheet;
-    const opts: KeyframeAnimationOptions = { duration: TURN_MS, easing: LAND_EASE, fill: "forwards" };
-    incoming.page.style.transform = `rotateY(${TURNED_DEG}deg)`;
-    const anims = [
-      incoming.page.animate([{ transform: `rotateY(${TURNED_DEG}deg)` }, { transform: "rotateY(0deg)" }], opts),
-      incoming.shade.animate([{ opacity: 1 }, { opacity: 0 }], opts),
+    const from = turnedCornerPosition(incoming.c, incoming.w, incoming.h);
+    applyCurl(incoming, from);
+    flight.curl = incoming;
+    const under = flight.under;
+    flight.stop = runCurl(incoming, from, incoming.c, TURN_MS, {
       // The current page falls into the incoming page's shadow as it's covered.
-      old.shade.animate([{ opacity: 0 }, { opacity: 0.7 }], opts),
-    ];
-    flight.anims = anims;
-    flight.incoming = incoming;
-    void anims[0].finished.then(
-      () => {
+      onFrame: (eased) => {
+        if (under) under.dim.style.opacity = String(0.28 * eased);
+      },
+      onDone: () => {
         if (flightRef.current === flight) endFlight();
       },
-      () => undefined
-    );
+    });
     // Runs only when the page actually changes; everything else is read via refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
@@ -367,7 +429,7 @@ export function SwipeTabPages({
   useEffect(
     () => () => {
       endFlight();
-      dropDragSheet();
+      dropDragCurl();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -383,6 +445,8 @@ export function SwipeTabPages({
     let axis: "horizontal" | "vertical" | null = null;
     let blocked = false;
     let dx = 0;
+    let dy = 0;
+    let stopSettle: (() => void) | null = null;
 
     function targetIndex(delta: number) {
       return activeIndexRef.current + (delta < 0 ? 1 : -1);
@@ -392,48 +456,50 @@ export function SwipeTabPages({
       return next >= 0 && next < hrefsRef.current.length;
     }
 
-    /** Live feedback: forward peels the page; back (or a dead end) just leans the page. */
-    function follow(delta: number) {
+    /** Live feedback: forward curls the page's corner under the finger; back (or a dead end) just leans the page. */
+    function follow() {
       if (prefersReducedMotion() || flightRef.current) return;
-      if (delta < 0 && canGo(delta)) {
+      if (dx < 0 && canGo(dx)) {
         boundary.style.transform = "";
-        if (!dragSheetRef.current) {
-          const sheet = makeSheet(boundary);
-          if (!sheet) return;
-          dragSheetRef.current = sheet;
+        if (!dragCurlRef.current) {
+          // Grab the corner nearest the finger: the bottom corner when the
+          // touch is in the lower part of the visible page, else the top.
+          const rect = boundary.getBoundingClientRect();
+          const visibleTop = Math.max(rect.top, 0);
+          const visibleBottom = Math.min(rect.bottom, window.innerHeight);
+          const curl = makeCurl(boundary, startY > (visibleTop + visibleBottom) / 2);
+          if (!curl) return;
+          dragCurlRef.current = curl;
           boundary.style.opacity = "0";
         }
-        const progress = Math.min(-delta / (boundary.clientWidth * 0.6), 1);
-        setPeel(dragSheetRef.current, -MAX_PEEL_DEG * progress);
+        const curl = dragCurlRef.current;
+        applyCurl(curl, dragCornerPosition(curl.c, dx, dy, curl.w, curl.h));
         return;
       }
-      if (dragSheetRef.current) {
-        dropDragSheet();
+      if (dragCurlRef.current) {
+        dropDragCurl();
         boundary.style.opacity = "";
       }
-      const lean = canGo(delta) ? 0.16 : 0.06;
+      const lean = canGo(dx) ? 0.16 : 0.06;
       boundary.style.transition = "none";
-      boundary.style.transform = `translateX(${delta * lean}px)`;
+      boundary.style.transform = `translateX(${dx * lean}px)`;
     }
 
-    /** Swipe released short of committing: lay everything back down. */
+    /** Swipe released short of committing: the corner falls back flat. */
     function settle() {
-      const sheet = dragSheetRef.current;
-      dragSheetRef.current = null;
-      if (sheet) {
-        const opts: KeyframeAnimationOptions = { duration: SETTLE_MS, easing: SETTLE_EASE, fill: "forwards" };
-        sheet.page.animate([{ transform: sheet.page.style.transform }, { transform: "rotateY(0deg)" }], opts);
-        sheet.shade.animate([{ opacity: sheet.shade.style.opacity }, { opacity: 0 }], opts);
-        void sheet.under
-          .animate([{ opacity: sheet.under.style.opacity }, { opacity: 0 }], opts)
-          .finished.catch(() => undefined)
-          .then(() => {
-            sheet.root.remove();
+      const curl = dragCurlRef.current;
+      dragCurlRef.current = null;
+      if (curl) {
+        stopSettle = runCurl(curl, curl.p, curl.c, SETTLE_MS, {
+          onDone: () => {
+            stopSettle = null;
+            curl.root.remove();
             if (!flightRef.current) boundary.style.opacity = "";
-          });
+          },
+        });
         return;
       }
-      boundary.style.transition = `transform ${SETTLE_MS}ms ${SETTLE_EASE}`;
+      boundary.style.transition = `transform ${SETTLE_MS}ms cubic-bezier(0.32, 0.72, 0, 1)`;
       boundary.style.transform = "";
     }
 
@@ -453,6 +519,7 @@ export function SwipeTabPages({
       startY = e.touches[0].clientY;
       axis = null;
       dx = 0;
+      dy = 0;
       blocked = ownsHorizontalDrag(e.target, boundary);
     }
 
@@ -464,14 +531,14 @@ export function SwipeTabPages({
         return;
       }
       dx = e.touches[0].clientX - startX;
-      const dy = e.touches[0].clientY - startY;
+      dy = e.touches[0].clientY - startY;
       if (axis === null) {
         if (Math.abs(dx) < AXIS_LOCK_PX && Math.abs(dy) < AXIS_LOCK_PX) return;
         axis = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
       }
       if (axis !== "horizontal") return;
       e.preventDefault();
-      follow(dx);
+      follow();
     }
 
     function onEnd() {
@@ -482,7 +549,7 @@ export function SwipeTabPages({
       startX = null;
       if (Math.abs(dx) >= SWIPE_THRESHOLD_PX && canGo(dx)) {
         const href = hrefsRef.current[targetIndex(dx)];
-        start(dx < 0 ? 1 : -1, dragSheetRef.current);
+        start(dx < 0 ? 1 : -1, dragCurlRef.current);
         router.push(href);
         return;
       }
@@ -494,6 +561,7 @@ export function SwipeTabPages({
     el.addEventListener("touchend", onEnd, { passive: true });
     el.addEventListener("touchcancel", onEnd, { passive: true });
     return () => {
+      stopSettle?.();
       el.removeEventListener("touchstart", onStart);
       el.removeEventListener("touchmove", onMove);
       el.removeEventListener("touchend", onEnd);
