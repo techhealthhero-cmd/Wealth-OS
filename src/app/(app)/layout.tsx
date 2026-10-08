@@ -94,9 +94,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             `min-w-0` at every level of this row/column flex chain removes
             that failure mode at its root, instead of hiding it with a
             page-level `overflow-x-hidden` band-aid. */}
-        <div className="flex min-h-screen min-w-0">
+        {/* Journal v2 (2026-10-09): the app is a notebook — a dark leather
+            cover (outer) with the paper page laid inside it (inner), binder
+            rings crossing from cover to page, and the section tabs sticking
+            out past the page edge onto the cover. */}
+        <div className="journal-cover flex min-h-screen min-w-0">
           <Sidebar />
-          <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+          <div className="journal-sheet mx-3 my-1.5 flex min-h-[calc(100dvh-0.75rem)] min-w-0 flex-1 flex-col md:m-3">
+            <div aria-hidden="true" className="journal-rings" />
             <Header
               displayName={profile.display_name}
               actions={
@@ -106,12 +111,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </>
               }
             />
-            {/* WEALTH OS Journal (2026-10-08): the content area is a notebook
-                page — faint ruled lines, binder rings in the left gutter
-                (inside px-4, so they never cover content) and section
-                divider tabs on the right edge. Decoration only. */}
-            <main className="journal-page relative min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-8">
-              <div aria-hidden="true" className="journal-binding" />
+            {/* Ruled paper with a faint grain. */}
+            <main className="journal-grain relative min-w-0 flex-1 overflow-x-hidden rounded-b-[14px] px-4 py-6 md:px-8">
               <PullToRefresh>{children}</PullToRefresh>
             </main>
             <JournalSectionTabs />

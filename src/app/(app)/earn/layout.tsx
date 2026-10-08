@@ -1,6 +1,7 @@
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
+import { JournalSprig } from "@/components/illustrations/journal-sprig";
 import { EarnTabs } from "@/components/layout/earn-tabs";
 
 export default async function EarnLayout({ children }: { children: React.ReactNode }) {
@@ -10,8 +11,10 @@ export default async function EarnLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="space-y-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-8">
-      <div>
-        <h1 className="text-2xl font-semibold">
+      <div className="relative">
+        {/* Journal: a pressed leaf beside the page title (decoration only). */}
+        <JournalSprig className="pointer-events-none absolute -top-4 right-0 size-20 rotate-6" />
+        <h1 className="text-3xl">
           {/* Highlighter stroke behind the page title (Journal). */}
           <span className="journal-heading">{dict.nav.earn}</span>
         </h1>
