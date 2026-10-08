@@ -78,11 +78,18 @@ interface Flight {
  * Elements that own horizontal drags themselves: native horizontal
  * scrollers (overflow-x auto/scroll only — an `overflow-x: hidden` parent
  * with wide content is not touch-scrollable), swipe-to-delete rows
- * (`data-no-swipe-nav`), form controls, and charts (drag = scrub tooltip).
+ * (`data-no-swipe-nav`), sliders, a text field being typed in, and charts
+ * (drag = scrub tooltip).
  */
 function ownsHorizontalDrag(target: EventTarget | null, boundary: HTMLElement): boolean {
   if (!(target instanceof Element)) return false;
-  if (target.closest("[data-no-swipe-nav], input, textarea, select, [role='slider'], .recharts-wrapper")) return true;
+  if (target.closest("[data-no-swipe-nav], input[type='range'], [role='slider'], .recharts-wrapper")) return true;
+  // A text field only owns a sideways drag while you're typing in it (it
+  // moves the caret / selects text). Dropdowns, file pickers and unfocused
+  // fields don't — blocking them made forms like CSV import, which are
+  // mostly controls, feel randomly unswipeable (reported 2026-10-08).
+  const field = target.closest("input, textarea, [contenteditable='true']");
+  if (field && field === document.activeElement) return true;
   let node: Element | null = target;
   while (node && node !== boundary) {
     if (node.scrollWidth > node.clientWidth + 1) {
