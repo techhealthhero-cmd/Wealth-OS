@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 import { getClientEnv } from "@/config/env";
@@ -66,6 +67,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <AppFreshness />
           {children}
         </ThemeProvider>
+        {/* Real-user load timings (Core Web Vitals) per route in the Vercel
+            dashboard — only timing metrics and the route pattern (dynamic
+            segments stay as [id]), never page content or financial data. */}
+        <SpeedInsights />
       </body>
     </html>
   );
