@@ -49,11 +49,17 @@ export default async function EarnMissionDetailPage({ params }: { params: Promis
     );
   }
 
-  const path = await getIncomePath(ref.income_path_id);
+  // All three only need the path id we already have from `ref`, so they load
+  // together (was path → missions → projects, one after another).
+  const pathId = ref.income_path_id;
+  const [path, pathMissions, projects] = await Promise.all([
+    getIncomePath(pathId),
+    getPathMissions([pathId]),
+    getEarnProjects(pathId),
+  ]);
   if (!path) notFound();
-  const mission = (await getPathMissions([path.id])).find((m) => m.id === missionId);
+  const mission = pathMissions.find((m) => m.id === missionId);
   if (!mission) notFound();
-  const projects = await getEarnProjects(path.id);
 
   const type = path.path_type as IncomePathType;
   const template = mission.roadmap_step_key ? getMissionTemplate(type, mission.roadmap_step_key) : null;

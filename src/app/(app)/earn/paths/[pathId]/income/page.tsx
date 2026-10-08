@@ -7,21 +7,26 @@ import { getCategories } from "@/features/categories/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getLocale } from "@/i18n/server";
 import { todayInTimeZone } from "@/lib/date";
+import { z } from "zod";
 import { IncomeRecordForm } from "@/features/earn/components/v2/income-record-form";
 
 export const metadata: Metadata = { title: "Earn — Wealth OS" };
 
 export default async function RecordEarnIncomePage({ params }: { params: Promise<{ pathId: string }> }) {
   const { pathId } = await params;
-  const path = await getIncomePath(pathId);
-  if (!path) notFound();
-  const [accounts, categories, projects, profile] = await Promise.all([
+  // Not a valid id → 404 up front (the queries below run in parallel and
+  // would otherwise turn a malformed id into a database error).
+  if (!z.string().uuid().safeParse(pathId).success) notFound();
+  // The path's rows are keyed by the URL id, so they load with the path.
+  const [path, accounts, categories, projects, profile] = await Promise.all([
+    getIncomePath(pathId),
     // Privacy-safe rows: names only are passed to the client form.
     getDisplayAccounts(),
     getCategories("income"),
-    getEarnProjects(path.id),
+    getEarnProjects(pathId),
     getProfile(),
   ]);
+  if (!path) notFound();
   const locale = await getLocale(profile?.preferred_language);
   return (
     <IncomeRecordForm

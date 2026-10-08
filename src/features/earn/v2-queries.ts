@@ -67,21 +67,19 @@ export const getLatestAssessment = cache(async (): Promise<LatestAssessment | nu
 /** Emergency fund balance in minor units, or null when the user has none set up (unknown ≠ zero). */
 export const getEmergencyFundMinor = cache(async (): Promise<number | null> => {
   const supabase = await createClient();
+  // The linked account's balance is embedded via the FK (one round trip
+  // instead of fund → account); RLS still scopes the embedded account.
   const { data: fund, error } = await supabase
     .from("emergency_funds")
-    .select("current_amount, linked_account_id")
+    .select("current_amount, linked_account_id, account:accounts(current_balance)")
     .maybeSingle();
   if (error) fail(error, "getEmergencyFundMinor");
   if (!fund) return null;
-  if (fund.linked_account_id) {
-    const { data: account, error: accountError } = await supabase
-      .from("accounts")
-      .select("current_balance")
-      .eq("id", fund.linked_account_id)
-      .maybeSingle();
-    if (accountError) fail(accountError, "getEmergencyFundMinor.account");
-    if (account) return parseMoneyToCents(account.current_balance);
-  }
+  const account = (Array.isArray(fund.account) ? fund.account[0] : fund.account) as
+    | { current_balance: string }
+    | null
+    | undefined;
+  if (fund.linked_account_id && account) return parseMoneyToCents(account.current_balance);
   return parseMoneyToCents(fund.current_amount);
 });
 
@@ -112,23 +110,23 @@ export interface PathMission extends IncomeMission {
 export async function getPathMissions(pathIds: string[]): Promise<PathMission[]> {
   if (pathIds.length === 0) return [];
   const supabase = await createClient();
+  // Each mission's result is embedded via its FK (one round trip instead of
+  // missions → results). `income_mission_id` is unique, so PostgREST returns
+  // the embed as one object or null; an array is tolerated too.
   const { data: missions, error: missionsError } = await supabase
     .from("income_missions")
-    .select("*")
+    .select("*, income_mission_results(outcome_data)")
     .in("income_path_id", pathIds)
     .order("sequence_order", { ascending: true })
     .order("created_at", { ascending: true });
   if (missionsError) fail(missionsError, "getPathMissions");
   if (!missions?.length) return [];
-  const { data: results, error: resultsError } = await supabase
-    .from("income_mission_results")
-    .select("income_mission_id, outcome_data")
-    .in("income_mission_id", missions.map((m) => m.id));
-  if (resultsError) fail(resultsError, "getPathMissions.results");
-  const byMission = new Map((results ?? []).map((r) => [r.income_mission_id, r.outcome_data]));
-  return missions.map((m) => {
-    const outcome = byMission.get(m.id) as { counts?: Record<string, number> } | undefined;
-    return { ...m, hasResult: byMission.has(m.id), resultCounts: outcome?.counts ?? null };
+  return missions.map(({ income_mission_results: embedded, ...m }) => {
+    const result = (Array.isArray(embedded) ? embedded[0] : embedded) as
+      | { outcome_data: { counts?: Record<string, number> } }
+      | null
+      | undefined;
+    return { ...m, hasResult: Boolean(result), resultCounts: result?.outcome_data?.counts ?? null };
   });
 }
 

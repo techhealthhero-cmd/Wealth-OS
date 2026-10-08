@@ -86,16 +86,28 @@ export interface MoneyYearSummary {
  * emergency fund progress reads the live emergency_funds balance, since
  * that target is "reach this balance", not "contribute this much this year".
  */
-export async function getMoneyYearSummary(year: number): Promise<MoneyYearSummary | null> {
-  const moneyYear = await getMoneyYear(year);
-  if (!moneyYear) return null;
-
+export async function getMoneyYearSummary(
+  year: number,
+  /** The plan row when the caller already has it (e.g. from getMoneyYears()) — skips re-fetching it. */
+  knownMoneyYear?: MoneyYear
+): Promise<MoneyYearSummary | null> {
   const from = toLocalDateString(new Date(year, 0, 1));
   const to = toLocalDateString(new Date(year, 11, 31));
 
+  // The year's transactions and the emergency fund don't depend on the plan
+  // row, so they load alongside it; only quarters/expenses need its id. The
+  // no-op catches only cover the "no plan for this year" early return.
+  const transactionsPromise = getTransactions({ from, to });
+  const emergencyFundPromise = getEmergencyFund();
+  transactionsPromise.catch(() => undefined);
+  emergencyFundPromise.catch(() => undefined);
+
+  const moneyYear = knownMoneyYear ?? (await getMoneyYear(year));
+  if (!moneyYear) return null;
+
   const [transactions, emergencyFund, quarters, majorExpenses] = await Promise.all([
-    getTransactions({ from, to }),
-    getEmergencyFund(),
+    transactionsPromise,
+    emergencyFundPromise,
     getQuarterlyPlans(moneyYear.id),
     getMajorExpenses(moneyYear.id),
   ]);

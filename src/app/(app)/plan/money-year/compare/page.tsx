@@ -20,16 +20,20 @@ export const metadata: Metadata = { title: "Compare Money Years — Wealth OS" }
 const MAX_YEARS_COMPARED = 5;
 
 export default async function MoneyYearComparePage() {
-  const privacyGate = await getPrivacyGate("planning");
+  // None of these read financial rows or depend on each other; the plan
+  // data itself still waits for the privacy gate below.
+  const [privacyGate, profile, gate] = await Promise.all([
+    getPrivacyGate("planning"),
+    getProfile(),
+    requireFeature(FEATURES.MONEY_YEAR_COMPARE),
+  ]);
   if (privacyGate) {
     return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
   }
 
-  const profile = await getProfile();
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 
-  const gate = await requireFeature(FEATURES.MONEY_YEAR_COMPARE);
   if (!gate.allowed) {
     return (
       <div className="mx-auto max-w-lg py-8">
@@ -43,8 +47,10 @@ export default async function MoneyYearComparePage() {
   }
 
   const allYears = await getMoneyYears();
-  const years = allYears.slice(0, MAX_YEARS_COMPARED).map((my) => my.year);
-  const summaries = await Promise.all(years.map((y) => getMoneyYearSummary(y)));
+  // Pass each plan row we already have, so a summary doesn't re-fetch it.
+  const summaries = await Promise.all(
+    allYears.slice(0, MAX_YEARS_COMPARED).map((my) => getMoneyYearSummary(my.year, my))
+  );
   const validSummaries = summaries.filter((s): s is MoneyYearSummary => s !== null);
 
   return (

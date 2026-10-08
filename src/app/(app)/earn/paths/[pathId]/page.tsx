@@ -21,24 +21,30 @@ import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/shared/icon-chip";
 import { PATH_ICON_COMPONENTS } from "@/features/earn/components/v2/path-icons";
 import { fill, localizeMission } from "@/features/earn/components/v2/helpers";
+import { z } from "zod";
 import { MissionActions, PathStatusToggle, ProjectCreateForm, ProjectStatusActions } from "@/features/earn/components/v2/path-client";
 
 export const metadata: Metadata = { title: "Earn — Wealth OS" };
 
 export default async function IncomePathPage({ params }: { params: Promise<{ pathId: string }> }) {
   const { pathId } = await params;
-  const path = await getIncomePath(pathId); // RLS: only the owner's path is visible
-  if (!path) notFound();
-
-  const [missions, income, projects, profile, privacy, skills, skillData] = await Promise.all([
-    getPathMissions([path.id]),
-    getLinkedIncome([path.id]),
-    getEarnProjects(path.id),
+  // Not a valid id → 404 up front (the queries below run in parallel and
+  // would otherwise turn a malformed id into a database error).
+  if (!z.string().uuid().safeParse(pathId).success) notFound();
+  // Everything here is keyed by the path id from the URL (RLS: only the
+  // owner's rows are visible), so it all loads together with the path
+  // itself; a path that isn't found still 404s below.
+  const [path, missions, income, projects, profile, privacy, skills, skillData] = await Promise.all([
+    getIncomePath(pathId),
+    getPathMissions([pathId]),
+    getLinkedIncome([pathId]),
+    getEarnProjects(pathId),
     getProfile(),
     getAccountPrivacyState(),
     getUserSkills(),
     getSkillEvidenceData(),
   ]);
+  if (!path) notFound();
   const dict = getDictionary(await getLocale(profile?.preferred_language));
   const v2 = dict.earn.v2;
   const type = path.path_type as IncomePathType;
