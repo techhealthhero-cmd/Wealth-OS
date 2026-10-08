@@ -16,6 +16,7 @@ import { PlanBadge } from "@/features/billing/components/plan-badge";
 import { Toaster } from "@/components/ui/sonner";
 import { PullToRefresh } from "@/components/shared/pull-to-refresh";
 import { JournalSectionTabs } from "@/components/layout/journal-section-tabs";
+import { JournalRings } from "@/components/layout/journal-rings";
 import { MinimizableFormProvider, MinimizableFormHost } from "@/components/shared/minimizable-form-context";
 
 /**
@@ -101,7 +102,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="journal-cover flex min-h-screen min-w-0">
           <Sidebar />
           <div className="journal-sheet mx-3 my-1.5 flex min-h-[calc(100dvh-0.75rem)] min-w-0 flex-1 flex-col md:m-3">
-            <div aria-hidden="true" className="journal-rings" />
             <Header
               displayName={profile.display_name}
               actions={
@@ -115,6 +115,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <main className="journal-grain relative min-w-0 flex-1 overflow-x-hidden rounded-b-[14px] px-4 py-6 md:px-8">
               <PullToRefresh>{children}</PullToRefresh>
             </main>
+            <JournalRings />
             <JournalSectionTabs />
             <BottomNav />
           </div>
