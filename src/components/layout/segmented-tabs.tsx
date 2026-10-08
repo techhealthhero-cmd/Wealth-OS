@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { SwipeTabPages, type SwipeTabPagesHandle } from "./swipe-tab-pages";
+import { SwipeTabPages, prefetchFull, type SwipeTabPagesHandle } from "./swipe-tab-pages";
 
 export interface SegmentedTabItem {
   href: string;
@@ -54,6 +54,7 @@ export function SegmentedTabs({
   children?: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
 
@@ -117,11 +118,12 @@ export function SegmentedTabs({
                 key={tab.href}
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-              // The tabs either side are fetched in full (data included, not
-              // just up to their loading skeleton), so a swipe or tap lands
-              // on a ready page instead of the skeleton. Only the two
-              // neighbours, to keep server work small.
-              prefetch={activeIndex >= 0 && Math.abs(i - activeIndex) === 1 ? true : undefined}
+              // Nearby tabs are prefetched in full by SwipeTabPages; any
+              // other tab starts loading in full the moment a finger touches
+              // it, before the tap is even released.
+              onPointerDown={() => {
+                if (!active) prefetchFull(router, tab.href);
+              }}
                 // Tapping a tab turns the page the same way a swipe does.
                 onClick={(e) => {
                   if (active || activeIndex < 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;

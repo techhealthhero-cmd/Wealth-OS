@@ -23,6 +23,22 @@ const HOLD_AT = 0.3;
 // If the new page never arrives (navigation failed), stop waiting for it.
 const MAX_WAIT_MS = 5000;
 
+// How many tabs on each side of the active one are prefetched in full.
+const PREFETCH_RADIUS = 2;
+
+type AppRouter = ReturnType<typeof useRouter>;
+
+/**
+ * Prefetch a route in FULL (its data too, not just up to its loading
+ * skeleton) — what `<Link prefetch={true}>` does. Next's public type only
+ * names `onInvalidate`, but `router.prefetch` reads `kind: "full"` at
+ * runtime (app-router-instance.js → FetchStrategy.Full); the cast bridges
+ * the enum type without importing Next internals.
+ */
+export function prefetchFull(router: AppRouter, href: string, onInvalidate?: () => void) {
+  router.prefetch(href, { kind: "full", onInvalidate } as unknown as Parameters<AppRouter["prefetch"]>[1]);
+}
+
 /** +1 = next page (forward), -1 = previous page (back). */
 export type PageFlipDirection = 1 | -1;
 
@@ -314,7 +330,26 @@ export function SwipeTabPages({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
 
-  // (The neighbouring tabs are fully prefetched by SegmentedTabs' links.)
+  // Fully prefetch (data included) the two tabs on each side, so even fast
+  // consecutive swipes land on ready pages — regardless of whether those
+  // tabs are scrolled into view on the tab strip. When a save invalidates
+  // a prefetched page, fetch it again while this is still the active tab.
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    let live = true;
+    function warm(href: string) {
+      prefetchFull(router, href, () => {
+        if (live) warm(href);
+      });
+    }
+    for (let d = -PREFETCH_RADIUS; d <= PREFETCH_RADIUS; d++) {
+      const i = activeIndex + d;
+      if (d !== 0 && i >= 0 && i < hrefs.length) warm(hrefs[i]);
+    }
+    return () => {
+      live = false;
+    };
+  }, [activeIndex, hrefs, router]);
 
   // Leaving the section mid-turn: drop any sheets.
   useEffect(
@@ -391,7 +426,14 @@ export function SwipeTabPages({
     }
 
     function onStart(e: TouchEvent) {
-      if (e.touches.length > 1 || activeIndexRef.current < 0 || flightRef.current) {
+      if (e.touches.length > 1 || activeIndexRef.current < 0) {
+        startX = null;
+        return;
+      }
+      // A new swipe while a page is still turning: land the turn now so
+      // fast consecutive swipes are never dropped.
+      if (flightRef.current?.arrived) endFlight();
+      else if (flightRef.current) {
         startX = null;
         return;
       }
