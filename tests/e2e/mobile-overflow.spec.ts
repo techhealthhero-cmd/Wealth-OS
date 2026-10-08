@@ -88,11 +88,18 @@ test.describe("authenticated routes", () => {
   test.skip(!email || !password, "Set E2E_TEST_EMAIL and E2E_TEST_PASSWORD (a disposable staging account) to run this suite.");
 
   test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel(/email/i).fill(email!);
-    await page.getByLabel(/password/i).fill(password!);
-    await page.getByRole("button", { name: /log ?in|sign ?in|เข้าสู่ระบบ/i }).click();
-    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+    // Wait for the form to hydrate before typing — typing earlier was wiped
+    // when React took over, leaving the fields empty and the login stuck.
+    await page.goto("/login", { waitUntil: "networkidle" });
+    // By field id/name, not label text: the login form is in Thai ("อีเมล"),
+    // so the old /email/i label lookup never matched and every route failed
+    // in this hook before checking anything.
+    await page.locator("#email").fill(email!);
+    await page.locator("input[name=password]").fill(password!);
+    await page.locator("button[type=submit]").first().click();
+    // "commit": login lands via client-side navigation, which may never fire
+    // a fresh "load" event.
+    await page.waitForURL(/\/dashboard/, { timeout: 30000, waitUntil: "commit" });
   });
 
   for (const route of AUTHENTICATED_ROUTES) {

@@ -15,9 +15,11 @@ import { QuickAdd } from "@/features/transactions/components/quick-add";
 // floating in the notch, and the active tab marked only by bright white
 // icon + label (no highlight box). Colors are derived from --primary so
 // they follow the theme instead of hard-coded brand hexes.
-const BAR_BASE = "color-mix(in oklab, var(--primary) 62%, #07100d)";
+// Journal (2026-10-08): forest-green leather with a stitched edge, and the
+// "+" as a raised leather button with a muted-gold metal rim.
+const BAR_BASE = "color-mix(in oklab, var(--journal-leather) 82%, #0a1410)";
 const FAB_BG =
-  "radial-gradient(120% 70% at 50% -10%, rgba(255,255,255,0.3), transparent 65%), linear-gradient(180deg, color-mix(in oklab, var(--primary) 65%, #5fb88a), var(--primary))";
+  "radial-gradient(120% 70% at 50% -10%, rgba(255,255,255,0.24), transparent 65%), linear-gradient(180deg, color-mix(in oklab, var(--journal-leather) 78%, #6aa585), var(--journal-leather-deep))";
 // Fallback before the first measurement (plain rounded bar, no notch).
 const BAR_FALLBACK_BG = `radial-gradient(120% 60% at 50% -20%, rgba(255,255,255,0.12), transparent 70%), ${BAR_BASE}`;
 
@@ -117,6 +119,16 @@ export function BottomNav() {
             </defs>
             <path d={barPath} style={{ fill: BAR_BASE }} />
             <path d={barPath} fill="url(#bottom-nav-sheen)" />
+            {/* Stitching ~4px inside the edge: a wide dashed stroke clipped to
+                the bar, then a narrower solid stroke in the bar color covering
+                its outer part, leaving one thin dashed seam. */}
+            <clipPath id="bottom-nav-clip">
+              <path d={barPath} />
+            </clipPath>
+            <g clipPath="url(#bottom-nav-clip)" fill="none">
+              <path d={barPath} stroke="var(--journal-stitch)" strokeWidth={11} strokeDasharray="5 4" />
+              <path d={barPath} style={{ stroke: BAR_BASE }} strokeWidth={7} />
+            </g>
           </svg>
         ) : (
           <div
@@ -171,10 +183,10 @@ export function BottomNav() {
             // curve on release so it "bounces back" like a cushioned button.
             className={cn(
               "pointer-events-none absolute flex items-center justify-center rounded-full border border-white/25",
-              "shadow-[0_8px_18px_-4px_color-mix(in_oklab,var(--primary)_70%,transparent),inset_0_1px_0_rgba(255,255,255,0.35)]",
+              "shadow-[0_0_0_2px_var(--journal-ring),0_8px_18px_-4px_color-mix(in_oklab,var(--primary)_70%,transparent),inset_0_1px_0_rgba(255,255,255,0.35)]",
               "transform-gpu transition-[transform,box-shadow,filter] duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]",
               "group-has-[[data-fab-trigger]:active]/nav:translate-y-0.5 group-has-[[data-fab-trigger]:active]/nav:scale-[0.88] group-has-[[data-fab-trigger]:active]/nav:brightness-95",
-              "group-has-[[data-fab-trigger]:active]/nav:shadow-[0_3px_8px_-3px_color-mix(in_oklab,var(--primary)_70%,transparent),inset_0_3px_8px_rgba(0,0,0,0.25)]",
+              "group-has-[[data-fab-trigger]:active]/nav:shadow-[0_0_0_2px_var(--journal-ring),0_3px_8px_-3px_color-mix(in_oklab,var(--primary)_70%,transparent),inset_0_3px_8px_rgba(0,0,0,0.25)]",
               "group-has-[[data-fab-trigger]:active]/nav:duration-150 group-has-[[data-fab-trigger]:active]/nav:ease-out",
               "group-has-[[data-fab-trigger]:focus-visible]/nav:ring-2 group-has-[[data-fab-trigger]:focus-visible]/nav:ring-white/70",
               "motion-reduce:transition-none"

@@ -12,14 +12,16 @@ const AXIS_LOCK_PX = 10;
 const MAX_PEEL_DEG = 38;
 // Past edge-on, so the turning page is fully gone (backface hidden).
 const TURNED_DEG = -100;
-const TURN_MS = 640;
-const TURN_EASE = "cubic-bezier(0.65, 0, 0.35, 1)";
-const LAND_EASE = "cubic-bezier(0.3, 0, 0.2, 1)";
+// Journal page turn (2026-10-08, owner-approved): 350–500ms brief → 450ms.
+const TURN_MS = 450;
+const TURN_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const LAND_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const SETTLE_MS = 280;
 const SETTLE_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
 // A forward turn waits here (paused) if the next page hasn't rendered yet,
 // so it never turns over onto a blank page.
-const HOLD_AT = 0.3;
+// With the ease-out turn curve, 8% of the time is ~30% of the turn.
+const HOLD_AT = 0.08;
 // If the new page never arrives (navigation failed), stop waiting for it.
 const MAX_WAIT_MS = 5000;
 
@@ -139,6 +141,8 @@ function makeSheet(el: HTMLElement): Sheet | null {
     backfaceVisibility: "hidden",
     willChange: "transform",
   });
+  // Ruled paper, like the page underneath (Journal).
+  page.classList.add("journal-page");
   const clone = el.cloneNode(true) as HTMLElement;
   clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
   clone.removeAttribute("style");
