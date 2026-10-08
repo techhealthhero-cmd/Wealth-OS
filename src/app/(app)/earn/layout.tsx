@@ -11,7 +11,10 @@ export default async function EarnLayout({ children }: { children: React.ReactNo
   return (
     <div className="space-y-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-8">
       <div>
-        <h1 className="text-2xl font-semibold">{dict.nav.earn}</h1>
+        <h1 className="text-2xl font-semibold">
+          {/* Highlighter stroke behind the page title (Journal). */}
+          <span className="journal-heading">{dict.nav.earn}</span>
+        </h1>
         <p className="text-sm text-muted-foreground">{dict.earn.subtitle}</p>
       </div>
       <EarnTabs>{children}</EarnTabs>

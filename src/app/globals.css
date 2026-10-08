@@ -53,110 +53,122 @@
 }
 
 :root {
-  /* 2026-09 reskin (v2.4 — bright, muted "Apple-like" personal-finance
-     palette; user-supplied hex values, explicitly superseding the earlier
-     green/lime direction and GRAPHICS_PLAN.md's older rules). Mostly white/
-     near-white surfaces, one soft "card" tint step, a single restrained
-     brand green, no orange/neon/saturated accents anywhere. */
-  --background: #f7f8f6;
-  --foreground: #1c2521;
-  --card: #ffffff;
-  --card-foreground: #1c2521;
-  --popover: #ffffff;
-  --popover-foreground: #1c2521;
-  /* Brand primary — deep, muted forest green. Used for text/links, primary
-     buttons/badges, active states, and the rare highlighted "hero" card —
-     never as a large decorative surface. */
-  --primary: #1f4d3e;
+  /* 2026-10-08 — "WEALTH OS Journal" (owner-approved): a premium personal
+     finance notebook. Warm cream paper, forest-green leather, ink text.
+     Supersedes the v2.4 white/near-white palette. See GRAPHICS_PLAN.md
+     "Journal direction". Contrast measured (WCAG AA, 4.5:1 for body text)
+     on page #f7efdf / slip #fffbf2 / muted #efe5d0: ink 10.5–12.8,
+     pencil 4.6–5.6, primary 7.7–9.3. The brief's #758078 pencil measured
+     3.3–4.0 and was darkened to #5f6862. */
+  --background: #f7efdf; /* the notebook page */
+  --foreground: #26332d; /* ink */
+  --card: #fffbf2; /* paper slips / cards laid on the page */
+  --card-foreground: #26332d;
+  --popover: #fffbf2;
+  --popover-foreground: #26332d;
+  /* Forest-green leather: primary buttons, navigation, active states. */
+  --primary: #204d3d;
   --primary-foreground: #ffffff;
-  --secondary: #f2f4f1;
-  --secondary-foreground: #1c2521;
-  --muted: #f2f4f1;
-  /* WCAG AA: #6f7873 measured 4.04–4.40:1 on the app's light surfaces (axe, Earn V2 QA);
-     #666f6a is the smallest darkening that clears 4.5:1 on all of them (4.60–5.19:1). */
-  --muted-foreground: #666f6a;
-  --accent: #f2f4f1;
-  --accent-foreground: #1c2521;
-  /* Minor accent only (pricing "recommended" badge/checkmark) — the soft
-     income mint, not a separate saturated color. */
+  --secondary: #efe5d0;
+  --secondary-foreground: #26332d;
+  --muted: #efe5d0;
+  --muted-foreground: #5f6862; /* pencil */
+  --accent: #efe5d0;
+  --accent-foreground: #26332d;
   --accent-lime: #7fd6b2;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: #e5e8e3;
-  --input: #e5e8e3;
-  --ring: #1f4d3e;
-  /* Categorical/financial chart palette — muted, no orange/neon. chart-1 is
-     the "primary metric" line color (net worth, forecast actuals); chart-2
-     is the muted secondary/projection tone; chart-3-5 extend the same
-     restrained family for any additional categorical series. */
-  --chart-1: #1f4d3e;
+  --border: #e6dac2;
+  --input: #e2d5bb;
+  --ring: #204d3d;
+  --chart-1: #204d3d;
   --chart-2: #8ea2b8;
   --chart-3: #9cb6c8;
   --chart-4: #b8b0cc;
-  --chart-5: #b8c2b0;
+  --chart-5: #a4b49b;
   --radius: 0.75rem;
-  /* Almost no shadow — a hairline lift, not a heavy drop shadow. */
-  --shadow-card: 0 1px 2px rgba(28, 37, 33, 0.04), 0 4px 12px -8px rgba(28, 37, 33, 0.06);
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1c2521;
-  --sidebar-primary: #1f4d3e;
+  /* A paper slip resting on the page: warm, soft, close shadow. */
+  --shadow-card: 0 1px 1px rgba(92, 70, 38, 0.06), 0 6px 14px -10px rgba(92, 70, 38, 0.22);
+  --sidebar: #fffbf2;
+  --sidebar-foreground: #26332d;
+  --sidebar-primary: #204d3d;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e4f5ec;
-  --sidebar-accent-foreground: #1f4d3e;
-  --sidebar-border: #e5e8e3;
-  --sidebar-ring: #1f4d3e;
+  --sidebar-accent: #e7efe3;
+  --sidebar-accent-foreground: #204d3d;
+  --sidebar-border: #e6dac2;
+  --sidebar-ring: #204d3d;
+
+  /* Journal stationery — decoration only, never the only carrier of meaning. */
+  --journal-leather: #204d3d;
+  --journal-leather-deep: #173b30;
+  --journal-stitch: rgba(226, 207, 166, 0.35);
+  --journal-ring: #b99a65; /* binder rings, muted gold */
+  --journal-ring-shine: #e2cfa6;
+  --journal-rule: rgba(38, 51, 45, 0.055); /* ruled paper lines */
+  --journal-edge: #eadfc8; /* stacked page edges */
+  --journal-sage: #a4b49b;
+  --journal-highlight: rgba(233, 207, 122, 0.55); /* highlighter pen */
+  --journal-tape: rgba(214, 196, 160, 0.7);
+  --journal-note: #fdf3c4; /* sticky note */
+  /* Section divider tabs */
+  --journal-tab-home: #a4b49b;
+  --journal-tab-money: #e9cf7a;
+  --journal-tab-plan: #b8d8e8;
+  --journal-tab-earn: #efb6ae;
 }
 
 .dark {
-  /* No dark variant exists in the reference; this is a reasonable dark
-     counterpart (same hues, inverted surface) kept as an opt-in secondary
-     theme via the theme toggle — the light "Coinest" look is the primary,
-     literally-matched design. */
-  --background: #0e1712;
-  --foreground: #f2f5ee;
-  --card: #16211b;
-  --card-foreground: #f2f5ee;
-  --popover: #16211b;
-  --popover-foreground: #f2f5ee;
-  /* Dark mode's primary was previously a bright neon lime (#c6f24e) — read
-     as a crypto/gaming accent, at odds with GRAPHICS_PLAN.md's own "no
-     orange/neon/saturated accents" rule and "not a crypto dashboard, not a
-     casino-style app" identity. Replaced with a brightened version of the
-     SAME light-mode forest green (#1f4d3e) rather than a different hue, so
-     the brand reads as one identity across themes — just lifted in
-     lightness/saturation enough to stay legible on a near-black background,
-     the same way light mode's dark green reads on a near-white one. (A
-     softer emerald alternative, #2f8f6f, was tried and screenshotted too —
-     this forest option is the one the user preferred.) */
-  --primary: #2d6b52;
+  /* Dark leather journal with warm, readable paper. Contrast on page
+     #1b1712 / slip #272119: ink 13–15, pencil 7–8. Primary is a button
+     fill (white text 6:1), not body text. */
+  --background: #1b1712;
+  --foreground: #f3ead7;
+  --card: #272119;
+  --card-foreground: #f3ead7;
+  --popover: #272119;
+  --popover-foreground: #f3ead7;
+  --primary: #2f6e54;
   --primary-foreground: #ffffff;
-  --secondary: #1e2a22;
-  --secondary-foreground: #f2f5ee;
-  --muted: #1e2a22;
-  --muted-foreground: #9baa9e;
-  --accent: #1e2a22;
-  --accent-foreground: #f2f5ee;
-  --accent-lime: #c6f24e;
+  --secondary: #2f281f;
+  --secondary-foreground: #f3ead7;
+  --muted: #2f281f;
+  --muted-foreground: #b9ad98;
+  --accent: #2f281f;
+  --accent-foreground: #f3ead7;
+  --accent-lime: #6fcb9c;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: #2d6b52;
-  /* Muted chart palette, dark-mode steps — kept in sync with :root's v2.4
-     "no orange/neon" rule even though dark mode is only an opt-in secondary
-     theme here. */
-  --chart-1: #4c9c82;
+  --border: rgba(243, 234, 215, 0.1);
+  --input: rgba(243, 234, 215, 0.15);
+  --ring: #3e8a69;
+  --chart-1: #6fcb9c;
   --chart-2: #7c93aa;
   --chart-3: #8aa6b8;
   --chart-4: #a89fbc;
   --chart-5: #a4b29c;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
-  --sidebar: #16211b;
-  --sidebar-foreground: #f2f5ee;
-  --sidebar-primary: #2d6b52;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 22px -12px rgba(0, 0, 0, 0.6);
+  --sidebar: #272119;
+  --sidebar-foreground: #f3ead7;
+  --sidebar-primary: #2f6e54;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(45, 107, 82, 0.18);
-  --sidebar-accent-foreground: #7fd6b2;
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #2d6b52;
+  --sidebar-accent: rgba(47, 110, 84, 0.22);
+  --sidebar-accent-foreground: #8fd9b4;
+  --sidebar-border: rgba(243, 234, 215, 0.1);
+  --sidebar-ring: #3e8a69;
+
+  --journal-leather: #173b30;
+  --journal-leather-deep: #0f2820;
+  --journal-stitch: rgba(203, 179, 136, 0.25);
+  --journal-ring: #9c8155;
+  --journal-ring-shine: #cbb388;
+  --journal-rule: rgba(243, 234, 215, 0.04);
+  --journal-edge: #332b21;
+  --journal-sage: #7f8f78;
+  --journal-highlight: rgba(233, 207, 122, 0.22);
+  --journal-tape: rgba(150, 132, 100, 0.45);
+  --journal-note: #3a331f;
+  --journal-tab-home: #7f8f78;
+  --journal-tab-money: #b89f55;
+  --journal-tab-plan: #7d9fb0;
+  --journal-tab-earn: #b98580;
 }
 
 @layer base {
@@ -172,6 +184,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Journal: tabular figures so amounts line up like a ledger column. */
+    font-variant-numeric: tabular-nums;
   }
   html {
     @apply font-sans;
@@ -493,6 +507,103 @@
     opacity: 1;
     transform: none;
   }
+}
+
+/*
+ * ═══ WEALTH OS Journal stationery (2026-10-08) ═══════════════════════════
+ * Decoration only — see GRAPHICS_PLAN.md "Journal direction". Everything
+ * here is CSS gradients or a tiny inline SVG: no raster textures, nothing
+ * animated continuously, nothing that intercepts touches.
+ */
+
+/* Ruled notebook paper: one faint line every 32px, scrolling with the page. */
+.journal-page {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 31px,
+    var(--journal-rule) 31px 32px
+  );
+}
+
+/* Binder rings down the left edge of the page (inside the content gutter,
+   so they never cover a card or a control). */
+.journal-binding {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 14px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='72' viewBox='0 0 14 72'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23e2cfa6'/%3E%3Cstop offset='.55' stop-color='%23b99a65'/%3E%3Cstop offset='1' stop-color='%23866b40'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='10.5' cy='36' r='2.3' fill='%234a3d2b' fill-opacity='.28'/%3E%3Crect x='-7' y='32' width='18' height='8' rx='4' fill='url(%23g)'/%3E%3Crect x='-5' y='33.2' width='13' height='1.6' rx='.8' fill='%23fff' fill-opacity='.5'/%3E%3C/svg%3E");
+  background-repeat: repeat-y;
+  background-size: 14px 72px;
+  background-position: 0 12px;
+}
+.dark .journal-binding {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='72' viewBox='0 0 14 72'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23cbb388'/%3E%3Cstop offset='.55' stop-color='%239c8155'/%3E%3Cstop offset='1' stop-color='%23604c2e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='10.5' cy='36' r='2.3' fill='%23000' fill-opacity='.45'/%3E%3Crect x='-7' y='32' width='18' height='8' rx='4' fill='url(%23g)'/%3E%3Crect x='-5' y='33.2' width='13' height='1.6' rx='.8' fill='%23fff' fill-opacity='.3'/%3E%3C/svg%3E");
+}
+/* A soft shadow where the page meets the spine. */
+.journal-binding::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 20px;
+  background: linear-gradient(to right, rgba(92, 70, 38, 0.1), transparent);
+}
+.dark .journal-binding::after {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.35), transparent);
+}
+
+/* Page title with a highlighter stroke behind its lower half. Apply to an
+   inline element (a span inside the heading) so the stroke hugs the words. */
+.journal-heading {
+  background-image: linear-gradient(
+    100deg,
+    transparent 0.15em,
+    var(--journal-highlight) 0.3em,
+    var(--journal-highlight) calc(100% - 0.25em),
+    transparent calc(100% - 0.1em)
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 0.48em;
+  background-position: 0 88%;
+  padding-inline: 0.2em;
+  margin-inline: -0.2em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Sticky note: pastel paper, a slightly deeper "lifted" shadow, and a strip
+   of washi tape across the top (::before). */
+.journal-note {
+  position: relative;
+  background-color: var(--journal-note);
+  box-shadow:
+    0 1px 1px rgba(92, 70, 38, 0.08),
+    0 12px 20px -14px rgba(92, 70, 38, 0.4);
+}
+.journal-tape::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 76px;
+  height: 18px;
+  translate: -50% 0;
+  rotate: -2.5deg;
+  border-radius: 2px;
+  background-color: var(--journal-tape);
+  pointer-events: none;
+}
+
+/* Paper slip lift on press (cards that are tappable). */
+.paper-press {
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+.paper-press:active {
+  transform: translateY(1px) scale(0.99);
 }
 
 /*

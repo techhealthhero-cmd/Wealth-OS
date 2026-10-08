@@ -98,7 +98,10 @@ export function TransactionListBody({
 
       {groups.map((month) => (
         <section key={month.month} className="space-y-2">
-          <h2 className="px-1 font-heading text-base font-semibold">{formatMonthHeading(month.month, locale)}</h2>
+          <h2 className="px-1 font-heading text-base font-semibold">
+            {/* Journal: month headings get the highlighter stroke, rows are ruled ledger lines. */}
+            <span className="journal-heading">{formatMonthHeading(month.month, locale)}</span>
+          </h2>
           <Card>
             <CardContent className="space-y-1 py-2">
               {month.days.map((day) => (
@@ -110,7 +113,7 @@ export function TransactionListBody({
                   {day.items.map((transaction) => (
                     <SwipeToDelete
                       key={transaction.id}
-                      className="border-b last:border-0"
+                      className="border-b border-dashed last:border-0"
                       deleteLabel={t("common.delete")}
                       a11yLabel={`${t("common.delete")}: ${rowTitle(transaction)} ${formatMoneyFromDecimal(transaction.amount, transaction.currency_code)}`}
                       onDelete={() =>

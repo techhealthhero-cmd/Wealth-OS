@@ -70,11 +70,9 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
     <div className="space-y-4">
       <aside
         aria-labelledby="weekly-transaction-reminder-title"
-        className={
-          isUpToDate
-            ? "rounded-xl border border-emerald-500/25 bg-emerald-50/70 p-4 text-emerald-950 dark:bg-emerald-950/20 dark:text-emerald-100"
-            : "rounded-xl border border-amber-500/25 bg-amber-50/70 p-4 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100"
-        }
+        // Journal (2026-10-08): a taped sticky note. Up-to-date vs. needs-update
+        // stays clear from the icon + status text, never from the note color.
+        className="journal-note journal-tape mt-2 rounded-md p-4 pt-5 text-foreground"
       >
         <div className="flex items-start gap-3">
           <div
@@ -106,13 +104,7 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
                   {statusText}
                 </span>
               </div>
-              <p
-                className={
-                  isUpToDate
-                    ? "text-sm leading-relaxed text-emerald-900/80 dark:text-emerald-100/75"
-                    : "text-sm leading-relaxed text-amber-900/80 dark:text-amber-100/75"
-                }
-              >
+              <p className="text-sm leading-relaxed text-foreground/80">
                 {dict.transactions.weeklyReminderDescription}
               </p>
             </div>

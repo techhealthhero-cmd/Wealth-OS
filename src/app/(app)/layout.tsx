@@ -15,6 +15,7 @@ import { NotificationBell } from "@/components/layout/notification-bell";
 import { PlanBadge } from "@/features/billing/components/plan-badge";
 import { Toaster } from "@/components/ui/sonner";
 import { PullToRefresh } from "@/components/shared/pull-to-refresh";
+import { JournalSectionTabs } from "@/components/layout/journal-section-tabs";
 import { MinimizableFormProvider, MinimizableFormHost } from "@/components/shared/minimizable-form-context";
 
 /**
@@ -105,9 +106,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </>
               }
             />
-            <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-8">
+            {/* WEALTH OS Journal (2026-10-08): the content area is a notebook
+                page — faint ruled lines, binder rings in the left gutter
+                (inside px-4, so they never cover content) and section
+                divider tabs on the right edge. Decoration only. */}
+            <main className="journal-page relative min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-8">
+              <div aria-hidden="true" className="journal-binding" />
               <PullToRefresh>{children}</PullToRefresh>
             </main>
+            <JournalSectionTabs />
             <BottomNav />
           </div>
         </div>

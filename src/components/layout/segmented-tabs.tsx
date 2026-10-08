@@ -84,7 +84,7 @@ export function SegmentedTabs({
 
   return (
     <>
-      <nav className="overflow-x-auto rounded-[1.75rem] border border-white/70 bg-white/95 p-1.5 shadow-[0_8px_32px_-12px_rgba(15,40,30,0.18),inset_0_1px_0_rgba(255,255,255,0.8)] [scrollbar-width:none] md:bg-white/45 md:backdrop-blur-xl md:backdrop-saturate-150 dark:border-white/10 dark:bg-background/95 dark:shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] md:dark:bg-white/5 [&::-webkit-scrollbar]:hidden">
+      <nav className="overflow-x-auto rounded-[1.75rem] border border-border bg-card p-1.5 shadow-[0_8px_24px_-14px_rgba(92,70,38,0.3),inset_0_1px_0_rgba(255,255,255,0.7)] [scrollbar-width:none] dark:border-white/10 dark:bg-card dark:shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] [&::-webkit-scrollbar]:hidden">
         <div className={cn("group/tabs relative flex min-w-max gap-1", stretch && "w-full")}>
           {indicator && activeIndex >= 0 ? (
             // Glossy brand-green tile: lighter green top fading into the same

@@ -38,20 +38,42 @@ if you need to know what's actually implemented right now, read
 
 # PART A — VISUAL SYSTEM RULES
 
-## Visual style
+## Visual style — "WEALTH OS Journal" (owner-approved 2026-10-08)
 
-Flat, geometric, generous whitespace. Premium fintech, modern, calm,
-trustworthy, friendly, minimal, mobile-first, Thai-first.
+A premium personal finance **notebook**: warm cream paper, forest-green
+leather, ink text, binder rings on the left, colored section dividers on
+the right, paper slips for cards, and page turns between section tabs.
+The balance is **70% modern, practical finance app / 30% tactile notebook**
+— the notebook is the setting, never the point. Calm, trustworthy,
+personal, mobile-first, Thai-first.
+
+This deliberately replaces the earlier "flat, no skeuomorphism, no
+gradients" rule (the owner chose the journal direction from a mockup).
+What still holds, and why:
+
+- **Restrained skeuomorphism only.** Paper, rings, tape, a leather nav bar
+  and stitching are allowed. Every one of them is decoration: it never
+  carries meaning on its own, never overlaps or crowds a control or a
+  number, and is cheap to render (CSS / small inline SVG, no raster
+  textures, no continuous animation).
+- **Gradients only as material**, i.e. to draw paper rules, leather sheen,
+  a highlighter stroke or a metal ring — never a colorful gradient as a
+  "premium" crutch.
+- **Decorations kept light**: sprigs of leaf, washi tape, a paperclip —
+  line-drawn SVG, a few per screen at most. Still no photography, no
+  mascots/cats/character art in the interface, no sticker clutter.
+- **Numbers stay plain.** Financial values, labels and anything critical
+  use the regular UI font with tabular figures — never a handwritten font.
+  A handwritten feel is limited to decorative accents (e.g. a highlighter
+  stroke behind a page title).
 
 **Do not use:**
-- gradients
 - glassmorphism
-- skeuomorphism
 - photography / realistic stock imagery
-- detailed character art / childish mascots
+- detailed character art / childish mascots in the interface
 - neon crypto styling
 - casino/gambling visual language
-- excessive visual noise
+- excessive visual noise or heavy paper textures that lower legibility
 
 Illustrations are built from simple rounded shapes (circles, rounded
 rectangles, soft arcs) — never detailed character art or realistic human
@@ -63,22 +85,22 @@ Do not copy their exact design.
 
 ## Color system
 
-The app has one real brand color — not pure grayscale (that was the
-`shadcn` default before this system existed; `src/app/globals.css` now
-defines the tokens below):
+Tokens live in `src/app/globals.css` (`:root` and `.dark`). Journal palette
+(2026-10-08; the older blue `#2a78d6` brand and the v2.4 near-white surfaces
+are retired — the app had already moved to forest green):
 
 | Role | Light | Dark | Used for |
 |---|---|---|---|
-| **Brand primary** | `#2a78d6` | `#3987e5` | Primary CTA, active navigation, links, focus rings, the brand mark |
-| Chart / illustration palette | `#2a78d6` `#eb6834` `#1baf7a` `#eda100` `#e87ba4` | dark-stepped equivalents | Charts (`dataviz` skill palette), illustration accent shapes |
-| Semantic success | `emerald-600` / `emerald-400` | same | Income figures, positive cash flow, success toasts |
-| Semantic danger | `rose-600` / `rose-400` + `--destructive` | same | Expense figures, destructive actions |
-| Neutral surfaces | existing `background`/`card`/`muted` grayscale | same | Everything else — the app should read as "calm," not "colorful" |
+| **Brand primary — forest leather** | `#204d3d` | `#2f6e54` (button fill) | Primary CTA, active navigation, the leather nav bar, focus rings |
+| Page (`--background`) | `#f7efdf` cream paper | `#1b1712` dark leather | The notebook page |
+| Paper slip (`--card`) | `#fffbf2` | `#272119` | Cards laid on the page |
+| Ink / pencil text | `#26332d` / `#5f6862` | `#f3ead7` / `#b9ad98` | Body / secondary text (pencil darkened from the brief's `#758078`, which failed WCAG AA on cream) |
+| Stationery (`--journal-*`) | ring `#b99a65`, sage `#a4b49b`, highlighter, tape, note | dimmed steps | Rings, tabs, tape, highlighter — decoration only |
+| Section tabs | home sage · money yellow `#e9cf7a` · plan blue `#b8d8e8` · earn pink `#efb6ae` | dimmed steps | Right-edge dividers marking the current section |
+| Semantic success / danger | emerald / `--destructive` red | lifted steps | Income vs expense — always paired with a sign or label, never color alone |
 
-**The brand blue is the ONLY primary interface color.** The other four chart
-hues are reserved for charts, illustrations, semantic data, and accents —
-never repurposed as a second "primary," or the interface stops reading as
-one coherent brand.
+**Forest green is the ONLY primary interface color.** Section-tab colors and
+stationery are accents, never a second "primary."
 
 ## Icon system
 
@@ -153,6 +175,7 @@ owner asked for slow, clearly visible open/close motion. Tokens live in
 |---|---|---|---|
 | **Companion grow** | Opening any window: AI companion panel, Quick Capture, sheets, dialogs, forms | Grows/slides into place from its trigger (or edge) on a soft decelerating curve | `--motion-companion-open` (560ms), `--ease-companion` |
 | **Companion shrink** | Closing the AI companion panel | Shrinks back into the companion button (which stays on top), fading only at the end | `--motion-companion-close` (680ms), `--ease-companion` |
+| **Page turn** (2026-10-08) | Moving between section tabs (Money / Plan / Earn sub-pages), by swipe or tab tap | Forward: the page lifts at its right edge and turns over toward the spine (left), revealing the next page with a spine shadow; back: the previous page turns back over from the spine. Only for whole-page section moves — filters, dropdowns, expanding cards use a plain fade/slide | 450ms, `cubic-bezier(0.22, 1, 0.36, 1)` (`src/components/layout/swipe-tab-pages.tsx`) |
 | **Black Hole** | Closing Quick Capture into the center "+" | The window accelerates into the "+" — slight spin, rounds into a disc, blurs, fades — while a copy of the "+" is raised above it and swells ("gulps") as it swallows | `--ease-black-hole`, `black-hole-gulp` keyframes, `SheetContent motion="grow"` |
 | **Black Hole** (stored into a destination) | Minimizing a form ("−" / Esc) into its resume pill — and restoring grows back out of the pill; saving money into a goal (form → that goal's progress bar); saving money into the emergency fund (a "+฿X" chip → its progress bar) | Same motion via `src/lib/motion/black-hole.ts` (`blackHoleInto`, `gulp`, `flyAmountInto`): travels to the target while readable, collapses at the end, target gulps. Rule: only when something is successfully KEPT somewhere visible — never for deleting | `BLACK_HOLE_MS` |
 | **Slide-down close** | Closing other sheets, dialogs and forms | Slides slowly down off-screen | `--motion-close` (1100ms), `--ease-close` |

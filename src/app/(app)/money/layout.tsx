@@ -11,7 +11,10 @@ export default async function MoneyLayout({ children }: { children: React.ReactN
   return (
     <div className="space-y-4 pb-28">
       <div>
-        <h1 className="text-2xl font-semibold">{dict.nav.money}</h1>
+        <h1 className="text-2xl font-semibold">
+          {/* Highlighter stroke behind the page title (Journal). */}
+          <span className="journal-heading">{dict.nav.money}</span>
+        </h1>
         <p className="text-sm text-muted-foreground">{dict.money.subtitle}</p>
       </div>
       <MoneyTabs>{children}</MoneyTabs>
