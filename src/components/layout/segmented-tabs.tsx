@@ -117,6 +117,11 @@ export function SegmentedTabs({
                 key={tab.href}
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
+              // The tabs either side are fetched in full (data included, not
+              // just up to their loading skeleton), so a swipe or tap lands
+              // on a ready page instead of the skeleton. Only the two
+              // neighbours, to keep server work small.
+              prefetch={activeIndex >= 0 && Math.abs(i - activeIndex) === 1 ? true : undefined}
                 // Tapping a tab turns the page the same way a swipe does.
                 onClick={(e) => {
                   if (active || activeIndex < 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;

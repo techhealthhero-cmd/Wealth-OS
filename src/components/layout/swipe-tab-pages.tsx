@@ -314,13 +314,7 @@ export function SwipeTabPages({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
 
-  // Warm the neighbouring pages so a swipe lands fast.
-  useEffect(() => {
-    if (activeIndex < 0) return;
-    for (const i of [activeIndex - 1, activeIndex + 1]) {
-      if (i >= 0 && i < hrefs.length) router.prefetch(hrefs[i]);
-    }
-  }, [activeIndex, hrefs, router]);
+  // (The neighbouring tabs are fully prefetched by SegmentedTabs' links.)
 
   // Leaving the section mid-turn: drop any sheets.
   useEffect(
