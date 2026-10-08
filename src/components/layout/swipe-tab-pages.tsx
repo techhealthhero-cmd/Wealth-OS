@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useImperativeHandle,
-  useLayoutEffect,
-  useRef,
-  type ReactNode,
-  type Ref,
-} from "react";
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
 import { useRouter } from "next/navigation";
 
 import { prefersReducedMotion } from "@/lib/motion/black-hole";
@@ -15,11 +8,18 @@ import { prefersReducedMotion } from "@/lib/motion/black-hole";
 // Same commit distance / axis dead-zone the old app-wide tab swipe used.
 const SWIPE_THRESHOLD_PX = 60;
 const AXIS_LOCK_PX = 10;
-// How far the content follows the finger while dragging (a hint, not 1:1).
-const DRAG_FOLLOW = 0.18;
-const FLIP_MS = 560;
-const FLIP_EASE = "cubic-bezier(0.45, 0.05, 0.35, 1)";
-const PERSPECTIVE = "perspective(1600px)";
+// While dragging forward, the page peels up to this angle with the finger.
+const MAX_PEEL_DEG = 38;
+// Past edge-on, so the turning page is fully gone (backface hidden).
+const TURNED_DEG = -100;
+const TURN_MS = 640;
+const TURN_EASE = "cubic-bezier(0.65, 0, 0.35, 1)";
+const LAND_EASE = "cubic-bezier(0.3, 0, 0.2, 1)";
+const SETTLE_MS = 280;
+const SETTLE_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+// A forward turn waits here (paused) if the next page hasn't rendered yet,
+// so it never turns over onto a blank page.
+const HOLD_AT = 0.3;
 // If the new page never arrives (navigation failed), stop waiting for it.
 const MAX_WAIT_MS = 5000;
 
@@ -27,15 +27,35 @@ const MAX_WAIT_MS = 5000;
 export type PageFlipDirection = 1 | -1;
 
 export interface SwipeTabPagesHandle {
-  /** Snapshot the current page so it can flip once the new page arrives — call right before navigating. */
+  /** Start a page-turn for a navigation that is about to happen (a tab tap). */
   beginFlip: (dir: PageFlipDirection) => void;
 }
 
-interface PendingFlip {
+/**
+ * A snapshot of the on-screen part of the page, as a sheet of paper that can
+ * turn: only `transform`/`opacity` animate, on a viewport-sized layer, so
+ * the turn stays on the compositor (the first version animated filter and
+ * box-shadow on a clone of the whole, possibly very long, page — janky).
+ */
+interface Sheet {
+  root: HTMLDivElement;
+  /** The paper itself — rotates about its left edge (the spine). */
+  page: HTMLDivElement;
+  /** Darkens the paper as it turns away from the light. */
+  shade: HTMLDivElement;
+  /** Spine shadow cast on whatever lies underneath the paper. */
+  under: HTMLDivElement;
+}
+
+interface Flight {
   dir: PageFlipDirection;
-  overlay: HTMLDivElement;
-  page: HTMLElement;
-  timer: number;
+  sheet: Sheet;
+  /** Back turns only: the previous page's sheet, turning in on top. */
+  incoming?: Sheet;
+  anims: Animation[];
+  arrived: boolean;
+  holdTimer: number;
+  waitTimer: number;
 }
 
 /**
@@ -44,17 +64,9 @@ interface PendingFlip {
  * with wide content is not touch-scrollable), swipe-to-delete rows
  * (`data-no-swipe-nav`), form controls, and charts (drag = scrub tooltip).
  */
-function ownsHorizontalDrag(
-  target: EventTarget | null,
-  boundary: HTMLElement,
-): boolean {
+function ownsHorizontalDrag(target: EventTarget | null, boundary: HTMLElement): boolean {
   if (!(target instanceof Element)) return false;
-  if (
-    target.closest(
-      "[data-no-swipe-nav], input, textarea, select, [role='slider'], .recharts-wrapper",
-    )
-  )
-    return true;
+  if (target.closest("[data-no-swipe-nav], input, textarea, select, [role='slider'], .recharts-wrapper")) return true;
   let node: Element | null = target;
   while (node && node !== boundary) {
     if (node.scrollWidth > node.clientWidth + 1) {
@@ -66,32 +78,80 @@ function ownsHorizontalDrag(
   return false;
 }
 
-/** Vertical center of the on-screen part of `rect`, in the element's own coordinates — the flip's hinge point. */
-function visibleHinge(rect: DOMRect): {
-  y: number;
-  clipTop: number;
-  clipBottom: number;
-} {
+function layer(styles: Partial<CSSStyleDeclaration>): HTMLDivElement {
+  const div = document.createElement("div");
+  Object.assign(div.style, { position: "absolute", inset: "0", pointerEvents: "none" }, styles);
+  return div;
+}
+
+/** Snapshots the visible part of `el` into a fixed sheet laid exactly over it. */
+function makeSheet(el: HTMLElement): Sheet | null {
+  const rect = el.getBoundingClientRect();
   const top = Math.max(rect.top, 0);
   const bottom = Math.min(rect.bottom, window.innerHeight);
-  return {
-    y: (top + bottom) / 2 - rect.top,
-    clipTop: top - rect.top,
-    clipBottom: Math.max(rect.bottom - bottom, 0),
-  };
+  if (bottom - top < 1 || rect.width < 1) return null;
+
+  const root = document.createElement("div");
+  root.setAttribute("aria-hidden", "true");
+  Object.assign(root.style, {
+    position: "fixed",
+    left: `${rect.left}px`,
+    top: `${top}px`,
+    width: `${rect.width}px`,
+    height: `${bottom - top}px`,
+    zIndex: "20",
+    pointerEvents: "none",
+    perspective: "1800px",
+    perspectiveOrigin: "0 50%",
+  } satisfies Partial<CSSStyleDeclaration>);
+
+  const under = layer({
+    background: "linear-gradient(to right, rgba(0,0,0,0.32), rgba(0,0,0,0.08) 35%, rgba(0,0,0,0) 70%)",
+    opacity: "0",
+  });
+  const page = layer({
+    overflow: "hidden",
+    background: "var(--background)",
+    transformOrigin: "0 50%",
+    backfaceVisibility: "hidden",
+    willChange: "transform",
+  });
+  const clone = el.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+  clone.removeAttribute("style");
+  Object.assign(clone.style, {
+    position: "absolute",
+    left: "0",
+    top: `${rect.top - top}px`,
+    width: `${rect.width}px`,
+    margin: "0",
+  } satisfies Partial<CSSStyleDeclaration>);
+  const shade = layer({
+    background: "linear-gradient(to left, rgba(0,0,0,0.38), rgba(0,0,0,0.12))",
+    opacity: "0",
+  });
+  page.append(clone, shade);
+  root.append(under, page);
+  document.body.appendChild(root);
+  return { root, page, shade, under };
+}
+
+/** Pose of a forward-turning sheet at `deg` (0 = flat, TURNED_DEG = gone). */
+function setPeel(sheet: Sheet, deg: number) {
+  const t = Math.min(Math.abs(deg) / 90, 1);
+  sheet.page.style.transform = `rotateY(${deg}deg)`;
+  sheet.shade.style.opacity = String(t);
+  sheet.under.style.opacity = String(Math.min(t * 3, 1));
 }
 
 /**
  * Wraps a section's page content (Money / Plan / Earn) so a horizontal
  * swipe moves to the next/previous tab — requested 2026-10-08 — with a
- * book page-turn: going forward, the current page lifts at its right edge
- * and turns over toward the spine (left edge), revealing the next page;
- * going back, the previous page turns back over from the left.
- *
- * The old page is snapshotted (a DOM clone in a fixed overlay) at the
- * moment of navigation, and only flips once the new page has actually
- * rendered — so a slow route never reveals the same old page underneath,
- * and tapping a tab (SegmentedTabs calls `beginFlip`) gets the same turn.
+ * book page-turn. Forward: the current page peels up from its right edge
+ * as you drag and turns over toward the spine (left edge), revealing the
+ * next page with a spine shadow. Back: the previous page turns back over
+ * from the spine and lands on top of the current one. Tapping a tab
+ * (SegmentedTabs calls `beginFlip`) plays the same turn.
  */
 export function SwipeTabPages({
   hrefs,
@@ -106,7 +166,9 @@ export function SwipeTabPages({
 }) {
   const router = useRouter();
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const pendingRef = useRef<PendingFlip | null>(null);
+  const flightRef = useRef<Flight | null>(null);
+  // The sheet being peeled by the finger before the swipe commits.
+  const dragSheetRef = useRef<Sheet | null>(null);
   const activeIndexRef = useRef(activeIndex);
   const hrefsRef = useRef(hrefs);
   useEffect(() => {
@@ -114,158 +176,142 @@ export function SwipeTabPages({
     hrefsRef.current = hrefs;
   });
 
-  function resetWrapper() {
+  function showLive() {
     const el = wrapperRef.current;
     if (!el) return;
     el.style.opacity = "";
     el.style.transform = "";
-    el.style.transformOrigin = "";
     el.style.transition = "";
-    el.style.background = "";
-    el.style.boxShadow = "";
-    el.style.borderRadius = "";
   }
 
-  function clearPending() {
-    const pending = pendingRef.current;
-    if (!pending) return;
-    window.clearTimeout(pending.timer);
-    pending.overlay.remove();
-    pendingRef.current = null;
-    resetWrapper();
+  function endFlight() {
+    const flight = flightRef.current;
+    if (!flight) return;
+    window.clearTimeout(flight.holdTimer);
+    window.clearTimeout(flight.waitTimer);
+    flight.anims.forEach((a) => a.cancel());
+    flight.sheet.root.remove();
+    flight.incoming?.root.remove();
+    flightRef.current = null;
+    showLive();
   }
 
-  function beginFlip(dir: PageFlipDirection) {
-    clearPending();
+  function dropDragSheet() {
+    dragSheetRef.current?.root.remove();
+    dragSheetRef.current = null;
+  }
+
+  /** Forward: turn `sheet` over from its current pose; holds at HOLD_AT until the next page has rendered. */
+  function turnForward(sheet: Sheet) {
+    const fromDeg = parseFloat(sheet.page.style.transform.replace(/[^-\d.]/g, "")) || 0;
+    const fromT = Math.min(Math.abs(fromDeg) / 90, 1);
+    const remaining = 1 - Math.abs(fromDeg) / Math.abs(TURNED_DEG);
+    const duration = Math.max(TURN_MS * remaining, 260);
+    const opts: KeyframeAnimationOptions = { duration, easing: TURN_EASE, fill: "forwards" };
+    const anims = [
+      sheet.page.animate([{ transform: `rotateY(${fromDeg}deg)` }, { transform: `rotateY(${TURNED_DEG}deg)` }], opts),
+      sheet.shade.animate([{ opacity: fromT }, { opacity: 1 }], opts),
+      sheet.under.animate(
+        [{ opacity: Math.min(fromT * 3, 1) }, { opacity: 1, offset: 0.35 }, { opacity: 0 }],
+        opts
+      ),
+    ];
+    const flight: Flight = {
+      dir: 1,
+      sheet,
+      anims,
+      arrived: false,
+      holdTimer: window.setTimeout(() => {
+        if (flightRef.current === flight && !flight.arrived) anims.forEach((a) => a.pause());
+      }, duration * HOLD_AT),
+      waitTimer: window.setTimeout(endFlight, MAX_WAIT_MS),
+    };
+    flightRef.current = flight;
+    void anims[0].finished.then(
+      () => {
+        if (flightRef.current === flight) endFlight();
+      },
+      () => undefined
+    );
+  }
+
+  /** Back: keep the current page as a sheet until the previous page renders, which then turns in on top. */
+  function holdForBack(sheet: Sheet) {
+    const flight: Flight = {
+      dir: -1,
+      sheet,
+      anims: [],
+      arrived: false,
+      holdTimer: 0,
+      waitTimer: window.setTimeout(endFlight, MAX_WAIT_MS),
+    };
+    flightRef.current = flight;
+  }
+
+  function start(dir: PageFlipDirection, sheetFromDrag: Sheet | null) {
+    endFlight();
     const el = wrapperRef.current;
-    if (!el || prefersReducedMotion()) return;
+    if (!el || prefersReducedMotion()) {
+      dropDragSheet();
+      return;
+    }
     el.style.transition = "";
     el.style.transform = "";
-    const rect = el.getBoundingClientRect();
-    const { clipTop, clipBottom } = visibleHinge(rect);
-    if (rect.height - clipTop - clipBottom <= 0) return;
-
-    const overlay = document.createElement("div");
-    overlay.setAttribute("aria-hidden", "true");
-    Object.assign(overlay.style, {
-      position: "fixed",
-      left: `${rect.left}px`,
-      top: `${rect.top}px`,
-      width: `${rect.width}px`,
-      height: `${rect.height}px`,
-      zIndex: "20",
-      pointerEvents: "none",
-    } satisfies Partial<CSSStyleDeclaration>);
-
-    const page = el.cloneNode(true) as HTMLElement;
-    page.removeAttribute("id");
-    page.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
-    Object.assign(page.style, {
-      position: "absolute",
-      inset: "0",
-      margin: "0",
-      background: "var(--background)",
-      borderRadius: "1rem",
-      clipPath: `inset(${clipTop}px 0 ${clipBottom}px 0)`,
-      backfaceVisibility: "hidden",
-      willChange: "transform",
-    } satisfies Partial<CSSStyleDeclaration>);
-    overlay.appendChild(page);
-    document.body.appendChild(overlay);
-
-    // The snapshot now stands in for the live page until the new one renders.
+    const sheet = sheetFromDrag ?? makeSheet(el);
+    dragSheetRef.current = null;
+    if (!sheet) return;
+    // The sheet stands in for the live page until the new one renders.
     el.style.opacity = "0";
-    pendingRef.current = {
-      dir,
-      overlay,
-      page,
-      timer: window.setTimeout(clearPending, MAX_WAIT_MS),
-    };
+    if (dir === 1) turnForward(sheet);
+    else holdForBack(sheet);
   }
 
-  useImperativeHandle(handleRef, () => ({ beginFlip }));
+  useImperativeHandle(handleRef, () => ({ beginFlip: (dir) => start(dir, null) }));
 
-  // The new page has rendered: play the turn.
+  // The new page has rendered.
   useLayoutEffect(() => {
-    const pending = pendingRef.current;
+    const flight = flightRef.current;
     const el = wrapperRef.current;
-    if (!pending || !el) return;
-    window.clearTimeout(pending.timer);
-    const { dir, overlay, page } = pending;
-    pendingRef.current = null;
-    el.style.opacity = "";
+    if (!flight || !el || flight.arrived) return;
+    flight.arrived = true;
+    window.clearTimeout(flight.waitTimer);
 
-    const rect = el.getBoundingClientRect();
-    const oldHinge = visibleHinge(page.getBoundingClientRect());
-    // A soft shadow that deepens as the turning page rises off the stack.
-    const lift = "0 30px 60px -20px rgba(0,0,0,0.45)";
-    let done: Promise<unknown>;
-
-    if (dir === 1) {
-      // Forward: the old page turns over toward the spine, revealing the new one.
-      page.style.transformOrigin = `0 ${oldHinge.y}px`;
-      done = page.animate(
-        [
-          {
-            transform: `${PERSPECTIVE} rotateY(0deg)`,
-            boxShadow: "0 0 0 rgba(0,0,0,0)",
-            filter: "brightness(1)",
-          },
-          { boxShadow: lift, offset: 0.4 },
-          {
-            transform: `${PERSPECTIVE} rotateY(-92deg)`,
-            boxShadow: lift,
-            filter: "brightness(0.7)",
-          },
-        ],
-        { duration: FLIP_MS, easing: FLIP_EASE, fill: "forwards" },
-      ).finished;
-      el.animate([{ filter: "brightness(0.8)" }, { filter: "brightness(1)" }], {
-        duration: FLIP_MS,
-        easing: "ease-out",
+    if (flight.dir === 1) {
+      // The next page is ready underneath — let the turn carry on.
+      el.style.opacity = "";
+      flight.anims.forEach((a) => {
+        if (a.playState === "paused") a.play();
       });
-    } else {
-      // Back: the previous page turns back over from the spine onto the old one.
-      // The snapshot sits in a body-level overlay (above the page), so it
-      // fades away as the previous page swings in, rather than z-fighting.
-      const hinge = visibleHinge(rect);
-      Object.assign(el.style, {
-        background: "var(--background)",
-        borderRadius: "1rem",
-        transformOrigin: `0 ${hinge.y}px`,
-      } satisfies Partial<CSSStyleDeclaration>);
-      done = el.animate(
-        [
-          {
-            transform: `${PERSPECTIVE} rotateY(-92deg)`,
-            boxShadow: lift,
-            filter: "brightness(0.7)",
-          },
-          { boxShadow: lift, offset: 0.6 },
-          {
-            transform: `${PERSPECTIVE} rotateY(0deg)`,
-            boxShadow: "0 0 0 rgba(0,0,0,0)",
-            filter: "brightness(1)",
-          },
-        ],
-        { duration: FLIP_MS, easing: FLIP_EASE },
-      ).finished;
-      page.animate(
-        [
-          { opacity: 1, filter: "brightness(1)" },
-          { opacity: 0, filter: "brightness(0.7)", offset: 0.55 },
-          { opacity: 0, filter: "brightness(0.7)" },
-        ],
-        { duration: FLIP_MS, easing: "ease-in", fill: "forwards" },
-      );
+      return;
     }
 
-    void done
-      .catch(() => undefined)
-      .then(() => {
-        overlay.remove();
-        if (!pendingRef.current) resetWrapper();
-      });
+    // Back: snapshot the previous page and turn it in over the current one.
+    el.style.opacity = "";
+    const incoming = makeSheet(el);
+    if (!incoming) {
+      endFlight();
+      return;
+    }
+    el.style.opacity = "0";
+    const old = flight.sheet;
+    const opts: KeyframeAnimationOptions = { duration: TURN_MS, easing: LAND_EASE, fill: "forwards" };
+    incoming.page.style.transform = `rotateY(${TURNED_DEG}deg)`;
+    const anims = [
+      incoming.page.animate([{ transform: `rotateY(${TURNED_DEG}deg)` }, { transform: "rotateY(0deg)" }], opts),
+      incoming.shade.animate([{ opacity: 1 }, { opacity: 0 }], opts),
+      // The current page falls into the incoming page's shadow as it's covered.
+      old.shade.animate([{ opacity: 0 }, { opacity: 0.7 }], opts),
+    ];
+    flight.anims = anims;
+    flight.incoming = incoming;
+    void anims[0].finished.then(
+      () => {
+        if (flightRef.current === flight) endFlight();
+      },
+      () => undefined
+    );
+    // Runs only when the page actually changes; everything else is read via refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
 
   // Warm the neighbouring pages so a swipe lands fast.
@@ -276,9 +322,15 @@ export function SwipeTabPages({
     }
   }, [activeIndex, hrefs, router]);
 
-  // Leaving the section mid-turn: drop the snapshot.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => () => clearPending(), []);
+  // Leaving the section mid-turn: drop any sheets.
+  useEffect(
+    () => () => {
+      endFlight();
+      dropDragSheet();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   useEffect(() => {
     const el = wrapperRef.current;
@@ -291,19 +343,61 @@ export function SwipeTabPages({
     let blocked = false;
     let dx = 0;
 
-    function follow(offset: number) {
-      boundary.style.transition = "none";
-      boundary.style.transform = offset ? `translateX(${offset}px)` : "";
+    function targetIndex(delta: number) {
+      return activeIndexRef.current + (delta < 0 ? 1 : -1);
+    }
+    function canGo(delta: number) {
+      const next = targetIndex(delta);
+      return next >= 0 && next < hrefsRef.current.length;
     }
 
+    /** Live feedback: forward peels the page; back (or a dead end) just leans the page. */
+    function follow(delta: number) {
+      if (prefersReducedMotion() || flightRef.current) return;
+      if (delta < 0 && canGo(delta)) {
+        boundary.style.transform = "";
+        if (!dragSheetRef.current) {
+          const sheet = makeSheet(boundary);
+          if (!sheet) return;
+          dragSheetRef.current = sheet;
+          boundary.style.opacity = "0";
+        }
+        const progress = Math.min(-delta / (boundary.clientWidth * 0.6), 1);
+        setPeel(dragSheetRef.current, -MAX_PEEL_DEG * progress);
+        return;
+      }
+      if (dragSheetRef.current) {
+        dropDragSheet();
+        boundary.style.opacity = "";
+      }
+      const lean = canGo(delta) ? 0.16 : 0.06;
+      boundary.style.transition = "none";
+      boundary.style.transform = `translateX(${delta * lean}px)`;
+    }
+
+    /** Swipe released short of committing: lay everything back down. */
     function settle() {
-      boundary.style.transition =
-        "transform 260ms cubic-bezier(0.32, 0.72, 0, 1)";
+      const sheet = dragSheetRef.current;
+      dragSheetRef.current = null;
+      if (sheet) {
+        const opts: KeyframeAnimationOptions = { duration: SETTLE_MS, easing: SETTLE_EASE, fill: "forwards" };
+        sheet.page.animate([{ transform: sheet.page.style.transform }, { transform: "rotateY(0deg)" }], opts);
+        sheet.shade.animate([{ opacity: sheet.shade.style.opacity }, { opacity: 0 }], opts);
+        void sheet.under
+          .animate([{ opacity: sheet.under.style.opacity }, { opacity: 0 }], opts)
+          .finished.catch(() => undefined)
+          .then(() => {
+            sheet.root.remove();
+            if (!flightRef.current) boundary.style.opacity = "";
+          });
+        return;
+      }
+      boundary.style.transition = `transform ${SETTLE_MS}ms ${SETTLE_EASE}`;
       boundary.style.transform = "";
     }
 
     function onStart(e: TouchEvent) {
-      if (e.touches.length > 1 || activeIndexRef.current < 0) {
+      if (e.touches.length > 1 || activeIndexRef.current < 0 || flightRef.current) {
         startX = null;
         return;
       }
@@ -329,10 +423,7 @@ export function SwipeTabPages({
       }
       if (axis !== "horizontal") return;
       e.preventDefault();
-      const next = activeIndexRef.current + (dx < 0 ? 1 : -1);
-      const atEdge = next < 0 || next >= hrefsRef.current.length;
-      if (!prefersReducedMotion())
-        follow(dx * (atEdge ? DRAG_FOLLOW / 3 : DRAG_FOLLOW));
+      follow(dx);
     }
 
     function onEnd() {
@@ -341,14 +432,10 @@ export function SwipeTabPages({
         return;
       }
       startX = null;
-      const next = activeIndexRef.current + (dx < 0 ? 1 : -1);
-      if (
-        Math.abs(dx) >= SWIPE_THRESHOLD_PX &&
-        next >= 0 &&
-        next < hrefsRef.current.length
-      ) {
-        beginFlip(dx < 0 ? 1 : -1);
-        router.push(hrefsRef.current[next]);
+      if (Math.abs(dx) >= SWIPE_THRESHOLD_PX && canGo(dx)) {
+        const href = hrefsRef.current[targetIndex(dx)];
+        start(dx < 0 ? 1 : -1, dragSheetRef.current);
+        router.push(href);
         return;
       }
       settle();
