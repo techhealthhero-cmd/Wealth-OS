@@ -671,6 +671,19 @@
     inset 0 0 48px rgba(0, 0, 0, 0.25);
 }
 
+/* The binder's metal ring rail down the spine (JournalRings). */
+.journal-ring-rail {
+  background: linear-gradient(
+    to right,
+    #24180c 0,
+    #6e5235 35%,
+    #8f7150 50%,
+    #4a3520 70%,
+    #1f150a 100%
+  );
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.3);
+}
+
 /* Faint paper grain under the ruled lines. */
 .journal-grain {
   background-image:
