@@ -6,7 +6,59 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-05
+Last updated: 2026-10-09
+
+## Notebook covers + journal-opening animation — 2026-10-09
+
+Checkpoint before this work: git tag `pre-notebook-cover` (pushed).
+
+**What exists now**
+- 5 cover themes (Forest Green, Vintage Brown, Cream Paper, Midnight Blue,
+  Sakura Pink), drawn entirely in SVG from a data-driven catalogue
+  (`src/lib/notebook-covers/config.ts`; a new cover = one config entry, with a
+  `textureImage` slot for a photographed texture later). Embossed serif
+  wordmark (Cormorant Garamond, loaded only by cover components), sprout
+  emblem, leather/linen grain (SVG noise), metal corners, strap, ribbon.
+- 5 stickers (leaf, mountain / cat / coffee, camera — nature/animals/lifestyle),
+  one per cover in v1; optional cover name (≤ 24 chars).
+- First-time flow `/onboarding/journal` (welcome → choose → decorate → opening
+  → dashboard). Reached once, right after the profile onboarding
+  (`completeOnboarding` now redirects there). Skippable at every step; a
+  failed save never blocks entry. Existing users are never redirected to it —
+  they keep the default cover.
+- Settings: "ธีมและหน้าปก" card on `/profile` → `/profile/cover` (live preview,
+  save, "เปิดสมุดของฉัน" replay, opening-animation switch saved instantly).
+- `NotebookOpening`: CSS-3D cover swing (≈1.65 s: 300 closed / 750 open /
+  300 page reveal / 300 exit), Skip button (focused) + Escape, finishes
+  immediately if the app is backgrounded, ~0.45 s fade under
+  prefers-reduced-motion. Plays only after onboarding, after saving a new
+  cover (if the switch is on), or on an explicit "เปิดสมุดของฉัน" tap —
+  never on app launch, resume, or navigation (`playback.ts`, unit-tested).
+- Cover choice is independent of light/dark mode (covers have fixed colours).
+  The journal pages inside the app are unchanged (still Journal V1).
+
+**Migration `0040_notebook_cover.sql` — written, NOT yet applied anywhere.**
+Adds 5 columns to `profiles` (existing update-own RLS covers them). Until it
+is applied, the app shows the default cover and saving shows "ระบบหน้าปกยัง
+ไม่พร้อมใช้งาน" (onboarding skips that message silently). Needs
+`supabase db push` against staging, then production.
+
+**Verified**: lint, typecheck, 950/950 tests (14 new in
+`tests/notebook-cover.test.ts`), production build. Visual QA at 390px with
+the demo account (Playwright): all 5 covers ± sticker/name, the 3 onboarding
+steps (no horizontal overflow), settings in light + dark, frame-by-frame
+filmstrip of the opening. Skip/Escape close in ~50 ms; reduced-motion run
+≈0.8 s measured.
+
+**Bugs caught by the filmstrip (and fixed)**: (1) fading the cover's
+opacity flattened its 3D and showed the front face mirrored; (2) with
+`preserve-3d` on the book as well, Chrome stopped painting the cover past
+~110°. Fix: no opacity on the 3D cover; the book stays flat and gives the
+cover its own `perspective`.
+
+**Not verified**: real iPhone / installed PWA (Safari 3D + backface), the
+save path against a migrated database (prod/staging not migrated yet), the
+background-mid-animation path (code-reviewed only).
 
 ## Quick Capture recap fixes + Gift category + iPhone performance — 2026-10-05
 

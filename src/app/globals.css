@@ -709,3 +709,10 @@
     --edge-fade-end: 0px;
   }
 }
+/* Warm desk behind the notebook-opening animation (NotebookOpening). */
+.notebook-desk {
+  background: radial-gradient(120% 80% at 50% 38%, #f4ecdc 0%, #e4d6bc 58%, #cdb999 100%);
+}
+.dark .notebook-desk {
+  background: radial-gradient(120% 80% at 50% 38%, #2c241b 0%, #17120d 62%, #0d0a07 100%);
+}

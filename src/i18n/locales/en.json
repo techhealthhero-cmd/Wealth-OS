@@ -2787,7 +2787,7 @@
     "navLabel": "How to use",
     "title": "How to use WEALTH OS",
     "subtitle": "Know your money, grow your income, build your wealth — an easy guide to every feature in the app.",
-    "lastUpdated": "Last updated Oct 4, 2026 · updated every time a new feature ships",
+    "lastUpdated": "Last updated Oct 9, 2026 · updated every time a new feature ships",
     "philosophy": {
       "track": "Track",
       "analyze": "Analyze",
@@ -2849,7 +2849,8 @@
           { "emoji": "💯", "title": "Wealth Score", "description": "An overall financial health score from 0-100, based on cash flow, savings, debt, and goals." },
           { "emoji": "🟢", "title": "Safe-to-Spend", "description": "How much you can spend today without hurting your budget or goals." },
           { "emoji": "🧭", "title": "Next Best Action", "description": "The single top recommendation the system picked for you specifically." },
-          { "emoji": "🧾", "title": "Recent Transactions", "description": "Your latest transactions with each account's balance — tap to view or edit." }
+          { "emoji": "🧾", "title": "Recent Transactions", "description": "Your latest transactions with each account's balance — tap to view or edit." },
+          { "emoji": "📔", "title": "Your journal cover", "description": "Choose from 5 covers, add a sticker and name your journal in Profile → Theme & cover. Tap “Open my journal” to watch it open any time — it never plays on its own when you launch the app." }
         ]
       },
       {
@@ -3087,5 +3088,84 @@
       "saveFailed": "Couldn't save. Please try again."
     },
     "persona": "Persona: you are \"{name}\", the user's companion character inside WEALTH OS. Your specialty is {focus}. When the user's question is open-ended, lead with your specialty if the data shows something relevant there; otherwise answer normally. The persona changes only your focus and a light, friendly character voice — every rule above still applies, and you never invent data."
+  },
+  "notebookCover": {
+    "themes": {
+      "forest": {
+        "name": "Forest Green",
+        "description": "Simple and natural — a calm place to start"
+      },
+      "vintage": {
+        "name": "Vintage Brown",
+        "description": "Classic and warm, full of stories"
+      },
+      "cream": {
+        "name": "Cream Paper",
+        "description": "Minimal and clean"
+      },
+      "midnight": {
+        "name": "Midnight Blue",
+        "description": "Composed and dependable"
+      },
+      "sakura": {
+        "name": "Sakura Pink",
+        "description": "Bright and inspiring"
+      }
+    },
+    "decorations": {
+      "none": "None",
+      "leaf": "Leaf",
+      "mountain": "Mountain",
+      "cat": "Cat",
+      "coffee": "Coffee",
+      "camera": "Camera"
+    },
+    "categories": {
+      "nature": "Nature",
+      "animals": "Animals",
+      "lifestyle": "Lifestyle"
+    },
+    "welcomeTitle": "Welcome to WEALTH OS",
+    "welcomeSubtitle": "Start writing your money story",
+    "welcomeCta": "Choose my journal",
+    "chooseTitle": "Choose your journal cover",
+    "chooseSubtitle": "You can change it later in Settings",
+    "chooseCta": "Use this cover",
+    "decorateTitle": "Decorate your cover",
+    "decorateSubtitle": "Pick a sticker or name your journal — optional",
+    "stickerLabel": "Sticker",
+    "nameLabel": "Name on the cover",
+    "namePlaceholder": "e.g. My money journal",
+    "nameHint": "Up to {n} characters",
+    "startCta": "Start",
+    "skip": "Skip",
+    "back": "Back",
+    "selected": "Selected",
+    "stepOf": "Step {n} of {total}",
+    "openingLabel": "Opening your journal",
+    "openingHello": "Hello!",
+    "openingWelcome": "Welcome to your financial journal",
+    "openingWelcomeNamed": "Welcome, {name}",
+    "openingPoints": [
+      "Understand your money",
+      "Plan ahead",
+      "One step at a time"
+    ],
+    "settingsTitle": "Theme & cover",
+    "settingsDescription": "Your journal's cover, sticker and name",
+    "settingsPageSubtitle": "Changes preview instantly — save to keep them",
+    "openJournal": "Open my journal",
+    "animationToggle": "Journal opening animation",
+    "animationHint": "Opens the journal after you change its cover. “Open my journal” always works.",
+    "save": "Save cover",
+    "saving": "Saving…",
+    "saved": "Cover saved",
+    "unsaved": "Not saved yet",
+    "errors": {
+      "signedOut": "Please sign in again",
+      "invalid": "That cover setting isn't valid",
+      "notReady": "Covers aren't available yet — please try again later",
+      "saveFailed": "Couldn't save your cover — please try again"
+    }
   }
 }

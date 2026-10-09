@@ -230,6 +230,12 @@ export interface Database {
           onboarding_completed: boolean;
           /** Migration 0038. Optional: absent on a database that hasn't applied it yet. */
           selected_companion_id?: string | null;
+          /** Migration 0040 (notebook cover). Optional: absent on a database that hasn't applied it yet. */
+          cover_theme?: string;
+          cover_decorations?: string[];
+          cover_name?: string | null;
+          opening_animation_enabled?: boolean;
+          cover_chosen_at?: string | null;
           created_at: string;
           updated_at: string;
         };

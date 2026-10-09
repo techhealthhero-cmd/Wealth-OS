@@ -16,6 +16,8 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { AiFabSettingsCard } from "@/components/layout/ai-fab-settings-card";
 import { AccountPrivacySettingsCard } from "@/features/account-privacy/components/account-privacy-settings-card";
 import { getAccountPrivacyState } from "@/features/account-privacy/queries";
+import { NotebookCover } from "@/components/notebook/notebook-cover";
+import { resolveCoverPreferences } from "@/lib/notebook-covers/config";
 import { BookOpenCheck, ChevronRight, Compass } from "lucide-react";
 
 export const metadata: Metadata = { title: "Profile — Wealth OS" };
@@ -37,6 +39,7 @@ export default async function ProfilePage() {
 
   const locale = await getLocale(profile.preferred_language);
   const dict = getDictionary(locale);
+  const cover = resolveCoverPreferences(profile);
 
   return (
     <div className="mx-auto max-w-lg space-y-4 pb-28">
@@ -83,6 +86,36 @@ export default async function ProfilePage() {
                 <span className="block text-sm font-semibold">{dict.companions.navLabel}</span>
                 <span className="block truncate text-xs font-normal text-muted-foreground">
                   {dict.companions.names[companion.active.id as keyof typeof dict.companions.names]} · {dict.companions.lines[companion.active.focus]}
+                </span>
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <Button
+            nativeButton={false}
+            render={<Link href="/profile/cover" />}
+            variant="ghost"
+            className="h-auto w-full justify-between px-0 py-1 hover:bg-transparent"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="w-10 shrink-0">
+                <NotebookCover
+                  theme={cover.theme}
+                  decorations={cover.decorations}
+                  name={null}
+                  // "size-" opts out of Button's [&_svg]:size-4 icon rule.
+                  className="size-full"
+                />
+              </span>
+              <span className="min-w-0 text-left">
+                <span className="block text-sm font-semibold">{dict.notebookCover.settingsTitle}</span>
+                <span className="block truncate text-xs font-normal text-muted-foreground">
+                  {dict.notebookCover.themes[cover.theme].name} · {dict.notebookCover.settingsDescription}
                 </span>
               </span>
             </span>

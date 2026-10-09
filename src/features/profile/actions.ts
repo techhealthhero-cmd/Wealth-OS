@@ -132,5 +132,6 @@ export async function completeOnboarding(
     trackEvent("onboarding_completed", user.id, { providedStartingBalance: parsed.data.starting_balance !== undefined });
   }
 
-  redirect("/dashboard");
+  // Next: choose the journal cover (once; skippable — see /onboarding/journal).
+  redirect("/onboarding/journal");
 }

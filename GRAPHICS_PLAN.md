@@ -67,6 +67,16 @@ What still holds, and why:
   A handwritten feel is limited to decorative accents (e.g. a highlighter
   stroke behind a page title).
 
+**Notebook covers (owner brief, 2026-10-09).** The journal's *cover* is the
+one place a richer, object-like rendering is allowed: five leather/linen
+covers (`src/lib/notebook-covers/config.ts`) with foil-stamped serif
+wordmark, metal corners, strap and ribbon, drawn in SVG (no raster). Cover
+stickers — including the owner-requested cat — are a scoped exception to the
+"no cats / character art / stickers" rules above: they live only on the
+cover (onboarding, settings, the opening moment), never inside the app's
+pages, one sticker per cover, small hand-inked line art in muted stationery
+colours. Cover colours are fixed per theme and don't follow light/dark mode.
+
 **Do not use:**
 - glassmorphism
 - photography / realistic stock imagery
