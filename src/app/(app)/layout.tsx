@@ -17,6 +17,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { PullToRefresh } from "@/components/shared/pull-to-refresh";
 import { JournalSectionTabs } from "@/components/layout/journal-section-tabs";
 import { MinimizableFormProvider, MinimizableFormHost } from "@/components/shared/minimizable-form-context";
+import { NotebookLaunch } from "@/features/notebook-cover/components/notebook-launch";
+import { resolveCoverPreferences } from "@/lib/notebook-covers/config";
+import { getLaunchVariant } from "@/lib/notebook-covers/playback";
 
 /**
  * Day 8 STEP 11 — every page behind auth (dashboard, money, plan, earn, ai,
@@ -73,6 +76,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     presence: companionState.presence,
   };
   const dict = getDictionary(locale);
+  // Journal opening on a fresh launch, resolved here from the profile this
+  // layout already loads (no extra query). The client component plays it at
+  // most once per document; see NotebookLaunch.
+  const cover = resolveCoverPreferences(profile);
+  const launchVariant = getLaunchVariant({
+    mode: cover.openingMode,
+    firstPlayed: Boolean(profile.opening_first_played_at),
+  });
 
   return (
     <I18nProvider locale={locale} dict={dict}>
@@ -133,6 +144,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <FloatingAiButton companion={companion} />
       </MinimizableFormProvider>
       <Toaster position="top-center" />
+      <NotebookLaunch
+        variant={launchVariant}
+        prefs={cover}
+        displayName={profile.display_name}
+        isFirstTimeOpening={cover.openingMode === "first_time" && launchVariant !== null}
+      />
     </I18nProvider>
   );
 }

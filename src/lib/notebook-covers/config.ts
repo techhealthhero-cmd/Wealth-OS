@@ -127,19 +127,32 @@ export const MAX_COVER_NAME_LENGTH = 24;
 const themeIds = COVER_THEMES.map((t) => t.id) as [CoverThemeId, ...CoverThemeId[]];
 const decorationIds = COVER_DECORATIONS.map((d) => d.id) as [CoverDecorationId, ...CoverDecorationId[]];
 
+/**
+ * How the journal opens on a fresh app launch (a new document load — not a
+ * route change, remount, data refresh or return from the background).
+ * Default for everyone without an explicit choice: "quick".
+ */
+export const OPENING_MODES = ["full", "quick", "first_time", "off"] as const;
+export type OpeningMode = (typeof OPENING_MODES)[number];
+export const DEFAULT_OPENING_MODE: OpeningMode = "quick";
+
+export function isOpeningMode(value: unknown): value is OpeningMode {
+  return typeof value === "string" && (OPENING_MODES as readonly string[]).includes(value);
+}
+
 export interface CoverPreferences {
   theme: CoverThemeId;
   decorations: CoverDecorationId[];
   /** Short personal name shown on the cover label; null = no label. */
   name: string | null;
-  openingAnimationEnabled: boolean;
+  openingMode: OpeningMode;
 }
 
 export const DEFAULT_COVER_PREFERENCES: CoverPreferences = {
   theme: DEFAULT_COVER_THEME,
   decorations: [],
   name: null,
-  openingAnimationEnabled: true,
+  openingMode: DEFAULT_OPENING_MODE,
 };
 
 /** What the server action accepts from the client. Never trusted beyond this. */
@@ -152,7 +165,7 @@ export const coverPreferencesSchema = z.object({
     .max(MAX_COVER_NAME_LENGTH)
     .transform((v) => (v.length === 0 ? null : v))
     .nullable(),
-  openingAnimationEnabled: z.boolean(),
+  openingMode: z.enum(OPENING_MODES),
 });
 
 export function isCoverThemeId(value: unknown): value is CoverThemeId {
@@ -168,7 +181,7 @@ export interface StoredCoverColumns {
   cover_theme?: string | null;
   cover_decorations?: string[] | null;
   cover_name?: string | null;
-  opening_animation_enabled?: boolean | null;
+  notebook_opening_mode?: string | null;
 }
 
 /**
@@ -186,6 +199,6 @@ export function resolveCoverPreferences(row: StoredCoverColumns | null | undefin
     theme: isCoverThemeId(row.cover_theme) ? row.cover_theme : DEFAULT_COVER_THEME,
     decorations,
     name,
-    openingAnimationEnabled: row.opening_animation_enabled ?? true,
+    openingMode: isOpeningMode(row.notebook_opening_mode) ? row.notebook_opening_mode : DEFAULT_OPENING_MODE,
   };
 }

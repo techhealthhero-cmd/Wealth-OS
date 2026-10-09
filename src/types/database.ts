@@ -234,7 +234,8 @@ export interface Database {
           cover_theme?: string;
           cover_decorations?: string[];
           cover_name?: string | null;
-          opening_animation_enabled?: boolean;
+          notebook_opening_mode?: "full" | "quick" | "first_time" | "off";
+          opening_first_played_at?: string | null;
           cover_chosen_at?: string | null;
           created_at: string;
           updated_at: string;

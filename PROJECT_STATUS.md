@@ -8,6 +8,48 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-10-09
 
+## Journal opening modes (quick open on every launch) — 2026-10-09
+
+Checkpoint: git tag `pre-opening-modes` (pushed). Supersedes the "never on
+app launch" rule in the section below — the owner now wants a quick opening
+on every fresh launch by default.
+
+- **4 modes** (`profiles.notebook_opening_mode`): `quick` (default, ~0.45 s),
+  `full` (~1.65 s, skippable), `first_time` (full once, then nothing —
+  `profiles.opening_first_played_at`), `off`. Migration 0040 was edited in
+  place (it had not been applied anywhere): the boolean
+  `opening_animation_enabled` became these two columns. Still NOT applied.
+- **Fresh launch = a new document load** (new tab/PWA session/reload). Guard:
+  module-scoped flag (`src/lib/notebook-covers/launch-state.ts`) + the
+  persistent (app) layout. No replay on route changes, remounts, RSC
+  refreshes, background → foreground. The onboarding opening (or its Skip)
+  also marks the launch handled.
+- **First-paint, never stuck**: `NotebookLaunch` is rendered by the (app)
+  layout from the profile it already loads (no extra query), so the overlay
+  is in the server HTML; motion is pure CSS keyframes (`.nb-open` in
+  globals.css) whose last frame is `visibility:hidden; pointer-events:none` —
+  it ends on its own even without hydration. Quick mode is
+  `pointer-events:none` and `aria-hidden` throughout; the page underneath
+  renders and fetches in parallel. Launch overlay is `display:none` under
+  prefers-reduced-motion.
+- **Settings** → ธีมและหน้าปก → "Animation เปิดสมุด": 4 radio rows (duration,
+  default badge, description), saves on pick with row spinner + toast, a
+  preview button per animated mode (previews never change saved state).
+- Cover save now plays a quick opening (unless `off`); onboarding always
+  plays the full one (Skip at the header goes straight in).
+- Page turns between section tabs (`SwipeTabPages`) are a separate system,
+  untouched and unaffected by this setting.
+
+**Verified** (dev server, demo account, Playwright 390px): overlay present in
+SSR HTML; scrubbed keyframe filmstrips of quick (0/80/160/240/320/400/449 ms)
+and full; overlay removed after load; navigating money ↔ dashboard: 0
+overlays; reload: overlay again; quick end state opacity≈0 +
+pointer-events none; preview quick/full; Skip focused + Escape closes; no
+horizontal overflow; light + dark. lint, typecheck, 956/956 tests, build.
+**Not verified**: real iPhone/PWA; `full`/`first_time`/`off` launches with a
+saved mode (needs migration 0040 — logic covered by unit tests);
+`markFirstOpeningPlayed` against a migrated DB.
+
 ## Notebook covers + journal-opening animation — 2026-10-09
 
 Checkpoint before this work: git tag `pre-notebook-cover` (pushed).

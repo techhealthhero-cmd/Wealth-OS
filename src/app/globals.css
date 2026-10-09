@@ -716,3 +716,112 @@
 .dark .notebook-desk {
   background: radial-gradient(120% 80% at 50% 38%, #2c241b 0%, #17120d 62%, #0d0a07 100%);
 }
+
+/*
+ * Notebook opening (NotebookOpening). Pure CSS keyframes, so a launch
+ * opening rendered in the server HTML starts on the very first paint —
+ * before any JavaScript runs — and always ends on its own: the overlay's
+ * last frame is invisible and non-interactive, so a slow or failed hydration
+ * can never leave a stuck overlay over the app. JS only removes the layer
+ * afterwards, and handles Skip / Escape / backgrounding.
+ *
+ * Timings mirror OPENING_TIMINGS (src/lib/notebook-covers/playback.ts):
+ *   full  1650ms — closed 0–300 · cover opens 300–1050 · page 1050–1350 · exit 1350–1650
+ *   quick  450ms — closed 0–80  · cover opens 80–320    · exit 320–450
+ * No animation-delay anywhere: under prefers-reduced-motion the global rule
+ * above collapses every duration, so everything lands on its end state
+ * (overlay hidden) at once.
+ *
+ * The cover is the only preserve-3d element and never gets an opacity
+ * (opacity < 1 flattens 3D and shows its front face mirrored); the book
+ * stays flat and lends the cover its perspective (with preserve-3d on the
+ * book too, Chrome stopped painting the cover past ~110°).
+ */
+.nb-open {
+  animation-fill-mode: both;
+}
+.nb-open[data-variant="full"] { --nb-duration: 1650ms; }
+.nb-open[data-variant="quick"] { --nb-duration: 450ms; }
+.nb-open :is(.nb-book, .nb-cover, .nb-shade, .nb-reveal, .nb-desk, .nb-stage) {
+  animation-duration: var(--nb-duration);
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+}
+.nb-open[data-exit="fade"] {
+  animation: nb-full-overlay-out var(--nb-duration) linear both;
+}
+.nb-open[data-variant="quick"][data-exit="fade"] {
+  animation-name: nb-quick-overlay-out;
+}
+.nb-open[data-exit="hold"][data-variant="full"] .nb-desk { animation-name: nb-full-fade-out; }
+.nb-open[data-exit="hold"][data-variant="full"] .nb-stage { animation-name: nb-full-fade-out; }
+.nb-open[data-exit="hold"][data-variant="quick"] .nb-desk { animation-name: nb-quick-fade-out; }
+.nb-open[data-exit="hold"][data-variant="quick"] .nb-stage { animation-name: nb-quick-fade-out; }
+.nb-open[data-variant="full"] .nb-book { animation-name: nb-full-book; }
+.nb-open[data-variant="full"] .nb-cover { animation-name: nb-full-cover; }
+.nb-open[data-variant="full"] .nb-shade { animation-name: nb-full-shade; }
+.nb-open[data-variant="full"] .nb-reveal { animation-name: nb-full-reveal; }
+.nb-open[data-variant="quick"] .nb-book { animation-name: nb-quick-book; }
+.nb-open[data-variant="quick"] .nb-cover { animation-name: nb-quick-cover; }
+.nb-open[data-variant="quick"] .nb-shade { animation-name: nb-quick-shade; }
+.nb-open[data-variant="quick"] .nb-reveal { opacity: 0; }
+
+/* --- full (1650ms) --- */
+@keyframes nb-full-overlay-out {
+  0%, 81.8% { opacity: 1; visibility: visible; }
+  99.9% { opacity: 0; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+@keyframes nb-full-fade-out {
+  0%, 81.8% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes nb-full-book {
+  0% { transform: translateX(0) rotateY(10deg) scale(0.92); opacity: 0; animation-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+  18.2% { transform: translateX(0) rotateY(10deg) scale(1); opacity: 1; animation-timing-function: cubic-bezier(0.55, 0.06, 0.22, 1); }
+  63.6% { transform: translateX(9%) rotateY(0deg) scale(1); opacity: 1; animation-timing-function: ease-out; }
+  81.8%, 100% { transform: translateX(9%) rotateY(0deg) scale(1.04); opacity: 1; }
+}
+@keyframes nb-full-cover {
+  0%, 18.2% { transform: rotateY(0deg); animation-timing-function: cubic-bezier(0.55, 0.06, 0.22, 1); }
+  63.6%, 100% { transform: rotateY(-172deg); }
+}
+@keyframes nb-full-shade {
+  0%, 18.2% { opacity: 1; animation-timing-function: cubic-bezier(0.55, 0.06, 0.22, 1); }
+  63.6%, 100% { opacity: 0; }
+}
+@keyframes nb-full-reveal {
+  0%, 63.6% { opacity: 0; transform: translateY(6px); animation-timing-function: ease-out; }
+  81.8%, 100% { opacity: 1; transform: translateY(0); }
+}
+
+/* --- quick (450ms) --- */
+@keyframes nb-quick-overlay-out {
+  0%, 71.1% { opacity: 1; visibility: visible; animation-timing-function: ease-out; }
+  99.9% { opacity: 0; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+@keyframes nb-quick-fade-out {
+  0%, 71.1% { opacity: 1; animation-timing-function: ease-out; }
+  100% { opacity: 0; }
+}
+@keyframes nb-quick-book {
+  0% { transform: translateX(0) rotateY(8deg) scale(0.98); animation-timing-function: ease-out; }
+  17.8% { transform: translateX(0) rotateY(8deg) scale(1); animation-timing-function: cubic-bezier(0.5, 0.05, 0.2, 1); }
+  71.1% { transform: translateX(9%) rotateY(0deg) scale(1.02); }
+  100% { transform: translateX(9%) rotateY(0deg) scale(1.03); }
+}
+@keyframes nb-quick-cover {
+  0%, 17.8% { transform: rotateY(0deg); animation-timing-function: cubic-bezier(0.5, 0.05, 0.2, 1); }
+  71.1%, 100% { transform: rotateY(-172deg); }
+}
+@keyframes nb-quick-shade {
+  0%, 17.8% { opacity: 1; animation-timing-function: cubic-bezier(0.5, 0.05, 0.2, 1); }
+  71.1%, 100% { opacity: 0; }
+}
+
+/* Launch openings respect reduced motion by not appearing at all (an
+   explicit preview still renders, and simply ends at once). */
+@media (prefers-reduced-motion: reduce) {
+  .nb-open[data-launch="true"] { display: none; }
+}

@@ -1,46 +1,75 @@
+import type { OpeningMode } from "./config";
+
 /**
- * When the notebook-opening animation plays (pure, unit-tested).
+ * When the notebook-opening animation plays, and which variant (pure,
+ * unit-tested). Two variants share one component (NotebookOpening):
  *
- * People open WEALTH OS to see their money quickly, so the opening is a
- * moment, not a gate: it plays in full only when the user has just finished
- * choosing their journal (first-time onboarding), has just saved a new cover
- * in Settings, or explicitly asks to open it ("เปิดสมุดของฉัน"). The first two
- * follow the user's "opening animation" switch; the explicit tap always
- * plays. App launches, returning from the background and
- * in-app navigation never trigger it — there is deliberately no reason for
- * those here.
+ *  - "quick" (~0.45 s): the cover swings open and the app is right there.
+ *    The default on every fresh app launch.
+ *  - "full"  (~1.65 s): closed journal → cover opens → the first page says
+ *    hello → the app. Skippable.
+ *
+ * This is the *cover* opening only. Turning pages between sections is a
+ * separate system (SwipeTabPages) with its own timing; neither setting
+ * affects the other.
  */
-export type OpeningReason = "onboarding" | "cover-change" | "user-replay";
+export type OpeningVariant = "full" | "quick";
 
-export type OpeningMode = "full" | "reduced" | "none";
-
-export function getOpeningMode({
-  reason,
-  enabled,
-  prefersReducedMotion,
+/**
+ * What a fresh app launch (a new document load) shows for the user's mode.
+ * `firstPlayed` = the account has already seen the full opening once
+ * (profiles.opening_first_played_at).
+ */
+export function getLaunchVariant({
+  mode,
+  firstPlayed,
 }: {
-  reason: OpeningReason;
-  /** The user's "play opening animation" preference. */
-  enabled: boolean;
-  prefersReducedMotion: boolean;
-}): OpeningMode {
-  // An explicit tap always shows something — the user asked for it — but
-  // still honours the OS reduced-motion setting.
-  if (reason === "user-replay") return prefersReducedMotion ? "reduced" : "full";
-  if (!enabled) return "none";
-  return prefersReducedMotion ? "reduced" : "full";
+  mode: OpeningMode;
+  firstPlayed: boolean;
+}): OpeningVariant | null {
+  switch (mode) {
+    case "full":
+      return "full";
+    case "quick":
+      return "quick";
+    case "first_time":
+      return firstPlayed ? null : "full";
+    case "off":
+      return null;
+  }
 }
 
 /**
- * Stage timings in ms (brief: ~300 / 600–800 / 250–350 / 250–350, total
- * ≤ 1.8 s). The reduced variant is a single short cross-fade.
+ * Openings triggered inside the app (not by a launch):
+ *  - "onboarding": the user just chose their journal — always the full
+ *    opening (it is their first time), skippable.
+ *  - "cover-change": a new cover was saved — a quick opening, unless the
+ *    user turned animations off.
+ *  - "preview": an explicit tap on a preview button — always plays the
+ *    variant asked for, and never changes any saved state.
+ */
+export function getInAppVariant(
+  reason: "onboarding" | "cover-change" | { preview: OpeningMode },
+  mode: OpeningMode
+): OpeningVariant | null {
+  if (reason === "onboarding") return "full";
+  if (reason === "cover-change") return mode === "off" ? null : "quick";
+  // Previewing "first time only" shows what that first time looks like.
+  return reason.preview === "quick" ? "quick" : reason.preview === "off" ? null : "full";
+}
+
+/**
+ * Stage timings in ms. The CSS keyframes in globals.css (.nb-open) are
+ * written from these numbers — change both together.
+ *  full:  closed 300 → cover opens 750 → page reveal 300 → exit 300
+ *  quick: closed 80 → cover opens 240 → settle/exit 130
  */
 export const OPENING_TIMINGS = {
   full: { closed: 300, open: 750, reveal: 300, exit: 300 },
-  reduced: { closed: 0, open: 0, reveal: 250, exit: 200 },
+  quick: { closed: 80, open: 240, reveal: 0, exit: 130 },
 } as const;
 
-export function totalOpeningDuration(mode: Exclude<OpeningMode, "none">): number {
-  const t = OPENING_TIMINGS[mode];
+export function totalOpeningDuration(variant: OpeningVariant): number {
+  const t = OPENING_TIMINGS[variant];
   return t.closed + t.open + t.reveal + t.exit;
 }

@@ -2850,7 +2850,7 @@
           { "emoji": "🟢", "title": "Safe-to-Spend", "description": "How much you can spend today without hurting your budget or goals." },
           { "emoji": "🧭", "title": "Next Best Action", "description": "The single top recommendation the system picked for you specifically." },
           { "emoji": "🧾", "title": "Recent Transactions", "description": "Your latest transactions with each account's balance — tap to view or edit." },
-          { "emoji": "📔", "title": "Your journal cover", "description": "Choose from 5 covers, add a sticker and name your journal in Profile → Theme & cover. Tap “Open my journal” to watch it open any time — it never plays on its own when you launch the app." }
+          { "emoji": "📔", "title": "Your journal cover", "description": "Choose from 5 covers, add a sticker and name your journal in Profile → Theme & cover. Each fresh launch, the journal flips open in under half a second — switch to the full opening, first time only, or off under Journal opening animation (moving between pages never replays it)." }
         ]
       },
       {
@@ -3155,8 +3155,34 @@
     "settingsDescription": "Your journal's cover, sticker and name",
     "settingsPageSubtitle": "Changes preview instantly — save to keep them",
     "openJournal": "Open my journal",
-    "animationToggle": "Journal opening animation",
-    "animationHint": "Opens the journal after you change its cover. “Open my journal” always works.",
+    "openingTitle": "Journal opening animation",
+    "openingHint": "Plays when you freshly open the app, never when you move between pages (page turns are a separate system and unaffected).",
+    "defaultBadge": "Default",
+    "preview": "Preview",
+    "previewOf": "Preview: {name}",
+    "modeSaved": "Saved: {name}",
+    "openingModes": {
+      "full": {
+        "name": "Full cover opening",
+        "duration": "1.2–1.8 s",
+        "description": "The cover opens slowly, the first page says hello, then the app — every fresh launch. Skippable."
+      },
+      "quick": {
+        "name": "Quick opening",
+        "duration": "0.3–0.5 s",
+        "description": "A short cover flip, then the app right away — every fresh launch. Never blocks a tap."
+      },
+      "first_time": {
+        "name": "First time only",
+        "duration": "Once",
+        "description": "The full opening once; after that the app opens instantly."
+      },
+      "off": {
+        "name": "Animation off",
+        "duration": "None",
+        "description": "Open straight into the app every time."
+      }
+    },
     "save": "Save cover",
     "saving": "Saving…",
     "saved": "Cover saved",

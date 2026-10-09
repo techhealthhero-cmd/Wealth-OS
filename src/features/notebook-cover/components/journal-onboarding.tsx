@@ -17,7 +17,8 @@ import {
 import { NotebookCover } from "@/components/notebook/notebook-cover";
 import { NotebookOpening } from "@/components/notebook/notebook-opening";
 import { DEFAULT_COVER_PREFERENCES, type CoverPreferences } from "@/lib/notebook-covers/config";
-import { getOpeningMode } from "@/lib/notebook-covers/playback";
+import { getInAppVariant, type OpeningVariant } from "@/lib/notebook-covers/playback";
+import { markLaunchHandled } from "@/lib/notebook-covers/launch-state";
 import { saveCoverPreferences, type SaveCoverResult } from "@/features/notebook-cover/actions";
 
 type Step = "welcome" | "choose" | "decorate";
@@ -35,7 +36,7 @@ export function JournalOnboarding({ displayName }: { displayName: string | null 
   const router = useRouter();
   const [step, setStep] = useState<Step>("welcome");
   const [prefs, setPrefs] = useState<CoverPreferences>(DEFAULT_COVER_PREFERENCES);
-  const [opening, setOpening] = useState<{ mode: "full" | "reduced"; prefs: CoverPreferences } | null>(null);
+  const [opening, setOpening] = useState<{ variant: OpeningVariant; prefs: CoverPreferences } | null>(null);
   const [finishing, setFinishing] = useState(false);
   const saveRef = useRef<Promise<SaveCoverResult> | null>(null);
 
@@ -52,19 +53,19 @@ export function JournalOnboarding({ displayName }: { displayName: string | null 
     router.replace("/dashboard");
   }
 
-  function finish(final: CoverPreferences) {
+  /** `animate`: finishing with "เริ่มใช้งาน" opens the journal; Skip goes straight in. */
+  function finish(final: CoverPreferences, animate: boolean) {
     if (finishing) return;
     setFinishing(true);
+    // Whether or not it animates, this is how they enter the app: the
+    // dashboard must not play a launch opening on top of it.
+    markLaunchHandled();
     saveRef.current = saveCoverPreferences(final, { markChosen: true }).catch(
       (): SaveCoverResult => ({ success: false, error: t("notebookCover.errors.saveFailed"), code: "failed" })
     );
-    const mode = getOpeningMode({
-      reason: "onboarding",
-      enabled: final.openingAnimationEnabled,
-      prefersReducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    });
-    if (mode === "none") void goToDashboard();
-    else setOpening({ mode, prefs: final });
+    const variant = animate ? getInAppVariant("onboarding", final.openingMode) : null;
+    if (variant === null) void goToDashboard();
+    else setOpening({ variant, prefs: final });
   }
 
   const stepIndex = STEPS.indexOf(step);
@@ -95,7 +96,7 @@ export function JournalOnboarding({ displayName }: { displayName: string | null 
         </div>
         <button
           type="button"
-          onClick={() => finish(step === "welcome" ? DEFAULT_COVER_PREFERENCES : { ...prefs, decorations: [], name: null })}
+          onClick={() => finish(step === "welcome" ? DEFAULT_COVER_PREFERENCES : { ...prefs, decorations: [], name: null }, false)}
           disabled={finishing}
           className="rounded-md text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -141,7 +142,7 @@ export function JournalOnboarding({ displayName }: { displayName: string | null 
           <CoverPreview prefs={prefs} className="max-w-[9.5rem]" />
           <CoverDecorationPicker value={prefs.decorations} onChange={(decorations) => setPrefs((p) => ({ ...p, decorations }))} />
           <CoverNameField value={prefs.name} onChange={(name) => setPrefs((p) => ({ ...p, name }))} />
-          <Button size="lg" className="mt-auto w-full" disabled={finishing} onClick={() => finish(prefs)}>
+          <Button size="lg" className="mt-auto w-full" disabled={finishing} onClick={() => finish(prefs, true)}>
             {t("notebookCover.startCta")}
           </Button>
         </div>
@@ -150,7 +151,7 @@ export function JournalOnboarding({ displayName }: { displayName: string | null 
       {opening ? (
         <NotebookOpening
           prefs={opening.prefs}
-          mode={opening.mode}
+          variant={opening.variant}
           displayName={displayName}
           exit="hold"
           onDone={() => void goToDashboard()}

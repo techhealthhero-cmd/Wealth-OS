@@ -22,8 +22,9 @@ function isCoverSchemaMissing(code: string | undefined): boolean {
  * The client sends ids, never a user id: ownership comes from the session,
  * and the profiles update-own RLS policy enforces it again in the database.
  *
- * `markChosen` stamps cover_chosen_at — set by the first-time cover
- * onboarding (finish or skip) so it is never shown again.
+ * `markChosen` stamps cover_chosen_at (and opening_first_played_at) — set
+ * by the first-time cover onboarding (finish or skip) so it is never shown
+ * again.
  */
 export async function saveCoverPreferences(
   input: CoverPreferences,
@@ -37,6 +38,7 @@ export async function saveCoverPreferences(
   const parsed = coverPreferencesSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: dict.notebookCover.errors.invalid, code: "invalid" };
 
+  const now = new Date().toISOString();
   const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
@@ -44,8 +46,10 @@ export async function saveCoverPreferences(
       cover_theme: parsed.data.theme,
       cover_decorations: parsed.data.decorations,
       cover_name: parsed.data.name,
-      opening_animation_enabled: parsed.data.openingAnimationEnabled,
-      ...(options.markChosen ? { cover_chosen_at: new Date().toISOString() } : {}),
+      notebook_opening_mode: parsed.data.openingMode,
+      // The onboarding plays the full opening, which also counts as the
+      // "first time" for the first_time mode.
+      ...(options.markChosen ? { cover_chosen_at: now, opening_first_played_at: now } : {}),
     })
     .eq("user_id", user.id);
 
@@ -59,4 +63,22 @@ export async function saveCoverPreferences(
   revalidatePath("/profile");
   revalidatePath("/profile/cover");
   return { success: true };
+}
+
+/**
+ * Records that this account has now seen the full opening, for the
+ * "first_time" mode. Called once by the launch opening. Only ever sets the
+ * timestamp when it is still empty, never touches the chosen mode, and
+ * deliberately doesn't revalidate (no re-render or refetch mid-launch).
+ */
+export async function markFirstOpeningPlayed(): Promise<void> {
+  const user = await getAuthUser();
+  if (!user) return;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ opening_first_played_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .is("opening_first_played_at", null);
+  if (error && !isCoverSchemaMissing(error.code)) console.error("[notebook-cover] mark first opening failed:", error.code);
 }
