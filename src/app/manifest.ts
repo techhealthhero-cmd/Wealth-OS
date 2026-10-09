@@ -18,7 +18,9 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "ระบบการเงินส่วนบุคคลที่ช่วยให้ผู้ใช้รู้สถานะทางการเงิน ควบคุมเงิน วางแผน เพิ่มรายได้ และสร้างความมั่งคั่ง",
     start_url: "/dashboard",
     display: "standalone",
-    background_color: "#f7f8f6",
+    // The journal desk colour, so Android's launch splash flows straight
+    // into the closed journal instead of flashing a different colour.
+    background_color: "#ecdfc6",
     // Matches the app's actual brand green (--primary, #1F4D3E) and the
     // root layout's own viewport themeColor — the previous #2a78d6 (blue)
     // was a leftover from an earlier design direction the app moved away

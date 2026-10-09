@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
@@ -18,6 +20,8 @@ import { PullToRefresh } from "@/components/shared/pull-to-refresh";
 import { JournalSectionTabs } from "@/components/layout/journal-section-tabs";
 import { MinimizableFormProvider, MinimizableFormHost } from "@/components/shared/minimizable-form-context";
 import { NotebookLaunch } from "@/features/notebook-cover/components/notebook-launch";
+import { LaunchStill } from "@/features/notebook-cover/components/launch-still";
+import { LAUNCH_COOKIE, decodeLaunchCookie } from "@/lib/notebook-covers/launch-cookie";
 import { resolveCoverPreferences } from "@/lib/notebook-covers/config";
 import { getLaunchVariant } from "@/lib/notebook-covers/playback";
 
@@ -35,7 +39,25 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * Launch screen: the shell below waits on the profile query, so it sits in
+ * a Suspense boundary whose fallback is the user's closed journal (read
+ * from the small launch cookie, no database). That fallback is in the very
+ * first bytes of the response, so a fresh launch goes launch image ->
+ * closed journal -> journal opening, never through a blank white page.
+ * Navigations and refreshes never show it again: the layout stays mounted.
+ */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const launch = decodeLaunchCookie((await cookies()).get(LAUNCH_COOKIE)?.value);
+  const showStill = getLaunchVariant({ mode: launch.prefs.openingMode, firstPlayed: launch.firstPlayed }) !== null;
+  return (
+    <Suspense fallback={<LaunchStill prefs={launch.prefs} show={showStill} />}>
+      <AppShell>{children}</AppShell>
+    </Suspense>
+  );
+}
+
+async function AppShell({ children }: { children: React.ReactNode }) {
   // Started alongside the profile (it only needs the cached auth user), so
   // its plan + unlocked-companions queries no longer wait behind the profile
   // on every page. The no-op catch only stops an "unhandled rejection" if we
@@ -148,6 +170,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         variant={launchVariant}
         prefs={cover}
         displayName={profile.display_name}
+        firstPlayed={Boolean(profile.opening_first_played_at)}
         isFirstTimeOpening={cover.openingMode === "first_time" && launchVariant !== null}
       />
     </I18nProvider>

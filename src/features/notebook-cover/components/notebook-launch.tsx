@@ -7,6 +7,7 @@ import type { CoverPreferences } from "@/lib/notebook-covers/config";
 import type { OpeningVariant } from "@/lib/notebook-covers/playback";
 import { isLaunchHandled } from "@/lib/notebook-covers/launch-state";
 import { markFirstOpeningPlayed } from "@/features/notebook-cover/actions";
+import { writeLaunchCookieClient } from "@/lib/notebook-covers/launch-cookie";
 
 /**
  * Plays the journal opening once per fresh app launch (a new document load)
@@ -24,11 +25,14 @@ export function NotebookLaunch({
   variant,
   prefs,
   displayName,
+  firstPlayed,
   isFirstTimeOpening,
 }: {
   variant: OpeningVariant | null;
-  prefs: Pick<CoverPreferences, "theme" | "decorations" | "name">;
+  prefs: Pick<CoverPreferences, "theme" | "decorations" | "name" | "openingMode">;
   displayName: string | null;
+  /** The account has already seen the full opening (database truth). */
+  firstPlayed: boolean;
   /** Mode "first_time" and not yet seen: record it once it has played. */
   isFirstTimeOpening: boolean;
 }) {
@@ -39,13 +43,21 @@ export function NotebookLaunch({
   const markedRef = useRef(false);
 
   useEffect(() => {
-    if (show && isFirstTimeOpening && !markedRef.current) {
+    const markNow = show && isFirstTimeOpening && !markedRef.current;
+    if (markNow) {
       markedRef.current = true;
       // Fire-and-forget: if it fails, the worst case is one more full
       // opening on the next launch.
       markFirstOpeningPlayed().catch(() => {});
     }
-  }, [show, isFirstTimeOpening]);
+    // Re-sync the launch cookie with the database on every launch, so the
+    // closed journal painted before the next launch's data arrives is the
+    // right one (e.g. after changing the cover on another device).
+    writeLaunchCookieClient({
+      prefs: { theme: prefs.theme, decorations: prefs.decorations, name: prefs.name, openingMode: prefs.openingMode },
+      firstPlayed: firstPlayed || markedRef.current,
+    });
+  }, [show, isFirstTimeOpening, firstPlayed, prefs.theme, prefs.decorations, prefs.name, prefs.openingMode]);
 
   if (!show || variant === null) return null;
   return (

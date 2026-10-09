@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { coverPreferencesSchema, type CoverPreferences } from "@/lib/notebook-covers/config";
+import { LAUNCH_COOKIE, LAUNCH_COOKIE_OPTIONS, encodeLaunchCookie } from "@/lib/notebook-covers/launch-cookie";
 
 export type SaveCoverResult =
   | { success: true }
@@ -60,6 +62,17 @@ export async function saveCoverPreferences(
       : { success: false, error: dict.notebookCover.errors.saveFailed, code: "failed" };
   }
 
+  // Keep the launch cookie in step, so the next launch paints this cover
+  // straight away (see launch-cookie.ts).
+  (await cookies()).set(
+    LAUNCH_COOKIE,
+    encodeLaunchCookie({
+      prefs: parsed.data,
+      firstPlayed: Boolean(options.markChosen || profile?.opening_first_played_at),
+    }),
+    LAUNCH_COOKIE_OPTIONS
+  );
+
   revalidatePath("/profile");
   revalidatePath("/profile/cover");
   return { success: true };
@@ -81,4 +94,6 @@ export async function markFirstOpeningPlayed(): Promise<void> {
     .eq("user_id", user.id)
     .is("opening_first_played_at", null);
   if (error && !isCoverSchemaMissing(error.code)) console.error("[notebook-cover] mark first opening failed:", error.code);
+  // No cookie write here: setting a cookie in a Server Action refreshes the
+  // route mid-launch. NotebookLaunch updates the launch cookie client-side.
 }

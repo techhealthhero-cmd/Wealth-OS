@@ -19,6 +19,21 @@ const bodyFont = IBM_Plex_Sans_Thai({
 const DESCRIPTION =
   "ระบบการเงินส่วนบุคคลที่ช่วยให้ผู้ใช้รู้สถานะทางการเงิน ควบคุมเงิน วางแผน เพิ่มรายได้ และสร้างความมั่งคั่ง — Know your money. Grow your income. Build your wealth.";
 
+/** iPhone portrait screens [css width, css height, pixel ratio]; files in public/splash. */
+const SPLASH_SCREENS: ReadonlyArray<readonly [number, number, number]> = [
+  [440, 956, 3],
+  [430, 932, 3],
+  [428, 926, 3],
+  [414, 896, 3],
+  [414, 896, 2],
+  [402, 874, 3],
+  [393, 852, 3],
+  [390, 844, 3],
+  [375, 812, 3],
+  [414, 736, 3],
+  [375, 667, 2],
+];
+
 /**
  * Day 8 STEP 11 (SEO/metadata). This is the DEFAULT for every route —
  * public pages (`/`, `/pricing`, `/login`, `/signup`) inherit it as-is and
@@ -43,6 +58,22 @@ export const metadata: Metadata = {
     title: "Wealth OS",
     description: DESCRIPTION,
   },
+  // iOS home-screen launch: without startup images iOS shows a blank white
+  // screen while the app loads. These are the closed journal on the desk
+  // (screenshots of LaunchStillScene), so a launch goes launch image ->
+  // the same closed journal in the page -> the journal opening.
+  appleWebApp: {
+    capable: true,
+    title: "Wealth OS",
+    statusBarStyle: "default",
+    startupImage: SPLASH_SCREENS.map(([w, h, dpr]) => ({
+      url: `/splash/iphone-${w * dpr}x${h * dpr}.png`,
+      media: `(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${dpr}) and (orientation: portrait)`,
+    })),
+  },
+  // Next emits only the generic "mobile-web-app-capable"; iOS reads the
+  // startup images above only alongside the apple-prefixed one.
+  other: { "apple-mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {
