@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans_Thai, Sriracha } from "next/font/google";
+import { IBM_Plex_Sans_Thai } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -14,14 +14,6 @@ const bodyFont = IBM_Plex_Sans_Thai({
   variable: "--font-sans",
   subsets: ["latin", "thai"],
   weight: ["400", "500", "600", "700"],
-});
-
-// Journal (2026-10-09): a Thai handwriting face for decorative page titles
-// only (.journal-heading) — never for numbers or anything critical.
-const handFont = Sriracha({
-  variable: "--font-hand",
-  subsets: ["latin", "thai"],
-  weight: "400",
 });
 
 const DESCRIPTION =
@@ -69,7 +61,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="th" className={`${bodyFont.variable} ${handFont.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="th" className={`${bodyFont.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AppFreshness />

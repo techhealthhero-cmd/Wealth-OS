@@ -40,10 +40,7 @@ if you need to know what's actually implemented right now, read
 
 ## Visual style — "WEALTH OS Journal" (owner-approved 2026-10-08)
 
-A premium personal finance **notebook**: the paper page laid inside a dark
-leather cover (a frame around it, stacked page edges on the right, big
-metal binder rings crossing from cover to page), handwritten page titles
-(Sriracha — titles only, never numbers), warm cream paper with faint grain, forest-green
+A premium personal finance **notebook**: warm cream paper, forest-green
 leather, ink text, binder rings on the left, colored section dividers on
 the right, paper slips for cards, and page turns between section tabs.
 The balance is **70% modern, practical finance app / 30% tactile notebook**
