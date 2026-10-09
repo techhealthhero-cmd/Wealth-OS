@@ -14,7 +14,7 @@ Checkpoint: git tag `pre-opening-modes` (pushed). Supersedes the "never on
 app launch" rule in the section below — the owner now wants a quick opening
 on every fresh launch by default.
 
-- **4 modes** (`profiles.notebook_opening_mode`): `quick` (default, ~0.45 s),
+- **4 modes** (`profiles.notebook_opening_mode`): `quick` (default, ~1 s — owner retimed it from 0.45 s the same day),
   `full` (~1.65 s, skippable), `first_time` (full once, then nothing —
   `profiles.opening_first_played_at`), `off`. Migration 0040 was edited in
   place (it had not been applied anywhere): the boolean
@@ -41,7 +41,7 @@ on every fresh launch by default.
   untouched and unaffected by this setting.
 
 **Verified** (dev server, demo account, Playwright 390px): overlay present in
-SSR HTML; scrubbed keyframe filmstrips of quick (0/80/160/240/320/400/449 ms)
+SSR HTML; scrubbed keyframe filmstrips of quick (at its original 0.45 s timing)
 and full; overlay removed after load; navigating money ↔ dashboard: 0
 overlays; reload: overlay again; quick end state opacity≈0 +
 pointer-events none; preview quick/full; Skip focused + Escape closes; no

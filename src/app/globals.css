@@ -727,7 +727,7 @@
  *
  * Timings mirror OPENING_TIMINGS (src/lib/notebook-covers/playback.ts):
  *   full  1650ms — closed 0–300 · cover opens 300–1050 · page 1050–1350 · exit 1350–1650
- *   quick  450ms — closed 0–80  · cover opens 80–320    · exit 320–450
+ *   quick 1000ms — closed 0–150 · cover opens 150–750   · exit 750–1000
  * No animation-delay anywhere: under prefers-reduced-motion the global rule
  * above collapses every duration, so everything lands on its end state
  * (overlay hidden) at once.
@@ -741,7 +741,7 @@
   animation-fill-mode: both;
 }
 .nb-open[data-variant="full"] { --nb-duration: 1650ms; }
-.nb-open[data-variant="quick"] { --nb-duration: 450ms; }
+.nb-open[data-variant="quick"] { --nb-duration: 1000ms; }
 .nb-open :is(.nb-book, .nb-cover, .nb-shade, .nb-reveal, .nb-desk, .nb-stage) {
   animation-duration: var(--nb-duration);
   animation-fill-mode: both;
@@ -795,29 +795,29 @@
   81.8%, 100% { opacity: 1; transform: translateY(0); }
 }
 
-/* --- quick (450ms) --- */
+/* --- quick (1000ms) --- */
 @keyframes nb-quick-overlay-out {
-  0%, 71.1% { opacity: 1; visibility: visible; animation-timing-function: ease-out; }
+  0%, 75% { opacity: 1; visibility: visible; animation-timing-function: ease-out; }
   99.9% { opacity: 0; visibility: visible; }
   100% { opacity: 0; visibility: hidden; pointer-events: none; }
 }
 @keyframes nb-quick-fade-out {
-  0%, 71.1% { opacity: 1; animation-timing-function: ease-out; }
+  0%, 75% { opacity: 1; animation-timing-function: ease-out; }
   100% { opacity: 0; }
 }
 @keyframes nb-quick-book {
   0% { transform: translateX(0) rotateY(8deg) scale(0.98); animation-timing-function: ease-out; }
-  17.8% { transform: translateX(0) rotateY(8deg) scale(1); animation-timing-function: cubic-bezier(0.5, 0.05, 0.2, 1); }
-  71.1% { transform: translateX(9%) rotateY(0deg) scale(1.02); }
+  15% { transform: translateX(0) rotateY(8deg) scale(1); animation-timing-function: cubic-bezier(0.5, 0.05, 0.2, 1); }
+  75% { transform: translateX(9%) rotateY(0deg) scale(1.02); }
   100% { transform: translateX(9%) rotateY(0deg) scale(1.03); }
 }
 @keyframes nb-quick-cover {
-  0%, 17.8% { transform: rotateY(0deg); animation-timing-function: cubic-bezier(0.5, 0.05, 0.2, 1); }
-  71.1%, 100% { transform: rotateY(-172deg); }
+  0%, 15% { transform: rotateY(0deg); animation-timing-function: cubic-bezier(0.5, 0.05, 0.2, 1); }
+  75%, 100% { transform: rotateY(-172deg); }
 }
 @keyframes nb-quick-shade {
-  0%, 17.8% { opacity: 1; animation-timing-function: cubic-bezier(0.5, 0.05, 0.2, 1); }
-  71.1%, 100% { opacity: 0; }
+  0%, 15% { opacity: 1; animation-timing-function: cubic-bezier(0.5, 0.05, 0.2, 1); }
+  75%, 100% { opacity: 0; }
 }
 
 /* Launch openings respect reduced motion by not appearing at all (an

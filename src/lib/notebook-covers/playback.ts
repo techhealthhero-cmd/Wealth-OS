@@ -4,7 +4,7 @@ import type { OpeningMode } from "./config";
  * When the notebook-opening animation plays, and which variant (pure,
  * unit-tested). Two variants share one component (NotebookOpening):
  *
- *  - "quick" (~0.45 s): the cover swings open and the app is right there.
+ *  - "quick" (~1 s): the cover swings open and the app is right there.
  *    The default on every fresh app launch.
  *  - "full"  (~1.65 s): closed journal → cover opens → the first page says
  *    hello → the app. Skippable.
@@ -62,11 +62,11 @@ export function getInAppVariant(
  * Stage timings in ms. The CSS keyframes in globals.css (.nb-open) are
  * written from these numbers — change both together.
  *  full:  closed 300 → cover opens 750 → page reveal 300 → exit 300
- *  quick: closed 80 → cover opens 240 → settle/exit 130
+ *  quick: closed 150 → cover opens 600 → settle/exit 250
  */
 export const OPENING_TIMINGS = {
   full: { closed: 300, open: 750, reveal: 300, exit: 300 },
-  quick: { closed: 80, open: 240, reveal: 0, exit: 130 },
+  quick: { closed: 150, open: 600, reveal: 0, exit: 250 },
 } as const;
 
 export function totalOpeningDuration(variant: OpeningVariant): number {

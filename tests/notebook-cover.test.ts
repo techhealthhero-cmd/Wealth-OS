@@ -151,13 +151,12 @@ describe("in-app openings", () => {
 });
 
 describe("opening timings", () => {
-  it("full stays within 1.2–1.8 s and quick within 0.3–0.5 s", () => {
+  it("full stays within 1.2–1.8 s and quick is about 1 s", () => {
     expect(OPENING_TIMINGS.full.open).toBeGreaterThanOrEqual(600);
     expect(OPENING_TIMINGS.full.open).toBeLessThanOrEqual(800);
     expect(totalOpeningDuration("full")).toBeGreaterThanOrEqual(1200);
     expect(totalOpeningDuration("full")).toBeLessThanOrEqual(1800);
-    expect(totalOpeningDuration("quick")).toBeGreaterThanOrEqual(300);
-    expect(totalOpeningDuration("quick")).toBeLessThanOrEqual(500);
+    expect(totalOpeningDuration("quick")).toBe(1000);
   });
 
   it("the CSS keyframes use the same total durations", () => {

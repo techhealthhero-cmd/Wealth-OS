@@ -112,7 +112,7 @@ export function NotebookOpening({
       data-launch={launch ? "true" : undefined}
       className={cn(
         "nb-open fixed inset-0 z-[200] flex items-center justify-center overflow-hidden bg-background",
-        // The quick opening never blocks a tap, even for its 0.45 s.
+        // The quick opening never blocks a tap, even for its ~1 s.
         !showSkip && "pointer-events-none"
       )}
     >

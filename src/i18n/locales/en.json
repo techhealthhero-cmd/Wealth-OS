@@ -2850,7 +2850,7 @@
           { "emoji": "🟢", "title": "Safe-to-Spend", "description": "How much you can spend today without hurting your budget or goals." },
           { "emoji": "🧭", "title": "Next Best Action", "description": "The single top recommendation the system picked for you specifically." },
           { "emoji": "🧾", "title": "Recent Transactions", "description": "Your latest transactions with each account's balance — tap to view or edit." },
-          { "emoji": "📔", "title": "Your journal cover", "description": "Choose from 5 covers, add a sticker and name your journal in Profile → Theme & cover. Each fresh launch, the journal flips open in under half a second — switch to the full opening, first time only, or off under Journal opening animation (moving between pages never replays it)." }
+          { "emoji": "📔", "title": "Your journal cover", "description": "Choose from 5 covers, add a sticker and name your journal in Profile → Theme & cover. Each fresh launch, the journal flips open in about a second — switch to the full opening, first time only, or off under Journal opening animation (moving between pages never replays it)." }
         ]
       },
       {
@@ -3169,7 +3169,7 @@
       },
       "quick": {
         "name": "Quick opening",
-        "duration": "0.3–0.5 s",
+        "duration": "About 1 s",
         "description": "A short cover flip, then the app right away — every fresh launch. Never blocks a tap."
       },
       "first_time": {
