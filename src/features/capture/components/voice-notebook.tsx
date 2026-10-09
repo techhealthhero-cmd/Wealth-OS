@@ -1,9 +1,9 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { Mic, X } from "lucide-react";
+import { Keyboard, Mic, MoreHorizontal, X } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
 import { useTranslation } from "@/i18n/client";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import { handFont } from "@/components/notebook/hand-font";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { SuccessBadge } from "@/components/illustrations";
 import { cheerCompanion } from "@/features/companions/presence";
 import { deleteTransaction } from "@/features/transactions/actions";
@@ -24,14 +25,16 @@ interface VoiceNotebookProps {
   onClose: () => void;
   /** What has been heard so far (owned by QuickAdd, which also owns the mic). */
   transcript: string;
+  /** The user typed on the paper: their text replaces the transcript. */
+  onTranscriptChange: (text: string) => void;
   listening: boolean;
   micError: string | null;
   onMicStart: () => void;
   onMicStop: () => void;
   accounts: Account[];
   categories: Category[];
-  /** "แก้ไข / พิมพ์เอง": hand the words over to the full Quick Capture sheet. */
-  onEdit: (text: string) => void;
+  /** "More" (header): hand the words over to the full Quick Capture sheet — slips, income, transfer. */
+  onMore: (text: string) => void;
 }
 
 interface Row {
@@ -52,15 +55,27 @@ export function VoiceNotebook({
   open,
   onClose,
   transcript,
+  onTranscriptChange,
   listening,
   micError,
   onMicStart,
   onMicStop,
   accounts,
   categories,
-  onEdit,
+  onMore,
 }: VoiceNotebookProps) {
   const { t, locale } = useTranslation();
+  const keyboardInset = useKeyboardInset(open);
+  // The handwriting IS a text box: tapping a word puts the caret right
+  // there and opens the keyboard (a real tap on the field is what lets
+  // iOS show it), so corrections happen on the paper itself.
+  const paperRef = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = paperRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [transcript, open]);
   const [preferences, setPreferences] = useState<CaptureMerchantPreference[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -213,6 +228,8 @@ export function VoiceNotebook({
       aria-modal="true"
       aria-labelledby="voice-notebook-title"
       className="journal-page fixed inset-0 z-[60] flex flex-col overflow-hidden bg-background text-foreground animate-in fade-in-0 slide-in-from-bottom-6 duration-300 motion-reduce:animate-none"
+      // iOS lays the keyboard over the page: lift the buttons above it.
+      style={keyboardInset ? { paddingBottom: keyboardInset } : undefined}
     >
       {/* Red margin line of a ruled notebook page. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-12 w-px bg-[rgba(194,65,45,0.35)]" />
@@ -224,6 +241,15 @@ export function VoiceNotebook({
             {t("capture.voice.title")}
           </h2>
         </div>
+        <div className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onMore(transcript)}
+          aria-label={t("capture.voice.more")}
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground/5 transition-colors hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <MoreHorizontal className="size-5" aria-hidden="true" />
+        </button>
         <button
           ref={closeRef}
           type="button"
@@ -233,22 +259,29 @@ export function VoiceNotebook({
         >
           <X className="size-5" aria-hidden="true" />
         </button>
+        </div>
       </header>
 
       <div className="relative min-h-0 flex-1 overflow-y-auto pt-8 pr-5 pb-4 pl-16">
-        <p
-          aria-live="polite"
+        <textarea
+          ref={paperRef}
+          value={transcript}
+          onChange={(e) => onTranscriptChange(e.target.value)}
+          // Typing and dictating at once would fight over the text.
+          onFocus={() => {
+            if (listening) onMicStop();
+          }}
+          rows={1}
+          placeholder={t("capture.voice.placeholder")}
+          aria-label={t("capture.voice.paperLabel")}
           className={cn(
             handFont.className,
-            "min-h-20 text-[clamp(1.6rem,7.5vw,2.1rem)] leading-snug break-words",
-            transcript ? "text-[#1f3d6b] dark:text-[#9db8e6]" : "text-muted-foreground/70"
+            "block min-h-20 w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[clamp(1.6rem,7.5vw,2.1rem)] leading-snug break-words",
+            "text-[#1f3d6b] caret-[#1f3d6b] placeholder:text-muted-foreground/70 focus:outline-none dark:text-[#9db8e6] dark:caret-[#9db8e6]",
+            // A faint highlighter band shows the line is being edited.
+            "rounded-sm focus:bg-[var(--journal-highlight)]/25"
           )}
-        >
-          {transcript || t("capture.voice.placeholder")}
-          {listening ? (
-            <span aria-hidden="true" className="ml-1 inline-block h-[0.9em] w-0.5 animate-pulse bg-current align-[-0.1em]" />
-          ) : null}
-        </p>
+        />
 
         {rows.length > 0 ? (
           <ul className="mt-6 flex flex-col gap-3">
@@ -294,7 +327,8 @@ export function VoiceNotebook({
       </div>
 
       <div className="relative flex flex-col items-center gap-5 px-5 pt-2 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] before:pointer-events-none before:absolute before:inset-x-0 before:-top-10 before:h-10 before:bg-gradient-to-t before:from-background before:to-transparent">
-        <div className="relative flex size-36 items-center justify-center">
+        {/* While typing (keyboard up) the big mic steps aside for the text. */}
+        <div className={cn("relative size-36 items-center justify-center", keyboardInset ? "hidden" : "flex")}>
           {listening ? (
             <>
               <span aria-hidden="true" className="absolute inset-0 rounded-full border border-[#c7a15c]/40 bg-[#c7a15c]/10 motion-safe:animate-ping [animation-duration:2s]" />
@@ -319,10 +353,17 @@ export function VoiceNotebook({
         <div className="flex w-full max-w-md gap-3">
           <button
             type="button"
-            onClick={() => onEdit(transcript)}
-            className="h-12 flex-1 rounded-2xl border border-[#cdbf9f] text-base font-semibold transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/20"
+            onClick={() => {
+              // Focus inside the tap itself, so iOS opens the keyboard.
+              const el = paperRef.current;
+              if (!el) return;
+              el.focus();
+              el.setSelectionRange(el.value.length, el.value.length);
+            }}
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[#cdbf9f] text-base font-semibold transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/20"
           >
-            {t("capture.voice.edit")}
+            <Keyboard className="size-5" aria-hidden="true" />
+            {t("capture.voice.type")}
           </button>
           <button
             type="button"

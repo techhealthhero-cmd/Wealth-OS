@@ -61,8 +61,11 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
   const [voiceText, setVoiceText] = useState("");
   // Late transcripts from a session that was already closed are ignored.
   const voiceActiveRef = useRef(false);
+  // Once the user types on the paper, a late transcript from the mic they
+  // just stopped must not overwrite their correction.
+  const typedRef = useRef(false);
   const speech = useSpeechInput(locale, (text) => {
-    if (voiceActiveRef.current) setVoiceText(text);
+    if (voiceActiveRef.current && !typedRef.current) setVoiceText(text);
   });
   const [captureInitialText, setCaptureInitialText] = useState<string | null>(null);
   const [carryOverAmount, setCarryOverAmount] = useState<string | undefined>(undefined);
@@ -90,6 +93,7 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
 
   function openVoice() {
     voiceActiveRef.current = true;
+    typedRef.current = false;
     setVoiceText("");
     // Must stay synchronous inside the tap (see the speech hook above).
     speech.startHold("");
@@ -311,13 +315,21 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
           open={voiceOpen}
           onClose={closeVoice}
           transcript={voiceText}
+          onTranscriptChange={(text) => {
+            typedRef.current = true;
+            setVoiceText(text);
+          }}
           listening={speech.listening}
           micError={speech.error}
-          onMicStart={() => speech.startHold(voiceText)}
+          onMicStart={() => {
+            // Speaking again appends to the page as it now reads.
+            typedRef.current = false;
+            speech.startHold(voiceText);
+          }}
           onMicStop={() => speech.stopHold()}
           accounts={liveOptions.accounts}
           categories={liveOptions.categories}
-          onEdit={(text) => {
+          onMore={(text) => {
             closeVoice();
             void loadQuickCaptureSheet();
             openCapture(text.trim() || null);
