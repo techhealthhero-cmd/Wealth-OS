@@ -69,6 +69,28 @@
     "importStatement": "Import CSV"
   },
   "capture": {
+    "voice": {
+      "title": "Voice note",
+      "close": "Close",
+      "placeholder": "Just speak, e.g. “coffee 80 baht”",
+      "listening": "Listening…",
+      "paused": "Stopped — tap the mic to keep talking",
+      "keepTalking": "Keep going, e.g. “taxi 120”",
+      "micStart": "Start talking",
+      "micStop": "Stop listening",
+      "noAmount": "No amount heard yet",
+      "edit": "Edit / type it",
+      "save": "Save {n} items",
+      "saveOne": "Save",
+      "saving": "Saving…",
+      "expense": "Expense",
+      "income": "Income",
+      "today": "Today",
+      "noAccount": "No account yet — add one first",
+      "micBlocked": "The app isn’t allowed to use the mic — enable it in Settings, or type instead",
+      "micError": "Couldn’t listen. Tap the mic to try again, or type instead",
+      "fab": "Record income or expenses by voice"
+    },
     "scanningSteps": [
       "Reading your slip…",
       "Finding the amount and date…",
@@ -2806,7 +2828,7 @@
         {
           "emoji": "✍️",
           "title": "Log your income and expenses",
-          "description": "Every time money comes in or goes out, tap \"+\" to log it. The app updates your balances and net worth automatically."
+          "description": "Every time money comes in or goes out, tap the gold mic in the middle and say it (or use the Expense/Income buttons on Home). The app updates your balances and net worth automatically."
         },
         {
           "emoji": "🎯",
@@ -2859,7 +2881,8 @@
         "title": "Money",
         "description": "Where every baht gets logged and tracked — from daily income and expenses to every asset and liability you own.",
         "items": [
-          { "emoji": "⚡", "title": "Quick capture (center + button)", "description": "Type something short like \"lunch 80 cash\" or \"Grab 145\". Amount, category and account are filled in for you, then tap ✓ to save. You can also speak, or scan a slip/receipt (always confirmed by you, never saved automatically). Need every field? Tap \"Manual entry\"." },
+          { "emoji": "🎙️", "title": "Voice notes (center mic button)", "description": "Tap the gold mic and just speak, e.g. \"coffee 80 baht cash\". Your words are written onto the notebook page and split into items to check. Say several in a row, tap the mic again to stop, then tap \"Save\" (nothing is saved until you do). To fix or type it, tap \"Edit / type it\". On phones without speech recognition the button opens typed quick capture instead." },
+          { "emoji": "⚡", "title": "Quick capture (typing)", "description": "Type something short like \"lunch 80 cash\" or \"Grab 145\". Amount, category and account are filled in for you, then tap ✓ to save. You can also speak, or scan a slip/receipt (always confirmed by you, never saved automatically). Need every field? Tap \"Manual entry\"." },
           { "emoji": "🎙️", "title": "Talk through your whole day", "description": "In Quick capture, hold the center mic and say every item of your day in one go — e.g. \"lunch 40 water 10 bike taxi 40 salary 20,000\". Release, and the app splits it into items, marks income vs expense and picks categories. Check or tap to fix, then confirm once. Categories you confirm are remembered for next time. (A single tap also starts listening; tap again to stop.)" },
           { "emoji": "📅", "title": "Record an earlier day", "description": "In Quick capture, tap the \"📅 Today\" pill under the text box and swipe the wheel down to go back — yesterday, 30 Sep, and so on (90 days; older days via the calendar). Everything you add, including a spoken day recap, is saved on that day. The pill turns amber while backdating and resets to today when you close the sheet." },
           { "emoji": "📥", "title": "Today's inbox", "description": "Today's quick captures and anything with a guessed category appear in a card on Home. Tap ✓ to confirm or tap the category to fix it; the app remembers that merchant next time. Swipe an item left to delete it (tap Undo within 5 seconds to bring it back), or right to edit it." },

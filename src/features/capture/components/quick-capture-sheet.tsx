@@ -63,6 +63,8 @@ interface QuickCaptureSheetProps {
   onManual: (prefill: TransactionPrefill) => void;
   onIncome: () => void;
   onTransfer: () => void;
+  /** Words handed over from the voice notebook ("แก้ไข / พิมพ์เอง"), filled in on open. */
+  initialText?: string | null;
 }
 
 type ReceiptState =
@@ -96,6 +98,7 @@ export function QuickCaptureSheet({
   onManual,
   onIncome,
   onTransfer,
+  initialText = null,
 }: QuickCaptureSheetProps) {
   const { t, locale } = useTranslation();
   // A string-array dictionary entry (live-status steps), with a single-line fallback.
@@ -178,6 +181,20 @@ export function QuickCaptureSheet({
     setOverrides({});
     setText(transcript);
   });
+
+  // Voice notebook hand-off: start from what was said, once per open.
+  const appliedInitialRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) {
+      appliedInitialRef.current = null;
+      return;
+    }
+    if (!initialText || appliedInitialRef.current === initialText) return;
+    appliedInitialRef.current = initialText;
+    setTextSource("voice");
+    setOverrides({});
+    setText(initialText);
+  }, [open, initialText]);
 
   // Learned merchant → category mappings: fetched once per open, cheap.
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { ArrowLeftRight, CircleMinus, CirclePlus, Plus, TrendingDown, TrendingUp } from "lucide-react";
 
@@ -18,6 +18,7 @@ import type { TransactionPrefill } from "./transaction-form";
 import { getQuickAddOptions } from "@/features/transactions/actions";
 import { asTrigger } from "@/lib/as-trigger";
 import { useTranslation } from "@/i18n/client";
+import { useSpeechInput } from "@/lib/speech/use-speech-input";
 
 type QuickAddDialog = "expense" | "income" | "transfer" | null;
 
@@ -27,6 +28,8 @@ const loadQuickCaptureSheet = () => import("@/features/capture/components/quick-
 const TransactionForm = dynamic(() => loadTransactionForm().then((module) => module.TransactionForm), { ssr: false });
 const TransferForm = dynamic(() => loadTransferForm().then((module) => module.TransferForm), { ssr: false });
 const QuickCaptureSheet = dynamic(() => loadQuickCaptureSheet().then((module) => module.QuickCaptureSheet), { ssr: false });
+const loadVoiceNotebook = () => import("@/features/capture/components/voice-notebook");
+const VoiceNotebook = dynamic(() => loadVoiceNotebook().then((module) => module.VoiceNotebook), { ssr: false });
 
 interface QuickAddProps {
   accounts?: Account[];
@@ -47,8 +50,21 @@ interface QuickAddProps {
 type PendingSwitch = { dialog: Exclude<QuickAddDialog, null>; amount: string } | null;
 
 export function QuickAdd({ accounts = [], categories = [], variant = "inline" }: QuickAddProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [activeDialog, setActiveDialog] = useState<QuickAddDialog>(null);
+  // Voice notebook (the center mic). The recognizer lives HERE, not in the
+  // lazily loaded notebook, so listening starts inside the tap itself —
+  // iOS only lets speech recognition start from a user gesture.
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceMounted, setVoiceMounted] = useState(false);
+  if (voiceOpen && !voiceMounted) setVoiceMounted(true);
+  const [voiceText, setVoiceText] = useState("");
+  // Late transcripts from a session that was already closed are ignored.
+  const voiceActiveRef = useRef(false);
+  const speech = useSpeechInput(locale, (text) => {
+    if (voiceActiveRef.current) setVoiceText(text);
+  });
+  const [captureInitialText, setCaptureInitialText] = useState<string | null>(null);
   const [carryOverAmount, setCarryOverAmount] = useState<string | undefined>(undefined);
   const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch>(null);
   const [captureOpen, setCaptureOpen] = useState(false);
@@ -72,11 +88,40 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
     }
   }
 
+  function openVoice() {
+    voiceActiveRef.current = true;
+    setVoiceText("");
+    // Must stay synchronous inside the tap (see the speech hook above).
+    speech.startHold("");
+    setVoiceOpen(true);
+    void refreshNavOptions();
+  }
+
+  const closeVoice = useCallback(() => {
+    voiceActiveRef.current = false;
+    speech.stopHold();
+    setVoiceOpen(false);
+    setVoiceText("");
+    // stopHold is a stable-enough closure over refs; re-creating it per
+    // render would re-run the notebook's open effect on every word.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function openCapture(initialText: string | null = null) {
+    setCaptureInitialText(initialText);
+    setCaptureOpen(true);
+    void refreshNavOptions();
+  }
+
   useEffect(() => {
     if (variant !== "nav-center") return;
     const timer = window.setTimeout(() => void refreshNavOptions(), 900);
-    const idleId = window.requestIdleCallback?.(() => void loadQuickCaptureSheet());
-    const fallbackId = idleId === undefined ? window.setTimeout(() => void loadQuickCaptureSheet(), 2500) : undefined;
+    const warm = () => {
+      void loadQuickCaptureSheet();
+      void loadVoiceNotebook();
+    };
+    const idleId = window.requestIdleCallback?.(warm);
+    const fallbackId = idleId === undefined ? window.setTimeout(warm, 2500) : undefined;
     return () => {
       window.clearTimeout(timer);
       if (idleId !== undefined) window.cancelIdleCallback?.(idleId);
@@ -168,10 +213,14 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
         // click target, sized like a normal nav cell.
         <button
           type="button"
-          onPointerDown={() => void loadQuickCaptureSheet()}
+          onPointerDown={() => void (speech.supported ? loadVoiceNotebook() : loadQuickCaptureSheet())}
           onClick={() => {
-            setCaptureOpen(true);
-            void refreshNavOptions();
+            // The center button is a mic (2026-10-10): it opens the voice
+            // notebook already listening. Where the browser has no speech
+            // recognition it falls back to Quick Capture (typing), so it
+            // is never a dead button.
+            if (speech.supported) openVoice();
+            else openCapture();
           }}
           // `data-fab-trigger`: BottomNav's visible circle watches this
           // button's :active state to play its press animation. The
@@ -179,7 +228,7 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
           // circle that floats above the bar, so the whole "+" is tappable.
           data-fab-trigger=""
           className="relative flex flex-1 touch-manipulation select-none flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-medium outline-none before:absolute before:-top-7 before:left-1/2 before:size-16 before:-translate-x-1/2 before:rounded-full"
-          aria-label={t("capture.title")}
+          aria-label={speech.supported ? t("capture.voice.fab") : t("capture.title")}
           aria-haspopup="dialog"
         >
           <Plus className="h-5 w-5 opacity-0" aria-hidden="true" />
@@ -254,6 +303,25 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
           }}
           onIncome={() => openDialog("income")}
           onTransfer={() => openDialog("transfer")}
+          initialText={captureInitialText}
+        />
+      ) : null}
+      {variant === "nav-center" && voiceMounted ? (
+        <VoiceNotebook
+          open={voiceOpen}
+          onClose={closeVoice}
+          transcript={voiceText}
+          listening={speech.listening}
+          micError={speech.error}
+          onMicStart={() => speech.startHold(voiceText)}
+          onMicStop={() => speech.stopHold()}
+          accounts={liveOptions.accounts}
+          categories={liveOptions.categories}
+          onEdit={(text) => {
+            closeVoice();
+            void loadQuickCaptureSheet();
+            openCapture(text.trim() || null);
+          }}
         />
       ) : null}
     </>
