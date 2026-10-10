@@ -22,6 +22,8 @@ import { getCategories } from "@/features/categories/queries";
 export interface ActionResult {
   error?: string;
   success?: boolean;
+  /** The created row (createTransfer) — lets a caller offer "Undo". */
+  transactionId?: string;
 }
 
 /**
@@ -285,7 +287,7 @@ export async function createTransfer(
 
   const clientRequestId = readClientRequestId(formData);
 
-  const { error } = await supabase.rpc("create_transfer", {
+  const { data, error } = await supabase.rpc("create_transfer", {
     p_from_account_id: parsed.data.from_account_id,
     p_to_account_id: parsed.data.to_account_id,
     p_amount: parsed.data.amount,
@@ -299,7 +301,7 @@ export async function createTransfer(
     revalidatePath("/money/transactions");
     revalidatePath("/money/accounts");
     revalidatePath("/dashboard");
-    return { success: true };
+    return { success: true, transactionId: data?.id };
   }
 
   return {

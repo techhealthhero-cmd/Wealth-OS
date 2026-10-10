@@ -14,10 +14,11 @@ import { handFont } from "@/components/notebook/hand-font";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { SuccessBadge } from "@/components/illustrations";
 import { cheerCompanion } from "@/features/companions/presence";
-import { deleteTransaction } from "@/features/transactions/actions";
+import { createTransfer, deleteTransaction } from "@/features/transactions/actions";
 import { getCapturePreferences, saveCapturedTransaction } from "@/features/capture/actions";
 import type { CaptureMerchantPreference, ParseContext } from "@/lib/capture/transaction-parser";
 import { parseRecap } from "@/lib/capture/recap";
+import { detectTransfer, type TransferAccounts } from "@/lib/capture/transfer";
 import { buildCaptureSaveInput, canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
 
 interface VoiceNotebookProps {
@@ -40,6 +41,8 @@ interface VoiceNotebookProps {
 interface Row {
   id: string;
   draft: CaptureDraft;
+  /** "โอนเงินจาก Cash ไป Dime 3000": a move between the user's own accounts, saved as a transfer. */
+  transfer: TransferAccounts | null;
 }
 
 /**
@@ -134,9 +137,10 @@ export function VoiceNotebook({
         source: "voice",
         categoryConfirmedByUser: false,
       },
+      transfer: detectTransfer(item.sourceText, accounts),
     }));
-  }, [parseText, ctx]);
-  const saveable = rows.filter((r) => canSaveDraft(r.draft));
+  }, [parseText, ctx, accounts]);
+  const saveable = rows.filter((r) => (r.transfer ? r.draft.amountCents !== null : canSaveDraft(r.draft)));
 
   const dateFormat = locale === "th" ? "th-TH" : "en-US";
   const headerDate = new Intl.DateTimeFormat(dateFormat, { weekday: "long", day: "numeric", month: "short" }).format(new Date());
@@ -174,6 +178,27 @@ export function VoiceNotebook({
     let lastAmount = 0;
     for (const row of saveable) {
       const requestId = (requestIdsRef.current[row.id] ??= crypto.randomUUID());
+      if (row.transfer && row.draft.amountCents !== null) {
+        // Same server action (and idempotency key) as the manual transfer form.
+        const form = new FormData();
+        form.set("from_account_id", row.transfer.fromAccountId);
+        form.set("to_account_id", row.transfer.toAccountId);
+        form.set("amount", (row.draft.amountCents / 100).toFixed(2));
+        form.set("transaction_date", row.draft.date);
+        form.set("client_request_id", requestId);
+        try {
+          const result = await createTransfer(undefined, form);
+          if (result.success) {
+            saved += 1;
+            lastAmount = row.draft.amountCents;
+            if (result.transactionId) savedIds.push(result.transactionId);
+            delete requestIdsRef.current[row.id];
+          } else failed += 1;
+        } catch {
+          failed += 1;
+        }
+        continue;
+      }
       const reviewed = row.draft.categorySource !== "fallback" && row.draft.categoryId !== null;
       const payload = buildCaptureSaveInput({ ...row.draft, categoryConfirmedByUser: reviewed }, requestId);
       try {
@@ -287,7 +312,14 @@ export function VoiceNotebook({
           <ul className="mt-6 flex flex-col gap-3">
             {rows.map((row, i) => {
               const d = row.draft;
-              const details = [categoryName(d.categoryId), accountName(d.accountId), dayLabel(d.date)].filter(Boolean).join(" · ");
+              const tr = row.transfer;
+              const details = (
+                tr
+                  ? [`${accountName(tr.fromAccountId)} → ${accountName(tr.toAccountId)}`, dayLabel(d.date)]
+                  : [categoryName(d.categoryId), accountName(d.accountId), dayLabel(d.date)]
+              )
+                .filter(Boolean)
+                .join(" · ");
               return (
                 <li
                   key={row.id}
@@ -298,8 +330,17 @@ export function VoiceNotebook({
                   )}
                 >
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className={cn("text-sm font-semibold", d.type === "income" ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400")}>
-                      {d.type === "income" ? t("capture.voice.income") : t("capture.voice.expense")}
+                    <span
+                      className={cn(
+                        "text-sm font-semibold",
+                        tr
+                          ? "text-sky-700 dark:text-sky-400"
+                          : d.type === "income"
+                            ? "text-emerald-700 dark:text-emerald-400"
+                            : "text-rose-700 dark:text-rose-400"
+                      )}
+                    >
+                      {tr ? t("capture.voice.transfer") : d.type === "income" ? t("capture.voice.income") : t("capture.voice.expense")}
                     </span>
                     {d.amountCents !== null ? (
                       <span className="text-xl font-bold tabular-nums">{formatMoney(d.amountCents)}</span>
