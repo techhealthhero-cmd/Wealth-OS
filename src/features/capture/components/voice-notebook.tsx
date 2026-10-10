@@ -97,6 +97,9 @@ export function VoiceNotebook({
   const closeRef = useRef<HTMLButtonElement>(null);
   const [isClient, setIsClient] = useState(false);
   // Accounts the user tapped for a transfer side the words didn't settle.
+  // Keyed by row id ("<index>:<the item's own words>"), so a pick stays while
+  // the user keeps dictating other items, and falls away by itself the moment
+  // that item's words change — no stale pick is ever reused.
   const [picks, setPicks] = useState<Record<string, Partial<Record<Side, string>>>>({});
   const [picker, setPicker] = useState<PickerTarget | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
@@ -156,12 +159,6 @@ export function VoiceNotebook({
   );
   // Parsing trails live dictation at low priority, so the writing stays smooth.
   const parseText = useDeferredValue(transcript);
-  useEffect(() => {
-    // A choice belongs to the words that were on the page when it was made.
-    // Dictating/editing again must not silently reuse a pick from old text.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPicks({});
-  }, [parseText]);
   const rows: Row[] = useMemo(() => {
     if (!parseText.trim()) return [];
     return parseRecap(parseText, ctx).map((item, i) => ({
