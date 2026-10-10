@@ -7,6 +7,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SwipeTabPages, prefetchFull, type SwipeTabPagesHandle } from "./swipe-tab-pages";
+import { bookNeighbour } from "./journal-book";
 
 export interface SegmentedTabItem {
   href: string;
@@ -160,7 +161,15 @@ export function SegmentedTabs({
         </div>
       </nav>
       {children !== undefined ? (
-        <SwipeTabPages hrefs={hrefs} activeIndex={activeIndex} handleRef={pagesRef}>
+        <SwipeTabPages
+          hrefs={hrefs}
+          activeIndex={activeIndex}
+          handleRef={pagesRef}
+          // The journal is one book: past this section's first/last tab the
+          // swipe turns into the neighbouring section (or back to Home).
+          prevHref={bookNeighbour(hrefs[0], -1)}
+          nextHref={bookNeighbour(hrefs[hrefs.length - 1], 1)}
+        >
           {children}
         </SwipeTabPages>
       ) : null}

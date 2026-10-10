@@ -88,7 +88,20 @@ interface Flight {
   arrived: boolean;
   stop: () => void;
   waitTimer: number;
+  /**
+   * The turn leads into ANOTHER section (Money's last tab → Plan's first):
+   * this wrapper unmounts mid-turn, and the next section's wrapper picks the
+   * flight up when it mounts — so it must not be cancelled on unmount.
+   */
+  crossing: boolean;
 }
+
+/**
+ * The page-turn in progress, shared by every SwipeTabPages on screen. Module
+ * level (not per instance) so a turn that crosses into another section —
+ * whose layout mounts a NEW wrapper — is finished by that new wrapper.
+ */
+const flightRef: { current: Flight | null } = { current: null };
 
 /**
  * Elements that own horizontal drags themselves: native horizontal
@@ -159,7 +172,9 @@ function makeCurl(el: HTMLElement, cornerAtBottom: boolean): Curl | null {
 
   const frontWrap = box({ width: `${2 * l}px`, height: `${l}px`, overflow: "hidden", willChange: "transform" });
   const frontInner = box({ width: `${w}px`, height: `${h}px`, background: "var(--background)", willChange: "transform" });
-  frontInner.classList.add("journal-page");
+  // "page-curl-sheet" freezes the copy: cards that fade in on mount would
+  // otherwise replay that fade from transparent in the snapshot.
+  frontInner.classList.add("journal-page", "page-curl-sheet");
   const clone = el.cloneNode(true) as HTMLElement;
   clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
   clone.removeAttribute("style");
@@ -267,22 +282,32 @@ export function SwipeTabPages({
   activeIndex,
   children,
   handleRef,
+  prevHref = null,
+  nextHref = null,
+  onCloseBook,
 }: {
   hrefs: string[];
   activeIndex: number;
   children: ReactNode;
   handleRef?: Ref<SwipeTabPagesHandle>;
+  /** The book page before this section's first tab (the previous section's last page). */
+  prevHref?: string | null;
+  /** The book page after this section's last tab (the next section's first page). */
+  nextHref?: string | null;
+  /** First page of the book (Home): swiping back closes the cover instead. */
+  onCloseBook?: () => void;
 }) {
   const router = useRouter();
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const flightRef = useRef<Flight | null>(null);
   // The sheet being curled by the finger before the swipe commits.
   const dragCurlRef = useRef<Curl | null>(null);
   const activeIndexRef = useRef(activeIndex);
   const hrefsRef = useRef(hrefs);
+  const edgesRef = useRef({ prevHref, nextHref, onCloseBook });
   useEffect(() => {
     activeIndexRef.current = activeIndex;
     hrefsRef.current = hrefs;
+    edgesRef.current = { prevHref, nextHref, onCloseBook };
   });
 
   function showLive() {
@@ -310,7 +335,7 @@ export function SwipeTabPages({
   }
 
   /** Forward: curl the old page the rest of the way over; holds at HOLD_AT until the next page has rendered. */
-  function turnForward(curl: Curl) {
+  function turnForward(curl: Curl, crossing: boolean) {
     const to = turnedCornerPosition(curl.c, curl.w, curl.h);
     const from = curl.p;
     const remaining = Math.min(Math.max((from.x - to.x) / (curl.c.x - to.x), 0.4), 1);
@@ -321,6 +346,7 @@ export function SwipeTabPages({
       arrived: false,
       stop: () => undefined,
       waitTimer: window.setTimeout(endFlight, MAX_WAIT_MS),
+      crossing,
     };
     flightRef.current = flight;
     flight.stop = runCurl(curl, from, to, TURN_MS * remaining, {
@@ -333,7 +359,7 @@ export function SwipeTabPages({
   }
 
   /** Back: keep the current page as a flat sheet until the previous page renders, which then curls in on top. */
-  function holdForBack(under: Curl) {
+  function holdForBack(under: Curl, crossing: boolean) {
     flightRef.current = {
       dir: -1,
       curl: null,
@@ -341,10 +367,11 @@ export function SwipeTabPages({
       arrived: false,
       stop: () => undefined,
       waitTimer: window.setTimeout(endFlight, MAX_WAIT_MS),
+      crossing,
     };
   }
 
-  function start(dir: PageFlipDirection, curlFromDrag: Curl | null) {
+  function start(dir: PageFlipDirection, curlFromDrag: Curl | null, crossing = false) {
     endFlight();
     const el = wrapperRef.current;
     if (!el || prefersReducedMotion()) {
@@ -358,8 +385,8 @@ export function SwipeTabPages({
     if (!curl) return;
     // The sheet stands in for the live page until the new one renders.
     el.style.opacity = "0";
-    if (dir === 1) turnForward(curl);
-    else holdForBack(curl);
+    if (dir === 1) turnForward(curl, crossing);
+    else holdForBack(curl, crossing);
   }
 
   useImperativeHandle(handleRef, () => ({ beginFlip: (dir) => start(dir, null) }));
@@ -420,15 +447,19 @@ export function SwipeTabPages({
       const i = activeIndex + d;
       if (d !== 0 && i >= 0 && i < hrefs.length) warm(hrefs[i]);
     }
+    // The neighbouring sections' facing pages, so a turn across sections lands ready too.
+    if (prevHref) warm(prevHref);
+    if (nextHref) warm(nextHref);
     return () => {
       live = false;
     };
-  }, [activeIndex, hrefs, router]);
+  }, [activeIndex, hrefs, prevHref, nextHref, router]);
 
-  // Leaving the section mid-turn: drop any sheets.
+  // Leaving the section mid-turn: drop any sheets — unless the turn itself
+  // is what's taking us to the next section (that section finishes it).
   useEffect(
     () => () => {
-      endFlight();
+      if (!flightRef.current?.crossing) endFlight();
       dropDragCurl();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -448,12 +479,19 @@ export function SwipeTabPages({
     let dy = 0;
     let stopSettle: (() => void) | null = null;
 
-    function targetIndex(delta: number) {
-      return activeIndexRef.current + (delta < 0 ? 1 : -1);
+    /** The page a swipe leads to: the next/previous tab, else the neighbouring section's facing page. */
+    function targetHref(delta: number): string | null {
+      const dir = delta < 0 ? 1 : -1;
+      const inSection = hrefsRef.current[activeIndexRef.current + dir];
+      if (inSection) return inSection;
+      return dir === 1 ? edgesRef.current.nextHref : edgesRef.current.prevHref;
+    }
+    /** Swiping back on the book's first page closes the cover. */
+    function closesBook(delta: number) {
+      return delta > 0 && activeIndexRef.current === 0 && !targetHref(delta) && Boolean(edgesRef.current.onCloseBook);
     }
     function canGo(delta: number) {
-      const next = targetIndex(delta);
-      return next >= 0 && next < hrefsRef.current.length;
+      return targetHref(delta) !== null || closesBook(delta);
     }
 
     /** Live feedback: forward curls the page's corner under the finger; back (or a dead end) just leans the page. */
@@ -547,9 +585,14 @@ export function SwipeTabPages({
         return;
       }
       startX = null;
-      if (Math.abs(dx) >= SWIPE_THRESHOLD_PX && canGo(dx)) {
-        const href = hrefsRef.current[targetIndex(dx)];
-        start(dx < 0 ? 1 : -1, dragCurlRef.current);
+      if (Math.abs(dx) >= SWIPE_THRESHOLD_PX && closesBook(dx)) {
+        settle();
+        edgesRef.current.onCloseBook?.();
+        return;
+      }
+      const href = Math.abs(dx) >= SWIPE_THRESHOLD_PX ? targetHref(dx) : null;
+      if (href) {
+        start(dx < 0 ? 1 : -1, dragCurlRef.current, !hrefsRef.current.includes(href));
         router.push(href);
         return;
       }

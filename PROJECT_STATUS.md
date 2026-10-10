@@ -80,6 +80,7 @@ on every fresh launch by default.
   plays the full one (Skip at the header goes straight in).
 - Page turns between section tabs (`SwipeTabPages`) are a separate system,
   untouched and unaffected by this setting.
+- **Journal as one book (2026-10-11):** swipe right-to-left turns to the next page across the WHOLE app (`src/components/layout/journal-book.ts`: /dashboard → every Money tab → every Plan tab → every Earn tab; tests check it matches the tab strips); left-to-right goes back; on Home a back swipe closes the cover (`HomeBook` in `(app)/dashboard/layout.tsx`: the opening keyframes played in reverse via `NotebookOpening direction='close'`, then the closed journal `LaunchStillScene` until tapped, reopened with the quick opening). Re-enables cross-section swiping removed on 2026-10-08 (f0f75fc), at the user's request. A turn that crosses sections is finished by the next section's wrapper (module-level flight in swipe-tab-pages.tsx). Page-curl snapshots freeze CSS animations (`.page-curl-sheet`) so cards don't replay their fade-in. Verified with CDP touch swipes + filmstrips on the demo account: Home→Money, Money→Home, Money(last)→Plan, close→tap→reopen.
 
 **Verified** (dev server, demo account, Playwright 390px): overlay present in
 SSR HTML; scrubbed keyframe filmstrips of quick (at its original 0.45 s timing)

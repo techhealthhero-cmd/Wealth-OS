@@ -820,6 +820,23 @@
   75%, 100% { opacity: 0; }
 }
 
+/* A page-turn snapshot (SwipeTabPages) shows the page exactly as it was:
+   cloned cards must not replay their mount fade-in from transparent. */
+.page-curl-sheet *,
+.page-curl-sheet *::before,
+.page-curl-sheet *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Closing the journal (swipe back on Home): the opening, played backwards.
+   The overlay keyframes then fade the desk IN at the start and end fully
+   visible on the closed book (fill-mode both holds that last frame).
+   Selectors out-rank the `animation` shorthands above. */
+.nb-open[data-exit][data-direction="close"],
+.nb-open[data-direction="close"] :is(.nb-book, .nb-cover, .nb-shade, .nb-reveal, .nb-desk, .nb-stage) {
+  animation-direction: reverse;
+}
 /* Launch openings respect reduced motion by not appearing at all (an
    explicit preview still renders, and simply ends at once). */
 @media (prefers-reduced-motion: reduce) {

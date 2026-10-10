@@ -45,6 +45,7 @@ export function NotebookOpening({
   displayName,
   exit = "fade",
   launch = false,
+  direction = "open",
   onDone,
 }: {
   prefs: Pick<CoverPreferences, "theme" | "decorations" | "name">;
@@ -52,6 +53,12 @@ export function NotebookOpening({
   displayName?: string | null;
   exit?: "fade" | "hold";
   launch?: boolean;
+  /**
+   * "close": the same keyframes played backwards (2026-10-11, swipe back on
+   * Home): the desk fades in over the app, the cover swings shut and the
+   * book settles into the closed pose LaunchStillScene shows.
+   */
+  direction?: "open" | "close";
   onDone: () => void;
 }) {
   const { t } = useTranslation();
@@ -90,7 +97,7 @@ export function NotebookOpening({
     };
   }, [finish, variant]);
 
-  const showSkip = variant === "full";
+  const showSkip = variant === "full" && direction === "open";
 
   useEffect(() => {
     if (!launch && showSkip) skipRef.current?.focus({ preventScroll: true });
@@ -110,6 +117,7 @@ export function NotebookOpening({
       data-variant={variant}
       data-exit={exit}
       data-launch={launch ? "true" : undefined}
+      data-direction={direction === "close" ? "close" : undefined}
       className={cn(
         "nb-open fixed inset-0 z-[200] flex items-center justify-center overflow-hidden bg-background",
         // The quick opening never blocks a tap, even for its ~1 s.
