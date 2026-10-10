@@ -19,6 +19,7 @@
 import { KNOWN_MERCHANTS } from "./keywords";
 import {
   AMOUNT_PATTERN,
+  extractCaptureDate,
   findKeyword,
   normalizeText,
   parseCaptureText,
@@ -54,7 +55,11 @@ const PREAMBLES = [
 
 /** Dates/times that look like amounts — masked before splitting. */
 const NON_AMOUNT_NUMBERS: RegExp[] = [
+  // A date with its year ("8 ตุลาคม 2569") — only years that can't be money (see capture-date.ts).
+  /(?:\d{1,2}\s*)?(?:มกรา|กุมภา|มีนา|เมษา|พฤษภา|มิถุนา|กรกฎา|กรกฏา|สิงหา|กันยา|ตุลา|พฤศจิกา|ธันวา|(?:ม|ก|มี|เม|พ|มิ|ส|ต|ธ)\.?(?:ค|พ|ย)\.?)\S*\s*(?:พ\.?\s?ศ\.?|ค\.?\s?ศ\.?)?\s*(?:25[6-9]\d|20[23]\d)(?!\d)(?!\s*(?:บาท|baht|thb|฿|บ\.))/g,
   /วันที่\s*\d{1,2}/g,
+  // English "8 October", "8th oct".
+  /\d{1,2}(?:st|nd|rd|th)?\s*(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec)(?![a-z])/gi,
   // Thai dates: "15 ก.ย.", "1-15 ก.ย.", "18 กันยา".
   /\d{1,2}(?:\s*-\s*\d{1,2})?\s*(?:ม\.?ค|ก\.?พ|มี\.?ค|เม\.?ย|พ\.?ค|มิ\.?ย|ก\.?ค|ส\.?ค|ก\.?ย|ต\.?ค|พ\.?ย|ธ\.?ค|มกรา|กุมภา|มีนา|เมษา|พฤษภา|มิถุนา|กรกฎา|สิงหา|กันยา|ตุลา|พฤศจิกา|ธันวา)\S*/g,
   // Clock times ("10:30", "8.15 น."). Only a standalone 1–2 digit hour —
@@ -202,27 +207,19 @@ export function splitRecap(input: string): string[] {
   return items;
 }
 
-const DATE_WORDS = ["เมื่อวานซืน", "เมื่อวาน", "yesterday"];
-
-function shiftIso(iso: string, days: number): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
-}
-
 /**
- * Parses a recap into items. A date word in the FIRST item ("เมื่อวาน กิน
- * ข้าว 40 น้ำ 10") applies to every later item that has none of its own.
+ * Parses a recap into items. A day named in an item ("วันที่ 8 ตุลา เงินมา
+ * 2000 ข้าว 50", "เมื่อวาน ข้าว 40 น้ำ 10") applies to it and every later
+ * item, until another day is named ("…วันนี้ กาแฟ 60" switches back).
  */
 export function parseRecap(input: string, ctx: ParseContext): RecapItem[] {
-  const segments = splitRecap(input);
-  if (segments.length === 0) return [];
-  const firstLower = segments[0].toLowerCase();
-  const recapDayShift = firstLower.includes("เมื่อวานซืน") ? -2 : firstLower.includes("เมื่อวาน") || firstLower.includes("yesterday") ? -1 : 0;
-
-  return segments.map((segment, i) => {
-    const ownDate = DATE_WORDS.some((w) => segment.toLowerCase().includes(w));
-    const segmentCtx = i > 0 && !ownDate && recapDayShift !== 0 ? { ...ctx, today: shiftIso(ctx.today, recapDayShift) } : ctx;
-    return { ...parseCaptureText(segment, segmentCtx), key: `recap-${i}`, sourceText: segment };
+  let carried: string | null = null;
+  return splitRecap(input).map((segment, i) => {
+    const parsed = parseCaptureText(segment, ctx);
+    const named = extractCaptureDate(normalizeText(segment).toLowerCase(), ctx.today).named;
+    if (named) carried = parsed.date;
+    const date = !named && carried ? carried : parsed.date;
+    return { ...parsed, date, key: `recap-${i}`, sourceText: segment };
   });
 }
 

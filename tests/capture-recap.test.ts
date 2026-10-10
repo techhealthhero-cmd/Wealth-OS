@@ -90,6 +90,30 @@ describe("parseRecap", () => {
     expect(items.map((i) => i.date)).toEqual(["2026-10-01", "2026-10-01"]);
   });
 
+  it("a spoken date applies to its item and every later one until another day is named", () => {
+    const ctx = { ...CTX, today: "2026-10-10" };
+    // Reported 2026-10-10: the date was ignored and "เงินมา" read as an expense.
+    const items = parseRecap("วันที่ 8 ตุลาคม เงินมา 2000 กินข้าวเหนียวไก่ 50วินมอไซต์ 20 บาท", ctx);
+    expect(items.map((i) => [i.type, i.amountCents, i.date])).toEqual([
+      ["income", 200_000, "2026-10-08"],
+      ["expense", 5_000, "2026-10-08"],
+      ["expense", 2_000, "2026-10-08"],
+    ]);
+    expect(items[0].description).not.toContain("8");
+
+    const switched = parseRecap("วันที่ 8 ตุลา ข้าว 50 วันที่ 9 ตุลา กาแฟ 60 วันนี้ ขนม 20", ctx);
+    expect(switched.map((i) => [i.amountCents, i.date])).toEqual([
+      [5_000, "2026-10-08"],
+      [6_000, "2026-10-09"],
+      [2_000, "2026-10-10"],
+    ]);
+  });
+
+  it("a year after the month is never read as an amount", () => {
+    const items = parseRecap("วันที่ 8 ตุลาคม 2569 ข้าว 50", { ...CTX, today: "2026-10-10" });
+    expect(items.map((i) => [i.amountCents, i.date])).toEqual([[5_000, "2026-10-08"]]);
+  });
+
   it("a single item is not a recap (the normal one-item preview handles it)", () => {
     expect(isMultiItemRecap(parseRecap("ข้าว 80 cash", CTX))).toBe(false);
     expect(isMultiItemRecap(parseRecap("7-11 55", CTX))).toBe(false);

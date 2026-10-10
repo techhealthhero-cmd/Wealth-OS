@@ -22,6 +22,7 @@ import {
   KNOWN_MERCHANTS,
   LEADING_VERBS,
 } from "./keywords";
+import { findSpokenDate } from "./capture-date";
 
 export interface CaptureAccount {
   id: string;
@@ -180,10 +181,19 @@ function shiftDate(isoDate: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-function extractDate(lower: string, today: string): string {
-  if (lower.includes("เมื่อวานซืน")) return shiftDate(today, -2);
-  if (lower.includes("เมื่อวาน") || /(?<![a-z])yesterday(?![a-z])/.test(lower)) return shiftDate(today, -1);
-  return today;
+/**
+ * The day the text names: a spoken date ("วันที่ 8 ตุลา") first, then
+ * เมื่อวาน/เมื่อวานซืน/yesterday, then วันนี้/today; `named` is false when
+ * nothing was said (the date is just today by default). `span` is set only
+ * for a spoken date — the relative words are removed as filler words.
+ */
+export function extractCaptureDate(lower: string, today: string): { date: string; named: boolean; span: Match | null } {
+  const spoken = findSpokenDate(lower, today);
+  if (spoken) return { date: spoken.date, named: true, span: { start: spoken.start, end: spoken.end } };
+  if (lower.includes("เมื่อวานซืน")) return { date: shiftDate(today, -2), named: true, span: null };
+  if (lower.includes("เมื่อวาน") || /(?<![a-z])yesterday(?![a-z])/.test(lower)) return { date: shiftDate(today, -1), named: true, span: null };
+  const named = lower.includes("วันนี้") || /(?<![a-z])today(?![a-z])/.test(lower);
+  return { date: today, named, span: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -375,9 +385,10 @@ function isIncomingTransfer(lower: string): boolean {
 /**
  * "เงินแท็ก 1-15 ก.ย. เข้า 25,400" / "ฝากเข้า 5000": the word เข้า on its own
  * (or ฝาก…เข้า / เข้าบัญชี) means money came INTO my account. "ค่าเข้า"
- * (an entrance fee) is one word, so it never matches.
+ * (an entrance fee) is one word, so it never matches. "เงินมา 2000" (money
+ * came in) too — but not "เงินมาก" (a lot of money).
  */
-const MONEY_IN_RE = /(?:^|\s)(?:เข้า|ฝากเข้า|เข้าบัญชี|ฝากเงิน)(?=\s|\d|$)/;
+const MONEY_IN_RE = /(?:^|\s)(?:เข้า|ฝากเข้า|เข้าบัญชี|ฝากเงิน)(?=\s|\d|$)|เงินมา(?!ก)/;
 
 function detectType(lower: string): "expense" | "income" {
   if (lower.startsWith("+")) return "income";
@@ -438,12 +449,18 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
   const text = normalizeText(input);
   const lower = text.toLowerCase();
   const detectedType = detectType(lower);
-  const date = extractDate(lower, ctx.today);
+  const dateHit = extractCaptureDate(lower, ctx.today);
+  const date = dateHit.date;
+
+  // A spoken date ("วันที่ 8 ตุลาคม") goes first, so its day can't become
+  // the amount or stay in the description.
+  const dated = dateHit.span ? removeSpan(text, dateHit.span) : text;
+  const datedLower = dated.toLowerCase();
 
   // Remove the brand first so digits inside it ("7-11", "3BB") can't be
   // read as the amount; keep the original text for description building.
-  const merchantHit = findKnownMerchant(lower);
-  let working = merchantHit ? removeSpan(text, merchantHit.span) : text;
+  const merchantHit = findKnownMerchant(datedLower);
+  let working = merchantHit ? removeSpan(dated, merchantHit.span) : dated;
 
   const accountHit = matchAccount(working, ctx.accounts);
   if (accountHit?.span) working = removeSpan(working, accountHit.span);
