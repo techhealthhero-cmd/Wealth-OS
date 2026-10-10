@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { detectTransfer, detectTransferIntent, soundKey } from "@/lib/capture/transfer";
+import { detectTransfer, detectTransferIntent, normalizeAlias, soundKey } from "@/lib/capture/transfer";
 import type { CaptureAccount } from "@/lib/capture/transaction-parser";
 
 const ACCOUNTS: CaptureAccount[] = [
@@ -101,5 +101,24 @@ describe("detectTransferIntent — names said differently", () => {
     expect(detectTransferIntent("โอนจาก Cash เข้ากระปุกหมู 1000", ACCOUNTS)?.to).toEqual({ status: "unknown", heard: "กระปุกหมู" });
     // Without "บัญชี" or a known source, a strange word is not assumed to be an account.
     expect(detectTransferIntent("โอนเงินไปกระปุกหมู 1000", ACCOUNTS)).toBeNull();
+  });
+});
+
+describe("remembered nicknames (account_aliases)", () => {
+  const withNick = ACCOUNTS.map((a) => (a.id === "acc-kbank" ? { ...a, aliases: [normalizeAlias("กระปุกหมู")] } : a));
+
+  it("normalizes a nickname the way it is said", () => {
+    expect(normalizeAlias("  บัญชีหุ้น ")).toBe("หุ้น");
+    // "into my wallet" is heard as "wallet", so the nickname is stored the same way.
+    expect(normalizeAlias("My Wallet")).toBe("wallet");
+  });
+
+  it("a remembered nickname resolves like the account's own name", () => {
+    expect(detectTransfer("โอนเงินสดเข้ากระปุกหมู 1000", withNick)).toEqual({ fromAccountId: "acc-cash", toAccountId: "acc-kbank" });
+    expect(detectTransfer("โอนเงินเข้าบัญชีกระปุกหมู 1000", withNick)).toEqual({ fromAccountId: "acc-cash", toAccountId: "acc-kbank" });
+  });
+
+  it("without the nickname the same words still ask", () => {
+    expect(detectTransferIntent("โอนเงินเข้าบัญชีกระปุกหมู 1000", ACCOUNTS)?.to.status).toBe("unknown");
   });
 });

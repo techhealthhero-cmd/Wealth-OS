@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/features/profile/queries";
@@ -9,6 +10,8 @@ import { friendlyDbError } from "@/lib/db-error";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { trackEvent } from "@/lib/analytics";
+import { normalizeAlias } from "@/lib/capture/transfer";
+import type { AccountAliasSource } from "@/types/database";
 
 export interface ActionResult {
   error?: string;
@@ -184,6 +187,99 @@ export async function reorderAccounts(orderedAccountIds: string[]): Promise<Acti
 
   revalidatePath("/money/accounts");
   revalidatePath("/dashboard");
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Nicknames for voice capture (account_aliases, migration 0041)
+// ---------------------------------------------------------------------------
+
+export interface AccountAlias {
+  id: string;
+  account_id: string;
+  alias: string;
+  alias_normalized: string;
+  source: AccountAliasSource;
+}
+
+/** A database without migration 0041 yet: the table isn't there (Postgres 42P01 / PostgREST PGRST205). */
+function isMissingAliasTable(error: { code?: string } | null): boolean {
+  return error?.code === "42P01" || error?.code === "PGRST205";
+}
+
+/** All of the signed-in user's account nicknames (RLS scopes the rows). Empty when none, or before migration 0041. */
+export async function getAccountAliases(): Promise<AccountAlias[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("account_aliases")
+    .select("id, account_id, alias, alias_normalized, source")
+    .order("created_at", { ascending: true })
+    .limit(500);
+  if (error) return [];
+  return data ?? [];
+}
+
+const aliasInputSchema = z.object({
+  accountId: z.string().uuid(),
+  alias: z.string().trim().min(1).max(60),
+  source: z.enum(["user", "learned"]),
+});
+
+/**
+ * Remembers `alias` as a name for one of the user's own accounts. Saying a
+ * nickname that already exists re-points it (one nickname = one account).
+ * Ownership of the account is checked by the database trigger
+ * (check_account_alias_ownership_trg), not trusted from the client.
+ */
+export async function saveAccountAlias(
+  accountId: string,
+  alias: string,
+  source: AccountAliasSource = "user"
+): Promise<ActionResult & { alias?: AccountAlias }> {
+  const dict = await getRequestDictionary();
+  const parsed = aliasInputSchema.safeParse({ accountId, alias, source });
+  const normalized = parsed.success ? normalizeAlias(parsed.data.alias) : "";
+  if (!parsed.success || !normalized) return { error: dict.common.invalidInput };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+
+  const { data, error } = await supabase
+    .from("account_aliases")
+    .upsert(
+      {
+        user_id: user.id,
+        account_id: parsed.data.accountId,
+        alias: parsed.data.alias,
+        alias_normalized: normalized,
+        source: parsed.data.source,
+      },
+      { onConflict: "user_id,alias_normalized" }
+    )
+    .select("id, account_id, alias, alias_normalized, source")
+    .single();
+
+  if (error) {
+    if (isMissingAliasTable(error)) return { error: dict.accounts.aliases.notReady };
+    return { error: friendlyDbError(error, "saveAccountAlias", dict.accounts.aliases.saveFailed) };
+  }
+  return { success: true, alias: data };
+}
+
+export async function deleteAccountAlias(aliasId: string): Promise<ActionResult> {
+  const dict = await getRequestDictionary();
+  if (!z.string().uuid().safeParse(aliasId).success) return { error: dict.common.invalidInput };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+
+  const { error } = await supabase.from("account_aliases").delete().eq("id", aliasId).eq("user_id", user.id);
+  if (error) return { error: friendlyDbError(error, "deleteAccountAlias", dict.accounts.aliases.saveFailed) };
   return { success: true };
 }
 

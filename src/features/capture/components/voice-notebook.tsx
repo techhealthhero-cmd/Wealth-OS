@@ -15,6 +15,7 @@ import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { SuccessBadge } from "@/components/illustrations";
 import { cheerCompanion } from "@/features/companions/presence";
 import { createTransfer, deleteTransaction } from "@/features/transactions/actions";
+import { getAccountAliases, saveAccountAlias, type AccountAlias } from "@/features/accounts/actions";
 import { getCapturePreferences, saveCapturedTransaction } from "@/features/capture/actions";
 import type { CaptureMerchantPreference, ParseContext } from "@/lib/capture/transaction-parser";
 import { parseRecap } from "@/lib/capture/recap";
@@ -99,6 +100,9 @@ export function VoiceNotebook({
   const [picks, setPicks] = useState<Record<string, Partial<Record<Side, string>>>>({});
   const [picker, setPicker] = useState<PickerTarget | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
+  // Nicknames the user gave their accounts ("กระปุกหมู" → a savings account).
+  const [aliases, setAliases] = useState<AccountAlias[]>([]);
+  const [rememberAlias, setRememberAlias] = useState(true);
   const pickerRef = useRef<PickerTarget | null>(null);
   useEffect(() => {
     pickerRef.current = picker;
@@ -123,6 +127,11 @@ export function VoiceNotebook({
         if (!cancelled) setPreferences(prefs);
       })
       .catch(() => {});
+    getAccountAliases()
+      .then((rows) => {
+        if (!cancelled) setAliases(rows);
+      })
+      .catch(() => {});
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       // The account sheet closes first, then the page.
@@ -140,6 +149,10 @@ export function VoiceNotebook({
   const ctx: ParseContext = useMemo(
     () => ({ accounts, categories, merchantPreferences: preferences, today }),
     [accounts, categories, preferences, today]
+  );
+  const aliasedAccounts = useMemo(
+    () => accounts.map((a) => ({ ...a, aliases: aliases.filter((x) => x.account_id === a.id).map((x) => x.alias_normalized) })),
+    [accounts, aliases]
   );
   // Parsing trails live dictation at low priority, so the writing stays smooth.
   const parseText = useDeferredValue(transcript);
@@ -160,9 +173,9 @@ export function VoiceNotebook({
         source: "voice",
         categoryConfirmedByUser: false,
       },
-      transfer: detectTransferIntent(item.sourceText, accounts),
+      transfer: detectTransferIntent(item.sourceText, aliasedAccounts),
     }));
-  }, [parseText, ctx, accounts]);
+  }, [parseText, ctx, aliasedAccounts]);
   /** A transfer side's account: the user's tap wins, then a match from the words; null = still to pick. */
   const sideAccount = (row: Row, side: Side): string | null => {
     const slot = row.transfer?.[side];
@@ -176,14 +189,26 @@ export function VoiceNotebook({
   const unresolved = rows.filter((r) => r.transfer && r.draft.amountCents !== null && !transferReady(r)).length;
   const saveable = rows.filter((r) => (r.transfer ? r.draft.amountCents !== null && transferReady(r) : canSaveDraft(r.draft)));
 
-  function pick(rowId: string, side: Side, accountId: string) {
+  function pick(rowId: string, side: Side, accountId: string, learnWord: string | null = null) {
     setPicks((prev) => ({ ...prev, [rowId]: { ...prev[rowId], [side]: accountId } }));
     setPicker(null);
+    if (!learnWord) return;
+    // "Remember this name" was ticked: next time the word alone is enough.
+    saveAccountAlias(accountId, learnWord, "learned")
+      .then((result) => {
+        const saved = result.alias;
+        if (saved) {
+          setAliases((prev) => [...prev.filter((a) => a.alias_normalized !== saved.alias_normalized), saved]);
+          toast(t("capture.voice.remembered").replace("{heard}", learnWord).replace("{name}", accountName(accountId) ?? ""));
+        } else if (result.error) toast.error(result.error);
+      })
+      .catch(() => {});
   }
   function openPicker(row: Row, side: Side) {
     const slot = row.transfer?.[side];
     const other = sideAccount(row, side === "from" ? "to" : "from");
     setPickerQuery("");
+    setRememberAlias(true);
     setPicker({ rowId: row.id, side, heard: slot && slot.status !== "matched" ? slot.heard : null, excludeId: other });
   }
   const activeAccounts = accounts.filter((a) => !a.is_archived);
@@ -575,6 +600,21 @@ export function VoiceNotebook({
                   ? t("capture.voice.pickerFrom")
                   : t("capture.voice.pickerTo")}
             </h3>
+            {picker.heard ? (
+              // Set before tapping an account: the tap itself picks and (if ticked) remembers.
+              <label className="mt-3 flex items-start gap-3 rounded-xl bg-primary/5 px-3 py-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={rememberAlias}
+                  onChange={(e) => setRememberAlias(e.target.checked)}
+                  className="mt-0.5 size-5 shrink-0 accent-[var(--primary)]"
+                />
+                <span>
+                  {t("capture.voice.pickerRemember").replace("{heard}", picker.heard)}
+                  <span className="block text-muted-foreground">{t("capture.voice.pickerRememberHint")}</span>
+                </span>
+              </label>
+            ) : null}
             {activeAccounts.length > 6 ? (
               <label className="mt-3 flex h-11 items-center gap-2 rounded-xl border border-[#d9ccb0] bg-white px-3 dark:border-white/15 dark:bg-white/5">
                 <Search className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -596,7 +636,7 @@ export function VoiceNotebook({
                   <li key={a.id}>
                     <button
                       type="button"
-                      onClick={() => pick(picker.rowId, picker.side, a.id)}
+                      onClick={() => pick(picker.rowId, picker.side, a.id, picker.heard && rememberAlias ? picker.heard : null)}
                       aria-pressed={selected}
                       className={cn(
                         "flex min-h-14 w-full items-center gap-3 rounded-2xl border px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

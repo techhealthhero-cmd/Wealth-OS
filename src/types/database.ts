@@ -39,6 +39,8 @@ export type AccountType =
   | "investment"
   | "other";
 
+export type AccountAliasSource = "user" | "learned";
+
 export type AccountPrivacyDisplayStyle = "blur" | "unavailable" | "empty" | "custom";
 
 export type TransactionType =
@@ -1129,6 +1131,25 @@ export interface Database {
           Omit<Database["public"]["Tables"]["merchant_category_preferences"]["Row"], "id" | "created_at" | "updated_at">
         > & { user_id: string; merchant_normalized: string; category_id: string };
         Update: Partial<Database["public"]["Tables"]["merchant_category_preferences"]["Row"]>;
+      };
+      account_aliases: {
+        Row: {
+          id: string;
+          user_id: string;
+          account_id: string;
+          alias: string;
+          alias_normalized: string;
+          source: AccountAliasSource;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["account_aliases"]["Row"], "id" | "created_at" | "updated_at">> & {
+          user_id: string;
+          account_id: string;
+          alias: string;
+          alias_normalized: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["account_aliases"]["Row"]>;
       };
       notification_preferences: {
         Row: {

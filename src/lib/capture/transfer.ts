@@ -13,6 +13,18 @@
 import { ACCOUNT_HINTS } from "./keywords";
 import { findKeyword, normalizeText, type CaptureAccount } from "./transaction-parser";
 
+/** An account plus the nicknames the user has given it (account_aliases, normalized). */
+export type AliasedAccount = CaptureAccount & { aliases?: string[] };
+
+/**
+ * The form a nickname is stored and matched in: lower case, single spaces,
+ * without a leading "บัญชี"/"กระเป๋า" — so "บัญชีหุ้น" typed in the form and
+ * "เข้าบัญชีหุ้น" said aloud both come down to "หุ้น".
+ */
+export function normalizeAlias(text: string): string {
+  return normalizeText(text).toLowerCase().replace(ACCOUNT_NOUN_RE, "").trim().slice(0, 60);
+}
+
 export interface TransferAccounts {
   fromAccountId: string;
   toAccountId: string;
@@ -151,16 +163,19 @@ function closeAccounts(heard: string, accounts: CaptureAccount[]): string[] {
 // ---------------------------------------------------------------------------
 
 /** Every one of the user's accounts the words mention exactly, in reading order (names first, then bank/payment hints). */
-export function findAccountMentions(lower: string, accounts: CaptureAccount[]): Mention[] {
+export function findAccountMentions(lower: string, accounts: AliasedAccount[]): Mention[] {
   const active = accounts.filter((a) => !a.is_archived);
   const mentions: Mention[] = [];
   const overlaps = (s: number, e: number) => mentions.some((m) => s < m.end && e > m.start);
 
-  for (const account of [...active].sort((a, b) => b.name.length - a.name.length)) {
-    const name = account.name.trim().toLowerCase();
-    if (name.length < 2) continue;
-    const span = findKeyword(lower, name);
-    if (span && !overlaps(span.start, span.end)) mentions.push({ accountId: account.id, ...span });
+  // Names and remembered nicknames, longest first ("กระปุกหมูใหญ่" before "กระปุกหมู").
+  const spoken = active
+    .flatMap((a) => [a.name.trim().toLowerCase(), ...(a.aliases ?? [])].map((word) => ({ id: a.id, word })))
+    .filter((s) => s.word.length >= 2)
+    .sort((a, b) => b.word.length - a.word.length);
+  for (const { id, word } of spoken) {
+    const span = findKeyword(lower, word);
+    if (span && !overlaps(span.start, span.end)) mentions.push({ accountId: id, ...span });
   }
   for (const hint of ACCOUNT_HINTS) {
     for (const phrase of [...hint.phrases].sort((a, b) => b.length - a.length)) {
@@ -240,7 +255,7 @@ const isAccountish = (s: AccountSlot, slot: Slot) => s.status !== "unknown" || s
  * What a spoken transfer says about its two accounts, or null when the words
  * aren't a transfer between the user's own accounts.
  */
-export function detectTransferIntent(input: string, accounts: CaptureAccount[]): TransferIntent | null {
+export function detectTransferIntent(input: string, accounts: AliasedAccount[]): TransferIntent | null {
   const lower = normalizeText(input).toLowerCase();
   const active = accounts.filter((a) => !a.is_archived);
   const mentions = findAccountMentions(lower, active);
@@ -288,7 +303,7 @@ export function detectTransferIntent(input: string, accounts: CaptureAccount[]):
 }
 
 /** The two accounts of a spoken transfer when both are certain, or null. */
-export function detectTransfer(input: string, accounts: CaptureAccount[]): TransferAccounts | null {
+export function detectTransfer(input: string, accounts: AliasedAccount[]): TransferAccounts | null {
   const intent = detectTransferIntent(input, accounts);
   return intent?.from.status === "matched" && intent.to.status === "matched"
     ? { fromAccountId: intent.from.accountId, toAccountId: intent.to.accountId }

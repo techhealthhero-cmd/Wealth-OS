@@ -20,6 +20,7 @@ import {
 import { Plus } from "lucide-react";
 import { useMinimizableFormActions } from "@/components/shared/minimizable-form-context";
 import { MinimizableFormShell } from "@/components/shared/minimizable-form-shell";
+import { AccountAliasesEditor } from "@/features/accounts/components/account-aliases-editor";
 
 interface AccountFormProps {
   account?: Account;
@@ -183,6 +184,8 @@ function AccountFormFields({
             {t("accounts.includeInNetWorth")}
           </Label>
         </div>
+
+        {account ? <AccountAliasesEditor accountId={account.id} /> : null}
 
         {state?.error ? (
           <p role="alert" className="text-sm text-destructive">
