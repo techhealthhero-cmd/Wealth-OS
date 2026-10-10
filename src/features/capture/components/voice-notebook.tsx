@@ -3,7 +3,7 @@
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { Check, Keyboard, Mic, MoreHorizontal, Search, X } from "lucide-react";
+import { Check, Keyboard, Mic, MoreHorizontal, Search, Store, X } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
 import { useTranslation } from "@/i18n/client";
@@ -15,9 +15,17 @@ import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { SuccessBadge } from "@/components/illustrations";
 import { cheerCompanion } from "@/features/companions/presence";
 import { createTransfer, deleteTransaction } from "@/features/transactions/actions";
-import { getAccountAliases, saveAccountAlias, type AccountAlias } from "@/features/accounts/actions";
+import {
+  getAccountAliases,
+  getMerchantAccountPreferences,
+  saveAccountAlias,
+  saveMerchantAccountPreference,
+  type AccountAlias,
+  type MerchantAccountPref,
+} from "@/features/accounts/actions";
+import { isAccountPrivacyRedacted } from "@/features/account-privacy/account-redaction";
 import { getCapturePreferences, saveCapturedTransaction } from "@/features/capture/actions";
-import type { CaptureMerchantPreference, ParseContext } from "@/lib/capture/transaction-parser";
+import type { AccountSource, CaptureMerchantPreference, ParseContext } from "@/lib/capture/transaction-parser";
 import { parseRecap } from "@/lib/capture/recap";
 import { detectTransferIntent, type AccountSlot, type TransferIntent } from "@/lib/capture/transfer";
 import { buildCaptureSaveInput, canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
@@ -44,17 +52,26 @@ interface Row {
   draft: CaptureDraft;
   /** "โอนเงินจาก Cash ไป Dime 3000": a move between the user's own accounts, saved as a transfer. */
   transfer: TransferIntent | null;
+  /** How an expense's account was chosen — "merchant" = the shop's set account (7-Eleven → its wallet). */
+  accountSource: AccountSource | null;
+  /** An account named like the shop, not yet confirmed: ask "pay from which account?" once. */
+  suggestedAccountId: string | null;
 }
 
-type Side = "from" | "to";
+/** from/to = the two sides of a transfer · pay = the account an expense is paid from. */
+type Side = "from" | "to" | "pay";
 
-/** The account picker sheet: which row and side it fills, and the word that was heard there. */
+/** The account picker sheet: which row and side it fills, the word heard there, and the shop it's for. */
 interface PickerTarget {
   rowId: string;
   side: Side;
   heard: string | null;
+  shop: string | null;
   excludeId: string | null;
 }
+
+/** What to remember from a pick: a nickname for the account, or the shop it pays. */
+type Learn = { kind: "alias"; word: string } | { kind: "shop"; shop: string } | null;
 
 /**
  * Voice capture as a journal page (chosen mockup, 2026-10-10): the center
@@ -105,7 +122,11 @@ export function VoiceNotebook({
   const [pickerQuery, setPickerQuery] = useState("");
   // Nicknames the user gave their accounts ("กระปุกหมู" → a savings account).
   const [aliases, setAliases] = useState<AccountAlias[]>([]);
-  const [rememberAlias, setRememberAlias] = useState(true);
+  // Shops paid from a set account ("7-Eleven" → the 7-Eleven wallet).
+  const [shopPrefs, setShopPrefs] = useState<MerchantAccountPref[]>([]);
+  const [remember, setRemember] = useState(true);
+  // "Not enough in the wallet" warnings the user chose to ignore, by account.
+  const [lowDismissed, setLowDismissed] = useState<string[]>([]);
   const pickerRef = useRef<PickerTarget | null>(null);
   useEffect(() => {
     pickerRef.current = picker;
@@ -123,6 +144,7 @@ export function VoiceNotebook({
     setError(null);
     setPicks({});
     setPicker(null);
+    setLowDismissed([]);
     closeRef.current?.focus();
     let cancelled = false;
     getCapturePreferences()
@@ -133,6 +155,11 @@ export function VoiceNotebook({
     getAccountAliases()
       .then((rows) => {
         if (!cancelled) setAliases(rows);
+      })
+      .catch(() => {});
+    getMerchantAccountPreferences()
+      .then((rows) => {
+        if (!cancelled) setShopPrefs(rows);
       })
       .catch(() => {});
     const onKey = (e: KeyboardEvent) => {
@@ -150,12 +177,23 @@ export function VoiceNotebook({
 
   const today = toLocalDateString(new Date());
   const ctx: ParseContext = useMemo(
-    () => ({ accounts, categories, merchantPreferences: preferences, today }),
-    [accounts, categories, preferences, today]
+    () => ({
+      accounts,
+      categories,
+      merchantPreferences: preferences,
+      merchantAccounts: shopPrefs.map((p) => ({ merchant_normalized: p.merchant_normalized, account_id: p.account_id })),
+      today,
+    }),
+    [accounts, categories, preferences, shopPrefs, today]
   );
   const aliasedAccounts = useMemo(
-    () => accounts.map((a) => ({ ...a, aliases: aliases.filter((x) => x.account_id === a.id).map((x) => x.alias_normalized) })),
-    [accounts, aliases]
+    () =>
+      accounts.map((a) => ({
+        ...a,
+        aliases: aliases.filter((x) => x.account_id === a.id).map((x) => x.alias_normalized),
+        merchants: shopPrefs.filter((x) => x.account_id === a.id).map((x) => x.merchant_normalized),
+      })),
+    [accounts, aliases, shopPrefs]
   );
   // Parsing trails live dictation at low priority, so the writing stays smooth.
   const parseText = useDeferredValue(transcript);
@@ -177,10 +215,13 @@ export function VoiceNotebook({
         categoryConfirmedByUser: false,
       },
       transfer: detectTransferIntent(item.sourceText, aliasedAccounts),
+      accountSource: item.accountSource,
+      suggestedAccountId: item.suggestedAccountId ?? null,
     }));
   }, [parseText, ctx, aliasedAccounts]);
   /** A transfer side's account: the user's tap wins, then a match from the words; null = still to pick. */
   const sideAccount = (row: Row, side: Side): string | null => {
+    if (side === "pay") return picks[row.id]?.pay ?? row.draft.accountId;
     const slot = row.transfer?.[side];
     return picks[row.id]?.[side] ?? (slot?.status === "matched" ? slot.accountId : null);
   };
@@ -189,31 +230,103 @@ export function VoiceNotebook({
     const to = sideAccount(row, "to");
     return from !== null && to !== null && from !== to;
   };
-  const unresolved = rows.filter((r) => r.transfer && r.draft.amountCents !== null && !transferReady(r)).length;
+  /** A purchase at a shop whose like-named account ("7 - Eleven") hasn't been confirmed yet. */
+  const needsShopAnswer = (row: Row) =>
+    !row.transfer && row.suggestedAccountId !== null && !picks[row.id]?.pay && row.draft.amountCents !== null;
+  const unresolved = rows.filter(
+    (r) => (r.transfer && r.draft.amountCents !== null && !transferReady(r)) || needsShopAnswer(r)
+  ).length;
   const saveable = rows.filter((r) => (r.transfer ? r.draft.amountCents !== null && transferReady(r) : canSaveDraft(r.draft)));
 
-  function pick(rowId: string, side: Side, accountId: string, learnWord: string | null = null) {
+  // Wallets and cash can't go below zero in real life: project each one's
+  // balance after these items. Skipped while privacy mode hides balances.
+  const lowBalance = useMemo(() => {
+    const delta = new Map<string, { spend: number; net: number }>();
+    const add = (id: string | null, spend: number, net: number) => {
+      if (!id) return;
+      const d = delta.get(id) ?? { spend: 0, net: 0 };
+      delta.set(id, { spend: d.spend + spend, net: d.net + net });
+    };
+    for (const row of rows) {
+      const cents = row.draft.amountCents;
+      if (cents === null) continue;
+      if (row.transfer) {
+        add(picks[row.id]?.from ?? (row.transfer.from.status === "matched" ? row.transfer.from.accountId : null), 0, -cents);
+        add(picks[row.id]?.to ?? (row.transfer.to.status === "matched" ? row.transfer.to.accountId : null), 0, cents);
+      } else if (row.draft.type === "expense") {
+        add(picks[row.id]?.pay ?? row.draft.accountId, cents, -cents);
+      } else {
+        add(picks[row.id]?.pay ?? row.draft.accountId, 0, cents);
+      }
+    }
+    const out = new Map<string, { balanceCents: number; spendCents: number }>();
+    for (const [id, d] of delta) {
+      const account = accounts.find((a) => a.id === id);
+      if (!account || d.spend === 0 || lowDismissed.includes(id) || isAccountPrivacyRedacted(account)) continue;
+      if (account.account_type !== "e_wallet" && account.account_type !== "cash") continue;
+      const balanceCents = Math.round(Number(account.current_balance) * 100);
+      if (Number.isFinite(balanceCents) && balanceCents + d.net < 0) out.set(id, { balanceCents, spendCents: d.spend });
+    }
+    return out;
+  }, [rows, picks, accounts, lowDismissed]);
+  /** The warning shows once, on the last purchase paid from that account. */
+  const lowWarningRowId = (accountId: string) =>
+    [...rows].reverse().find((r) => !r.transfer && r.draft.type === "expense" && sideAccount(r, "pay") === accountId)?.id;
+
+  function pick(rowId: string, side: Side, accountId: string, learn: Learn = null) {
     setPicks((prev) => ({ ...prev, [rowId]: { ...prev[rowId], [side]: accountId } }));
     setPicker(null);
-    if (!learnWord) return;
+    if (!learn) return;
+    if (learn.kind === "shop") {
+      // "Next time at this shop, use this account" — no more asking.
+      saveMerchantAccountPreference(accountId, learn.shop, "learned")
+        .then((result) => {
+          const saved = result.pref;
+          if (saved) {
+            setShopPrefs((prev) => [...prev.filter((p) => p.merchant_normalized !== saved.merchant_normalized), saved]);
+            toast(t("capture.voice.shopRemembered").replace("{shop}", saved.merchant_label).replace("{account}", accountName(accountId) ?? ""));
+          } else if (result.error) toast.error(result.error);
+        })
+        .catch(() => {});
+      return;
+    }
     // "Remember this name" was ticked: next time the word alone is enough.
-    saveAccountAlias(accountId, learnWord, "learned")
+    const word = learn.word;
+    saveAccountAlias(accountId, word, "learned")
       .then((result) => {
         const saved = result.alias;
         if (saved) {
           setAliases((prev) => [...prev.filter((a) => a.alias_normalized !== saved.alias_normalized), saved]);
-          toast(t("capture.voice.remembered").replace("{heard}", learnWord).replace("{name}", accountName(accountId) ?? ""));
+          toast(t("capture.voice.remembered").replace("{heard}", word).replace("{name}", accountName(accountId) ?? ""));
         } else if (result.error) toast.error(result.error);
       })
       .catch(() => {});
   }
   function openPicker(row: Row, side: Side) {
+    setPickerQuery("");
+    setRemember(true);
+    if (side === "pay") {
+      setPicker({ rowId: row.id, side, heard: null, shop: row.draft.merchant, excludeId: null });
+      return;
+    }
     const slot = row.transfer?.[side];
     const other = sideAccount(row, side === "from" ? "to" : "from");
-    setPickerQuery("");
-    setRememberAlias(true);
-    setPicker({ rowId: row.id, side, heard: slot && slot.status !== "matched" ? slot.heard : null, excludeId: other });
+    setPicker({ rowId: row.id, side, heard: slot && slot.status !== "matched" ? slot.heard : null, shop: null, excludeId: other });
   }
+  /** "Add the top-up too": writes "เติมเงินเข้า<the wallet>" on the paper and puts the caret there for the amount. */
+  function addTopUp(accountId: string) {
+    const shop = shopPrefs.find((p) => p.account_id === accountId)?.merchant_label;
+    const target = shop ?? accountName(accountId) ?? "";
+    const next = `${transcript.trimEnd()} เติมเงินเข้า${target} `;
+    onTranscriptChange(next);
+    requestAnimationFrame(() => {
+      const el = paperRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(next.length, next.length);
+    });
+  }
+  const defaultAccountId = accounts.find((a) => !a.is_archived)?.id ?? null;
   const activeAccounts = accounts.filter((a) => !a.is_archived);
   const pickerAccounts = picker
     ? activeAccounts.filter(
@@ -281,7 +394,11 @@ export function VoiceNotebook({
         continue;
       }
       const reviewed = row.draft.categorySource !== "fallback" && row.draft.categoryId !== null;
-      const payload = buildCaptureSaveInput({ ...row.draft, categoryConfirmedByUser: reviewed }, requestId);
+      // The pay-from account the user confirmed for this shop, if they changed it.
+      const payload = buildCaptureSaveInput(
+        { ...row.draft, accountId: sideAccount(row, "pay"), categoryConfirmedByUser: reviewed },
+        requestId
+      );
       try {
         const result = payload ? await saveCapturedTransaction(payload) : null;
         if (result?.success) {
@@ -396,10 +513,14 @@ export function VoiceNotebook({
               const tr = row.transfer;
               const details = tr
                 ? null
-                : [categoryName(d.categoryId), accountName(d.accountId), dayLabel(d.date)].filter(Boolean).join(" · ");
-              const needsPick = tr !== null && !transferReady(row);
+                : [categoryName(d.categoryId), accountName(sideAccount(row, "pay")), dayLabel(d.date)].filter(Boolean).join(" · ");
+              const askShop = needsShopAnswer(row);
+              const needsPick = (tr !== null && !transferReady(row)) || askShop;
+              const shop = d.merchant ?? "";
+              const payId = sideAccount(row, "pay");
+              const low = !tr && payId && lowBalance.has(payId) && lowWarningRowId(payId) === row.id ? lowBalance.get(payId)! : null;
               /** A side the user hasn't tapped yet, as the words left it. */
-              const openSlot = (side: Side): AccountSlot | null => (tr && !picks[row.id]?.[side] ? tr[side] : null);
+              const openSlot = (side: "from" | "to"): AccountSlot | null => (tr && !picks[row.id]?.[side] ? tr[side] : null);
               const accountChip = (side: Side) => {
                 const id = sideAccount(row, side);
                 return (
@@ -447,6 +568,109 @@ export function VoiceNotebook({
                     )}
                   </div>
                   {details ? <p className="mt-1 text-sm text-muted-foreground">{details}</p> : null}
+                  {!tr && row.accountSource === "merchant" && !picks[row.id]?.pay && payId ? (
+                    // Paid from the shop's set account — say so, so a wrong one is obvious and easy to change.
+                    <p className="mt-2 flex flex-wrap items-center gap-x-1.5 border-t border-dashed border-[#e3d5b8] pt-2 text-sm text-muted-foreground dark:border-white/15">
+                      <Store className="size-4 shrink-0 text-emerald-700 dark:text-emerald-400" aria-hidden="true" />
+                      {t("capture.voice.shopSet").replace("{shop}", shop).replace("{account}", accountName(payId) ?? "")}
+                      <button
+                        type="button"
+                        onClick={() => openPicker(row, "pay")}
+                        className="min-h-8 font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {t("capture.voice.change")}
+                      </button>
+                    </p>
+                  ) : null}
+                  {askShop && row.suggestedAccountId ? (
+                    <div className="mt-2 border-t border-dashed border-[#e3d5b8] pt-2 dark:border-white/15">
+                      <p className="text-sm font-semibold">{t("capture.voice.shopQuestion").replace("{shop}", shop)}</p>
+                      <div className="mt-2 flex flex-col gap-1.5">
+                        {[row.suggestedAccountId, d.accountId].filter((id, k, all): id is string => !!id && all.indexOf(id) === k).map((id) => {
+                          const suggested = id === row.suggestedAccountId;
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => pick(row.id, "pay", id, remember && shop ? { kind: "shop", shop } : null)}
+                              className={cn(
+                                "flex min-h-11 items-center justify-between gap-2 rounded-xl px-3 py-1.5 text-left text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                suggested
+                                  ? "border-2 border-primary bg-primary/5"
+                                  : "border border-[#cdbf9f] bg-white dark:border-white/20 dark:bg-white/5"
+                              )}
+                            >
+                              <span>
+                                {accountName(id)}
+                                {suggested ? <span className="block text-xs font-normal text-muted-foreground">{t("capture.voice.shopNameMatch")}</span> : null}
+                              </span>
+                              {suggested ? <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">{t("capture.voice.recommended")}</span> : null}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          onClick={() => openPicker(row, "pay")}
+                          className="min-h-11 rounded-xl border border-dashed border-[#cdbf9f] px-3 text-left text-[15px] font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/20"
+                        >
+                          {t("capture.voice.otherAccount")}
+                        </button>
+                      </div>
+                      <label className="mt-2 flex items-start gap-2.5 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={remember}
+                          onChange={(e) => setRemember(e.target.checked)}
+                          className="mt-0.5 size-5 shrink-0 accent-[var(--primary)]"
+                        />
+                        <span>{t("capture.voice.shopRemember").replace("{shop}", shop)}</span>
+                      </label>
+                    </div>
+                  ) : null}
+                  {low && payId ? (
+                    <div className="mt-2 border-t border-dashed border-[#e3d5b8] pt-2 dark:border-white/15">
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                        {t("capture.voice.lowBalance")
+                          .replace("{account}", accountName(payId) ?? "")
+                          .replace("{balance}", formatMoney(low.balanceCents))
+                          .replace("{total}", formatMoney(low.spendCents))}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{t("capture.voice.lowBalanceHint")}</p>
+                      <div className="mt-2 flex flex-col gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => addTopUp(payId)}
+                          className="min-h-11 rounded-xl border border-[#cdbf9f] bg-white px-3 text-left text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/20 dark:bg-white/5"
+                        >
+                          {t("capture.voice.addTopUp")}
+                        </button>
+                        {defaultAccountId && defaultAccountId !== payId ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Every purchase paid from the short wallet moves to the default account.
+                              const ids = rows.filter((r) => !r.transfer && sideAccount(r, "pay") === payId).map((r) => r.id);
+                              setPicks((prev) => {
+                                const next = { ...prev };
+                                for (const id of ids) next[id] = { ...next[id], pay: defaultAccountId };
+                                return next;
+                              });
+                            }}
+                            className="min-h-11 rounded-xl border border-[#cdbf9f] bg-white px-3 text-left text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/20 dark:bg-white/5"
+                          >
+                            {t("capture.voice.payWith").replace("{account}", accountName(defaultAccountId) ?? "")}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => setLowDismissed((prev) => [...prev, payId])}
+                          className="min-h-11 rounded-xl border border-dashed border-[#cdbf9f] px-3 text-left text-[15px] font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/20"
+                        >
+                          {t("capture.voice.keepGoing")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                   {tr ? (
                     <>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
@@ -597,24 +821,32 @@ export function VoiceNotebook({
           >
             <div aria-hidden="true" className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-[#d9ccb0] dark:bg-white/20" />
             <h3 id="voice-account-picker-title" className="text-xl font-semibold">
-              {picker.heard
-                ? t("capture.voice.pickerHeard").replace("{heard}", picker.heard)
-                : picker.side === "from"
-                  ? t("capture.voice.pickerFrom")
-                  : t("capture.voice.pickerTo")}
+              {picker.side === "pay"
+                ? picker.shop
+                  ? t("capture.voice.shopQuestion").replace("{shop}", picker.shop)
+                  : t("capture.voice.pickerPay")
+                : picker.heard
+                  ? t("capture.voice.pickerHeard").replace("{heard}", picker.heard)
+                  : picker.side === "from"
+                    ? t("capture.voice.pickerFrom")
+                    : t("capture.voice.pickerTo")}
             </h3>
-            {picker.heard ? (
+            {picker.heard || (picker.side === "pay" && picker.shop) ? (
               // Set before tapping an account: the tap itself picks and (if ticked) remembers.
               <label className="mt-3 flex items-start gap-3 rounded-xl bg-primary/5 px-3 py-2.5 text-sm">
                 <input
                   type="checkbox"
-                  checked={rememberAlias}
-                  onChange={(e) => setRememberAlias(e.target.checked)}
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
                   className="mt-0.5 size-5 shrink-0 accent-[var(--primary)]"
                 />
                 <span>
-                  {t("capture.voice.pickerRemember").replace("{heard}", picker.heard)}
-                  <span className="block text-muted-foreground">{t("capture.voice.pickerRememberHint")}</span>
+                  {picker.side === "pay" && picker.shop
+                    ? t("capture.voice.shopRemember").replace("{shop}", picker.shop)
+                    : t("capture.voice.pickerRemember").replace("{heard}", picker.heard ?? "")}
+                  {picker.side === "pay" ? null : (
+                    <span className="block text-muted-foreground">{t("capture.voice.pickerRememberHint")}</span>
+                  )}
                 </span>
               </label>
             ) : null}
@@ -639,7 +871,22 @@ export function VoiceNotebook({
                   <li key={a.id}>
                     <button
                       type="button"
-                      onClick={() => pick(picker.rowId, picker.side, a.id, picker.heard && rememberAlias ? picker.heard : null)}
+                      onClick={() =>
+                        pick(
+                          picker.rowId,
+                          picker.side,
+                          a.id,
+                          !remember
+                            ? null
+                            : picker.side === "pay"
+                              ? picker.shop
+                                ? { kind: "shop", shop: picker.shop }
+                                : null
+                              : picker.heard
+                                ? { kind: "alias", word: picker.heard }
+                                : null
+                        )
+                      }
                       aria-pressed={selected}
                       className={cn(
                         "flex min-h-14 w-full items-center gap-3 rounded-2xl border px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

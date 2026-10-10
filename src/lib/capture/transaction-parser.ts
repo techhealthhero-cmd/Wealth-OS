@@ -46,16 +46,25 @@ export interface CaptureMerchantPreference {
   category_id: string;
 }
 
+/** "Buy at this shop → pay from this account" (merchant_account_preferences). */
+export interface MerchantAccountPreference {
+  merchant_normalized: string;
+  account_id: string;
+}
+
 export interface ParseContext {
   accounts: CaptureAccount[];
   categories: CaptureCategory[];
   merchantPreferences: CaptureMerchantPreference[];
+  /** Shops the user pays from a set account ("7-eleven" → their 7-Eleven wallet). */
+  merchantAccounts?: MerchantAccountPreference[];
   /** Local "today" as YYYY-MM-DD (Asia/Bangkok on the client). */
   today: string;
 }
 
 export type CategorySource = "learned" | "keyword" | "ai" | "fallback";
-export type AccountSource = "matched" | "default";
+/** matched = named in the words · merchant = the shop's set account · default = first account. */
+export type AccountSource = "matched" | "merchant" | "default";
 
 export interface ParsedCapture {
   type: "expense" | "income";
@@ -70,6 +79,12 @@ export interface ParsedCapture {
   confidence: CaptureConfidence;
   /** Fields the user may want to fill — never blocks saving except `amount`. */
   missing: ("amount" | "category" | "account")[];
+  /**
+   * An account whose name matches the shop ("7 - Eleven" for a 7-Eleven
+   * purchase) when no account was named and none is set for the shop yet —
+   * the UI asks "pay from which account?" instead of guessing.
+   */
+  suggestedAccountId?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -281,6 +296,52 @@ export function suggestCategory(
   return { categoryId: other?.id ?? null, source: other ? "fallback" : null };
 }
 
+/** A name squeezed for comparing: "7 - Eleven", "7-Eleven" and "7eleven" all become "7eleven". */
+function compactName(text: string): string {
+  return normalizeMerchant(text).replace(/[\s\-&+]/g, "");
+}
+
+/** The shop words refer to, as stored: "เซเว่น" → { key: "7-eleven", label: "7-Eleven" }. */
+export function shopKey(text: string): { key: string; label: string } {
+  const hit = findKnownMerchant(normalizeText(text).toLowerCase());
+  const label = hit?.name ?? normalizeText(text).slice(0, 120);
+  return { key: normalizeMerchant(label), label };
+}
+
+/**
+ * The account set for this shop: the known brand's own setting first, then
+ * any set shop named in the words ("ร้านกาแฟป้าแดง 45"). Archived accounts
+ * never count.
+ */
+export function accountForMerchant(
+  text: string,
+  merchant: string | null,
+  prefs: MerchantAccountPreference[],
+  accounts: CaptureAccount[]
+): string | null {
+  const active = new Set(accounts.filter((a) => !a.is_archived).map((a) => a.id));
+  const valid = prefs.filter((p) => active.has(p.account_id));
+  if (valid.length === 0) return null;
+  if (merchant) {
+    const key = normalizeMerchant(merchant);
+    const hit = valid.find((p) => p.merchant_normalized === key);
+    if (hit) return hit.account_id;
+  }
+  const normalized = normalizeMerchant(text);
+  const inText = valid
+    .filter((p) => p.merchant_normalized.length >= 3)
+    .sort((a, b) => b.merchant_normalized.length - a.merchant_normalized.length)
+    .find((p) => findKeyword(normalized, p.merchant_normalized));
+  return inText?.account_id ?? null;
+}
+
+/** Active accounts whose NAME is the shop's ("7 - Eleven", "7-Eleven Wallet" for 7-Eleven). */
+export function accountsNamedForMerchant(merchant: string, accounts: CaptureAccount[]): string[] {
+  const entry = KNOWN_MERCHANTS.find((m) => m.name === merchant);
+  const keys = [merchant, ...(entry?.match ?? [])].map(compactName).filter((k) => k.length >= 3);
+  return accounts.filter((a) => !a.is_archived && keys.some((k) => compactName(a.name).includes(k))).map((a) => a.id);
+}
+
 /** First active account — the app's standing default (see transaction-form.tsx). */
 export function defaultAccountId(accounts: CaptureAccount[]): string | null {
   return accounts.find((a) => !a.is_archived)?.id ?? null;
@@ -475,7 +536,15 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
   // an explicit marker. Explicit markers ("+", "รายรับ") still win.
   const type = learnedTypeOverride(lower, text, merchant, detectedType, ctx);
   const category = suggestCategory(text, merchant, type, ctx);
-  const accountId = accountHit?.accountId ?? defaultAccountId(ctx.accounts);
+  // No account named: the shop's own account ("เซเว่น" → the 7-Eleven
+  // wallet), then the standing default. An account merely NAMED like the
+  // shop is only suggested — the user confirms it once.
+  const shopAccount = accountHit ? null : accountForMerchant(text, merchant, ctx.merchantAccounts ?? [], ctx.accounts);
+  const accountId = accountHit?.accountId ?? shopAccount ?? defaultAccountId(ctx.accounts);
+  const suggestedAccountId =
+    !accountHit && !shopAccount && merchant
+      ? (accountsNamedForMerchant(merchant, ctx.accounts).find((id) => id !== accountId) ?? null)
+      : null;
 
   const missing: ParsedCapture["missing"] = [];
   if (!amountHit) missing.push("amount");
@@ -494,11 +563,12 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
     categoryId: category.categoryId,
     categorySource: category.source,
     accountId,
-    accountSource: accountHit ? "matched" : accountId ? "default" : null,
+    accountSource: accountHit ? "matched" : shopAccount ? "merchant" : accountId ? "default" : null,
     merchant,
     description,
     date,
     confidence,
     missing,
+    suggestedAccountId,
   };
 }

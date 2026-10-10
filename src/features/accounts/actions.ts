@@ -11,6 +11,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { trackEvent } from "@/lib/analytics";
 import { normalizeAlias } from "@/lib/capture/transfer";
+import { shopKey } from "@/lib/capture/transaction-parser";
 import type { AccountAliasSource } from "@/types/database";
 
 export interface ActionResult {
@@ -202,7 +203,7 @@ export interface AccountAlias {
   source: AccountAliasSource;
 }
 
-/** A database without migration 0041 yet: the table isn't there (Postgres 42P01 / PostgREST PGRST205). */
+/** A database without the table's migration yet (0041 / 0042): Postgres 42P01 / PostgREST PGRST205. */
 function isMissingAliasTable(error: { code?: string } | null): boolean {
   return error?.code === "42P01" || error?.code === "PGRST205";
 }
@@ -280,6 +281,94 @@ export async function deleteAccountAlias(aliasId: string): Promise<ActionResult>
 
   const { error } = await supabase.from("account_aliases").delete().eq("id", aliasId).eq("user_id", user.id);
   if (error) return { error: friendlyDbError(error, "deleteAccountAlias", dict.accounts.aliases.saveFailed) };
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Shop → pay-from account (merchant_account_preferences, migration 0042)
+// ---------------------------------------------------------------------------
+
+export interface MerchantAccountPref {
+  id: string;
+  account_id: string;
+  merchant_normalized: string;
+  merchant_label: string;
+  source: AccountAliasSource;
+}
+
+/** All of the user's shop → account settings. Empty when none, or before migration 0042. */
+export async function getMerchantAccountPreferences(): Promise<MerchantAccountPref[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("merchant_account_preferences")
+    .select("id, account_id, merchant_normalized, merchant_label, source")
+    .order("created_at", { ascending: true })
+    .limit(500);
+  if (error) return [];
+  return data ?? [];
+}
+
+const shopInputSchema = z.object({
+  accountId: z.string().uuid(),
+  shop: z.string().trim().min(1).max(120),
+  source: z.enum(["user", "learned"]),
+});
+
+/**
+ * "Buy at `shop` → pay from this account". Known brands are stored by their
+ * canonical name ("เซเว่น" → 7-Eleven) so every way of saying them matches.
+ * Choosing a shop again re-points it. The database trigger checks the
+ * account is the user's own.
+ */
+export async function saveMerchantAccountPreference(
+  accountId: string,
+  shop: string,
+  source: AccountAliasSource = "user"
+): Promise<ActionResult & { pref?: MerchantAccountPref }> {
+  const dict = await getRequestDictionary();
+  const parsed = shopInputSchema.safeParse({ accountId, shop, source });
+  const { key, label } = parsed.success ? shopKey(parsed.data.shop) : { key: "", label: "" };
+  if (!parsed.success || !key) return { error: dict.common.invalidInput };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+
+  const { data, error } = await supabase
+    .from("merchant_account_preferences")
+    .upsert(
+      {
+        user_id: user.id,
+        account_id: parsed.data.accountId,
+        merchant_normalized: key,
+        merchant_label: label,
+        source: parsed.data.source,
+      },
+      { onConflict: "user_id,merchant_normalized" }
+    )
+    .select("id, account_id, merchant_normalized, merchant_label, source")
+    .single();
+
+  if (error) {
+    if (isMissingAliasTable(error)) return { error: dict.accounts.shops.notReady };
+    return { error: friendlyDbError(error, "saveMerchantAccountPreference", dict.accounts.shops.saveFailed) };
+  }
+  return { success: true, pref: data };
+}
+
+export async function deleteMerchantAccountPreference(prefId: string): Promise<ActionResult> {
+  const dict = await getRequestDictionary();
+  if (!z.string().uuid().safeParse(prefId).success) return { error: dict.common.invalidInput };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+
+  const { error } = await supabase.from("merchant_account_preferences").delete().eq("id", prefId).eq("user_id", user.id);
+  if (error) return { error: friendlyDbError(error, "deleteMerchantAccountPreference", dict.accounts.shops.saveFailed) };
   return { success: true };
 }
 

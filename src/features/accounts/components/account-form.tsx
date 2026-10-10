@@ -21,6 +21,7 @@ import { Plus } from "lucide-react";
 import { useMinimizableFormActions } from "@/components/shared/minimizable-form-context";
 import { MinimizableFormShell } from "@/components/shared/minimizable-form-shell";
 import { AccountAliasesEditor } from "@/features/accounts/components/account-aliases-editor";
+import { AccountShopsEditor } from "@/features/accounts/components/account-shops-editor";
 
 interface AccountFormProps {
   account?: Account;
@@ -185,6 +186,7 @@ function AccountFormFields({
           </Label>
         </div>
 
+        {account ? <AccountShopsEditor accountId={account.id} /> : null}
         {account ? <AccountAliasesEditor accountId={account.id} /> : null}
 
         {state?.error ? (

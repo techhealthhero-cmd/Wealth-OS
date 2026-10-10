@@ -1151,6 +1151,22 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["account_aliases"]["Row"]>;
       };
+      merchant_account_preferences: {
+        Row: {
+          id: string;
+          user_id: string;
+          account_id: string;
+          merchant_normalized: string;
+          merchant_label: string;
+          source: AccountAliasSource;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<
+          Omit<Database["public"]["Tables"]["merchant_account_preferences"]["Row"], "id" | "created_at" | "updated_at">
+        > & { user_id: string; account_id: string; merchant_normalized: string; merchant_label: string };
+        Update: Partial<Database["public"]["Tables"]["merchant_account_preferences"]["Row"]>;
+      };
       notification_preferences: {
         Row: {
           id: string;

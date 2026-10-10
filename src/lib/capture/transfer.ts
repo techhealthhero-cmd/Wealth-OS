@@ -11,10 +11,17 @@
  * 500" (a person, not an account) stays an ordinary expense.
  */
 import { ACCOUNT_HINTS } from "./keywords";
-import { findKeyword, normalizeText, type CaptureAccount } from "./transaction-parser";
+import {
+  accountsNamedForMerchant,
+  findKeyword,
+  findKnownMerchant,
+  normalizeMerchant,
+  normalizeText,
+  type CaptureAccount,
+} from "./transaction-parser";
 
-/** An account plus the nicknames the user has given it (account_aliases, normalized). */
-export type AliasedAccount = CaptureAccount & { aliases?: string[] };
+/** An account plus the nicknames the user has given it (account_aliases) and the shops paid from it (merchant_account_preferences), both normalized. */
+export type AliasedAccount = CaptureAccount & { aliases?: string[]; merchants?: string[] };
 
 /**
  * The form a nickname is stored and matched in: lower case, single spaces,
@@ -46,13 +53,14 @@ interface Mention {
   end: number;
 }
 
-const TRANSFER_VERBS = /โอน|ย้ายเงิน|ย้าย|ถอน|(?<![a-z])(?:transfer|move|withdraw)/;
+// "เติมเงินเข้าแอปเซเว่น" (topping up a wallet) moves money too — but plain "เติม" never does ("เติมน้ำมัน 500" is fuel).
+const TRANSFER_VERBS = /โอน|ย้ายเงิน|ย้าย|ถอน|เติมเงิน|ท็อปอัพ|(?<![a-z])(?:transfer|move|withdraw|top ?up)/;
 const WITHDRAW = /ถอน|(?<![a-z])withdraw/;
 const FROM_WORDS = ["ออกจาก", "จาก", "from", "out of"];
 const TO_WORDS = ["ไปที่", "ไปยัง", "ไป", "เข้า", "ใส่", "ให้", "into", "to"];
 /** Words between the direction word and the account ("จากบัญชี Cash", "into my KBank"). */
-const ACCOUNT_NOUN_RE = /^(?:บัญชี|กระเป๋า|account|wallet|my|the)\s*/;
-const ACCOUNT_NOUNS = /\s*(?:บัญชี|กระเป๋า|account|wallet|my|the)\s*$/;
+const ACCOUNT_NOUN_RE = /^(?:บัญชี|กระเป๋า|แอป|แอพ|account|wallet|app|my|the)\s*/;
+const ACCOUNT_NOUNS = /\s*(?:บัญชี|กระเป๋า|แอป|แอพ|account|wallet|app|my|the)\s*$/;
 /** A person right after the direction word: "ให้แม่", "ไปให้พี่" — money to someone, not an account. */
 const PERSON_WORDS = [
   "ให้", "แม่", "พ่อ", "พี่", "น้อง", "แฟน", "เพื่อน", "ลูก", "ยาย", "ปู่", "ย่า", "ป้า", "ลุง", "น้า", "เขา", "คน", "ร้าน",
@@ -251,10 +259,21 @@ function hasPersonRecipient(lower: string): boolean {
   return new RegExp(`(?:ไป\\s*)?ให้\\s*(?:${people})`).test(lower);
 }
 
-function resolveSlot(slot: Slot, mentions: Mention[], active: CaptureAccount[], otherSide: string | null = null): AccountSlot {
+function resolveSlot(slot: Slot, mentions: Mention[], active: AliasedAccount[], otherSide: string | null = null): AccountSlot {
   const exact = mentions.find((m) => m.start >= slot.start && m.start < Math.max(slot.end, slot.start + 1));
   if (exact) return { status: "matched", accountId: exact.accountId, heard: null };
   if (!slot.heard) return { status: "unknown", heard: null };
+  // A shop's wallet: "เติมเงินเข้าแอปเซเว่น" → the account set for 7-Eleven,
+  // or the one named after it ("7 - Eleven", "7-Eleven Wallet").
+  const shop = findKnownMerchant(slot.heard);
+  if (shop) {
+    const key = normalizeMerchant(shop.name);
+    const ids = [
+      ...new Set([...active.filter((a) => a.merchants?.includes(key)).map((a) => a.id), ...accountsNamedForMerchant(shop.name, active)]),
+    ].filter((id) => id !== otherSide);
+    if (ids.length === 1) return { status: "matched", accountId: ids[0], heard: slot.heard };
+    if (ids.length > 1) return { status: "ambiguous", candidates: ids, heard: slot.heard };
+  }
   // Money never moves into the account it came from: that one is no candidate.
   const close = closeAccounts(slot.heard, active).filter((id) => id !== otherSide);
   if (close.length === 1) return { status: "matched", accountId: close[0], heard: slot.heard };
