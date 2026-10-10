@@ -238,6 +238,19 @@ function isPerson(slot: Slot): boolean {
   return slot.word === "ให้" || PERSON_WORDS.some((p) => slot.heard.startsWith(p));
 }
 
+/**
+ * A named recipient beats account-name coincidences. Without this guard,
+ * "โอนให้แม่จาก Cash แล้วใช้บัตร KTC" contained two account names and the
+ * fast exact-match branch incorrectly turned a payment to a person into an
+ * internal Cash → KTC transfer.
+ */
+function hasPersonRecipient(lower: string): boolean {
+  const people = PERSON_WORDS.filter((word) => word !== "ให้").join("|");
+  // Kinship words commonly lead into a name ("ให้พี่เจน"), so do not
+  // require a word boundary after them.
+  return new RegExp(`(?:ไป\\s*)?ให้\\s*(?:${people})`).test(lower);
+}
+
 function resolveSlot(slot: Slot, mentions: Mention[], active: CaptureAccount[], otherSide: string | null = null): AccountSlot {
   const exact = mentions.find((m) => m.start >= slot.start && m.start < Math.max(slot.end, slot.start + 1));
   if (exact) return { status: "matched", accountId: exact.accountId, heard: null };
@@ -262,6 +275,10 @@ export function detectTransferIntent(input: string, accounts: AliasedAccount[]):
   const distinct = mentions.filter((m, i) => mentions.findIndex((x) => x.accountId === m.accountId) === i);
   const matched = (accountId: string): AccountSlot => ({ status: "matched", accountId, heard: null });
   const hasVerb = TRANSFER_VERBS.test(lower);
+
+  // Be conservative with payments to people even when the sentence happens
+  // to mention two of the user's accounts elsewhere.
+  if (hasPersonRecipient(lower)) return null;
 
   if (distinct.length >= 2) {
     const [a, b] = distinct;

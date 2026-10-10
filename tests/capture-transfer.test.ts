@@ -45,6 +45,10 @@ describe("detectTransfer", () => {
     expect(detectTransferIntent("กาแฟ 80 Cash", ACCOUNTS)).toBeNull();
     expect(detectTransferIntent("ข้าว 120 จ่ายบัตร KTC กับ Cash", ACCOUNTS)).toBeNull();
     expect(detectTransferIntent("พี่เจนโอนเงินให้ค่าวันเกิด 1000", ACCOUNTS)).toBeNull();
+    expect(detectTransferIntent("โอนให้แม่ 500 จาก Cash แล้วใช้บัตร KTC", ACCOUNTS)).toBeNull();
+    expect(detectTransferIntent("โอนจาก Cash ให้เพื่อน 500 แล้วค่อยเติม Dime", ACCOUNTS)).toBeNull();
+    expect(detectTransferIntent("โอนให้พี่เจน 500 จาก Cash แล้วใช้บัตร KTC", ACCOUNTS)).toBeNull();
+    expect(detectTransferIntent("โอนให้ร้าน 800 จาก Cash สำรองด้วย Dime", ACCOUNTS)).toBeNull();
   });
 });
 

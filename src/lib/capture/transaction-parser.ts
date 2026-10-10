@@ -22,7 +22,7 @@ import {
   KNOWN_MERCHANTS,
   LEADING_VERBS,
 } from "./keywords";
-import { findSpokenDate } from "./capture-date";
+import { findSpokenDateMention } from "./capture-date";
 
 export interface CaptureAccount {
   id: string;
@@ -188,8 +188,8 @@ function shiftDate(isoDate: string, days: number): string {
  * for a spoken date — the relative words are removed as filler words.
  */
 export function extractCaptureDate(lower: string, today: string): { date: string; named: boolean; span: Match | null } {
-  const spoken = findSpokenDate(lower, today);
-  if (spoken) return { date: spoken.date, named: true, span: { start: spoken.start, end: spoken.end } };
+  const spoken = findSpokenDateMention(lower, today);
+  if (spoken) return { date: spoken.date ?? today, named: true, span: { start: spoken.start, end: spoken.end } };
   if (lower.includes("เมื่อวานซืน")) return { date: shiftDate(today, -2), named: true, span: null };
   if (lower.includes("เมื่อวาน") || /(?<![a-z])yesterday(?![a-z])/.test(lower)) return { date: shiftDate(today, -1), named: true, span: null };
   const named = lower.includes("วันนี้") || /(?<![a-z])today(?![a-z])/.test(lower);

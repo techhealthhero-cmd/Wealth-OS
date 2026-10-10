@@ -114,6 +114,16 @@ describe("parseRecap", () => {
     expect(items.map((i) => [i.amountCents, i.date])).toEqual([[5_000, "2026-10-08"]]);
   });
 
+  it("future or impossible date words are discarded, never reused as the amount", () => {
+    const ctx = { ...CTX, today: "2026-10-10" };
+    expect(parseCaptureText("วันที่ 8 ตุลา 2570 ข้าว 50", ctx)).toMatchObject({ amountCents: 5_000, date: "2026-10-10" });
+    expect(parseCaptureText("วันที่ 31 กุมภา 2569 ข้าว 60", ctx)).toMatchObject({ amountCents: 6_000, date: "2026-10-10" });
+    expect(parseRecap("วันที่ 8 ตุลา 2570 ข้าว 50 กาแฟ 60", ctx).map((item) => [item.amountCents, item.date])).toEqual([
+      [5_000, "2026-10-10"],
+      [6_000, "2026-10-10"],
+    ]);
+  });
+
   it("a single item is not a recap (the normal one-item preview handles it)", () => {
     expect(isMultiItemRecap(parseRecap("ข้าว 80 cash", CTX))).toBe(false);
     expect(isMultiItemRecap(parseRecap("7-11 55", CTX))).toBe(false);

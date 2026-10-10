@@ -156,6 +156,12 @@ export function VoiceNotebook({
   );
   // Parsing trails live dictation at low priority, so the writing stays smooth.
   const parseText = useDeferredValue(transcript);
+  useEffect(() => {
+    // A choice belongs to the words that were on the page when it was made.
+    // Dictating/editing again must not silently reuse a pick from old text.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPicks({});
+  }, [parseText]);
   const rows: Row[] = useMemo(() => {
     if (!parseText.trim()) return [];
     return parseRecap(parseText, ctx).map((item, i) => ({

@@ -216,6 +216,7 @@ export async function updateTransaction(
   await learnMerchantCategory(user.id, parsed.data.merchant || parsed.data.description || null, parsed.data.category_id ?? null);
 
   revalidatePath("/money/transactions");
+  revalidatePath("/money/accounts");
   revalidatePath("/dashboard");
   return { success: true };
 }
@@ -244,6 +245,10 @@ export async function deleteTransaction(transactionId: string): Promise<ActionRe
   }
 
   revalidatePath("/money/transactions");
+  // Deleting any transaction (including an undone transfer) fires the
+  // balance-recalculation trigger; refresh the account list as well as the
+  // dashboard so both sides visibly return to their prior balances.
+  revalidatePath("/money/accounts");
   revalidatePath("/dashboard");
   return { success: true };
 }

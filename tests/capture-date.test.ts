@@ -38,6 +38,7 @@ describe("capture date", () => {
     // Month without a year that hasn't come yet → last year.
     expect(at("วันที่ 5 ธันวา ข้าว 50")).toBe("2025-12-05");
     expect(at("วันที่ 31 กุมภา")).toBeNull();
+    expect(at("วันที่ 8 ตุลา 2570 ข้าว 50")).toBeNull();
     // A period, not a day; plain amounts are never dates.
     expect(at("เงินแท็ก 1-15 ก.ย. เข้า 25,400")).toBeNull();
     expect(at("ข้าว 50 กาแฟ 60")).toBeNull();
@@ -48,6 +49,7 @@ describe("capture date", () => {
     expect(isValidCaptureDate("2026-09-30", "2026-10-02")).toBe(true);
     expect(isValidCaptureDate("2026-10-02", "2026-10-02")).toBe(true);
     expect(isValidCaptureDate("2026-10-03", "2026-10-02")).toBe(false);
+    expect(isValidCaptureDate("2026-02-31", "2026-10-02")).toBe(false);
     expect(isValidCaptureDate("30/09/2026", "2026-10-02")).toBe(false);
     expect(isValidCaptureDate("", "2026-10-02")).toBe(false);
   });

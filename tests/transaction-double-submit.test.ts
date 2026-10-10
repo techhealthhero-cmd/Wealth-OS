@@ -220,7 +220,9 @@ describe("createTransfer — idempotency key", () => {
     const retry = await createTransfer(undefined, transferFormData({ clientRequestId: "transfer-1" }));
     expect(transactions).toHaveLength(1);
     expect(first.success).toBe(true);
+    expect(first.transactionId).toBe("tx-1");
     expect(retry.success).toBe(true);
+    expect(retry.transactionId).toBe("tx-1");
     expect(retry.error).toBeUndefined();
   });
 

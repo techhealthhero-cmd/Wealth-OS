@@ -6,6 +6,12 @@
 /** How far back the date wheel scrolls; older days use the calendar. */
 export const CAPTURE_WHEEL_DAYS = 90;
 
+function isoOf(y: number, m: number, d: number): string | null {
+  const date = new Date(Date.UTC(y, m - 1, d));
+  if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) return null;
+  return date.toISOString().slice(0, 10);
+}
+
 function shift(iso: string, days: number): string {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
@@ -26,8 +32,9 @@ export function applyCaptureDate(parsedDate: string, realToday: string, chosenDa
 
 /** A chosen day is valid only if it's a real date and not in the future. */
 export function isValidCaptureDate(date: string, realToday: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) return false;
-  return date <= realToday;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const [year, month, day] = date.split("-").map(Number);
+  return isoOf(year, month, day) === date && date <= realToday;
 }
 
 // ---------------------------------------------------------------------------
@@ -89,12 +96,6 @@ const SPOKEN_DATE_PATTERNS: RegExp[] = [
   new RegExp(String.raw`(?<![a-z])(${MONTH_RE})\s*(\d{1,2})(?:st|nd|rd|th)(?![a-z])`, "g"),
 ];
 
-function isoOf(y: number, m: number, d: number): string | null {
-  const date = new Date(Date.UTC(y, m - 1, d));
-  if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) return null;
-  return date.toISOString().slice(0, 10);
-}
-
 /**
  * The day a spoken/typed date means, relative to `today`. Capture records
  * the past, so a day without a month that hasn't come yet is last month's
@@ -120,8 +121,20 @@ export function resolveSpokenDate(day: number, month: number | null, year: numbe
  * Finds the first date named in (lowercased, normalized) text and the span
  * it occupies — so the parser can drop it from the amount and description.
  */
-export function findSpokenDate(lower: string, today: string): { date: string; start: number; end: number } | null {
-  let best: { date: string; start: number; end: number } | null = null;
+export interface SpokenDateMention {
+  /** Null means the words look like a date, but it is impossible or explicitly in the future. */
+  date: string | null;
+  start: number;
+  end: number;
+}
+
+/**
+ * Finds the earliest date-shaped phrase even when that date is invalid or in
+ * the future. The parser must still remove its digits before looking for an
+ * amount ("วันที่ 8 ตุลา 2570 ข้าว 50" must save 50, never 8 or 2570).
+ */
+export function findSpokenDateMention(lower: string, today: string): SpokenDateMention | null {
+  let best: SpokenDateMention | null = null;
   for (const [p, re] of SPOKEN_DATE_PATTERNS.entries()) {
     for (const m of lower.matchAll(re)) {
       if (best && m.index! >= best.start) break;
@@ -130,11 +143,15 @@ export function findSpokenDate(lower: string, today: string): { date: string; st
       const month = monthRaw ? (MONTH_BY_NAME.get(monthRaw) ?? null) : null;
       const year = p !== 2 && m[3] ? Number(m[3]) : null;
       const date = resolveSpokenDate(day, month, year, today);
-      if (date) {
-        best = { date, start: m.index!, end: m.index! + m[0].length };
-        break;
-      }
+      best = { date, start: m.index!, end: m.index! + m[0].length };
+      break;
     }
   }
   return best;
+}
+
+/** Finds the earliest valid, non-future spoken date. */
+export function findSpokenDate(lower: string, today: string): { date: string; start: number; end: number } | null {
+  const mention = findSpokenDateMention(lower, today);
+  return mention?.date ? { ...mention, date: mention.date } : null;
 }
