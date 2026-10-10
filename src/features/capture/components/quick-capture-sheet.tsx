@@ -34,7 +34,8 @@ import { isMultiItemRecap, parseRecap } from "@/lib/capture/recap";
 import { applyCaptureDate } from "@/lib/capture/capture-date";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { TransactionPrefill } from "@/features/transactions/components/transaction-form";
-import { deleteTransaction } from "@/features/transactions/actions";
+import { createTransfer, deleteTransaction } from "@/features/transactions/actions";
+import { getAccountAliases, saveAccountAlias, type AccountAlias } from "@/features/accounts/actions";
 import { createRecurringTransaction } from "@/features/recurring/actions";
 import {
   assistCaptureParse,
@@ -53,6 +54,8 @@ import { HoldToTalkButton } from "./hold-to-talk-button";
 import { RecapReview, type RecapRow } from "./recap-review";
 import { MicPermissionTip } from "./mic-permission-tip";
 import { CaptureDatePicker } from "./capture-date-picker";
+import { TransferPreview } from "./transfer-preview";
+import { detectTransferIntent, type AliasedAccount } from "@/lib/capture/transfer";
 
 interface QuickCaptureSheetProps {
   open: boolean;
@@ -175,10 +178,13 @@ export function QuickCaptureSheet({
   // The day being recorded: null = today (so it follows the clock), or a
   // day the user picked to catch up on. Reset whenever the sheet closes.
   const [pickedDate, setPickedDate] = useState<string | null>(null);
+  const [aliases, setAliases] = useState<AccountAlias[]>([]);
+  const [transferPicks, setTransferPicks] = useState<{ key: string; from?: string; to?: string }>({ key: "" });
 
   const speech = useSpeechInput(locale, (transcript) => {
     setTextSource("voice");
     setOverrides({});
+    setTransferPicks({ key: "" });
     setText(transcript);
   });
 
@@ -200,9 +206,11 @@ export function QuickCaptureSheet({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    getCapturePreferences()
-      .then((prefs) => {
-        if (!cancelled) setPreferences(prefs);
+    Promise.all([getCapturePreferences(), getAccountAliases()])
+      .then(([prefs, accountAliases]) => {
+        if (cancelled) return;
+        setPreferences(prefs);
+        setAliases(accountAliases);
       })
       .catch(() => {});
     return () => {
@@ -227,6 +235,10 @@ export function QuickCaptureSheet({
   const parseText = useDeferredValue(text);
   const textKey = normalizeText(parseText);
   const localParsed = useMemo(() => (textKey ? parseCaptureText(textKey, ctx) : null), [textKey, ctx]);
+  const aliasedAccounts: AliasedAccount[] = useMemo(
+    () => accounts.map((account) => ({ ...account, aliases: aliases.filter((alias) => alias.account_id === account.id).map((alias) => alias.alias_normalized) })),
+    [accounts, aliases]
+  );
   // Two or more priced items in one sentence ("ข้าว 40 น้ำ 10 เงินเดือนออก
   // 20,000") become a list confirmed together instead of a single preview.
   const recapItems = useMemo(
@@ -234,6 +246,10 @@ export function QuickCaptureSheet({
     [parseText, ctx, receipt.status]
   );
   const recapMode = isMultiItemRecap(recapItems);
+  const transferIntent = useMemo(
+    () => (!recapMode && receipt.status === "idle" && textKey ? detectTransferIntent(textKey, aliasedAccounts) : null),
+    [recapMode, receipt.status, textKey, aliasedAccounts]
+  );
   const recapRows: RecapRow[] = useMemo(() => {
     if (!recapMode) return [];
     return recapItems.flatMap((item, i) => {
@@ -261,7 +277,7 @@ export function QuickCaptureSheet({
   // One AI pass only for a sentence the rules could not fully read (never for
   // "ข้าว 80 cash"-style input), after the user pauses, max 1 per open.
   useEffect(() => {
-    if (!open || !localParsed || receipt.status !== "idle" || speech.listening || recapMode) return;
+    if (!open || !localParsed || receipt.status !== "idle" || speech.listening || recapMode || transferIntent) return;
     if (aiRequestedRef.current.has(textKey) || aiCallsRef.current >= AI_ASSIST_MAX_PER_OPEN) return;
     if (!needsAIAssist(textKey, localParsed)) return;
     const key = textKey;
@@ -277,7 +293,7 @@ export function QuickCaptureSheet({
         .finally(() => setAiPendingKey((k) => (k === key ? null : k)));
     }, AI_ASSIST_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [open, textKey, localParsed, receipt.status, speech.listening, recapMode]);
+  }, [open, textKey, localParsed, receipt.status, speech.listening, recapMode, transferIntent]);
 
   // Recap: ONE AI pass picks categories for the items the rules could only
   // file under "Other" — after the user stops talking/typing. Amounts and
@@ -383,6 +399,13 @@ export function QuickCaptureSheet({
   }, [localParsed, aiReading, textKey, ctx, textSource, overrides, captureDate]);
 
   const activeDraft = receipt.status !== "idle" ? receiptDraft : textDraft;
+  const currentTransferPicks = transferPicks.key === textKey ? transferPicks : { key: textKey };
+  const transferSide = (side: "from" | "to"): string | null => {
+    const picked = currentTransferPicks[side];
+    if (picked) return picked;
+    const slot = transferIntent?.[side];
+    return slot?.status === "matched" ? slot.accountId : null;
+  };
 
   function resetAll() {
     setText("");
@@ -397,6 +420,7 @@ export function QuickCaptureSheet({
     setRecapAI({});
     setRecapProgress(null);
     setPickedDate(null);
+    setTransferPicks({ key: "" });
   }
 
   function clearReceipt() {
@@ -522,6 +546,52 @@ export function QuickCaptureSheet({
   async function save(options: { skipDuplicateCheck?: boolean } = {}) {
     const draft = activeDraft;
     if (!draft || saving) return;
+    if (transferIntent && draft.amountCents !== null) {
+      const fromId = transferSide("from");
+      const toId = transferSide("to");
+      if (!fromId || !toId || fromId === toId) return;
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setError(t("capture.offline"));
+        return;
+      }
+      setSaving(true);
+      setError(null);
+      const form = new FormData();
+      form.set("from_account_id", fromId);
+      form.set("to_account_id", toId);
+      form.set("amount", (draft.amountCents / 100).toFixed(2));
+      form.set("transaction_date", draft.date);
+      form.set("client_request_id", clientRequestId);
+      try {
+        const result = await createTransfer(undefined, form);
+        if (!result.success) {
+          setError(result.error ?? t("capture.saveFailed"));
+          return;
+        }
+        cheerCompanion();
+        toast.success(`${t("capture.saved")} ${formatMoney(draft.amountCents)}`, {
+          icon: <SuccessBadge />,
+          action: result.transactionId
+            ? {
+                label: t("capture.undo"),
+                onClick: async () => {
+                  const undone = await deleteTransaction(result.transactionId!);
+                  if (undone.success) toast(t("capture.undone"));
+                  else toast.error(undone.error ?? t("capture.saveFailed"));
+                },
+              }
+            : undefined,
+        });
+        setClientRequestId(crypto.randomUUID());
+        resetAll();
+        onOpenChange(false);
+      } catch {
+        setError(t("capture.saveFailed"));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     const payload = buildCaptureSaveInput(draft, clientRequestId);
     if (!payload) return;
 
@@ -731,6 +801,7 @@ export function QuickCaptureSheet({
                   setText(e.target.value);
                   setTextSource("quick_text");
                   setOverrides({});
+                  setTransferPicks({ key: "" });
                   setError(null);
                   if (receipt.status !== "idle") clearReceipt();
                 }}
@@ -921,7 +992,33 @@ export function QuickCaptureSheet({
               />
             ) : null}
 
-            {activeDraft && receipt.status !== "scanning" && !recapMode ? (
+            {activeDraft && transferIntent && receipt.status !== "scanning" && !recapMode ? (
+              <TransferPreview
+                intent={transferIntent}
+                accounts={accounts}
+                amountCents={activeDraft.amountCents}
+                date={activeDraft.date}
+                fromId={transferSide("from")}
+                toId={transferSide("to")}
+                saving={saving}
+                onAmountChange={(amountCents) => patchDraft({ amountCents })}
+                onPick={(side, accountId, rememberWord) => {
+                  setTransferPicks((previous) => ({
+                    ...(previous.key === textKey ? previous : { key: textKey }),
+                    [side]: accountId,
+                  }));
+                  if (!rememberWord) return;
+                  void saveAccountAlias(accountId, rememberWord, "learned").then((result) => {
+                    if (result.alias) {
+                      setAliases((previous) => [...previous.filter((alias) => alias.alias_normalized !== result.alias!.alias_normalized), result.alias!]);
+                      const accountName = accounts.find((account) => account.id === accountId)?.name ?? "";
+                      toast(t("capture.voice.remembered").replace("{heard}", rememberWord).replace("{name}", accountName));
+                    } else if (result.error) toast.error(result.error);
+                  });
+                }}
+                onSave={() => void save()}
+              />
+            ) : activeDraft && receipt.status !== "scanning" && !recapMode ? (
               <TransactionPreview
                 draft={activeDraft}
                 accounts={accounts}

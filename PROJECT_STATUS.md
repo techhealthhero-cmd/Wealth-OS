@@ -6,7 +6,48 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-09
+Last updated: 2026-10-10
+
+## Capture transfer/date review + typed transfers — 2026-10-10
+
+- Reviewed commits `e04375e`, `1bb0572`, `18d8dbd`, and `adf67de` as a
+  bug-finding pass. Fixed a false-positive where a payment to a person that
+  happened to mention two own accounts (for example "โอนให้แม่จาก Cash แล้ว
+  ใช้บัตร KTC") could enter the internal-transfer branch. Person recipients
+  now win conservatively; real own-account transfers still use the same
+  deterministic `detectTransferIntent` path.
+- Future/impossible spoken dates are never saved as future dates and their
+  digits are removed before amount parsing. For example "วันที่ 8 ตุลา 2570
+  ข้าว 50" records ฿50 on today, not ฿8/฿2,570 and not a future day. Strict
+  chosen-date validation now also rejects calendar rollovers such as
+  `2026-02-31`.
+- Typed Quick Capture now consumes the same `detectTransferIntent` result as
+  the voice notebook (no second parser): matched/ambiguous/unknown account
+  choices, editable source/destination, nickname remembering, save through
+  the existing idempotent `createTransfer`, and Undo through the existing
+  delete path. The account page is revalidated after deletes so an undone
+  transfer visibly restores both balances after the database trigger
+  recalculates them.
+- Voice transfer picks are cleared whenever the notebook words change, so a
+  manual choice made for an older sentence cannot silently carry into the
+  edited sentence.
+- Migration 0041 review: server actions validate UUID/alias/source with Zod,
+  derive `user_id` only from the authenticated session, scope deletes by that
+  user, and the database combines own-row RLS with a trigger that rejects an
+  alias pointing to another user's account. Contract tests cover all four RLS
+  policies and the ownership trigger.
+- Migration 0040/0041 are recorded on production through 0041. Cover saving
+  was rechecked at the action boundary: Zod-normalized values update only
+  `profiles.user_id = authenticated user`, and invalid/signed-out calls do not
+  write. A fresh production write was deliberately not performed during this
+  review because production data changes are prohibited; the remote migration
+  state and existing column availability are the non-mutating production
+  evidence.
+
+Targeted verification at this checkpoint: 79/79 tests (capture transfer/date/
+recap, transfer idempotency, alias security, notebook cover config/actions),
+TypeScript and ESLint pass. Final quality gate: ESLint ✅, TypeScript ✅,
+Vitest 980/980 ✅, Next.js production build ✅ (64 routes generated).
 
 ## Journal opening modes (quick open on every launch) — 2026-10-09
 
@@ -17,8 +58,8 @@ on every fresh launch by default.
 - **4 modes** (`profiles.notebook_opening_mode`): `quick` (default, ~1 s — owner retimed it from 0.45 s the same day),
   `full` (~1.65 s, skippable), `first_time` (full once, then nothing —
   `profiles.opening_first_played_at`), `off`. Migration 0040 was edited in
-  place (it had not been applied anywhere): the boolean
-  `opening_animation_enabled` became these two columns. Still NOT applied.
+  place before its first deployment: the boolean `opening_animation_enabled`
+  became these two columns. Applied to production on 2026-10-10.
 - **Fresh launch = a new document load** (new tab/PWA session/reload). Guard:
   module-scoped flag (`src/lib/notebook-covers/launch-state.ts`) + the
   persistent (app) layout. No replay on route changes, remounts, RSC
@@ -46,9 +87,9 @@ and full; overlay removed after load; navigating money ↔ dashboard: 0
 overlays; reload: overlay again; quick end state opacity≈0 +
 pointer-events none; preview quick/full; Skip focused + Escape closes; no
 horizontal overflow; light + dark. lint, typecheck, 956/956 tests, build.
-**Not verified**: real iPhone/PWA; `full`/`first_time`/`off` launches with a
-saved mode (needs migration 0040 — logic covered by unit tests);
-`markFirstOpeningPlayed` against a migrated DB.
+**Not verified**: real iPhone/PWA; a fresh live-device pass of
+`full`/`first_time`/`off`; `markFirstOpeningPlayed` against production (not
+mutated during the 2026-10-10 review).
 
 ## Notebook covers + journal-opening animation — 2026-10-09
 
@@ -79,11 +120,10 @@ Checkpoint before this work: git tag `pre-notebook-cover` (pushed).
 - Cover choice is independent of light/dark mode (covers have fixed colours).
   The journal pages inside the app are unchanged (still Journal V1).
 
-**Migration `0040_notebook_cover.sql` — written, NOT yet applied anywhere.**
+**Migration `0040_notebook_cover.sql` — applied to production 2026-10-10.**
 Adds 5 columns to `profiles` (existing update-own RLS covers them). Until it
-is applied, the app shows the default cover and saving shows "ระบบหน้าปกยัง
-ไม่พร้อมใช้งาน" (onboarding skips that message silently). Needs
-`supabase db push` against staging, then production.
+is applied in another environment, the app shows the default cover and saving
+shows "ระบบหน้าปกยังไม่พร้อมใช้งาน" (onboarding skips that message silently).
 
 **Verified**: lint, typecheck, 950/950 tests (14 new in
 `tests/notebook-cover.test.ts`), production build. Visual QA at 390px with
@@ -98,9 +138,10 @@ opacity flattened its 3D and showed the front face mirrored; (2) with
 ~110°. Fix: no opacity on the 3D cover; the book stays flat and gives the
 cover its own `perspective`.
 
-**Not verified**: real iPhone / installed PWA (Safari 3D + backface), the
-save path against a migrated database (prod/staging not migrated yet), the
-background-mid-animation path (code-reviewed only).
+**Not verified**: real iPhone / installed PWA (Safari 3D + backface), a fresh
+production write through the save path (intentionally not performed under the
+no-production-data-change rule), the background-mid-animation path
+(code-reviewed only). The authenticated action/payload path is unit-tested.
 
 ## Quick Capture recap fixes + Gift category + iPhone performance — 2026-10-05
 
