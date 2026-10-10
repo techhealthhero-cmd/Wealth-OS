@@ -3,7 +3,7 @@
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { Keyboard, Mic, MoreHorizontal, X } from "lucide-react";
+import { Check, Keyboard, Mic, MoreHorizontal, Search, X } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
 import { useTranslation } from "@/i18n/client";
@@ -18,7 +18,7 @@ import { createTransfer, deleteTransaction } from "@/features/transactions/actio
 import { getCapturePreferences, saveCapturedTransaction } from "@/features/capture/actions";
 import type { CaptureMerchantPreference, ParseContext } from "@/lib/capture/transaction-parser";
 import { parseRecap } from "@/lib/capture/recap";
-import { detectTransfer, type TransferAccounts } from "@/lib/capture/transfer";
+import { detectTransferIntent, type AccountSlot, type TransferIntent } from "@/lib/capture/transfer";
 import { buildCaptureSaveInput, canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
 
 interface VoiceNotebookProps {
@@ -42,7 +42,17 @@ interface Row {
   id: string;
   draft: CaptureDraft;
   /** "โอนเงินจาก Cash ไป Dime 3000": a move between the user's own accounts, saved as a transfer. */
-  transfer: TransferAccounts | null;
+  transfer: TransferIntent | null;
+}
+
+type Side = "from" | "to";
+
+/** The account picker sheet: which row and side it fills, and the word that was heard there. */
+interface PickerTarget {
+  rowId: string;
+  side: Side;
+  heard: string | null;
+  excludeId: string | null;
 }
 
 /**
@@ -85,6 +95,14 @@ export function VoiceNotebook({
   const requestIdsRef = useRef<Record<string, string>>({});
   const closeRef = useRef<HTMLButtonElement>(null);
   const [isClient, setIsClient] = useState(false);
+  // Accounts the user tapped for a transfer side the words didn't settle.
+  const [picks, setPicks] = useState<Record<string, Partial<Record<Side, string>>>>({});
+  const [picker, setPicker] = useState<PickerTarget | null>(null);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const pickerRef = useRef<PickerTarget | null>(null);
+  useEffect(() => {
+    pickerRef.current = picker;
+  }, [picker]);
 
   useEffect(() => {
     // Portal target only exists on the client.
@@ -96,6 +114,8 @@ export function VoiceNotebook({
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
+    setPicks({});
+    setPicker(null);
     closeRef.current?.focus();
     let cancelled = false;
     getCapturePreferences()
@@ -104,7 +124,10 @@ export function VoiceNotebook({
       })
       .catch(() => {});
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      // The account sheet closes first, then the page.
+      if (pickerRef.current) setPicker(null);
+      else onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -137,10 +160,38 @@ export function VoiceNotebook({
         source: "voice",
         categoryConfirmedByUser: false,
       },
-      transfer: detectTransfer(item.sourceText, accounts),
+      transfer: detectTransferIntent(item.sourceText, accounts),
     }));
   }, [parseText, ctx, accounts]);
-  const saveable = rows.filter((r) => (r.transfer ? r.draft.amountCents !== null : canSaveDraft(r.draft)));
+  /** A transfer side's account: the user's tap wins, then a match from the words; null = still to pick. */
+  const sideAccount = (row: Row, side: Side): string | null => {
+    const slot = row.transfer?.[side];
+    return picks[row.id]?.[side] ?? (slot?.status === "matched" ? slot.accountId : null);
+  };
+  const transferReady = (row: Row) => {
+    const from = sideAccount(row, "from");
+    const to = sideAccount(row, "to");
+    return from !== null && to !== null && from !== to;
+  };
+  const unresolved = rows.filter((r) => r.transfer && r.draft.amountCents !== null && !transferReady(r)).length;
+  const saveable = rows.filter((r) => (r.transfer ? r.draft.amountCents !== null && transferReady(r) : canSaveDraft(r.draft)));
+
+  function pick(rowId: string, side: Side, accountId: string) {
+    setPicks((prev) => ({ ...prev, [rowId]: { ...prev[rowId], [side]: accountId } }));
+    setPicker(null);
+  }
+  function openPicker(row: Row, side: Side) {
+    const slot = row.transfer?.[side];
+    const other = sideAccount(row, side === "from" ? "to" : "from");
+    setPickerQuery("");
+    setPicker({ rowId: row.id, side, heard: slot && slot.status !== "matched" ? slot.heard : null, excludeId: other });
+  }
+  const activeAccounts = accounts.filter((a) => !a.is_archived);
+  const pickerAccounts = picker
+    ? activeAccounts.filter(
+        (a) => a.id !== picker.excludeId && (!pickerQuery.trim() || a.name.toLowerCase().includes(pickerQuery.trim().toLowerCase()))
+      )
+    : [];
 
   const dateFormat = locale === "th" ? "th-TH" : "en-US";
   const headerDate = new Intl.DateTimeFormat(dateFormat, { weekday: "long", day: "numeric", month: "short" }).format(new Date());
@@ -178,11 +229,13 @@ export function VoiceNotebook({
     let lastAmount = 0;
     for (const row of saveable) {
       const requestId = (requestIdsRef.current[row.id] ??= crypto.randomUUID());
-      if (row.transfer && row.draft.amountCents !== null) {
+      const fromId = sideAccount(row, "from");
+      const toId = sideAccount(row, "to");
+      if (row.transfer && row.draft.amountCents !== null && fromId && toId) {
         // Same server action (and idempotency key) as the manual transfer form.
         const form = new FormData();
-        form.set("from_account_id", row.transfer.fromAccountId);
-        form.set("to_account_id", row.transfer.toAccountId);
+        form.set("from_account_id", fromId);
+        form.set("to_account_id", toId);
         form.set("amount", (row.draft.amountCents / 100).toFixed(2));
         form.set("transaction_date", row.draft.date);
         form.set("client_request_id", requestId);
@@ -313,19 +366,36 @@ export function VoiceNotebook({
             {rows.map((row, i) => {
               const d = row.draft;
               const tr = row.transfer;
-              const details = (
-                tr
-                  ? [`${accountName(tr.fromAccountId)} → ${accountName(tr.toAccountId)}`, dayLabel(d.date)]
-                  : [categoryName(d.categoryId), accountName(d.accountId), dayLabel(d.date)]
-              )
-                .filter(Boolean)
-                .join(" · ");
+              const details = tr
+                ? null
+                : [categoryName(d.categoryId), accountName(d.accountId), dayLabel(d.date)].filter(Boolean).join(" · ");
+              const needsPick = tr !== null && !transferReady(row);
+              /** A side the user hasn't tapped yet, as the words left it. */
+              const openSlot = (side: Side): AccountSlot | null => (tr && !picks[row.id]?.[side] ? tr[side] : null);
+              const accountChip = (side: Side) => {
+                const id = sideAccount(row, side);
+                return (
+                  <button
+                    type="button"
+                    onClick={() => openPicker(row, side)}
+                    aria-label={side === "from" ? t("capture.voice.changeFrom") : t("capture.voice.changeTo")}
+                    className={cn(
+                      "inline-flex min-h-8 items-center rounded-full border px-2.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      id
+                        ? "border-[#e3d5b8] bg-white/60 text-foreground dark:border-white/15 dark:bg-white/5"
+                        : "border-dashed border-amber-600 text-amber-800 dark:border-amber-400 dark:text-amber-300"
+                    )}
+                  >
+                    {accountName(id) ?? t("capture.voice.pickAccount")}
+                  </button>
+                );
+              };
               return (
                 <li
                   key={row.id}
                   className={cn(
                     "self-start rounded-md border border-[#e3d5b8] bg-[#fffaf0] px-4 py-3 shadow-[0_6px_14px_rgba(60,40,10,0.12)] dark:border-white/10 dark:bg-card",
-                    i % 2 === 0 ? "-rotate-1" : "rotate-[0.6deg]",
+                    needsPick ? "border-amber-500 dark:border-amber-400" : i % 2 === 0 ? "-rotate-1" : "rotate-[0.6deg]",
                     "min-w-[14rem] max-w-full motion-reduce:rotate-0"
                   )}
                 >
@@ -349,6 +419,62 @@ export function VoiceNotebook({
                     )}
                   </div>
                   {details ? <p className="mt-1 text-sm text-muted-foreground">{details}</p> : null}
+                  {tr ? (
+                    <>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+                        {accountChip("from")}
+                        <span aria-hidden="true">→</span>
+                        {accountChip("to")}
+                        <span>· {dayLabel(d.date)}</span>
+                      </div>
+                      {(["from", "to"] as const).map((side) => {
+                        const slot = openSlot(side);
+                        if (slot?.status === "matched" && slot.heard) {
+                          // Matched by sound, not by name: show what was heard so a wrong match is obvious.
+                          return (
+                            <p key={side} className="mt-2 flex items-center gap-1.5 border-t border-dashed border-[#e3d5b8] pt-2 text-sm text-muted-foreground dark:border-white/15">
+                              <Check className="size-4 shrink-0 text-emerald-700 dark:text-emerald-400" aria-hidden="true" />
+                              {t("capture.voice.heardAs").replace("{heard}", slot.heard).replace("{name}", accountName(slot.accountId) ?? "")}
+                            </p>
+                          );
+                        }
+                        if (slot?.status === "ambiguous") {
+                          return (
+                            <div key={side} className="mt-2 border-t border-dashed border-[#e3d5b8] pt-2 dark:border-white/15">
+                              <p className="text-sm font-semibold">{t("capture.voice.whichAccount").replace("{heard}", slot.heard)}</p>
+                              <div className="mt-2 flex flex-col gap-1.5">
+                                {slot.candidates.map((id) => (
+                                  <button
+                                    key={id}
+                                    type="button"
+                                    onClick={() => pick(row.id, side, id)}
+                                    className="min-h-11 rounded-xl border border-[#cdbf9f] bg-white px-3 text-left text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/20 dark:bg-white/5"
+                                  >
+                                    {accountName(id)}
+                                  </button>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => openPicker(row, side)}
+                                  className="min-h-11 rounded-xl border border-dashed border-[#cdbf9f] px-3 text-left text-[15px] font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/20"
+                                >
+                                  {t("capture.voice.otherAccount")}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+                        if (slot?.status === "unknown" && slot.heard) {
+                          return (
+                            <p key={side} className="mt-2 border-t border-dashed border-[#e3d5b8] pt-2 text-sm text-amber-800 dark:border-white/15 dark:text-amber-300">
+                              {t("capture.voice.unknownAccount").replace("{heard}", slot.heard)}
+                            </p>
+                          );
+                        }
+                        return null;
+                      })}
+                    </>
+                  ) : null}
                 </li>
               );
             })}
@@ -391,6 +517,11 @@ export function VoiceNotebook({
             <Mic className="size-8" strokeWidth={2.4} aria-hidden="true" />
           </button>
         </div>
+        {unresolved > 0 ? (
+          <p className="-mt-2 text-center text-sm text-amber-800 dark:text-amber-300">
+            {t("capture.voice.needsPick").replace("{n}", String(unresolved))}
+          </p>
+        ) : null}
         <div className="flex w-full max-w-md gap-3">
           <button
             type="button"
@@ -409,7 +540,8 @@ export function VoiceNotebook({
           <button
             type="button"
             onClick={() => void saveAll()}
-            disabled={saving || saveable.length === 0}
+            // A transfer whose account isn't settled is never saved half-done or skipped silently.
+            disabled={saving || saveable.length === 0 || unresolved > 0}
             className="h-12 flex-1 rounded-2xl bg-primary text-base font-semibold text-primary-foreground transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           >
             {saving
@@ -420,6 +552,75 @@ export function VoiceNotebook({
           </button>
         </div>
       </div>
+
+      {picker ? (
+        <div className="absolute inset-0 z-10 flex flex-col justify-end">
+          <button
+            type="button"
+            aria-label={t("capture.voice.close")}
+            onClick={() => setPicker(null)}
+            className="absolute inset-0 bg-black/45 animate-in fade-in-0 duration-200 motion-reduce:animate-none"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="voice-account-picker-title"
+            className="relative max-h-[80%] overflow-y-auto rounded-t-3xl bg-[#fffaf0] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-[0_-10px_30px_rgba(20,28,24,0.25)] animate-in slide-in-from-bottom-8 duration-200 motion-reduce:animate-none dark:bg-card"
+          >
+            <div aria-hidden="true" className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-[#d9ccb0] dark:bg-white/20" />
+            <h3 id="voice-account-picker-title" className="text-xl font-semibold">
+              {picker.heard
+                ? t("capture.voice.pickerHeard").replace("{heard}", picker.heard)
+                : picker.side === "from"
+                  ? t("capture.voice.pickerFrom")
+                  : t("capture.voice.pickerTo")}
+            </h3>
+            {activeAccounts.length > 6 ? (
+              <label className="mt-3 flex h-11 items-center gap-2 rounded-xl border border-[#d9ccb0] bg-white px-3 dark:border-white/15 dark:bg-white/5">
+                <Search className="size-4 text-muted-foreground" aria-hidden="true" />
+                <input
+                  type="text"
+                  value={pickerQuery}
+                  onChange={(e) => setPickerQuery(e.target.value)}
+                  placeholder={t("capture.voice.pickerSearch")}
+                  aria-label={t("capture.voice.pickerSearch")}
+                  className="min-w-0 flex-1 bg-transparent text-base focus:outline-none"
+                />
+              </label>
+            ) : null}
+            <ul className="mt-3 flex flex-col gap-1.5">
+              {pickerAccounts.map((a) => {
+                const pickerRow = rows.find((r) => r.id === picker.rowId);
+                const selected = pickerRow ? sideAccount(pickerRow, picker.side) === a.id : false;
+                return (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      onClick={() => pick(picker.rowId, picker.side, a.id)}
+                      aria-pressed={selected}
+                      className={cn(
+                        "flex min-h-14 w-full items-center gap-3 rounded-2xl border px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        selected ? "border-2 border-primary bg-primary/5" : "border-[#e3d5b8] bg-white dark:border-white/15 dark:bg-white/5"
+                      )}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[15px] font-semibold">{a.name}</span>
+                        <span className="block text-[13px] text-muted-foreground">
+                          {[t(`accounts.types.${a.account_type}`), a.institution]
+                            .filter((part) => part && part !== a.name)
+                            .join(" · ")}
+                        </span>
+                      </span>
+                      {selected ? <Check className="size-5 shrink-0 text-primary" aria-hidden="true" /> : null}
+                    </button>
+                  </li>
+                );
+              })}
+              {pickerAccounts.length === 0 ? <li className="py-4 text-center text-sm text-muted-foreground">{t("capture.voice.pickerEmpty")}</li> : null}
+            </ul>
+          </section>
+        </div>
+      ) : null}
     </div>,
     document.body
   );
