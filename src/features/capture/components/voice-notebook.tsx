@@ -45,8 +45,6 @@ interface VoiceNotebookProps {
   categories: Category[];
   /** "More" (header): hand the words over to the full Quick Capture sheet — slips, income, transfer. */
   onMore: (text: string) => void;
-  /** Opened from "บันทึกรายการ" (Money page): the paper gets the caret, the mic stays off. */
-  typing?: boolean;
 }
 
 interface Row {
@@ -96,7 +94,6 @@ export function VoiceNotebook({
   accounts,
   categories,
   onMore,
-  typing = false,
 }: VoiceNotebookProps) {
   const { t, locale } = useTranslation();
   const keyboardInset = useKeyboardInset(open);
@@ -148,7 +145,7 @@ export function VoiceNotebook({
     setPicks({});
     setPicker(null);
     setLowDismissed([]);
-    if (!typing) closeRef.current?.focus();
+    closeRef.current?.focus();
     let cancelled = false;
     getCapturePreferences()
       .then((prefs) => {
@@ -176,19 +173,7 @@ export function VoiceNotebook({
       cancelled = true;
       window.removeEventListener("keydown", onKey);
     };
-  }, [open, onClose, typing]);
-
-  // Typing entry: the caller already raised the keyboard inside the tap
-  // (iOS only allows that from a gesture); moving focus to the paper keeps
-  // it up. Waits for isClient: on the very first open the portal (and so
-  // the paper) only exists from the second render.
-  useEffect(() => {
-    if (!open || !typing || !isClient) return;
-    const el = paperRef.current;
-    if (!el) return;
-    el.focus();
-    el.setSelectionRange(el.value.length, el.value.length);
-  }, [open, typing, isClient]);
+  }, [open, onClose]);
 
   const today = toLocalDateString(new Date());
   const ctx: ParseContext = useMemo(

@@ -28,14 +28,10 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   afterwards). Not yet exercised live: tapping ✓ in the moved box (same
   `confirmInboxTransaction` action as before, which already revalidates
   `/money/transactions`).
-- Later the same day: the three entry pills became one "บันทึกรายการ" button
-  (`QuickAdd variant="record"`). It asks the bottom nav's notebook (window
-  event `wealthos:open-notebook-typing`) to open with the mic off and the
-  caret on the paper; a hidden input takes focus inside the tap so iOS can
-  raise the keyboard. Page decluttered (no subtitle, weekly note only while
-  behind, search behind 🔍, exports behind "⋯", quick-repeat chips only).
-  Verified in desktop Chromium (paper focused, typed "ข้าวมันไก่ 50" →
-  expense ฿50); keyboard on a real iPhone not yet confirmed.
+- Tried and reverted the same day: one "บันทึกรายการ" button opening the
+  notebook for typing + a decluttered page (`2bf7688`). The user found the
+  three-pill version clearly nicer, so both commits were reverted; the page
+  is back to the `8412cd2` layout.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

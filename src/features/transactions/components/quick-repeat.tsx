@@ -33,8 +33,10 @@ export function QuickRepeat({ candidates, accounts, categories }: QuickRepeatPro
 
   return (
     <div className="space-y-2">
-      {/* 2026-10-11: the chips speak for themselves; the heading stays for screen readers. */}
-      <h2 className="sr-only">{t("transactions.quickRepeat")}</h2>
+      <div>
+        <h2 className="text-sm font-medium">{t("transactions.quickRepeat")}</h2>
+        <p className="text-xs text-muted-foreground">{t("transactions.quickRepeatHint")}</p>
+      </div>
       <div className="edge-fade-x flex gap-2 overflow-x-auto pb-1">
         {candidates.map((candidate, index) => {
           const category = candidate.categoryId ? categoryById.get(candidate.categoryId) : undefined;

@@ -15,6 +15,7 @@ export default async function MoneyLayout({ children }: { children: React.ReactN
           {/* Highlighter stroke behind the page title (Journal). */}
           <span className="journal-heading">{dict.nav.money}</span>
         </h1>
+        <p className="text-sm text-muted-foreground">{dict.money.subtitle}</p>
       </div>
       <MoneyTabs>{children}</MoneyTabs>
     </div>
