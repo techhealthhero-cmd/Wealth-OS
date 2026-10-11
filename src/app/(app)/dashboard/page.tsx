@@ -13,7 +13,6 @@ import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboar
 import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
 import { MonthlyDonutCard } from "@/features/dashboard/components/summary-visuals";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
-import { QuickAdd } from "@/features/transactions/components/quick-add";
 import { DailyInboxSection } from "@/features/capture/components/daily-inbox-section";
 import { EmptyState } from "@/components/shared/empty-state";
 import { WelcomeIllustration } from "@/components/illustrations";
@@ -116,12 +115,9 @@ export default async function DashboardPage() {
         </Suspense>
       </div>
 
-      {/* Always-visible income/expense/transfer tiles — the same QuickAdd
-          dialogs as the floating-action-button dropdown further down, just
-          surfaced directly instead of behind a menu. */}
-      <div className="motion-reveal motion-reveal-2">
-        <QuickAdd accounts={data.accounts} categories={data.categories} variant="row" />
-      </div>
+      {/* 2026-10-11: the income/expense/transfer tiles left Home — they live
+          on Money › Transactions, and the center mic records from any page.
+          Home is for the overview. */}
 
       {/* One-line "N items need review" nudge — the Daily Inbox itself
           lives on Money › Transactions (2026-10-11). Renders nothing when

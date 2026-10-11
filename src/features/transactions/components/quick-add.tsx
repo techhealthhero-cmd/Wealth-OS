@@ -180,6 +180,8 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
   return (
     <>
       {variant === "row" ? (
+        // 2026-10-11: one short row of pills (was three tall tiles) so the
+        // pending-review box below stays in the first screen.
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {(
             [
@@ -199,12 +201,12 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
               }}
               onClick={() => openDialog(item.dialog)}
               className={cn(
-                "card-interactive flex flex-col items-center gap-2 rounded-xl bg-card py-4 text-card-foreground shadow-card ring-1 ring-foreground/5",
+                "card-interactive flex h-11 items-center justify-center gap-2 rounded-full bg-card px-2 text-card-foreground shadow-card ring-1 ring-foreground/5",
                 "transition-colors hover:bg-accent/50"
               )}
             >
-              <IconChip icon={item.icon} tone={item.tone} className="size-10" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <IconChip icon={item.icon} tone={item.tone} className="size-7 shrink-0 rounded-full" />
+              <span className="truncate text-sm font-medium">{item.label}</span>
             </button>
           ))}
         </div>
