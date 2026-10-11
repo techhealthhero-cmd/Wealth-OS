@@ -6,7 +6,31 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-10
+Last updated: 2026-10-11
+
+## Money › Transactions is the one place for money in/out — 2026-10-11
+
+Chosen from two clickable mockups (3 inbox placements → "A: box on top";
+3 entry-button placements → "1: remove from Home").
+
+- `55e57c5`: the Daily Inbox moved from Home to the top of Money ›
+  Transactions (`PendingInboxSection`, default view only). It shows only
+  `needs_review` items, disappears when none are left, and folds to 3 cards +
+  "show N more" above 5. The "confirmed today" sub-list was dropped: confirmed
+  items are already in the list below. Home keeps a one-line "N items need
+  review → Review" link (`DailyInboxSection`). Weekly reminder folds to one
+  line once the week is up to date; filters are one scrollable pill row.
+- `8412cd2`: the expense/income/transfer tiles left Home (recording from Home
+  = the center mic); on Money they shrank to one row of pills
+  (`QuickAdd variant="row"`, now used only there).
+- Verified: typecheck, ESLint, Vitest 991/991, production build; rendered at
+  390×844 on the demo account with 2 temporary `needs_review` rows (deleted
+  afterwards). Not yet exercised live: tapping ✓ in the moved box (same
+  `confirmInboxTransaction` action as before, which already revalidates
+  `/money/transactions`).
+- Known: pending items also appear in the list under their own date (they
+  are recorded transactions and count in balances). No badge on the Money
+  nav tab yet.
 
 ## Capture transfer/date review + typed transfers — 2026-10-10
 
