@@ -19,6 +19,10 @@ export function ListTabs({ active, pendingCount }: { active: ListTab; pendingCou
     const params = new URLSearchParams(searchParams.toString());
     if (tab === "pending") params.set("tab", "pending");
     else params.delete("tab");
+    // A day picked on the strip doesn't follow you to the other tab: the
+    // review tab showed "nothing" for that one day while 13 waited on others.
+    params.delete("from");
+    params.delete("to");
     startTransition(() => router.push(`/money/transactions?${params.toString()}`, { scroll: false }));
   }
 

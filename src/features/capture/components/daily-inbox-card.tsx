@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Check, Inbox } from "lucide-react";
+import { Check, Inbox, X } from "lucide-react";
 
 import type { Account, Category, Transaction } from "@/types/database";
 import { useTranslation } from "@/i18n/client";
@@ -180,7 +181,9 @@ export function DailyInboxCard({
   /** Shown when nothing (or nothing that day) needs review. */
   emptyText: string;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [confirmingAll, startConfirmAll] = useTransition();
   // Swiped-away items: hidden at once, deleted after the undo window.
@@ -198,12 +201,19 @@ export function DailyInboxCard({
   }
 
   const visible = inbox.items.filter((i) => !hiddenIds.has(i.id));
-  const pending = visible.filter(
-    (i) => i.review_status === "needs_review" && !confirmedIds.has(i.id) && (onlyDate === null || i.transaction_date === onlyDate)
-  );
+  const allPending = visible.filter((i) => i.review_status === "needs_review" && !confirmedIds.has(i.id));
+  const pending = allPending.filter((i) => onlyDate === null || i.transaction_date === onlyDate);
+  const otherDays = allPending.length - pending.length;
   // Only complete items may be bulk-confirmed; undecided categories need a pick.
   const bulkConfirmable = pending.filter((i) => canBulkConfirm(i, categories));
   const needsPick = pending.length - bulkConfirmable.length;
+
+  function clearDay() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("from");
+    params.delete("to");
+    router.push(`/money/transactions?${params.toString()}`, { scroll: false });
+  }
 
   function markConfirmed(id: string) {
     setConfirmedIds((prev) => new Set(prev).add(id));
@@ -222,11 +232,42 @@ export function DailyInboxCard({
     });
   }
 
+  // "Showing only <day> · all days (N)" — without it a picked day silently
+  // empties the list while the tab still counts every pending item.
+  const dayBar =
+    onlyDate !== null ? (
+      <div className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-xs">
+        <span className="min-w-0 flex-1 truncate">
+          {t("transactions.pendingDayOnly").replace(
+            "{date}",
+            formatFriendlyDate(onlyDate, locale, { today: t("capture.today"), yesterday: t("capture.yesterday") })
+          )}
+        </span>
+        {otherDays > 0 ? (
+          <button
+            type="button"
+            onClick={clearDay}
+            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 font-medium text-primary-foreground"
+          >
+            {t("transactions.pendingShowAll").replace("{count}", String(allPending.length))}
+            <X className="size-3" aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
+    ) : null;
+
   if (pending.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted-foreground">{emptyText}</p>;
+    return (
+      <div className="space-y-2">
+        {dayBar}
+        <p className="py-8 text-center text-sm text-muted-foreground">{emptyText}</p>
+      </div>
+    );
   }
 
   return (
+    <div className="space-y-2">
+    {dayBar}
     <section
       aria-labelledby="pending-inbox-title"
       className="space-y-3 rounded-2xl border border-dashed border-amber-400/70 bg-amber-500/10 p-3"
@@ -263,5 +304,6 @@ export function DailyInboxCard({
       </ul>
 
     </section>
+    </div>
   );
 }
