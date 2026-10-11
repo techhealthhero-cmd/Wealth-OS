@@ -71,3 +71,46 @@ describe("topping up a shop wallet is a transfer", () => {
     expect(detectTransferIntent("เติมเงินมือถือ 100", ACCOUNTS)).toBeNull();
   });
 });
+
+describe("เติมทรู — topping up a TrueMoney wallet (reported 2026-10-11)", () => {
+  // The user's 7-Eleven wallet runs on TrueMoney (institution "True money").
+  it("เติมทรู 500 → Cash → the True money wallet", () => {
+    expect(detectTransferIntent("เติมทรู 500", ACCOUNTS)).toEqual({
+      from: { status: "matched", accountId: "cash", heard: null },
+      to: { status: "matched", accountId: "seven", heard: "ทรู" },
+    });
+    expect(detectTransferIntent("เติมเงินทรูมันนี่ 300", ACCOUNTS)?.to).toMatchObject({ status: "matched", accountId: "seven" });
+    expect(detectTransferIntent("เติมเงินเข้าทรู 200", ACCOUNTS)?.to).toMatchObject({ status: "matched", accountId: "seven" });
+  });
+
+  it("a named source wins over the default", () => {
+    expect(detectTransferIntent("เติมทรู 500 จาก Dime", ACCOUNTS)?.from).toEqual({ status: "matched", accountId: "dime", heard: null });
+  });
+
+  it("an account said right after เติม is the wallet", () => {
+    expect(detectTransferIntent("เติม Dime 1000", ACCOUNTS)).toEqual({
+      from: { status: "matched", accountId: "cash", heard: null },
+      to: { status: "matched", accountId: "dime", heard: null },
+    });
+  });
+
+  it("TrueMoney is the 7-Eleven wallet: no True in the name → the 7-Eleven account", () => {
+    const plain = ACCOUNTS.map((a) => (a.id === "seven" ? { ...a, institution: null } : a));
+    expect(detectTransferIntent("เติมทรู 500", plain)?.to).toEqual({ status: "matched", accountId: "seven", heard: "ทรู" });
+    const viaShop = plain.map((a) => (a.id === "seven" ? { ...a, name: "กระเป๋าเซเว่น", merchants: ["7-eleven"] } : a));
+    expect(detectTransferIntent("เติมทรู 500", viaShop)?.to).toEqual({ status: "matched", accountId: "seven", heard: "ทรู" });
+  });
+
+  it("no True wallet account yet → ask which account", () => {
+    const noWallet = ACCOUNTS.filter((a) => a.id !== "seven");
+    expect(detectTransferIntent("เติมทรู 500", noWallet)?.to).toEqual({ status: "unknown", heard: "ทรู" });
+  });
+
+  it("phone credit, TV bills, fuel and 'เพิ่มเติม' stay expenses", () => {
+    expect(detectTransferIntent("เติมเงินทรูมูฟ 300", ACCOUNTS)).toBeNull();
+    expect(detectTransferIntent("เติมทรูมูฟ 100", ACCOUNTS)).toBeNull();
+    expect(detectTransferIntent("เติมน้ำมัน จ่ายเงินสด 500", ACCOUNTS)).toBeNull();
+    expect(detectTransferIntent("ซื้อของเพิ่มเติม Dime 50", ACCOUNTS)).toBeNull();
+    expect(detectTransferIntent("เติมเงินมือถือ 100", ACCOUNTS)).toBeNull();
+  });
+});

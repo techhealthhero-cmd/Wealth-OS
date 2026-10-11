@@ -66,6 +66,14 @@ const PERSON_WORDS = [
   "ให้", "แม่", "พ่อ", "พี่", "น้อง", "แฟน", "เพื่อน", "ลูก", "ยาย", "ปู่", "ย่า", "ป้า", "ลุง", "น้า", "เขา", "คน", "ร้าน",
   "ลูกค้า", "เจ้าของ",
 ];
+/**
+ * "เติมทรู 500" / "เติมเงินทรูมันนี่ 300": plain เติม straight into a wallet.
+ * Only a wallet counts — "เติมน้ำมัน", "เติมเงินมือถือ", "เติมเงินทรูมูฟ"
+ * (phone credit) and "ทรูวิชั่น" stay expenses.
+ */
+const TOP_UP_RE = /(?<!เพิ่ม)เติม(?:เงิน)?\s*(?:เข้า|ใส่|ไป)?\s*(?:บัญชี|กระเป๋า|แอป|แอพ|wallet|app)?\s*/;
+const TRUE_WALLET_RE = /^(?:ทรู(?!มูฟ|วิชั่น|วิชัน|ไอดี|ออนไลน์|เน็ต)(?:มันนี่|มันนี|วอลเล็ท|วอลเลท)?|true\s*(?:money|wallet)?(?!\s*(?:move|vision|id|online)))/;
+const TRUE_ALIASES = ["truemoney", "true money", "true wallet", "ทรู"];
 const TRAILING_FILLERS = /(?:\s*(?:หน่อย|ด้วย|นะ|ครับ|คับ|ค่ะ|คะ|จ้า|บาท|baht))+$/;
 
 const DIRECTION_RE = new RegExp(
@@ -315,6 +323,8 @@ export function detectTransferIntent(input: string, accounts: AliasedAccount[]):
     const cash = active.find((a) => a.account_type === "cash");
     return cash && cash.id !== distinct[0].accountId ? { from: matched(distinct[0].accountId), to: matched(cash.id) } : null;
   }
+  const topUp = detectTopUp(lower, mentions, active);
+  if (topUp) return topUp;
   if (!hasVerb) return null;
 
   // Not every account was named exactly: read the words after จาก / ไป.
@@ -336,6 +346,62 @@ export function detectTransferIntent(input: string, accounts: AliasedAccount[]):
     from ?? (active[0] && !(to.status === "matched" && to.accountId === active[0].id) ? matched(active[0].id) : { status: "unknown", heard: null });
   if (fromSlot.status === "matched" && to.status === "matched" && fromSlot.accountId === to.accountId) return null;
   return { from: fromSlot, to };
+}
+
+/**
+ * "เติมทรู 500": money moved from the default account (or "จาก X") into a
+ * wallet named right after เติม. The wallet is an account named there
+ * exactly (or by nickname), else for ทรู/TrueMoney the account whose name or
+ * institution says True money, then the 7-Eleven wallet (TrueMoney is the
+ * wallet behind it); none → unknown, so the UI asks once and can remember
+ * the word.
+ */
+function detectTopUp(lower: string, mentions: Mention[], active: AliasedAccount[]): TransferIntent | null {
+  const m = TOP_UP_RE.exec(lower);
+  if (!m) return null;
+  const start = m.index + m[0].length;
+  const digit = lower.slice(start).search(/[\d฿]/);
+  const end = digit >= 0 ? start + digit : lower.length;
+  const heard = lower.slice(start, end).replace(TRAILING_FILLERS, "").trim();
+  if (!heard) return null;
+
+  let to: AccountSlot | null = null;
+  // The wallet comes right after เติม — "เติมน้ำมัน จ่ายเงินสด" names Cash only as the payer.
+  const exact = mentions.find((x) => x.start >= start && x.start <= start + 1 && x.start < end);
+  if (exact) to = { status: "matched", accountId: exact.accountId, heard: null };
+  else if (TRUE_WALLET_RE.test(heard)) {
+    const trueNamed = active
+      .filter((a) => TRUE_ALIASES.some((alias) => `${a.name} ${a.institution ?? ""}`.toLowerCase().includes(alias)))
+      .map((a) => a.id);
+    // TrueMoney IS the 7-Eleven wallet (the user, 2026-10-11): with no
+    // account named True, the account set for — or named after — 7-Eleven.
+    const sevenKey = normalizeMerchant("7-Eleven");
+    const ids =
+      trueNamed.length > 0
+        ? trueNamed
+        : [...new Set([...active.filter((a) => a.merchants?.includes(sevenKey)).map((a) => a.id), ...accountsNamedForMerchant("7-Eleven", active)])];
+    to =
+      ids.length === 1
+        ? { status: "matched", accountId: ids[0], heard }
+        : ids.length > 1
+          ? { status: "ambiguous", candidates: ids, heard }
+          : { status: "unknown", heard };
+  }
+  if (!to) return null;
+
+  const fromSlot = findSlots(lower).from;
+  const toId = to.status === "matched" ? to.accountId : null;
+  let from: AccountSlot;
+  if (fromSlot) {
+    from = resolveSlot(fromSlot, mentions, active, toId);
+    if (!isAccountish(from, fromSlot)) return null;
+  } else {
+    // Like an expense: the default account, cash first.
+    const source = active.find((a) => a.account_type === "cash" && a.id !== toId) ?? active.find((a) => a.id !== toId);
+    from = source ? { status: "matched", accountId: source.id, heard: null } : { status: "unknown", heard: null };
+  }
+  if (from.status === "matched" && toId === from.accountId) return null;
+  return { from, to };
 }
 
 /** The two accounts of a spoken transfer when both are certain, or null. */
