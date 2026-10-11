@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Check, ChevronDown, Inbox, Pencil } from "lucide-react";
+import { Check, Inbox } from "lucide-react";
 
 import type { Account, Category, Transaction } from "@/types/database";
 import { useTranslation } from "@/i18n/client";
@@ -16,7 +16,7 @@ import { confirmInboxTransaction } from "@/features/capture/actions";
 import { SwipeToDelete } from "@/components/shared/swipe-to-delete";
 import { useUndoableDelete } from "@/components/shared/use-undoable-delete";
 import type { DailyInbox, InboxTransaction } from "@/features/capture/queries";
-import { canBulkConfirm, inboxReviewReasons } from "@/lib/capture/inbox";
+import { canBulkConfirm } from "@/lib/capture/inbox";
 
 /** The full form edits a Transaction row — fill the columns the inbox query doesn't select with neutral values. */
 function toEditableTransaction(item: InboxTransaction): Transaction {
@@ -67,91 +67,81 @@ function InboxItem({
     });
   }
 
+  const decided = canBulkConfirm(item, categories);
+  const date = formatFriendlyDate(item.transaction_date, locale, { today: t("capture.today"), yesterday: t("capture.yesterday") });
+
+  // 2026-10-11 ("รอตรวจ" tab): one line per item — amount, what & when,
+  // the category (tap = pick, and picking confirms), ✓ to confirm as is.
   return (
     <SwipeToDelete
       as="li"
-      className="rounded-2xl"
       deleteLabel={t("capture.inbox.delete")}
       a11yLabel={`${t("capture.inbox.delete")}: ${label} ${formatMoneyFromDecimal(item.amount)}`}
       onDelete={() => onDelete(item)}
-      // Swipe right = the same editor as the ✏️ button.
+      // Swipe right = the full editor.
       editLabel={t("capture.edit")}
       onEdit={() => setEditing(true)}
     >
-    <div className={cn("space-y-2 rounded-2xl border bg-card p-3 transition-opacity", pending && "opacity-50")}>
-      <div className="flex items-start gap-3">
+    <div className={cn("bg-card px-3 transition-opacity", pending && "opacity-50")}>
+      <div className="flex items-center gap-2 py-2.5">
         <div className="min-w-0 flex-1">
-          <p className={cn("text-lg font-bold tabular-nums", item.type === "income" && "text-emerald-600")}>
+          <p className={cn("text-sm font-semibold tabular-nums", item.type === "income" && "text-emerald-600 dark:text-emerald-400")}>
             {item.type === "income" ? "+" : ""}
             {formatMoneyFromDecimal(item.amount)}
           </p>
-          <p className="truncate text-sm text-foreground/90" title={label}>
-            {label}
+          <p className="truncate text-xs text-muted-foreground" title={label}>
+            {label} · {date}
+            {item.source === "receipt" && item.ai_confidence !== "high" ? ` · ${t("capture.inbox.reason.scan")}` : ""}
           </p>
-          <button
-            type="button"
-            onClick={() => setPicking((v) => !v)}
-            aria-expanded={picking}
-            aria-label={t("capture.inbox.changeCategory")}
-            className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs"
-          >
-            <span className="text-muted-foreground">{t("capture.inbox.aiSuggest")} →</span>
-            <span aria-hidden="true">{categoryEmoji(category?.icon ?? null)}</span>
-            <span className="truncate font-medium">
-              {category ? (locale === "th" ? category.name_th : category.name_en) : t("capture.category")}
-              {unsure ? " ?" : ""}
-            </span>
-            <ChevronDown className="size-3 shrink-0" aria-hidden="true" />
-          </button>
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {inboxReviewReasons(item, categories).map((reason) => (
-              <span
-                key={reason}
-                className="rounded-md border border-dashed border-amber-400/70 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300"
-              >
-                {t(`capture.inbox.reason.${reason}`)}
+        </div>
+        <button
+          type="button"
+          onClick={() => setPicking((v) => !v)}
+          aria-expanded={picking}
+          aria-label={t("capture.inbox.changeCategory")}
+          className={cn(
+            "inline-flex max-w-[9rem] shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs",
+            decided
+              ? "border border-primary/40 font-medium text-primary"
+              : "border border-dashed border-amber-500/80 bg-background text-amber-800 dark:text-amber-300"
+          )}
+        >
+          {decided && category ? (
+            <>
+              <span aria-hidden="true">{categoryEmoji(category.icon ?? null)}</span>
+              <span className="truncate">
+                {locale === "th" ? category.name_th : category.name_en}
+                {unsure ? " ?" : ""}
               </span>
-            ))}
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {formatFriendlyDate(item.transaction_date, locale, { today: t("capture.today"), yesterday: t("capture.yesterday") })}
-            {item.account_name ? ` · ${item.account_name}` : ""}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col gap-1.5">
-          <Button
-            type="button"
-            size="icon"
-            className="size-11 rounded-full"
-            aria-label={t("capture.inbox.confirm")}
-            disabled={pending}
-            onClick={() => confirm()}
-          >
-            <Check className="size-5" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="size-11 rounded-full"
-            aria-label={t("capture.edit")}
-            onClick={() => setEditing(true)}
-          >
-            <Pencil className="size-4" aria-hidden="true" />
-          </Button>
-        </div>
+            </>
+          ) : (
+            <span>? {t("capture.category")}</span>
+          )}
+        </button>
+        <Button
+          type="button"
+          size="icon"
+          className="size-9 shrink-0 rounded-full"
+          aria-label={t("capture.inbox.confirm")}
+          disabled={pending || !decided}
+          onClick={() => confirm()}
+        >
+          <Check className="size-4" aria-hidden="true" />
+        </Button>
       </div>
       {picking ? (
-        <CategoryPicker
-          name={`__inbox_category_${item.id}`}
-          categories={relevant}
-          value={item.category_id}
-          // Picking a category IS the review — confirm in the same tap.
-          onValueChange={(id) => {
-            setPicking(false);
-            if (id) confirm(id);
-          }}
-        />
+        <div className="pb-3">
+          <CategoryPicker
+            name={`__inbox_category_${item.id}`}
+            categories={relevant}
+            value={item.category_id}
+            // Picking a category IS the review — confirm in the same tap.
+            onValueChange={(id) => {
+              setPicking(false);
+              if (id) confirm(id);
+            }}
+          />
+        </div>
       ) : null}
       <TransactionForm
         defaultType={item.type === "income" ? "income" : "expense"}
@@ -167,10 +157,6 @@ function InboxItem({
   );
 }
 
-/** Above this many pending items the box folds to COLLAPSED_COUNT cards plus "show N more". */
-const COLLAPSE_ABOVE = 5;
-const COLLAPSED_COUNT = 3;
-
 /**
  * Daily Inbox — "capture first, organize later". Lives at the top of
  * Money › Transactions (2026-10-11: moved off Home so recording, reviewing
@@ -183,14 +169,19 @@ export function DailyInboxCard({
   inbox,
   categories,
   accounts,
+  onlyDate = null,
+  emptyText,
 }: {
   inbox: DailyInbox;
   categories: Category[];
   accounts: Account[];
+  /** The week strip's selected day: show only that day's items. */
+  onlyDate?: string | null;
+  /** Shown when nothing (or nothing that day) needs review. */
+  emptyText: string;
 }) {
   const { t } = useTranslation();
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
-  const [expanded, setExpanded] = useState(false);
   const [confirmingAll, startConfirmAll] = useTransition();
   // Swiped-away items: hidden at once, deleted after the undo window.
   const { hiddenIds, deleteWithUndo } = useUndoableDelete({
@@ -207,12 +198,12 @@ export function DailyInboxCard({
   }
 
   const visible = inbox.items.filter((i) => !hiddenIds.has(i.id));
-  const pending = visible.filter((i) => i.review_status === "needs_review" && !confirmedIds.has(i.id));
+  const pending = visible.filter(
+    (i) => i.review_status === "needs_review" && !confirmedIds.has(i.id) && (onlyDate === null || i.transaction_date === onlyDate)
+  );
   // Only complete items may be bulk-confirmed; undecided categories need a pick.
   const bulkConfirmable = pending.filter((i) => canBulkConfirm(i, categories));
   const needsPick = pending.length - bulkConfirmable.length;
-  const folded = !expanded && pending.length > COLLAPSE_ABOVE;
-  const shown = folded ? pending.slice(0, COLLAPSED_COUNT) : pending;
 
   function markConfirmed(id: string) {
     setConfirmedIds((prev) => new Set(prev).add(id));
@@ -231,7 +222,9 @@ export function DailyInboxCard({
     });
   }
 
-  if (pending.length === 0) return null;
+  if (pending.length === 0) {
+    return <p className="py-8 text-center text-sm text-muted-foreground">{emptyText}</p>;
+  }
 
   return (
     <section
@@ -263,22 +256,12 @@ export function DailyInboxCard({
         {t("capture.inbox.swipeHint")}
       </p>
 
-      <ul className="space-y-2">
-        {shown.map((item) => (
+      <ul className="divide-y overflow-hidden rounded-xl border">
+        {pending.map((item) => (
           <InboxItem key={item.id} item={item} categories={categories} accounts={accounts} onConfirmed={markConfirmed} onDelete={deleteItem} />
         ))}
       </ul>
 
-      {folded ? (
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          className="flex w-full items-center justify-center gap-1 rounded-xl py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-500/10 dark:text-amber-300"
-        >
-          <ChevronDown className="size-3.5" aria-hidden="true" />
-          {t("capture.inbox.showMore").replace("{count}", String(pending.length - COLLAPSED_COUNT))}
-        </button>
-      ) : null}
     </section>
   );
 }

@@ -32,6 +32,18 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   notebook for typing + a decluttered page (`2bf7688`). The user found the
   three-pill version clearly nicer, so both commits were reverted; the page
   is back to the `8412cd2` layout.
+- 2026-10-12, chosen from 9 mockups (user picked "B + D"): the page is now
+  pills → `MonthSummary` (this month's income / spending / left from
+  `calculateIncome`/`calculateExpenses`, plus a budget bar when
+  `getBudgetSummary` finds a budget) → `WeekStrip` (last 7 days ending
+  today, `buildWeekStrip` in `src/lib/financial/week-strip.ts`, tested;
+  tapping a day = the existing `from`/`to` filter for that date; ‹ › =
+  `?week=`) → `ListTabs` "ทั้งหมด | รอตรวจ N" (`?tab=pending`). The pending
+  tab is the Daily Inbox as one-line rows (pick category = confirm, ✓
+  enabled once a real category is set). Weekly note only while behind;
+  search behind 🔍, exports behind "⋯". Home nudge links to `?tab=pending`.
+  Verified on the demo account at 390×844 (all tab, pending tab, a picked
+  day); tests 1002/1002, build OK.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

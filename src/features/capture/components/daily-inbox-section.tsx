@@ -21,7 +21,7 @@ export async function DailyInboxSection() {
 
   return (
     <Link
-      href="/money/transactions"
+      href="/money/transactions?tab=pending"
       className="flex items-center gap-2 rounded-2xl border border-dashed border-amber-400/70 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-500/15 dark:text-amber-300"
     >
       <Inbox className="size-4 shrink-0" aria-hidden="true" />
@@ -34,9 +34,19 @@ export async function DailyInboxSection() {
   );
 }
 
-/** Money › Transactions: the Daily Inbox itself, shown only while something needs review. */
-export async function PendingInboxSection({ categories, accounts }: { categories: Category[]; accounts: Account[] }) {
+/** Money › Transactions, "รอตรวจ" tab: the Daily Inbox itself (optionally one day of it). */
+export async function PendingInboxSection({
+  categories,
+  accounts,
+  onlyDate,
+  emptyText,
+}: {
+  categories: Category[];
+  accounts: Account[];
+  onlyDate: string | null;
+  emptyText: string;
+}) {
   const inbox = await getDailyInbox();
-  if (!inbox || inbox.pendingCount === 0) return null;
-  return <DailyInboxCard inbox={inbox} categories={categories} accounts={accounts} />;
+  if (!inbox) return <p className="py-8 text-center text-sm text-muted-foreground">{emptyText}</p>;
+  return <DailyInboxCard inbox={inbox} categories={categories} accounts={accounts} onlyDate={onlyDate} emptyText={emptyText} />;
 }

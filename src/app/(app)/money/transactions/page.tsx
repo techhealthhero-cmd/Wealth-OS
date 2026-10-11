@@ -34,6 +34,8 @@ export default async function TransactionsPage({ searchParams }: TransactionsPag
         to: get("to"),
         hasNotes: get("notes") === "1",
       }}
+      tab={get("tab") === "pending" ? "pending" : "all"}
+      week={get("week")}
     />
   );
 }
