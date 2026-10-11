@@ -22,6 +22,32 @@ import { useSpeechInput } from "@/lib/speech/use-speech-input";
 
 type QuickAddDialog = "expense" | "income" | "transfer" | null;
 
+/**
+ * "บันทึกรายการ" (Money page) asks the one voice notebook — owned by the
+ * bottom nav's QuickAdd, which also owns the mic — to open for typing.
+ * The listener flips `handled` synchronously; nobody listening → the
+ * button falls back to the expense form, so it's never a dead button.
+ */
+const OPEN_NOTEBOOK_TYPING = "wealthos:open-notebook-typing";
+type OpenNotebookDetail = { handled: boolean };
+
+/**
+ * iOS raises the keyboard only for a focus made inside the tap itself, and
+ * the notebook mounts a moment later. A hidden input takes that focus now;
+ * the notebook then moves it to the paper and the keyboard stays up.
+ */
+function raiseKeyboardNow() {
+  const proxy = document.createElement("input");
+  proxy.setAttribute("aria-hidden", "true");
+  proxy.tabIndex = -1;
+  // 16px keeps iOS from zooming the page.
+  proxy.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px;";
+  document.body.appendChild(proxy);
+  proxy.focus();
+  window.setTimeout(() => proxy.remove(), 1500);
+  return proxy;
+}
+
 const loadTransactionForm = () => import("./transaction-form");
 const loadTransferForm = () => import("./transfer-form");
 const loadQuickCaptureSheet = () => import("@/features/capture/components/quick-capture-sheet");
@@ -43,8 +69,10 @@ interface QuickAddProps {
    * as the real click target, so the two move as one piece instead of a
    * separately-positioned floating button drifting out of sync with the
    * nav's own layout.
+   * "record" is one "บันทึกรายการ" button (Money page, 2026-10-11) that
+   * opens the voice notebook ready for typing instead of listening.
    */
-  variant?: "nav-center" | "inline" | "row";
+  variant?: "nav-center" | "inline" | "row" | "record";
 }
 
 type PendingSwitch = { dialog: Exclude<QuickAddDialog, null>; amount: string } | null;
@@ -59,6 +87,8 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
   const [voiceMounted, setVoiceMounted] = useState(false);
   if (voiceOpen && !voiceMounted) setVoiceMounted(true);
   const [voiceText, setVoiceText] = useState("");
+  // Opened from "บันทึกรายการ": caret on the paper, mic off.
+  const [voiceTyping, setVoiceTyping] = useState(false);
   // Late transcripts from a session that was already closed are ignored.
   const voiceActiveRef = useRef(false);
   // Once the user types on the paper, a late transcript from the mic they
@@ -97,9 +127,26 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
     setVoiceText("");
     // Must stay synchronous inside the tap (see the speech hook above).
     speech.startHold("");
+    setVoiceTyping(false);
     setVoiceOpen(true);
     void refreshNavOptions();
   }
+
+  // The nav's instance answers the Money page's "บันทึกรายการ".
+  useEffect(() => {
+    if (variant !== "nav-center") return;
+    function onOpenTyping(event: Event) {
+      (event as CustomEvent<OpenNotebookDetail>).detail.handled = true;
+      voiceActiveRef.current = true;
+      typedRef.current = false;
+      setVoiceText("");
+      setVoiceTyping(true);
+      setVoiceOpen(true);
+      void refreshNavOptions();
+    }
+    window.addEventListener(OPEN_NOTEBOOK_TYPING, onOpenTyping);
+    return () => window.removeEventListener(OPEN_NOTEBOOK_TYPING, onOpenTyping);
+  }, [variant]);
 
   const closeVoice = useCallback(() => {
     voiceActiveRef.current = false;
@@ -179,7 +226,37 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
 
   return (
     <>
-      {variant === "row" ? (
+      {variant === "record" ? (
+        <button
+          type="button"
+          onPointerDown={() => void loadVoiceNotebook()}
+          onClick={() => {
+            const proxy = raiseKeyboardNow();
+            const detail: OpenNotebookDetail = { handled: false };
+            window.dispatchEvent(new CustomEvent(OPEN_NOTEBOOK_TYPING, { detail }));
+            if (!detail.handled) {
+              proxy.remove();
+              openDialog("expense");
+            }
+          }}
+          className="card-interactive flex w-full items-center gap-3 rounded-2xl bg-primary px-4 py-3 text-left text-primary-foreground shadow-card transition-opacity hover:opacity-95"
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15">
+            <Plus className="size-5" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">{t("transactions.recordButton")}</span>
+            <span className="block truncate text-xs opacity-75">{t("transactions.recordButtonHint")}</span>
+          </span>
+          <span aria-hidden="true" className="flex shrink-0 gap-1">
+            {[CircleMinus, CirclePlus, ArrowLeftRight].map((Icon, i) => (
+              <span key={i} className="flex size-7 items-center justify-center rounded-full bg-white/15">
+                <Icon className="size-3.5" />
+              </span>
+            ))}
+          </span>
+        </button>
+      ) : variant === "row" ? (
         // 2026-10-11: one short row of pills (was three tall tiles) so the
         // pending-review box below stays in the first screen.
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -323,6 +400,7 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
           }}
           listening={speech.listening}
           micError={speech.error}
+          typing={voiceTyping}
           onMicStart={() => {
             // Speaking again appends to the page as it now reads.
             typedRef.current = false;

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { ChevronDown, CircleAlert, CircleCheck, History } from "lucide-react";
+import { ChevronDown, CircleAlert } from "lucide-react";
 
 import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
@@ -12,7 +12,6 @@ import {
 } from "@/features/transactions/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
-import { formatFriendlyDate } from "@/lib/transaction-ui";
 import { calculateWeeklyCheckInStatus } from "@/lib/financial/streaks";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyTransactionsIllustration } from "@/components/illustrations";
@@ -101,7 +100,7 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
       {/* 2026-10-11 "one page for money in/out": this page is where every
           income, expense and transfer is recorded, reviewed and edited.
           Order: add → review what's pending → reminder → find → list. */}
-      <QuickAdd accounts={accounts} categories={categories} variant="row" />
+      <QuickAdd accounts={accounts} categories={categories} variant="record" />
 
       {isDefaultView ? (
         // The Daily Inbox (moved here from Home). Renders nothing when
@@ -111,21 +110,9 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
         </Suspense>
       ) : null}
 
-      {isUpToDate ? (
-        // Done for the week: fold the note to one line so it doesn't push
-        // the list down; the full explanation is one tap away.
-        <details className="journal-note group rounded-md px-4 py-2.5 text-foreground">
-          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm">
-            <CircleCheck className="size-4 shrink-0 text-emerald-700 dark:text-emerald-300" aria-hidden="true" />
-            <span className="min-w-0 flex-1 leading-snug">
-              <span className="block truncate font-medium">{dict.transactions.weeklyReminderTitle}</span>
-              <span className="block text-xs text-emerald-700 dark:text-emerald-300">{statusText}</span>
-            </span>
-            <ChevronDown className="size-3.5 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
-          </summary>
-          <div className="mt-3 space-y-3">{reminderDetails}</div>
-        </details>
-      ) : (
+      {/* The weekly note only shows while there's something to catch up on;
+          once this week is recorded it stays out of the way. */}
+      {!isUpToDate ? (
         <aside
           aria-labelledby="weekly-transaction-reminder-title"
           // Journal (2026-10-08): a taped sticky note. Up-to-date vs. needs-update
@@ -147,28 +134,19 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
             </div>
           </div>
         </aside>
-      )}
-
-      {latestTransactionDate ? (
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <History className="size-3.5 shrink-0" aria-hidden="true" />
-          {dict.transactions.latestEntry.replace(
-            "{date}",
-            formatFriendlyDate(latestTransactionDate, locale, {
-              today: dict.transactions.today,
-              yesterday: dict.transactions.yesterday,
-            })
-          )}
-        </p>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <TransactionFiltersBar accounts={accounts} categories={categories} />
-        <div className="flex shrink-0 items-center gap-2">
-          <ExportTransactionsButton />
-          <ExportReportButton />
-        </div>
-      </div>
+      {/* Search, filters and the rarely used exports ("⋯") share one row. */}
+      <TransactionFiltersBar
+        accounts={accounts}
+        categories={categories}
+        moreActions={
+          <>
+            <ExportTransactionsButton />
+            <ExportReportButton />
+          </>
+        }
+      />
 
       {isDefaultView ? (
         <QuickRepeat candidates={quickRepeatCandidates} accounts={accounts} categories={categories} />
