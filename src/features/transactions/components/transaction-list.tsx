@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ChevronDown, CircleAlert, CircleCheck, History } from "lucide-react";
 
 import { getDisplayAccounts } from "@/features/accounts/queries";
@@ -18,6 +19,7 @@ import { EmptyTransactionsIllustration } from "@/components/illustrations";
 import { TransactionListBody } from "./transaction-list-body";
 import { TransactionFilters as TransactionFiltersBar } from "./transaction-filters";
 import { QuickAdd } from "./quick-add";
+import { PendingInboxSection } from "@/features/capture/components/daily-inbox-section";
 import { QuickRepeat } from "./quick-repeat";
 import { ExportTransactionsButton } from "./export-button";
 import { ExportReportButton } from "@/features/reports/components/export-report-button";
@@ -66,71 +68,86 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
     type: "conjunction",
   }).format(activeAccountNames);
 
+  // The three "how to update" bullets + step list, shared by the full note
+  // and the folded one-line version shown once this week is up to date.
+  const reminderDetails = (
+    <>
+      <p className="text-sm leading-relaxed text-foreground/80">{dict.transactions.weeklyReminderDescription}</p>
+      <ul className="grid gap-2 text-sm leading-relaxed sm:grid-cols-3">
+        <li>{dict.transactions.weeklyReminderIncome}</li>
+        <li>{dict.transactions.weeklyReminderExpense}</li>
+        <li>{dict.transactions.weeklyReminderTransfer}</li>
+      </ul>
+      <details className="group/how text-sm">
+        <summary className="flex cursor-pointer list-none items-center gap-1 font-medium underline-offset-2 hover:underline">
+          {dict.transactions.weeklyReminderHowToTitle}
+          <ChevronDown className="size-3.5 shrink-0 transition-transform group-open/how:rotate-180" aria-hidden="true" />
+        </summary>
+        <ol className="mt-2 list-decimal space-y-1.5 pl-5 leading-relaxed">
+          <li>
+            {activeAccountNames.length > 0
+              ? dict.transactions.weeklyReminderStep1WithAccounts.replace("{accounts}", accountsList)
+              : dict.transactions.weeklyReminderStep1NoAccounts}
+          </li>
+          <li>{dict.transactions.weeklyReminderStep2}</li>
+          <li>{dict.transactions.weeklyReminderStep3}</li>
+        </ol>
+      </details>
+    </>
+  );
+
   return (
     <div className="space-y-4">
-      <aside
-        aria-labelledby="weekly-transaction-reminder-title"
-        // Journal (2026-10-08): a taped sticky note. Up-to-date vs. needs-update
-        // stays clear from the icon + status text, never from the note color.
-        className="journal-note journal-tape mt-2 rounded-md p-4 pt-5 text-foreground"
-      >
-        <div className="flex items-start gap-3">
-          <div
-            className={
-              isUpToDate
-                ? "flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                : "flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300"
-            }
-          >
-            {isUpToDate ? (
-              <CircleCheck className="size-5" aria-hidden="true" />
-            ) : (
+      {/* 2026-10-11 "one page for money in/out": this page is where every
+          income, expense and transfer is recorded, reviewed and edited.
+          Order: add → review what's pending → reminder → find → list. */}
+      <QuickAdd accounts={accounts} categories={categories} variant="row" />
+
+      {isDefaultView ? (
+        // The Daily Inbox (moved here from Home). Renders nothing when
+        // nothing needs review; no skeleton for a box that's usually absent.
+        <Suspense fallback={null}>
+          <PendingInboxSection categories={categories} accounts={accounts} />
+        </Suspense>
+      ) : null}
+
+      {isUpToDate ? (
+        // Done for the week: fold the note to one line so it doesn't push
+        // the list down; the full explanation is one tap away.
+        <details className="journal-note group rounded-md px-4 py-2.5 text-foreground">
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm">
+            <CircleCheck className="size-4 shrink-0 text-emerald-700 dark:text-emerald-300" aria-hidden="true" />
+            <span className="min-w-0 flex-1 leading-snug">
+              <span className="block truncate font-medium">{dict.transactions.weeklyReminderTitle}</span>
+              <span className="block text-xs text-emerald-700 dark:text-emerald-300">{statusText}</span>
+            </span>
+            <ChevronDown className="size-3.5 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <div className="mt-3 space-y-3">{reminderDetails}</div>
+        </details>
+      ) : (
+        <aside
+          aria-labelledby="weekly-transaction-reminder-title"
+          // Journal (2026-10-08): a taped sticky note. Up-to-date vs. needs-update
+          // stays clear from the icon + status text, never from the note color.
+          className="journal-note journal-tape mt-2 rounded-md p-4 pt-5 text-foreground"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
               <CircleAlert className="size-5" aria-hidden="true" />
-            )}
-          </div>
-          <div className="min-w-0 space-y-3">
-            <div className="space-y-1">
+            </div>
+            <div className="min-w-0 space-y-3">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <h2 id="weekly-transaction-reminder-title" className="font-heading font-medium">
                   {dict.transactions.weeklyReminderTitle}
                 </h2>
-                <span
-                  className={
-                    isUpToDate
-                      ? "text-xs font-medium text-emerald-700 dark:text-emerald-300"
-                      : "text-xs font-medium text-amber-700 dark:text-amber-300"
-                  }
-                >
-                  {statusText}
-                </span>
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">{statusText}</span>
               </div>
-              <p className="text-sm leading-relaxed text-foreground/80">
-                {dict.transactions.weeklyReminderDescription}
-              </p>
+              {reminderDetails}
             </div>
-            <ul className="grid gap-2 text-sm leading-relaxed sm:grid-cols-3">
-              <li>{dict.transactions.weeklyReminderIncome}</li>
-              <li>{dict.transactions.weeklyReminderExpense}</li>
-              <li>{dict.transactions.weeklyReminderTransfer}</li>
-            </ul>
-            <details className="group text-sm">
-              <summary className="flex cursor-pointer list-none items-center gap-1 font-medium underline-offset-2 hover:underline">
-                {dict.transactions.weeklyReminderHowToTitle}
-                <ChevronDown className="size-3.5 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
-              </summary>
-              <ol className="mt-2 list-decimal space-y-1.5 pl-5 leading-relaxed">
-                <li>
-                  {activeAccountNames.length > 0
-                    ? dict.transactions.weeklyReminderStep1WithAccounts.replace("{accounts}", accountsList)
-                    : dict.transactions.weeklyReminderStep1NoAccounts}
-                </li>
-                <li>{dict.transactions.weeklyReminderStep2}</li>
-                <li>{dict.transactions.weeklyReminderStep3}</li>
-              </ol>
-            </details>
           </div>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       {latestTransactionDate ? (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -150,7 +167,6 @@ export async function TransactionList({ filters }: { filters: TransactionFilters
         <div className="flex shrink-0 items-center gap-2">
           <ExportTransactionsButton />
           <ExportReportButton />
-          <QuickAdd accounts={accounts} categories={categories} variant="inline" />
         </div>
       </div>
 

@@ -68,7 +68,6 @@ export function TransactionFilters({ accounts, categories }: TransactionFiltersP
 
   return (
     <div className="space-y-2">
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
       <Input
         placeholder={t("transactions.searchPlaceholder")}
         defaultValue={searchParams.get("q") ?? ""}
@@ -76,11 +75,15 @@ export function TransactionFilters({ accounts, categories }: TransactionFiltersP
         aria-label={t("transactions.searchTransactions")}
       />
 
+      {/* One horizontally scrollable row of pill filters instead of three
+          stacked full-width boxes, so the list starts higher on a phone. */}
+      <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+
       <Select
         defaultValue={searchParams.get("type") ?? ALL}
         onValueChange={(v) => setParam("type", v)}
       >
-        <SelectTrigger aria-label={t("transactions.filterByType")}>
+        <SelectTrigger className="h-8 max-w-56 shrink-0 rounded-full bg-card text-xs" aria-label={t("transactions.filterByType")}>
           <SelectValue placeholder={t("transactions.allTypes")}>{typeLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -97,7 +100,7 @@ export function TransactionFilters({ accounts, categories }: TransactionFiltersP
         defaultValue={searchParams.get("accountId") ?? ALL}
         onValueChange={(v) => setParam("accountId", v)}
       >
-        <SelectTrigger aria-label={t("transactions.filterByAccount")}>
+        <SelectTrigger className="h-8 max-w-56 shrink-0 rounded-full bg-card text-xs" aria-label={t("transactions.filterByAccount")}>
           <SelectValue placeholder={t("transactions.allAccounts")}>{accountLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -114,7 +117,7 @@ export function TransactionFilters({ accounts, categories }: TransactionFiltersP
         defaultValue={searchParams.get("categoryId") ?? ALL}
         onValueChange={(v) => setParam("categoryId", v)}
       >
-        <SelectTrigger aria-label={t("transactions.filterByCategory")}>
+        <SelectTrigger className="h-8 max-w-56 shrink-0 rounded-full bg-card text-xs" aria-label={t("transactions.filterByCategory")}>
           <SelectValue placeholder={t("transactions.allCategories")}>{categoryLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -126,14 +129,13 @@ export function TransactionFilters({ accounts, categories }: TransactionFiltersP
           ))}
         </SelectContent>
       </Select>
-      </div>
 
       <button
         type="button"
         onClick={() => setParam("notes", hasNotesActive ? null : "1")}
         aria-pressed={hasNotesActive}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+          "inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors",
           hasNotesActive
             ? "border-primary bg-primary text-primary-foreground"
             : "border-border bg-transparent text-muted-foreground hover:bg-muted"
@@ -142,6 +144,7 @@ export function TransactionFilters({ accounts, categories }: TransactionFiltersP
         <MessageSquareText className="h-3.5 w-3.5" aria-hidden="true" />
         {t("transactions.filterHasNotes")}
       </button>
+      </div>
     </div>
   );
 }

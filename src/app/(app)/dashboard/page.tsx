@@ -123,12 +123,12 @@ export default async function DashboardPage() {
         <QuickAdd accounts={data.accounts} categories={data.categories} variant="row" />
       </div>
 
-      {/* Quick Capture's Daily Inbox — today's captures + anything still
-          needing review. Renders nothing when empty, so Home stays calm.
-          No fallback skeleton: it's usually absent, and a flashing
-          placeholder for a card that then doesn't appear would be noise. */}
+      {/* One-line "N items need review" nudge — the Daily Inbox itself
+          lives on Money › Transactions (2026-10-11). Renders nothing when
+          nothing is pending, so Home stays calm. No fallback skeleton: it's
+          usually absent, and a flashing placeholder would be noise. */}
       <Suspense fallback={null}>
-        <DailyInboxSection categories={data.categories} accounts={data.accounts} />
+        <DailyInboxSection />
       </Suspense>
 
       <div className="motion-reveal motion-reveal-3">
