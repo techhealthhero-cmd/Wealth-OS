@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import {
   ArrowLeftRight,
   ChevronDown,
@@ -26,8 +27,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useConfirmDialog } from "@/components/shared/confirm-dialog";
-import { TransactionForm } from "./transaction-form";
-import { TransferForm } from "./transfer-form";
+
+const loadTransactionForm = () => import("./transaction-form");
+const loadTransferForm = () => import("./transfer-form");
+const TransactionForm = dynamic(() => loadTransactionForm().then((module) => module.TransactionForm), { ssr: false });
+const TransferForm = dynamic(() => loadTransferForm().then((module) => module.TransferForm), { ssr: false });
 
 const TYPE_ICONS: Record<TransactionType, React.ElementType> = {
   income: TrendingUp,
@@ -88,6 +92,8 @@ export function TransactionRow({
   const [internalEditOpen, setInternalEditOpen] = useState(false);
   const editOpen = controlledEditOpen ?? internalEditOpen;
   const setEditOpen = onEditOpenChange ?? setInternalEditOpen;
+  const [editorMounted, setEditorMounted] = useState(false);
+  if (editOpen && !editorMounted) setEditorMounted(true);
   const [detailsOpen, setDetailsOpen] = useState(defaultDetailsOpen);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const Icon = TYPE_ICONS[transaction.type];
@@ -176,7 +182,15 @@ export function TransactionRow({
               )}
             />
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setEditOpen(true)}>{t("common.edit")}</DropdownMenuItem>
+              <DropdownMenuItem
+                onPointerDown={() => void (isTransfer ? loadTransferForm() : loadTransactionForm())}
+                onClick={() => {
+                  setEditorMounted(true);
+                  setEditOpen(true);
+                }}
+              >
+                {t("common.edit")}
+              </DropdownMenuItem>
               <DropdownMenuItem
                 variant="destructive"
                 disabled={isPending}
@@ -201,25 +215,27 @@ export function TransactionRow({
         </div>
       ) : null}
 
-      {isTransfer ? (
-        <TransferForm
-          accounts={accounts}
-          transfer={transaction}
-          trigger={null}
-          open={editOpen}
-          onOpenChange={setEditOpen}
-        />
-      ) : (
-        <TransactionForm
-          defaultType={transaction.type as Exclude<TransactionType, "transfer">}
-          accounts={accounts}
-          categories={categories}
-          transaction={transaction}
-          trigger={null}
-          open={editOpen}
-          onOpenChange={setEditOpen}
-        />
-      )}
+      {editorMounted ? (
+        isTransfer ? (
+          <TransferForm
+            accounts={accounts}
+            transfer={transaction}
+            trigger={null}
+            open={editOpen}
+            onOpenChange={setEditOpen}
+          />
+        ) : (
+          <TransactionForm
+            defaultType={transaction.type as Exclude<TransactionType, "transfer">}
+            accounts={accounts}
+            categories={categories}
+            transaction={transaction}
+            trigger={null}
+            open={editOpen}
+            onOpenChange={setEditOpen}
+          />
+        )
+      ) : null}
       {confirmDialog}
     </div>
   );

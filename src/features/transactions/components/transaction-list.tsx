@@ -2,7 +2,7 @@ import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
 import { getProfile } from "@/features/profile/queries";
 import {
-  getTransactions,
+  getFinancialTransactions,
   getTransactionsPage,
   type TransactionFilters,
 } from "@/features/transactions/queries";
@@ -66,8 +66,8 @@ export async function TransactionList({
       getCategories(),
       getProfile(),
       // Every week the scroll calendar can unroll, oldest day to newest.
-      getTransactions({ from: addDaysIso(weekStart, -7 * (SCROLL_WEEKS - 1)), to: addDaysIso(weekStart, 6) }),
-      getTransactions({ from: monthFrom, to: monthTo }),
+      getFinancialTransactions({ from: addDaysIso(weekStart, -7 * (SCROLL_WEEKS - 1)), to: addDaysIso(weekStart, 6) }),
+      getFinancialTransactions({ from: monthFrom, to: monthTo }),
       getBudgetSummary(new Date(`${monthFrom}T00:00:00`)),
       getDailyInbox(),
     ]);

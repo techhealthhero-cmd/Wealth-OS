@@ -3,7 +3,7 @@ import { cache } from "react";
 import { throwDbError } from "@/lib/db-error";
 
 import { createClient } from "@/lib/supabase/server";
-import { getTransactions } from "@/features/transactions/queries";
+import { getFinancialTransactions } from "@/features/transactions/queries";
 import { calculateExpenses, calculateSpendingByCategory } from "@/lib/financial/calculations";
 import { calculateBudgetStatus, calculateCategoryBudgetStatuses, daysInMonth } from "@/lib/financial/budget";
 import { parseMoneyToCents } from "@/lib/financial/money";
@@ -68,7 +68,7 @@ const getBudgetSummaryCached = cache(async (monthKey: string): Promise<BudgetSum
   // round trip on every page that uses this — WealthOverview,
   // getSafeToSpend(), getLifeStageAndPriorities()). Categories need the
   // budget id. The no-op catch only covers the no-budget early return.
-  const transactionsPromise = getTransactions({ from, to });
+  const transactionsPromise = getFinancialTransactions({ from, to });
   transactionsPromise.catch(() => undefined);
   const budget = await getBudgetForMonth(monthKey);
   if (!budget) return null;
