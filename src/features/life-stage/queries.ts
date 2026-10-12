@@ -1,6 +1,8 @@
 import "server-only";
 
-import { getTransactions, getCurrentMonthRange } from "@/features/transactions/queries";
+import { cache } from "react";
+
+import { getFinancialTransactions, getCurrentMonthRange } from "@/features/transactions/queries";
 import { getLiabilities } from "@/features/liabilities/queries";
 import { getGoals } from "@/features/goals/queries";
 import { getEmergencyFund, getEssentialMonthlyExpenses } from "@/features/emergency-fund/queries";
@@ -45,14 +47,14 @@ export interface LifeStageAndPriorities {
  * depend on any Day 3 table, so it works the moment migration 0003 is live,
  * independent of 0004.
  */
-export async function getLifeStageAndPriorities(): Promise<LifeStageAndPriorities> {
+export const getLifeStageAndPriorities = cache(async (): Promise<LifeStageAndPriorities> => {
   const { from: currentFrom, to: currentTo } = getCurrentMonthRange();
   const { from: prevFrom, to: prevTo } = previousMonthRange();
 
   const [currentMonthTx, prevMonthTx, liabilities, goals, emergencyFund, essential, netWorth, incomeProfileSummary, incomeTarget] =
     await Promise.all([
-      getTransactions({ from: currentFrom, to: currentTo }),
-      getTransactions({ from: prevFrom, to: prevTo }),
+      getFinancialTransactions({ from: currentFrom, to: currentTo }),
+      getFinancialTransactions({ from: prevFrom, to: prevTo }),
       getLiabilities(),
       getGoals(),
       getEmergencyFund(),
@@ -140,4 +142,4 @@ export async function getLifeStageAndPriorities(): Promise<LifeStageAndPrioritie
   })[0] ?? null;
 
   return { lifeStage, topPriority };
-}
+});

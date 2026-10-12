@@ -9,7 +9,7 @@ import "server-only";
  * source rather than by trusting a model not to over-talk.
  */
 
-import { getTransactions, getCurrentMonthRange } from "@/features/transactions/queries";
+import { getFinancialTransactions, getCurrentMonthRange } from "@/features/transactions/queries";
 import { getCategories } from "@/features/categories/queries";
 import { calculateSavingsRate } from "@/lib/financial/calculations";
 import { parseMoneyToCents } from "@/lib/financial/money";
@@ -50,8 +50,8 @@ async function findBiggestSpendingIncrease(): Promise<Insight | null> {
   const prev = previousMonthRange();
 
   const [currentTx, prevTx, categories] = await Promise.all([
-    getTransactions({ from, to, type: "expense" }),
-    getTransactions({ from: prev.from, to: prev.to, type: "expense" }),
+    getFinancialTransactions({ from, to, type: "expense" }),
+    getFinancialTransactions({ from: prev.from, to: prev.to, type: "expense" }),
     getCategories(),
   ]);
   if (prevTx.length === 0) return null;
@@ -89,8 +89,8 @@ async function findSavingsRateDrop(): Promise<Insight | null> {
   const { from, to } = getCurrentMonthRange();
   const prev = previousMonthRange();
   const [currentTx, prevTx] = await Promise.all([
-    getTransactions({ from, to }),
-    getTransactions({ from: prev.from, to: prev.to }),
+    getFinancialTransactions({ from, to }),
+    getFinancialTransactions({ from: prev.from, to: prev.to }),
   ]);
   if (prevTx.length === 0) return null;
 
@@ -101,7 +101,10 @@ async function findSavingsRateDrop(): Promise<Insight | null> {
 
 async function findDebtProgress(): Promise<Insight | null> {
   const { from, to } = getCurrentMonthRange();
-  const [currentTx, debtSummary] = await Promise.all([getTransactions({ from, to, type: "debt_payment" }), getDebtSummary()]);
+  const [currentTx, debtSummary] = await Promise.all([
+    getFinancialTransactions({ from, to, type: "debt_payment" }),
+    getDebtSummary(),
+  ]);
   if (!debtSummary.hasDebt) return null;
   const paidCents = currentTx.reduce((total, t) => total + parseMoneyToCents(t.amount), 0);
   if (paidCents < DEBT_PAYMENT_MIN_CENTS) return null;

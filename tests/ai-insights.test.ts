@@ -35,7 +35,7 @@ function monthBounds(offset = 0): { from: string; to: string } {
 
 vi.mock("@/features/transactions/queries", () => ({
   getCurrentMonthRange: vi.fn(() => monthBounds(0)),
-  getTransactions: vi.fn(async (filters: { from: string; type?: string }) => {
+  getFinancialTransactions: vi.fn(async (filters: { from: string; type?: string }) => {
     const isCurrent = filters.from === monthBounds(0).from;
     if (filters.type === "expense") return isCurrent ? currentExpense : previousExpense;
     if (filters.type === "debt_payment") return isCurrent ? currentDebtPayment : [];

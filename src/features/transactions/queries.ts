@@ -27,6 +27,18 @@ export interface TransactionFilters {
   offset?: number;
 }
 
+/**
+ * Minimal row used by financial totals and trends. These calculations do
+ * not need descriptions, notes, account names, or any of the relation
+ * joins returned by `getTransactions()`.
+ */
+export interface FinancialTransactionRow {
+  type: TransactionType;
+  amount: string;
+  category_id: string | null;
+  transaction_date: string;
+}
+
 const SELECT_WITH_RELATIONS = `
   *,
   account:accounts!transactions_account_id_fkey(id, name),
@@ -98,6 +110,35 @@ const fetchTransactionsCached = cache((filtersKey: string): Promise<TransactionW
 export function getTransactions(filters: TransactionFilters = {}): Promise<TransactionWithRelations[]> {
   const filtersKey = JSON.stringify(filters, Object.keys(filters).sort());
   return fetchTransactionsCached(filtersKey);
+}
+
+type FinancialTransactionFilters = Pick<TransactionFilters, "from" | "to" | "type">;
+
+async function fetchFinancialTransactions(filters: FinancialTransactionFilters): Promise<FinancialTransactionRow[]> {
+  const supabase = await createClient();
+  let query = supabase.from("transactions").select("type, amount, category_id, transaction_date");
+
+  if (filters.from) query = query.gte("transaction_date", filters.from);
+  if (filters.to) query = query.lte("transaction_date", filters.to);
+  if (filters.type) query = query.eq("type", filters.type);
+
+  const { data, error } = await query;
+  if (error) throwDbError(error, "transactions.fetchFinancialTransactions", "Failed to load transaction totals");
+  return (data ?? []) as FinancialTransactionRow[];
+}
+
+const fetchFinancialTransactionsCached = cache((filtersKey: string): Promise<FinancialTransactionRow[]> =>
+  withPerfLog(`getFinancialTransactions(${filtersKey})`, () =>
+    fetchFinancialTransactions(JSON.parse(filtersKey) as FinancialTransactionFilters)
+  )
+);
+
+/** A join-free, narrow query for calculations that only need financial facts. */
+export function getFinancialTransactions(
+  filters: FinancialTransactionFilters = {}
+): Promise<FinancialTransactionRow[]> {
+  const filtersKey = JSON.stringify(filters, Object.keys(filters).sort());
+  return fetchFinancialTransactionsCached(filtersKey);
 }
 
 export const TRANSACTIONS_PAGE_SIZE = 50;

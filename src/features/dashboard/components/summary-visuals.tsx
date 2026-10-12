@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronDown, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
@@ -48,6 +48,7 @@ interface MonthlyDonutCardProps {
   currencyCode: string;
   accounts: Account[];
   categories: Category[];
+  children?: ReactNode;
   labels: {
     title: string;
     income: string;
@@ -103,6 +104,7 @@ export function MonthlyDonutCard({
   currencyCode,
   accounts,
   categories,
+  children,
   labels,
 }: MonthlyDonutCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -177,6 +179,7 @@ export function MonthlyDonutCard({
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
           className="flex items-center gap-1 text-xs font-medium text-primary transition-transform duration-(--motion-fast) active:scale-[0.98]"
         >
           {labels.viewDetails}
@@ -187,22 +190,25 @@ export function MonthlyDonutCard({
         </button>
 
         {expanded ? (
-          <div className="animate-in fade-in slide-in-from-top-1 space-y-2 border-t pt-2 text-xs duration-(--motion-normal)">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">{labels.cashFlow}</span>
-              <span className="flex items-center gap-1.5 font-medium">
-                {formatMoney(cashFlowCents, currencyCode)}
-                <InlineTrend changeValue={cashFlowChangePercent} />
-              </span>
+          <div className="animate-in fade-in slide-in-from-top-1 space-y-3 border-t pt-2 text-xs duration-(--motion-normal)">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{labels.cashFlow}</span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  {formatMoney(cashFlowCents, currencyCode)}
+                  <InlineTrend changeValue={cashFlowChangePercent} />
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{labels.savingsRate}</span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  {savingsRatePercent.toFixed(1)}%
+                  <InlineTrend changeValue={savingsRateChangePoints} unit="pp" />
+                </span>
+              </div>
+              <p className="pt-0.5 text-[11px] text-muted-foreground">{labels.vsLastMonth}</p>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">{labels.savingsRate}</span>
-              <span className="flex items-center gap-1.5 font-medium">
-                {savingsRatePercent.toFixed(1)}%
-                <InlineTrend changeValue={savingsRateChangePoints} unit="pp" />
-              </span>
-            </div>
-            <p className="pt-0.5 text-[11px] text-muted-foreground">{labels.vsLastMonth}</p>
+            {children ? <div className="border-t pt-3">{children}</div> : null}
           </div>
         ) : null}
       </CardContent>

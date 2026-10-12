@@ -2,7 +2,7 @@ import "server-only";
 
 import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
-import { getCurrentMonthRange, getTransactions } from "@/features/transactions/queries";
+import { getCurrentMonthRange, getFinancialTransactions, getTransactions } from "@/features/transactions/queries";
 import { toLocalDateString } from "@/lib/date";
 import { withPerfLog } from "@/lib/dev-diagnostics";
 import {
@@ -37,17 +37,11 @@ const INCOME_EXPENSE_TREND_MONTHS = 6;
  * the existing "last 6 months" convention already used for the net worth
  * trend chart (net-worth-hero.tsx).
  *
- * One `getTransactions()` call per month (each hitting its own `.gte()`/
- * `.lte()` DB-level filter — the same reliable per-month range query
- * `getCurrentMonthRange()`/`getDashboardData()` already use), run in
- * parallel, rather than one bulk fetch for the whole window re-filtered by
- * comparing date strings in memory. The current month's call here uses the
- * exact same `{from, to}` pair `getDashboardData()` computes via
- * `getCurrentMonthRange()`, so it hits the same request-scoped
- * `fetchTransactionsCached()` entry — this chart and the current month's
- * other dashboard figures can no longer disagree about what "this month"
- * contains. Always includes exactly 6 points, even for a month with zero
- * transactions, so the trend line never silently skips a quiet month.
+ * The whole window is fetched in one range query and bucketed in memory.
+ * This replaces six PostgREST round trips with one while transferring the
+ * same transaction rows. Always includes exactly 6 points, even for a
+ * month with zero transactions, so the trend line never silently skips a
+ * quiet month.
  */
 export function getIncomeExpenseTrend() {
   return withPerfLog("getIncomeExpenseTrend", async (): Promise<MonthlyIncomeExpensePoint[]> => {
@@ -60,17 +54,29 @@ export function getIncomeExpenseTrend() {
       return { monthDate, monthFrom, monthTo };
     });
 
-    return Promise.all(
-      months.map(async ({ monthDate, monthFrom, monthTo }) => {
-        const monthTransactions = await getTransactions({ from: monthFrom, to: monthTo });
-        return {
-          monthKey: monthFrom.slice(0, 7),
-          monthDate,
-          incomeCents: calculateIncome(monthTransactions),
-          expensesCents: calculateExpenses(monthTransactions),
-        };
-      })
-    );
+    const transactions = await getFinancialTransactions({
+      from: months[0].monthFrom,
+      to: months[months.length - 1].monthTo,
+    });
+    const transactionsByMonth = new Map<string, typeof transactions>();
+
+    for (const transaction of transactions) {
+      const monthKey = transaction.transaction_date.slice(0, 7);
+      const bucket = transactionsByMonth.get(monthKey);
+      if (bucket) bucket.push(transaction);
+      else transactionsByMonth.set(monthKey, [transaction]);
+    }
+
+    return months.map(({ monthDate, monthFrom }) => {
+      const monthKey = monthFrom.slice(0, 7);
+      const monthTransactions = transactionsByMonth.get(monthKey) ?? [];
+      return {
+        monthKey,
+        monthDate,
+        incomeCents: calculateIncome(monthTransactions),
+        expensesCents: calculateExpenses(monthTransactions),
+      };
+    });
   });
 }
 
@@ -80,8 +86,8 @@ export function getDashboardData() {
   const { from: prevFrom, to: prevTo } = getPreviousMonthRange();
 
   const [monthTransactions, prevMonthTransactions, recentTransactions, accounts, categories] = await Promise.all([
-    getTransactions({ from, to }),
-    getTransactions({ from: prevFrom, to: prevTo }),
+    getFinancialTransactions({ from, to }),
+    getFinancialTransactions({ from: prevFrom, to: prevTo }),
     // 2026-09 Home redesign: recent transactions is now a 3-item preview
     // behind the "show more details" toggle (full history at
     // /money/transactions), not a 5-item list rendered by default.

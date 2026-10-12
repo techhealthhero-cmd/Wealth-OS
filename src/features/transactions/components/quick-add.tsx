@@ -121,18 +121,25 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
     if (variant !== "nav-center") return;
     const timer = window.setTimeout(() => void refreshNavOptions(), 900);
     const warm = () => {
-      void loadQuickCaptureSheet();
-      void loadVoiceNotebook();
+      // Warm the path this browser will actually open first. Giving idle
+      // work a timeout matters on busy mobile launches: without one,
+      // Chromium can postpone requestIdleCallback until the first tap,
+      // turning that tap into a visible 1s+ module-loading pause.
+      if (speech.supported) {
+        void loadVoiceNotebook().then(() => loadQuickCaptureSheet());
+      } else {
+        void loadQuickCaptureSheet();
+      }
     };
-    const idleId = window.requestIdleCallback?.(warm);
-    const fallbackId = idleId === undefined ? window.setTimeout(warm, 2500) : undefined;
+    const idleId = window.requestIdleCallback?.(warm, { timeout: 800 });
+    const fallbackId = idleId === undefined ? window.setTimeout(warm, 600) : undefined;
     return () => {
       window.clearTimeout(timer);
       if (idleId !== undefined) window.cancelIdleCallback?.(idleId);
       if (fallbackId !== undefined) window.clearTimeout(fallbackId);
     };
     // Initial background warm-up only; every actual open refreshes again.
-  }, [variant]);
+  }, [variant, speech.supported]);
 
   // A fresh, direct open (FAB / dropdown item / tile) must never inherit an
   // amount left over from an earlier, unrelated switch.

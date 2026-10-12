@@ -58,12 +58,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 }
 
 async function AppShell({ children }: { children: React.ReactNode }) {
-  // Started alongside the profile (it only needs the cached auth user), so
-  // its plan + unlocked-companions queries no longer wait behind the profile
-  // on every page. The no-op catch only stops an "unhandled rejection" if we
-  // redirect below before awaiting it; the await still throws normally.
-  const companionStatePromise = getCompanionState();
-  companionStatePromise.catch(() => undefined);
   const profile = await getProfile();
 
   if (!profile) {
@@ -84,19 +78,7 @@ async function AppShell({ children }: { children: React.ReactNode }) {
   // Quick Capture fetches its user-scoped accounts/categories on demand.
   // Keeping those mutable rows out of this persistent layout both shortens
   // the app-shell waterfall and prevents old options surviving navigation.
-  const [locale, companionState] = await Promise.all([
-    getLocale(profile.preferred_language),
-    companionStatePromise,
-  ]);
-  const companion = {
-    id: companionState.active.id,
-    image: companionState.active.image,
-    emoji: companionState.active.emoji,
-    theme: companionState.active.theme,
-    focus: companionState.active.focus,
-    displayName: profile.display_name,
-    presence: companionState.presence,
-  };
+  const locale = await getLocale(profile.preferred_language);
   const dict = getDictionary(locale);
   // Journal opening on a fresh launch, resolved here from the profile this
   // layout already loads (no extra query). The client component plays it at
@@ -134,8 +116,14 @@ async function AppShell({ children }: { children: React.ReactNode }) {
               displayName={profile.display_name}
               actions={
                 <>
-                  <NotificationBell />
-                  <PlanBadge />
+                  <Suspense fallback={<span aria-hidden="true" className="size-9 shrink-0" />}>
+                    <NotificationBell />
+                  </Suspense>
+                  <Suspense
+                    fallback={<span aria-hidden="true" className="h-7 w-16 shrink-0 rounded-full bg-muted" />}
+                  >
+                    <PlanBadge />
+                  </Suspense>
                 </>
               }
             />
@@ -163,7 +151,9 @@ async function AppShell({ children }: { children: React.ReactNode }) {
           className="pointer-events-none fixed inset-x-0 top-0 z-30 h-[calc(env(safe-area-inset-top)+14px)] bg-gradient-to-b from-background via-background/95 to-transparent md:hidden"
         />
         <MinimizableFormHost />
-        <FloatingAiButton companion={companion} />
+        <Suspense fallback={null}>
+          <CompanionFab displayName={profile.display_name} />
+        </Suspense>
       </MinimizableFormProvider>
       <Toaster position="top-center" />
       <NotebookLaunch
@@ -174,5 +164,27 @@ async function AppShell({ children }: { children: React.ReactNode }) {
         isFirstTimeOpening={cover.openingMode === "first_time" && launchVariant !== null}
       />
     </I18nProvider>
+  );
+}
+
+/**
+ * The companion is useful but not part of the app shell's first paint.
+ * Its plan and unlock queries stream independently instead of delaying
+ * every protected route.
+ */
+async function CompanionFab({ displayName }: { displayName: string | null }) {
+  const companionState = await getCompanionState();
+  return (
+    <FloatingAiButton
+      companion={{
+        id: companionState.active.id,
+        image: companionState.active.image,
+        emoji: companionState.active.emoji,
+        theme: companionState.active.theme,
+        focus: companionState.active.focus,
+        displayName,
+        presence: companionState.presence,
+      }}
+    />
   );
 }

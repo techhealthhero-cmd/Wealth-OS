@@ -248,6 +248,7 @@ export function IncomeVsExpenseChart({ data, currencyCode }: IncomeVsExpenseChar
 interface SpendingByCategoryChartProps {
   data: { categoryNameEn: string | null; categoryNameTh: string | null; totalCents: number }[];
   currencyCode: string;
+  embedded?: boolean;
 }
 
 const MAX_SLICES = 5;
@@ -278,7 +279,7 @@ function CategorySpendingTooltip({
   );
 }
 
-export function SpendingByCategoryChart({ data, currencyCode }: SpendingByCategoryChartProps) {
+export function SpendingByCategoryChart({ data, currencyCode, embedded = false }: SpendingByCategoryChartProps) {
   const { t, locale } = useTranslation();
   const reducedMotion = usePrefersReducedMotion();
   // calculateSpendingByCategory() (src/lib/financial/calculations.ts) already
@@ -297,15 +298,16 @@ export function SpendingByCategoryChart({ data, currencyCode }: SpendingByCatego
   ].map((entry, index) => ({ ...entry, color: SPENDING_CATEGORY_COLORS[index % SPENDING_CATEGORY_COLORS.length] }));
 
   return (
-    // 2026-09 v2.4: no bespoke card styling here anymore — the shared Card
-    // (white surface, subtle border/shadow) now matches this chart's
-    // requirements exactly via the global token update, so it stays
-    // consistent with every other financial card in the app.
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{t("dashboard.spendingByCategory")}</CardTitle>
+    // The standalone version uses the shared card surface. On the dashboard
+    // it is embedded below the monthly detail toggle, so the duplicate card
+    // chrome is removed while the chart itself remains unchanged.
+    <Card className={embedded ? "gap-2 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0" : undefined}>
+      <CardHeader className={embedded ? "px-0" : undefined}>
+        <CardTitle className={embedded ? "text-sm font-semibold" : "text-base"}>
+          {t("dashboard.spendingByCategory")}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className={embedded ? "px-0" : undefined}>
         {chartData.length === 0 ? (
           <ChartEmptyState message={t("dashboard.noExpenseData")} />
         ) : (

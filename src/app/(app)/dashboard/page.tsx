@@ -39,12 +39,9 @@ export default async function DashboardPage() {
     return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
   }
 
-  const [data, profile, priority, topInsight, incomeExpenseTrend] = await Promise.all([
+  const [data, profile] = await Promise.all([
     getDashboardData(),
     getProfile(),
-    FEATURES.ai ? getFinancialPriority() : Promise.resolve(null),
-    FEATURES.ai ? getTopInsight() : Promise.resolve(null),
-    getIncomeExpenseTrend(),
   ]);
   const currencyCode = profile?.currency_code ?? "THB";
   const locale = await getLocale(profile?.preferred_language);
@@ -90,7 +87,7 @@ export default async function DashboardPage() {
           — this is a presentation-order change only.
 
           2026-09 "command center" redesign: everything beyond the above —
-          charts, the deeper Wealth Score/Life Stage/Safe-to-Spend/Budget/
+          trend chart, the deeper Wealth Score/Life Stage/Safe-to-Spend/Budget/
           Emergency Fund grid, and account/transaction previews — now lives
           behind one collapsed DashboardDetailsToggle instead of being part
           of the default scroll (see UX_GUIDELINES.md #4, progressive
@@ -153,14 +150,15 @@ export default async function DashboardPage() {
             noDataTitle: dict.dashboard.noIncomeExpenseData,
             noDataHint: dict.dashboard.noDataThisMonthHint,
           }}
-        />
+        >
+          <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} embedded />
+        </MonthlyDonutCard>
       </div>
 
       {FEATURES.ai ? (
-        <div className="motion-reveal motion-reveal-4 space-y-3">
-          <NextBestActionCard priority={priority} hasTransactionHistory={data.recentTransactions.length > 0} />
-          {topInsight ? <InsightCards insights={[topInsight]} /> : null}
-        </div>
+        <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
+          <DashboardRecommendations hasTransactionHistory={data.recentTransactions.length > 0} />
+        </Suspense>
       ) : null}
 
       <div className="motion-reveal motion-reveal-5 space-y-3">
@@ -177,24 +175,16 @@ export default async function DashboardPage() {
       </div>
 
       <div className="motion-reveal motion-reveal-6">
-        <EngagementSummaryCard />
+        <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
+          <EngagementSummaryCard />
+        </Suspense>
       </div>
 
       <div className="motion-reveal motion-reveal-7">
         <DashboardDetailsToggle label={dict.dashboard.moreInsights}>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <IncomeVsExpenseChart
-              data={incomeExpenseTrend.map((point) => ({
-                month: new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "short" }).format(
-                  point.monthDate
-                ),
-                incomeCents: point.incomeCents,
-                expensesCents: point.expensesCents,
-              }))}
-              currencyCode={currencyCode}
-            />
-            <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} />
-          </div>
+          <Suspense fallback={<Skeleton className="h-[240px] w-full rounded-xl" />}>
+            <IncomeExpenseTrendSection locale={locale} currencyCode={currencyCode} />
+          </Suspense>
 
           <Suspense
             fallback={
@@ -262,5 +252,38 @@ export default async function DashboardPage() {
         </DashboardDetailsToggle>
       </div>
     </div>
+  );
+}
+
+/**
+ * Recommendations fan out into several planning queries. Keeping them in
+ * their own streaming boundary prevents that optional work from delaying
+ * the monthly overview and the rest of the dashboard shell.
+ */
+async function DashboardRecommendations({ hasTransactionHistory }: { hasTransactionHistory: boolean }) {
+  const [priority, topInsight] = await Promise.all([getFinancialPriority(), getTopInsight()]);
+
+  return (
+    <div className="motion-reveal motion-reveal-4 space-y-3">
+      <NextBestActionCard priority={priority} hasTransactionHistory={hasTransactionHistory} />
+      {topInsight ? <InsightCards insights={[topInsight]} /> : null}
+    </div>
+  );
+}
+
+/** The six-month chart is collapsed by default, so it must not hold up FCP. */
+async function IncomeExpenseTrendSection({ locale, currencyCode }: { locale: "th" | "en"; currencyCode: string }) {
+  const incomeExpenseTrend = await getIncomeExpenseTrend();
+  const monthFormatter = new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "short" });
+
+  return (
+    <IncomeVsExpenseChart
+      data={incomeExpenseTrend.map((point) => ({
+        month: monthFormatter.format(point.monthDate),
+        incomeCents: point.incomeCents,
+        expensesCents: point.expensesCents,
+      }))}
+      currencyCode={currencyCode}
+    />
   );
 }
