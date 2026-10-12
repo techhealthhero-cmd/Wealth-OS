@@ -63,30 +63,74 @@ export function buildWeekStrip(
   });
 }
 
-/** How many weeks the scroll calendar can unroll (2026-10-12). */
-export const SCROLL_WEEKS = 4;
+const ISO_MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-export interface ScrollWeek {
-  days: WeekStripDay[];
-  /** Income less spending across the 7 days. */
-  netCents: number;
+/** A YYYY-MM month string. */
+export function isIsoMonth(value: string | null | undefined): value is string {
+  return !!value && ISO_MONTH.test(value);
+}
+
+export function addMonthsIso(month: string, months: number): string {
+  const d = new Date(`${month}-01T00:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  return d.toISOString().slice(0, 7);
 }
 
 /**
- * The scroll calendar's weeks, NEWEST FIRST: weeks[0] is the 7 days from
- * `weekStart`, weeks[1] the 7 before it, and so on — unrolling the scroll
- * goes back in time. `transactions` should cover all `count` weeks.
+ * The wall calendar's grid for `month` (YYYY-MM): whole Monday-to-Sunday
+ * weeks from the Monday on or before the 1st to the Sunday on or after the
+ * last day — 4 to 6 rows.
  */
-export function buildScrollWeeks(
-  weekStart: string,
+export function monthGridRange(month: string): { start: string; end: string } {
+  const last = addDaysIso(`${addMonthsIso(month, 1)}-01`, -1);
+  return { start: weekStartOf(`${month}-01`), end: addDaysIso(weekStartOf(last), 6) };
+}
+
+export interface MonthGridDay extends WeekStripDay {
+  /** false for the leading/trailing days of the neighbouring months. */
+  inMonth: boolean;
+}
+
+export interface MonthGrid {
+  month: string;
+  weeks: MonthGridDay[][];
+  /** Income less spending over the month's own days up to today. */
+  netCents: number;
+  /** The biggest single day's spending in the grid (scales the heat marks). */
+  maxSpentCents: number;
+  /** The row the folded calendar shows: today's week, or the last row of a past month. */
+  focusRow: number;
+}
+
+/**
+ * The wall calendar on Money › Transactions (2026-10-12, mockup 2): a real
+ * calendar month, Monday first. `transactions` should cover
+ * `monthGridRange(month)`.
+ */
+export function buildMonthGrid(
+  month: string,
   today: string,
   transactions: (FinancialTransaction & { transaction_date: string })[],
-  pendingDates: Iterable<string>,
-  count: number = SCROLL_WEEKS
-): ScrollWeek[] {
+  pendingDates: Iterable<string>
+): MonthGrid {
+  const { start, end } = monthGridRange(month);
   const pending = [...pendingDates];
-  return Array.from({ length: count }, (_, w) => {
-    const days = buildWeekStrip(addDaysIso(weekStart, -7 * w), today, transactions, pending);
-    return { days, netCents: days.reduce((sum, d) => sum + d.netCents, 0) };
-  });
+  const weeks: MonthGridDay[][] = [];
+  for (let weekStart = start; weekStart <= end; weekStart = addDaysIso(weekStart, 7)) {
+    weeks.push(
+      buildWeekStrip(weekStart, today, transactions, pending).map((day) => ({
+        ...day,
+        inMonth: day.date.startsWith(month),
+      }))
+    );
+  }
+  const days = weeks.flat().filter((d) => !d.isFuture);
+  const todayRow = weeks.findIndex((w) => w.some((d) => d.isToday));
+  return {
+    month,
+    weeks,
+    netCents: days.filter((d) => d.inMonth).reduce((sum, d) => sum + d.netCents, 0),
+    maxSpentCents: days.reduce((max, d) => Math.max(max, d.spentCents), 0),
+    focusRow: todayRow >= 0 ? todayRow : weeks.length - 1,
+  };
 }

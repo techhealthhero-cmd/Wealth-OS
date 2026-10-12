@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { addDaysIso, buildScrollWeeks, buildWeekStrip, isIsoDate, weekStartOf } from "@/lib/financial/week-strip";
+import {
+  addDaysIso,
+  addMonthsIso,
+  buildMonthGrid,
+  buildWeekStrip,
+  isIsoDate,
+  isIsoMonth,
+  monthGridRange,
+  weekStartOf,
+} from "@/lib/financial/week-strip";
 
 describe("week strip", () => {
   it("weeks start on Monday", () => {
@@ -43,28 +52,42 @@ describe("week strip", () => {
     expect(days[0].hasPending).toBe(false);
   });
 
-  it("builds the scroll's weeks newest first, each with its own net", () => {
-    const weeks = buildScrollWeeks(
-      "2026-10-06",
+  it("builds the wall calendar's month in whole Monday-to-Sunday weeks", () => {
+    // October 2026 starts on a Thursday and ends on a Saturday: Sep 28 → Nov 1.
+    expect(monthGridRange("2026-10")).toEqual({ start: "2026-09-28", end: "2026-11-01" });
+    // February 2027 runs Mon Feb 1 … Sun Feb 28: exactly 4 rows.
+    expect(monthGridRange("2027-02")).toEqual({ start: "2027-02-01", end: "2027-02-28" });
+    // March 2026 starts on a Sunday: 6 rows.
+    expect(monthGridRange("2026-03")).toEqual({ start: "2026-02-23", end: "2026-04-05" });
+
+    const grid = buildMonthGrid(
+      "2026-10",
       "2026-10-12",
       [
         { transaction_date: "2026-10-11", type: "income", amount: "2000" },
         { transaction_date: "2026-10-11", type: "expense", amount: "843" },
-        { transaction_date: "2026-09-29", type: "expense", amount: "100" },
-        { transaction_date: "2026-09-14", type: "expense", amount: "999" }, // before the 4 weeks
+        { transaction_date: "2026-10-02", type: "expense", amount: "100" },
+        { transaction_date: "2026-09-29", type: "expense", amount: "5000" }, // September: not in the month's net
+        { transaction_date: "2026-10-20", type: "expense", amount: "999" }, // future-dated: ignored
       ],
-      ["2026-09-30"]
+      ["2026-10-02"]
     );
-    expect(weeks).toHaveLength(4);
-    expect(weeks.map((w) => [w.days[0].date, w.days[6].date])).toEqual([
-      ["2026-10-06", "2026-10-12"],
-      ["2026-09-29", "2026-10-05"],
-      ["2026-09-22", "2026-09-28"],
-      ["2026-09-15", "2026-09-21"],
-    ]);
-    expect(weeks.map((w) => w.netCents)).toEqual([115_700, -10_000, 0, 0]);
-    expect(weeks[1].days[1].hasPending).toBe(true);
-    expect(weeks[0].days[6].isToday).toBe(true);
+    expect(grid.weeks).toHaveLength(5);
+    expect(grid.weeks[0][0]).toMatchObject({ date: "2026-09-28", inMonth: false });
+    expect(grid.weeks[0][3]).toMatchObject({ date: "2026-10-01", inMonth: true });
+    expect(grid.weeks[0][4]).toMatchObject({ netCents: -10_000, hasPending: true });
+    expect(grid.netCents).toBe(200_000 - 84_300 - 10_000);
+    expect(grid.maxSpentCents).toBe(500_000);
+    expect(grid.focusRow).toBe(2); // Oct 12 is in the third week
+  });
+
+  it("focuses a past month's last row and steps months across years", () => {
+    expect(buildMonthGrid("2026-09", "2026-10-12", [], []).focusRow).toBe(4);
+    expect(addMonthsIso("2026-12", 1)).toBe("2027-01");
+    expect(addMonthsIso("2026-01", -1)).toBe("2025-12");
+    expect(isIsoMonth("2026-10")).toBe(true);
+    expect(isIsoMonth("2026-13")).toBe(false);
+    expect(isIsoMonth("2026-10-01")).toBe(false);
   });
 
   it("marks days after today as future", () => {

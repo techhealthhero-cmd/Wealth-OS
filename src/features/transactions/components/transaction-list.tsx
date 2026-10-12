@@ -12,48 +12,47 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { todayInTimeZone } from "@/lib/date";
 import { calculateExpenses, calculateIncome } from "@/lib/financial/calculations";
-import { addDaysIso, buildScrollWeeks, isIsoDate, SCROLL_WEEKS } from "@/lib/financial/week-strip";
+import { addDaysIso, addMonthsIso, buildMonthGrid, isIsoDate, isIsoMonth, monthGridRange } from "@/lib/financial/week-strip";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyTransactionsIllustration } from "@/components/illustrations";
 import { TransactionListBody } from "./transaction-list-body";
 import { QuickAdd } from "./quick-add";
 import { DailyInboxCard } from "@/features/capture/components/daily-inbox-card";
 import { MonthSummary } from "./month-summary";
-import { ScrollCalendar } from "./scroll-calendar";
+import { WallCalendar } from "./wall-calendar";
 import { ListTabs, type ListTab } from "./list-tabs";
 import { ExportTransactionsButton } from "./export-button";
 import { ExportReportButton } from "@/features/reports/components/export-report-button";
 
 /**
  * Money › Transactions (2026-10-11, mockup "B + D"): add → this month at a
- * glance → the 7-day strip → "ทั้งหมด | รอตรวจ" tabs → the list (or the
- * pending review list). A day picked on the strip is just the existing
+ * glance → "ทั้งหมด | รอตรวจ" tabs → the wall calendar → the list (or the
+ * pending review list). A day picked on the calendar is just the existing
  * from/to filter set to that one date, so the list, search and paging all
  * keep working unchanged.
  */
 export async function TransactionList({
   filters,
   tab = "all",
-  week,
+  month,
 }: {
   filters: TransactionFilters;
   tab?: ListTab;
-  /** First day of the 7 the strip shows (?week=); defaults to the last 7 days ending today. */
-  week?: string;
+  /** The month the wall calendar shows (?month=YYYY-MM); defaults to this month. */
+  month?: string;
 }) {
   const isDefaultView =
     !filters.search && !filters.type && !filters.accountId && !filters.categoryId && !filters.hasNotes;
   const selectedDate = filters.from && filters.from === filters.to && isIsoDate(filters.from) ? filters.from : null;
   const profileForToday = await getProfile();
   const today = todayInTimeZone(profileForToday?.timezone ?? "Asia/Bangkok");
-  // A rolling 7 days with today at the right end — on a Monday a calendar
-  // week would be six empty future days.
-  const latestStart = addDaysIso(today, -6);
-  const weekStart = week && isIsoDate(week) && week < latestStart ? week : latestStart;
+  const thisMonth = today.slice(0, 7);
+  const calendarMonth = month && isIsoMonth(month) && month < thisMonth ? month : thisMonth;
+  const calendarRange = monthGridRange(calendarMonth);
   const monthFrom = `${today.slice(0, 7)}-01`;
   const monthTo = addDaysIso(`${addDaysIso(monthFrom, 32).slice(0, 7)}-01`, -1);
 
-  const [{ transactions, hasMore }, accounts, categories, profile, weekTransactions, monthTransactions, budget, inbox] =
+  const [{ transactions, hasMore }, accounts, categories, profile, calendarTransactions, monthTransactions, budget, inbox] =
     await Promise.all([
       // Perf audit finding: this page previously fetched a user's ENTIRE
       // transaction history on every visit (getTransactions(filters) with
@@ -65,8 +64,8 @@ export async function TransactionList({
       getDisplayAccounts({ includeArchived: true }),
       getCategories(),
       getProfile(),
-      // Every week the scroll calendar can unroll, oldest day to newest.
-      getFinancialTransactions({ from: addDaysIso(weekStart, -7 * (SCROLL_WEEKS - 1)), to: addDaysIso(weekStart, 6) }),
+      // Every day on the wall calendar, the neighbouring months' edge days included.
+      getFinancialTransactions({ from: calendarRange.start, to: calendarRange.end }),
       getFinancialTransactions({ from: monthFrom, to: monthTo }),
       getBudgetSummary(new Date(`${monthFrom}T00:00:00`)),
       getDailyInbox(),
@@ -75,7 +74,7 @@ export async function TransactionList({
   const dict = getDictionary(locale);
 
   const pendingItems = (inbox?.items ?? []).filter((i) => i.review_status === "needs_review");
-  const scrollWeeks = buildScrollWeeks(weekStart, today, weekTransactions, pendingItems.map((i) => i.transaction_date));
+  const calendar = buildMonthGrid(calendarMonth, today, calendarTransactions, pendingItems.map((i) => i.transaction_date));
   const monthTitle = new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", {
     month: "long",
     year: "numeric",
@@ -95,11 +94,11 @@ export async function TransactionList({
 
       <ListTabs active={tab} pendingCount={pendingItems.length} />
 
-      {/* The scroll calendar sits right under the tabs (2026-10-12). */}
-      <ScrollCalendar
-        weeks={scrollWeeks}
-        prevWeek={addDaysIso(weekStart, -7)}
-        nextWeek={weekStart < latestStart ? (addDaysIso(weekStart, 7) < latestStart ? addDaysIso(weekStart, 7) : latestStart) : null}
+      {/* The wall calendar sits right under the tabs (2026-10-12). */}
+      <WallCalendar
+        grid={calendar}
+        prevMonth={addMonthsIso(calendarMonth, -1)}
+        nextMonth={calendarMonth < thisMonth ? addMonthsIso(calendarMonth, 1) : null}
         selectedDate={selectedDate}
       />
 
@@ -118,7 +117,7 @@ export async function TransactionList({
       ) : (
         <>
       {transactions.length === 0 && selectedDate && isDefaultView ? (
-        // One quiet day picked on the strip: a line, not the big empty state.
+        // One quiet day picked on the calendar: a line, not the big empty state.
         <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.dayEmpty}</p>
       ) : transactions.length === 0 ? (
         isDefaultView && !filters.from && !filters.to ? (
@@ -144,7 +143,7 @@ export async function TransactionList({
         )
       ) : (
         <TransactionListBody
-          // Remount when the filters change (e.g. a day picked on the strip):
+          // Remount when the filters change (e.g. a day picked on the calendar):
           // the body copies its first page into state, so without a new key
           // it would keep showing the previous filter's rows.
           key={JSON.stringify(filters)}

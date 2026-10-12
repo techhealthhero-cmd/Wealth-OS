@@ -56,6 +56,20 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   (`TransactionListBody` keyed by filters). Verified on the demo account at
   390×844 (drag, tap, persistence across reload, day pick); tests
   1003/1003, build OK.
+- 2026-10-13 (user request: "switch to example 2"): `WallCalendar` (mockup
+  2, "ปฏิทินแขวนผนัง") replaces `ScrollCalendar` (removed, with
+  `buildScrollWeeks`). A real calendar month, Monday first
+  (`buildMonthGrid` / `monthGridRange`, tested): folded it shows this week
+  (a past month: its last week); pulling the ribbon tab down snaps to 2, 3
+  weeks, then the whole month (4–6 rows), growing upward from the focused
+  week first. Step chips under the ribbon jump straight to a stop. Each day
+  shows its net plus a heat mark (redder = more spent, green = money in);
+  the header shows the month's net. ‹ › change month via `?month=YYYY-MM`
+  (replaces `?week=`; future months clamp to this one). Open stop
+  remembered per device (`wos.wallCalendarStop`). Own light/dark tokens
+  (`.wall-cal`). Verified on the demo account at 390×844 (drag snap, whole
+  month, reload persistence, day pick, previous month, dark mode, no
+  console errors); tests 1004/1004, typecheck, lint, build OK.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.
