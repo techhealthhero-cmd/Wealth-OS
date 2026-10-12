@@ -25,6 +25,8 @@ import {
 } from "@/features/accounts/actions";
 import { isAccountPrivacyRedacted } from "@/features/account-privacy/account-redaction";
 import { getCapturePreferences, saveCapturedTransaction } from "@/features/capture/actions";
+import { getCaptureUnits, getIncomeSourceUnits, saveCaptureUnit, type CaptureUnitRow } from "@/features/capture/units";
+import { mergeCaptureUnits, toCaptureUnits } from "@/lib/capture/units";
 import type { AccountSource, CaptureMerchantPreference, ParseContext } from "@/lib/capture/transaction-parser";
 import { parseRecap } from "@/lib/capture/recap";
 import { detectTransferIntent, type AccountSlot, type TransferIntent } from "@/lib/capture/transfer";
@@ -56,6 +58,10 @@ interface Row {
   accountSource: AccountSource | null;
   /** An account named like the shop, not yet confirmed: ask "pay from which account?" once. */
   suggestedAccountId: string | null;
+  /** "ได้ 10 ดื่ม" priced by a saved unit: shown as "10 ดื่ม × ฿200". */
+  unit: { count: number; label: string; unitPriceCents: number } | null;
+  /** "ได้ 10 ดื่ม" with no price for ดื่ม yet: ask it once. */
+  unknownUnit: { word: string; count: number } | null;
 }
 
 /** from/to = the two sides of a transfer · pay = the account an expense is paid from. */
@@ -124,6 +130,12 @@ export function VoiceNotebook({
   const [aliases, setAliases] = useState<AccountAlias[]>([]);
   // Shops paid from a set account ("7-Eleven" → the 7-Eleven wallet).
   const [shopPrefs, setShopPrefs] = useState<MerchantAccountPref[]>([]);
+  // Per-unit prices ("ดื่ม" = ฿200), and the answers being typed for new ones.
+  const [unitRows, setUnitRows] = useState<CaptureUnitRow[]>([]);
+  // Per-unit income sources set up in Earn ("฿200 per ดื่ม") price those words too.
+  const [incomeUnits, setIncomeUnits] = useState<{ unit_label: string; unit_rate: string }[]>([]);
+  const [unitAnswers, setUnitAnswers] = useState<Record<string, { price: string; categoryId: string | null }>>({});
+  const [savingUnit, setSavingUnit] = useState<string | null>(null);
   const [remember, setRemember] = useState(true);
   // "Not enough in the wallet" warnings the user chose to ignore, by account.
   const [lowDismissed, setLowDismissed] = useState<string[]>([]);
@@ -162,6 +174,13 @@ export function VoiceNotebook({
         if (!cancelled) setShopPrefs(rows);
       })
       .catch(() => {});
+    Promise.all([getCaptureUnits(), getIncomeSourceUnits()])
+      .then(([rows, fromIncome]) => {
+        if (cancelled) return;
+        setUnitRows(rows);
+        setIncomeUnits(fromIncome);
+      })
+      .catch(() => {});
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       // The account sheet closes first, then the page.
@@ -182,9 +201,14 @@ export function VoiceNotebook({
       categories,
       merchantPreferences: preferences,
       merchantAccounts: shopPrefs.map((p) => ({ merchant_normalized: p.merchant_normalized, account_id: p.account_id })),
+      units: mergeCaptureUnits(
+        toCaptureUnits(unitRows),
+        incomeUnits,
+        categories.find((c) => c.is_system && c.name_en === "Salary" && c.type === "income")?.id ?? null
+      ),
       today,
     }),
-    [accounts, categories, preferences, shopPrefs, today]
+    [accounts, categories, preferences, shopPrefs, unitRows, incomeUnits, today]
   );
   const aliasedAccounts = useMemo(
     () =>
@@ -217,6 +241,8 @@ export function VoiceNotebook({
       transfer: detectTransferIntent(item.sourceText, aliasedAccounts),
       accountSource: item.accountSource,
       suggestedAccountId: item.suggestedAccountId ?? null,
+      unit: item.unit ?? null,
+      unknownUnit: item.unknownUnit ?? null,
     }));
   }, [parseText, ctx, aliasedAccounts]);
   /** A transfer side's account: the user's tap wins, then a match from the words; null = still to pick. */
@@ -234,7 +260,7 @@ export function VoiceNotebook({
   const needsShopAnswer = (row: Row) =>
     !row.transfer && row.suggestedAccountId !== null && !picks[row.id]?.pay && row.draft.amountCents !== null;
   const unresolved = rows.filter(
-    (r) => (r.transfer && r.draft.amountCents !== null && !transferReady(r)) || needsShopAnswer(r)
+    (r) => (r.transfer && r.draft.amountCents !== null && !transferReady(r)) || needsShopAnswer(r) || (!r.transfer && r.unknownUnit)
   ).length;
   const saveable = rows.filter((r) => (r.transfer ? r.draft.amountCents !== null && transferReady(r) : canSaveDraft(r.draft)));
 
@@ -301,6 +327,35 @@ export function VoiceNotebook({
         } else if (result.error) toast.error(result.error);
       })
       .catch(() => {});
+  }
+  const incomeCategories = categories.filter((c) => c.type === "income" || c.type === "both");
+  /** The category a new unit is filed under until the user picks: Salary, the usual pay-per-unit work. */
+  const defaultUnitCategoryId =
+    incomeCategories.find((c) => c.is_system && c.name_en === "Salary")?.id ?? incomeCategories[0]?.id ?? null;
+  const unitPriceCents = (word: string) => Math.round(Number((unitAnswers[word]?.price ?? "").replace(/,/g, "")) * 100);
+  /** "ดื่ม ละกี่บาท?" answered: remember the price, and every ดื่ม on the page is priced at once. */
+  async function answerUnit(word: string) {
+    const cents = unitPriceCents(word);
+    if (!Number.isFinite(cents) || cents <= 0 || savingUnit) return;
+    setSavingUnit(word);
+    try {
+      const result = await saveCaptureUnit({
+        word,
+        priceCents: cents,
+        type: "income",
+        categoryId: unitAnswers[word]?.categoryId ?? defaultUnitCategoryId,
+        source: "learned",
+      });
+      const saved = result.unit;
+      if (saved) {
+        setUnitRows((prev) => [...prev.filter((u) => u.unit_normalized !== saved.unit_normalized), saved]);
+        toast(t("capture.units.remembered").replace("{word}", saved.unit_label).replace("{price}", formatMoney(cents)));
+      } else if (result.error) toast.error(result.error);
+    } catch {
+      toast.error(t("capture.units.saveFailed"));
+    } finally {
+      setSavingUnit(null);
+    }
   }
   function openPicker(row: Row, side: Side) {
     setPickerQuery("");
@@ -515,7 +570,7 @@ export function VoiceNotebook({
                 ? null
                 : [categoryName(d.categoryId), accountName(sideAccount(row, "pay")), dayLabel(d.date)].filter(Boolean).join(" · ");
               const askShop = needsShopAnswer(row);
-              const needsPick = (tr !== null && !transferReady(row)) || askShop;
+              const needsPick = (tr !== null && !transferReady(row)) || askShop || (!tr && row.unknownUnit !== null);
               const shop = d.merchant ?? "";
               const payId = sideAccount(row, "pay");
               const low = !tr && payId && lowBalance.has(payId) && lowWarningRowId(payId) === row.id ? lowBalance.get(payId)! : null;
@@ -568,6 +623,77 @@ export function VoiceNotebook({
                     )}
                   </div>
                   {details ? <p className="mt-1 text-sm text-muted-foreground">{details}</p> : null}
+                  {!tr && row.unit ? (
+                    <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">
+                      {t("capture.units.math")
+                        .replace("{count}", String(row.unit.count))
+                        .replace("{word}", row.unit.label)
+                        .replace("{price}", formatMoney(row.unit.unitPriceCents))}
+                    </p>
+                  ) : null}
+                  {!tr && row.unknownUnit ? (
+                    <form
+                      className="mt-2 border-t border-dashed border-[#e3d5b8] pt-2 dark:border-white/15"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void answerUnit(row.unknownUnit!.word);
+                      }}
+                    >
+                      <label htmlFor={`unit-price-${i}`} className="block text-sm font-semibold">
+                        {t("capture.units.question").replace("{word}", row.unknownUnit.word)}
+                      </label>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {t("capture.units.hint").replace("{count}", String(row.unknownUnit.count)).replaceAll("{word}", row.unknownUnit.word)}
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-base font-semibold" aria-hidden="true">฿</span>
+                        <input
+                          id={`unit-price-${i}`}
+                          inputMode="decimal"
+                          autoComplete="off"
+                          value={unitAnswers[row.unknownUnit.word]?.price ?? ""}
+                          onChange={(e) => {
+                            const word = row.unknownUnit!.word;
+                            const price = e.target.value.replace(/[^\d.,]/g, "");
+                            setUnitAnswers((prev) => ({ ...prev, [word]: { categoryId: prev[word]?.categoryId ?? null, price } }));
+                          }}
+                          onFocus={() => {
+                            if (listening) onMicStop();
+                          }}
+                          placeholder="200"
+                          className="h-11 w-28 rounded-xl border border-[#cdbf9f] bg-white px-3 text-base tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/20 dark:bg-white/5"
+                        />
+                        <span className="text-sm text-muted-foreground">{t("capture.units.per").replace("{word}", row.unknownUnit.word)}</span>
+                      </div>
+                      {incomeCategories.length > 1 ? (
+                        <label className="mt-2 flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">{t("capture.units.category")}</span>
+                          <select
+                            value={unitAnswers[row.unknownUnit.word]?.categoryId ?? defaultUnitCategoryId ?? ""}
+                            onChange={(e) => {
+                              const word = row.unknownUnit!.word;
+                              const categoryId = e.target.value || null;
+                              setUnitAnswers((prev) => ({ ...prev, [word]: { price: prev[word]?.price ?? "", categoryId } }));
+                            }}
+                            className="h-9 rounded-lg border border-[#cdbf9f] bg-white px-2 text-sm dark:border-white/20 dark:bg-white/5"
+                          >
+                            {incomeCategories.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {locale === "th" ? c.name_th : c.name_en}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                      <button
+                        type="submit"
+                        disabled={savingUnit !== null || !(unitPriceCents(row.unknownUnit.word) > 0)}
+                        className="mt-2 min-h-11 w-full rounded-xl bg-primary px-3 text-[15px] font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                      >
+                        {savingUnit === row.unknownUnit.word ? t("capture.voice.saving") : t("capture.units.remember")}
+                      </button>
+                    </form>
+                  ) : null}
                   {!tr && row.accountSource === "merchant" && !picks[row.id]?.pay && payId ? (
                     // Paid from the shop's set account — say so, so a wrong one is obvious and easy to change.
                     <p className="mt-2 flex flex-wrap items-center gap-x-1.5 border-t border-dashed border-[#e3d5b8] pt-2 text-sm text-muted-foreground dark:border-white/15">
@@ -771,7 +897,10 @@ export function VoiceNotebook({
         </div>
         {unresolved > 0 ? (
           <p className="-mt-2 text-center text-sm text-amber-800 dark:text-amber-300">
-            {t("capture.voice.needsPick").replace("{n}", String(unresolved))}
+            {/* Only unpriced units left: ask for the price, not an account. */}
+            {rows.some((r) => !r.transfer && r.unknownUnit) && unresolved === rows.filter((r) => !r.transfer && r.unknownUnit).length
+              ? t("capture.units.needsPrice")
+              : t("capture.voice.needsPick").replace("{n}", String(unresolved))}
           </p>
         ) : null}
         <div className="flex w-full max-w-md gap-3">

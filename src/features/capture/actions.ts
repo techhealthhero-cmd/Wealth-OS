@@ -28,6 +28,7 @@ import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { CaptureMerchantPreference } from "@/lib/capture/transaction-parser";
 import { SCAN_ACCEPTED_TYPES, SCAN_MAX_UPLOAD_BYTES } from "@/lib/capture/scan-upload";
 import { isUndecidedCategory } from "@/lib/capture/inbox";
+import { toCaptureUnits } from "@/lib/capture/units";
 import {
   AI_ASSIST_MAX_TEXT,
   RECAP_AI_MAX_ITEMS,
@@ -472,7 +473,7 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
   if (!user) return { status: "invalid" };
 
   const today = todayInTimeZone(timezone);
-  const [categoriesResult, accountsResult, preferencesResult] = await Promise.all([
+  const [categoriesResult, accountsResult, preferencesResult, unitsResult] = await Promise.all([
     supabase.from("categories").select("id, name_th, name_en, type, icon, is_system"),
     supabase
       .from("accounts")
@@ -483,6 +484,8 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
       .select("merchant_normalized, category_id")
       .order("usage_count", { ascending: false })
       .limit(500),
+    // Missing before migration 0044 — then simply no units.
+    supabase.from("capture_units").select("unit_normalized, unit_label, unit_price, type, category_id").limit(200),
   ]);
   if (categoriesResult.error || accountsResult.error || preferencesResult.error) return { status: "failed" };
 
@@ -492,6 +495,7 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
     categories,
     accounts: accountsResult.data ?? [],
     merchantPreferences: preferencesResult.data ?? [],
+    units: unitsResult.error ? [] : toCaptureUnits(unitsResult.data ?? []),
   });
   if (!needsAIAssist(input, local)) return { status: "not_needed" };
 

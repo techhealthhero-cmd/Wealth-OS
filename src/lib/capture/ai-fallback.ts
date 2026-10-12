@@ -40,6 +40,9 @@ const MESSY_LEFTOVER_WORDS = 4;
 export function needsAIAssist(text: string, parsed: ParsedCapture): boolean {
   const clean = normalizeText(text);
   if (parsed.amountCents === null || clean.length > AI_ASSIST_MAX_TEXT) return false;
+  // A counted unit ("10 ดื่ม" × ฿200) is computed from the user's own price —
+  // the AI would only see "10" and could read it back as ฿10.
+  if (parsed.unit) return false;
   const lower = clean.toLowerCase();
   if (UNRESOLVED_TIME_PHRASES.some((p) => lower.includes(p))) return true;
   const leftover = (parsed.description ?? "").trim();

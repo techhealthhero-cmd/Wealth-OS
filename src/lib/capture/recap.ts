@@ -19,6 +19,7 @@
 import { KNOWN_MERCHANTS } from "./keywords";
 import {
   AMOUNT_PATTERN,
+  countedUnitEnd,
   extractCaptureDate,
   findKeyword,
   normalizeText,
@@ -149,7 +150,7 @@ function labelOf(segment: string): string {
  * last amount (e.g. "จ่ายเงินสด") belongs to the item before it. A segment
  * that is only a modifier ("ไปกลับ 80") merges into the previous item.
  */
-export function splitRecap(input: string): string[] {
+export function splitRecap(input: string, unitWords: string[] = []): string[] {
   // normalizeText collapses newlines — keep them as item separators first.
   const text = normalizeText(input.replace(/\r?\n+/g, " ; "));
   if (!text) return [];
@@ -158,9 +159,15 @@ export function splitRecap(input: string): string[] {
   // Hard separators (newline, ;, a comma that isn't a thousands separator).
   const cuts = new Set<number>();
   for (const m of masked.matchAll(/\n|;|,(?!\d{3}(?!\d))/g)) cuts.add(m.index! + m[0].length);
-  // Each real amount ends an item.
+  // Each real amount ends an item. A count of a priced unit ("ได้ 10 ดื่ม")
+  // ends it after the unit word instead.
   for (const m of masked.matchAll(AMOUNT_PATTERN)) {
     const end = m.index! + m[0].length;
+    const unitEnd = countedUnitEnd(masked, m.index!, end, unitWords);
+    if (unitEnd !== null) {
+      cuts.add(unitEnd);
+      continue;
+    }
     if (isQuantity(masked, end)) continue;
     cuts.add(end);
   }
@@ -195,6 +202,11 @@ export function splitRecap(input: string): string[] {
       items[prev] = `${items[prev]} ${cleaned}`;
       continue;
     }
+    if (hasAmount && prev >= 0 && /^[฀-๿]+\s*ละ\s*\d/.test(cleaned) && !/\d/.test(cleaned.replace(/^[^\d]*[\d,.]+/, ""))) {
+      // "ได้ 10 ดื่ม ดื่มละ 250": the per-unit price belongs to the count before it.
+      items[prev] = `${items[prev]} ${cleaned}`;
+      continue;
+    }
     if (hasAmount && prev >= 0 && MERGE_MODIFIERS.includes(labelOf(cleaned))) {
       // "ไปกลับ 80" replaces the previous amount: drop the old price so the
       // item reads "วินมอไซต์ ไปกลับ 80", not "วินมอไซต์ 40 ไปกลับ 80".
@@ -214,7 +226,7 @@ export function splitRecap(input: string): string[] {
  */
 export function parseRecap(input: string, ctx: ParseContext): RecapItem[] {
   let carried: string | null = null;
-  return splitRecap(input).map((segment, i) => {
+  return splitRecap(input, (ctx.units ?? []).map((u) => u.unit_normalized)).map((segment, i) => {
     const parsed = parseCaptureText(segment, ctx);
     const named = extractCaptureDate(normalizeText(segment).toLowerCase(), ctx.today).named;
     if (named) carried = parsed.date;

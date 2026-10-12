@@ -26,6 +26,7 @@ import {
   parseCaptureText,
   suggestCategory,
   type CaptureMerchantPreference,
+  type CaptureUnit,
   type ParseContext,
 } from "@/lib/capture/transaction-parser";
 import { buildCaptureSaveInput, canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
@@ -36,6 +37,8 @@ import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { TransactionPrefill } from "@/features/transactions/components/transaction-form";
 import { createTransfer, deleteTransaction } from "@/features/transactions/actions";
 import { getAccountAliases, saveAccountAlias, type AccountAlias } from "@/features/accounts/actions";
+import { getCaptureUnits, getIncomeSourceUnits } from "@/features/capture/units";
+import { mergeCaptureUnits, toCaptureUnits } from "@/lib/capture/units";
 import { createRecurringTransaction } from "@/features/recurring/actions";
 import {
   assistCaptureParse,
@@ -148,6 +151,8 @@ export function QuickCaptureSheet({
   const [textSource, setTextSource] = useState<"quick_text" | "voice">("quick_text");
   const [overrides, setOverrides] = useState<Partial<CaptureDraft>>({});
   const [preferences, setPreferences] = useState<CaptureMerchantPreference[]>([]);
+  // Per-unit prices ("ดื่ม" = ฿200): "ได้ 10 ดื่ม" is 10 × the price.
+  const [unitSources, setUnitSources] = useState<{ saved: CaptureUnit[]; income: { unit_label: string; unit_rate: string }[] }>({ saved: [], income: [] });
   const [receipt, setReceipt] = useState<ReceiptState>({ status: "idle" });
   const [receiptDraft, setReceiptDraft] = useState<CaptureDraft | null>(null);
   const [duplicate, setDuplicate] = useState<PossibleDuplicate | null>(null);
@@ -206,11 +211,12 @@ export function QuickCaptureSheet({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    Promise.all([getCapturePreferences(), getAccountAliases()])
-      .then(([prefs, accountAliases]) => {
+    Promise.all([getCapturePreferences(), getAccountAliases(), getCaptureUnits(), getIncomeSourceUnits()])
+      .then(([prefs, accountAliases, unitRows, incomeUnits]) => {
         if (cancelled) return;
         setPreferences(prefs);
         setAliases(accountAliases);
+        setUnitSources({ saved: toCaptureUnits(unitRows), income: incomeUnits });
       })
       .catch(() => {});
     return () => {
@@ -219,8 +225,18 @@ export function QuickCaptureSheet({
   }, [open]);
 
   const ctx: ParseContext = useMemo(
-    () => ({ accounts, categories, merchantPreferences: preferences, today: toLocalDateString(new Date()) }),
-    [accounts, categories, preferences]
+    () => ({
+      accounts,
+      categories,
+      merchantPreferences: preferences,
+      units: mergeCaptureUnits(
+        unitSources.saved,
+        unitSources.income,
+        categories.find((c) => c.is_system && c.name_en === "Salary" && c.type === "income")?.id ?? null
+      ),
+      today: toLocalDateString(new Date()),
+    }),
+    [accounts, categories, preferences, unitSources]
   );
 
   // Fresh per-open AI budget.

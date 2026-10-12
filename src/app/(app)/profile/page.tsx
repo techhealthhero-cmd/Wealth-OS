@@ -16,6 +16,8 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { AiFabSettingsCard } from "@/components/layout/ai-fab-settings-card";
 import { AccountPrivacySettingsCard } from "@/features/account-privacy/components/account-privacy-settings-card";
 import { getAccountPrivacyState } from "@/features/account-privacy/queries";
+import { getCategories } from "@/features/categories/queries";
+import { CaptureUnitsCard } from "@/features/capture/components/capture-units-card";
 import { NotebookCover } from "@/components/notebook/notebook-cover";
 import { resolveCoverPreferences } from "@/lib/notebook-covers/config";
 import { BookOpenCheck, ChevronRight, Compass } from "lucide-react";
@@ -29,11 +31,12 @@ export default async function ProfilePage() {
   // (app)/layout.tsx already redirects unauthenticated users before this
   // page renders at all, so `!profile` here is a rare defensive case, not
   // the normal signed-out path.
-  const [profile, entitlements, companion, accountPrivacy] = await Promise.all([
+  const [profile, entitlements, companion, accountPrivacy, incomeCategories] = await Promise.all([
     getProfile(),
     getEntitlements(),
     getCompanionState(),
     getAccountPrivacyState(),
+    getCategories("income"),
   ]);
   if (!profile) redirect("/login");
 
@@ -170,6 +173,11 @@ export default async function ProfilePage() {
       </Card>
 
       <AccountPrivacySettingsCard privacy={accountPrivacy} />
+
+      {/* Per-unit prices for voice capture ("ดื่ม" = ฿200), 2026-10-13. */}
+      <CaptureUnitsCard
+        defaultCategoryId={incomeCategories.find((c) => c.is_system && c.name_en === "Salary")?.id ?? null}
+      />
 
       <Card>
         <CardHeader>

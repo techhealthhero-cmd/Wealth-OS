@@ -6,7 +6,42 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-11
+Last updated: 2026-10-13
+
+## Counted units in capture ("ได้ 10 ดื่ม" = ฿2,000 income) — 2026-10-13
+
+Reported by the user: a host paid ฿200 per drink said "วันนี้ได้ 10 ดื่ม"
+and voice capture saved a ฿10 expense. Now:
+
+- **Parser** (`transaction-parser.ts`, pure, tested in
+  `tests/capture-units.test.ts`): a saved unit right after a number is a
+  count — amount = count × the unit's price, with the unit's own type and
+  category (`ParsedCapture.unit`). "ดื่มละ 250" said in the same item wins
+  for that entry. "ได้ N <Thai word>" with no price known is a count too:
+  the amount stays empty (`ParsedCapture.unknownUnit`) — never read as baht.
+  Money words ("ได้ 2 พัน"), a real price in the item ("ขายได้ 2 ชิ้น
+  300") and a word followed by its own number ("ได้ 500 ข้าว 50") are not
+  units. Recaps split after the unit word, and "ดื่มละ 250" stays with its
+  count. AI assist never runs on a unit-priced item (it would read "10" as
+  ฿10).
+- **First time** (voice notebook): the card asks "ดื่ม ละกี่บาท?" with a
+  price field and a category (default เงินเดือน / Salary); Save stays
+  disabled until it is answered ("ตอบราคาต่อหน่วยก่อน"). The answer is
+  remembered (`saveCaptureUnit`, source `learned`).
+- **Per-unit income sources from Earn** (migration 0036) price their word
+  too, so a unit set up there is never asked again; a saved capture unit
+  wins over it.
+- **Profile → "หน่วยนับรายได้"**: list, re-price (add the same word
+  again) or remove units.
+- **Migration `0044_capture_units.sql`** — table `capture_units` (one price
+  per user + word, RLS own-rows, trigger: category must be system or the
+  user's own). **Written, NOT yet applied to production** — until it is,
+  answering the price shows "ยังจำหน่วยนับไม่ได้ — รอเปิดใช้ฟีเจอร์นี้อีก
+  นิด" and nothing breaks (verified on the demo account at 390×844:
+  "วันนี้ได้ 10 ดื่ม ข้าว 50" → two cards, the first asks the price, Save
+  disabled, the not-ready message on answering, no console errors).
+  Production check 2026-10-13 (read-only): 0042 and 0043 ARE applied.
+- Tests 1010/1010, typecheck, lint, build OK.
 
 ## Money › Transactions is the one place for money in/out — 2026-10-11
 

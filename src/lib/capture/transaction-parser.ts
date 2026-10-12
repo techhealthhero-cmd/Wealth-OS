@@ -52,12 +52,23 @@ export interface MerchantAccountPreference {
   account_id: string;
 }
 
+/** A unit the user is paid (or pays) per: "ดื่ม" = ฿200 income (capture_units, migration 0044). */
+export interface CaptureUnit {
+  unit_normalized: string;
+  unit_label: string;
+  unit_price_cents: number;
+  type: "expense" | "income";
+  category_id: string | null;
+}
+
 export interface ParseContext {
   accounts: CaptureAccount[];
   categories: CaptureCategory[];
   merchantPreferences: CaptureMerchantPreference[];
   /** Shops the user pays from a set account ("7-eleven" → their 7-Eleven wallet). */
   merchantAccounts?: MerchantAccountPreference[];
+  /** Per-unit prices ("ได้ 10 ดื่ม" → 10 × ฿200). */
+  units?: CaptureUnit[];
   /** Local "today" as YYYY-MM-DD (Asia/Bangkok on the client). */
   today: string;
 }
@@ -85,6 +96,13 @@ export interface ParsedCapture {
    * the UI asks "pay from which account?" instead of guessing.
    */
   suggestedAccountId?: string | null;
+  /** "ได้ 10 ดื่ม": the amount is count × the unit's price. */
+  unit?: { count: number; label: string; unitPriceCents: number } | null;
+  /**
+   * "ได้ 10 ดื่ม" with no price known for ดื่ม yet: the number is a COUNT,
+   * not baht, so the amount stays empty and the UI asks the price once.
+   */
+  unknownUnit?: { word: string; count: number } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,6 +170,13 @@ function removeSpan(text: string, span: Match): string {
   return `${text.slice(0, span.start)} ${text.slice(span.end)}`;
 }
 
+/** Blanks each span with spaces (positions stay put, so overlapping spans are fine). */
+function blankSpans(text: string, spans: (Match | null | undefined)[]): string {
+  let out = text;
+  for (const s of spans) if (s) out = out.slice(0, s.start) + " ".repeat(s.end - s.start) + out.slice(s.end);
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // amount
 // ---------------------------------------------------------------------------
@@ -184,6 +209,114 @@ export function extractAmount(text: string): { cents: number; span: Match } | nu
   const withCurrency = candidates.filter((c) => c.hasCurrency);
   const pick = withCurrency.length ? withCurrency[withCurrency.length - 1] : candidates[candidates.length - 1];
   return { cents: pick.cents, span: pick.span };
+}
+
+// ---------------------------------------------------------------------------
+// counted units ("ได้ 10 ดื่ม")
+// ---------------------------------------------------------------------------
+
+const COUNT = String.raw`(\d{1,4}(?:\.\d{1,2})?)`;
+const PRICE = String.raw`(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?\s*(?:บาท|baht|฿|บ\.)?`;
+/** Words that are money, never a unit ("ได้ 2 พัน" is 2,000 baht). */
+const MONEY_WORDS = ["บาท", "บ.", "พัน", "หมื่น", "แสน", "ล้าน", "สตางค์", "baht"];
+/** Trailing chatter glued to the unit word by speech ("ดื่มวันนี้", "ดื่มครับ"). */
+const UNIT_TRAILERS = ["วันนี้", "เมื่อวานซืน", "เมื่อวาน", "ครับ", "ค่ะ", "คะ", "นะ", "แล้ว", "จ้า", "จ้ะ", "เลย"];
+
+function escapeRe(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function priceCents(whole: string, fraction: string | undefined): number {
+  return Number(whole.replace(/,/g, "")) * 100 + (fraction ? Number(fraction.padEnd(2, "0")) : 0);
+}
+
+/** "ดื่มละ 250": a price said for one unit, which wins over the saved one. */
+function findUnitPrice(lower: string, word: string): { cents: number; span: Match } | null {
+  const m = new RegExp(`${escapeRe(word)}\\s*ละ\\s*${PRICE}`).exec(lower);
+  if (!m) return null;
+  const cents = priceCents(m[1], m[2]);
+  return cents > 0 ? { cents, span: { start: m.index, end: m.index + m[0].length } } : null;
+}
+
+export interface CountedUnit {
+  count: number;
+  /** The saved unit, or null for a word the user hasn't priced yet. */
+  unit: CaptureUnit | null;
+  word: string;
+  /** "<count> <word>". */
+  span: Match;
+  /** A price said in the words ("ดื่มละ 250"), else null. */
+  price: { cents: number; span: Match } | null;
+}
+
+/**
+ * A saved unit right after a number: "ได้ 10 ดื่ม" → 10 ดื่ม. Longest unit
+ * word first, so "ดื่มพิเศษ" beats "ดื่ม".
+ */
+export function findCountedUnit(lower: string, units: CaptureUnit[]): CountedUnit | null {
+  for (const unit of [...units].sort((a, b) => b.unit_normalized.length - a.unit_normalized.length)) {
+    const m = new RegExp(`${COUNT}\\s*${escapeRe(unit.unit_normalized)}`).exec(lower);
+    if (!m || /\d/.test(lower[m.index - 1] ?? "")) continue;
+    const count = Number(m[1]);
+    if (!(count > 0)) continue;
+    return {
+      count,
+      unit,
+      word: unit.unit_normalized,
+      span: { start: m.index, end: m.index + m[0].length },
+      price: findUnitPrice(lower, unit.unit_normalized),
+    };
+  }
+  return null;
+}
+
+/**
+ * "ได้ 10 ดื่ม" where ดื่ม isn't a saved unit: after ได้ (got), a count and a
+ * Thai word that isn't money and isn't followed by a number of its own
+ * ("ได้ 500 ข้าว 50" is two items, not 500 units of rice).
+ */
+export function findUnknownUnit(lower: string): CountedUnit | null {
+  const m = new RegExp(`ได้\\s*${COUNT}\\s*([\\u0E00-\\u0E7F]+)`).exec(lower);
+  if (!m) return null;
+  let word = m[2];
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const t of UNIT_TRAILERS) {
+      if (word.length > t.length && word.endsWith(t)) {
+        word = word.slice(0, -t.length);
+        changed = true;
+      }
+    }
+  }
+  if (!word || word.length > 12 || MONEY_WORDS.some((w) => word.startsWith(w))) return null;
+  const after = lower.slice(m.index + m[0].length).trimStart();
+  if (/^\d/.test(after)) return null;
+  const countStart = m.index + m[0].indexOf(m[1]);
+  return {
+    count: Number(m[1]),
+    unit: null,
+    word,
+    span: { start: countStart, end: m.index + m[0].length },
+    price: findUnitPrice(lower, word),
+  };
+}
+
+/**
+ * Where a counted unit ends, when a number at `start`–`end` in a recap is
+ * its count — so the recap splits after "10 ดื่ม", not after "10". Null when
+ * the number is not a count.
+ */
+export function countedUnitEnd(text: string, start: number, end: number, unitWords: string[]): number | null {
+  const lower = text.toLowerCase();
+  const gap = lower.slice(end).length - lower.slice(end).trimStart().length;
+  const after = lower.slice(end + gap);
+  const known = [...unitWords].sort((a, b) => b.length - a.length).find((u) => after.startsWith(u));
+  if (known) return end + gap + known.length;
+  if (!lower.slice(0, start).trimEnd().endsWith("ได้")) return null;
+  const unknown = findUnknownUnit(`ได้ ${lower.slice(start)}`);
+  if (!unknown) return null;
+  const word = /^[฀-๿]+/.exec(after)?.[0];
+  return word ? end + gap + word.length : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -526,16 +659,45 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
   const accountHit = matchAccount(working, ctx.accounts);
   if (accountHit?.span) working = removeSpan(working, accountHit.span);
 
-  const amountHit = extractAmount(working);
+  // "ได้ 10 ดื่ม": a count of a unit, not baht — priced by the saved unit
+  // (or "ดื่มละ 250" said right there), else left for the user to price.
+  const workingLower = working.toLowerCase();
+  const counted =
+    findCountedUnit(workingLower, ctx.units ?? []) ??
+    (() => {
+      const unknown = findUnknownUnit(workingLower);
+      // Another number in the item is its price ("ขายได้ 2 ชิ้น 300"): no count.
+      if (!unknown || (!unknown.price && extractAmount(blankSpans(working, [unknown.span])))) return null;
+      return unknown;
+    })();
+  const perUnitCents = counted ? (counted.price?.cents ?? counted.unit?.unit_price_cents ?? null) : null;
+  if (counted) working = blankSpans(working, [counted.span, counted.price?.span]);
+
+  const amountHit = counted ? null : extractAmount(working);
   if (amountHit) working = removeSpan(working, amountHit.span);
+  const amountCents = counted
+    ? perUnitCents !== null
+      ? Math.round(counted.count * perUnitCents)
+      : null
+    : (amountHit?.cents ?? null);
 
   const merchant = merchantHit?.name ?? null;
-  const description = cleanDescription(working) ?? merchant;
+  const description = counted
+    ? `${counted.count} ${counted.unit?.unit_label ?? counted.word}`
+    : (cleanDescription(working) ?? merchant);
   // Learning decides the TYPE too: once the user has filed "แม่ให้" under an
   // income category, the same words read as income next time even without
-  // an explicit marker. Explicit markers ("+", "รายรับ") still win.
-  const type = learnedTypeOverride(lower, text, merchant, detectedType, ctx);
-  const category = suggestCategory(text, merchant, type, ctx);
+  // an explicit marker. Explicit markers ("+", "รายรับ") still win. A unit
+  // carries its own type; an unpriced "ได้ N <unit>" is something received.
+  const type = counted
+    ? (counted.unit?.type ?? "income")
+    : learnedTypeOverride(lower, text, merchant, detectedType, ctx);
+  const unitCategory = counted?.unit?.category_id
+    ? ctx.categories.find((c) => c.id === counted.unit!.category_id && (c.type === type || c.type === "both"))
+    : undefined;
+  const category: CategorySuggestion = unitCategory
+    ? { categoryId: unitCategory.id, source: "learned" }
+    : suggestCategory(text, merchant, type, ctx);
   // No account named: the shop's own account ("เซเว่น" → the 7-Eleven
   // wallet), then the standing default. An account merely NAMED like the
   // shop is only suggested — the user confirms it once.
@@ -547,11 +709,11 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
       : null;
 
   const missing: ParsedCapture["missing"] = [];
-  if (!amountHit) missing.push("amount");
+  if (amountCents === null) missing.push("amount");
   if (!category.categoryId || category.source === "fallback") missing.push("category");
   if (!accountId) missing.push("account");
 
-  const confidence: CaptureConfidence = !amountHit || !accountId
+  const confidence: CaptureConfidence = amountCents === null || !accountId
     ? "low"
     : category.source === "fallback" || !category.categoryId
       ? "medium"
@@ -559,7 +721,7 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
 
   return {
     type,
-    amountCents: amountHit?.cents ?? null,
+    amountCents,
     categoryId: category.categoryId,
     categorySource: category.source,
     accountId,
@@ -570,5 +732,10 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
     confidence,
     missing,
     suggestedAccountId,
+    unit:
+      counted && perUnitCents !== null
+        ? { count: counted.count, label: counted.unit?.unit_label ?? counted.word, unitPriceCents: perUnitCents }
+        : null,
+    unknownUnit: counted && perUnitCents === null ? { word: counted.word, count: counted.count } : null,
   };
 }
