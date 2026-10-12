@@ -84,8 +84,6 @@ export async function TransactionList({
 
   return (
     <div className="space-y-4">
-      <QuickAdd accounts={accounts} categories={categories} variant="row" />
-
       <MonthSummary
         title={monthTitle}
         incomeCents={calculateIncome(monthTransactions)}
