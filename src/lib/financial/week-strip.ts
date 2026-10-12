@@ -62,3 +62,31 @@ export function buildWeekStrip(
     };
   });
 }
+
+/** How many weeks the scroll calendar can unroll (2026-10-12). */
+export const SCROLL_WEEKS = 4;
+
+export interface ScrollWeek {
+  days: WeekStripDay[];
+  /** Income less spending across the 7 days. */
+  netCents: number;
+}
+
+/**
+ * The scroll calendar's weeks, NEWEST FIRST: weeks[0] is the 7 days from
+ * `weekStart`, weeks[1] the 7 before it, and so on — unrolling the scroll
+ * goes back in time. `transactions` should cover all `count` weeks.
+ */
+export function buildScrollWeeks(
+  weekStart: string,
+  today: string,
+  transactions: (FinancialTransaction & { transaction_date: string })[],
+  pendingDates: Iterable<string>,
+  count: number = SCROLL_WEEKS
+): ScrollWeek[] {
+  const pending = [...pendingDates];
+  return Array.from({ length: count }, (_, w) => {
+    const days = buildWeekStrip(addDaysIso(weekStart, -7 * w), today, transactions, pending);
+    return { days, netCents: days.reduce((sum, d) => sum + d.netCents, 0) };
+  });
+}

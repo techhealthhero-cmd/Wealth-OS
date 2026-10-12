@@ -606,6 +606,152 @@
   pointer-events: none;
 }
 
+/*
+ * Scroll calendar (Money › Transactions, 2026-10-12, mockup 3 "คัมภีร์"):
+ * a parchment sheet between a wooden rod and a paper roller with a tassel.
+ * The scroll is a physical object, so its colors are the same in light and
+ * dark mode — and all text on it uses the scroll's own ink, never the
+ * theme's foreground (which would be light-on-parchment in dark mode).
+ */
+.scroll-cal {
+  --scroll-parch: #f4e7c8;
+  --scroll-parch-2: #ead9b1;
+  --scroll-parch-edge: #d4bd8c;
+  --scroll-ink: #2e2a20;
+  --scroll-muted: #85795f;
+  --scroll-pos: #2f7d55;
+  --scroll-neg: #b8324a;
+  --scroll-sel: #2b4a3d;
+  --scroll-sel-ink: #fbf3df;
+  --scroll-wood: #6b4528;
+  --scroll-wood-hi: #a9764a;
+  --scroll-wood-lo: #3e2614;
+  --scroll-cap: #c9a24a;
+  --scroll-cap-hi: #f1d98c;
+  --scroll-cord: #a3283c;
+  position: relative;
+  padding-inline: 4px;
+  padding-bottom: 34px; /* room for the tassel */
+  color: var(--scroll-ink);
+}
+.scroll-ink { color: var(--scroll-ink); }
+.scroll-muted { color: var(--scroll-muted); }
+.scroll-pos { color: var(--scroll-pos); }
+.scroll-neg { color: var(--scroll-neg); }
+.scroll-grid {
+  display: grid;
+  grid-template-columns: 50px repeat(7, minmax(0, 1fr));
+  column-gap: 2px;
+}
+.scroll-rod {
+  position: relative;
+  z-index: 2;
+  height: 18px;
+  border-radius: 9px;
+  background: linear-gradient(to bottom, var(--scroll-wood-hi), var(--scroll-wood) 45%, var(--scroll-wood-lo));
+  box-shadow: 0 3px 5px -2px rgba(40, 20, 5, 0.5);
+}
+.scroll-rod::before,
+.scroll-rod::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  width: 16px;
+  height: 24px;
+  border-radius: 6px;
+  background: linear-gradient(to bottom, var(--scroll-cap-hi), var(--scroll-cap) 50%, #8a6a22);
+  box-shadow: 0 2px 3px rgba(40, 20, 5, 0.4);
+}
+.scroll-rod::before { left: -6px; }
+.scroll-rod::after { right: -6px; }
+.scroll-sheet {
+  position: relative;
+  margin-inline: 8px;
+  overflow: hidden;
+  height: 120px;
+  border-inline: 1px solid var(--scroll-parch-edge);
+  background:
+    radial-gradient(120% 60% at 50% 0%, transparent 60%, rgba(150, 110, 50, 0.1)),
+    linear-gradient(to right, var(--scroll-parch-2), var(--scroll-parch) 8%, var(--scroll-parch) 92%, var(--scroll-parch-2));
+  transition: height 0.45s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.scroll-sheet.scroll-dragging { transition: none; }
+/* The paper curling into the roller. */
+.scroll-sheet::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 14px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(90, 60, 20, 0.18));
+}
+.scroll-title { border-bottom: 1px solid color-mix(in srgb, var(--scroll-parch-edge) 70%, transparent); }
+.scroll-week + .scroll-week { border-top: 1px dashed color-mix(in srgb, var(--scroll-parch-edge) 80%, transparent); }
+.scroll-day { color: var(--scroll-ink); }
+.scroll-day:focus-visible { outline: 2px solid var(--scroll-sel); outline-offset: -2px; }
+.scroll-day-today { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--scroll-sel) 55%, transparent); }
+.scroll-day-selected { background: var(--scroll-sel); }
+.scroll-day-selected,
+.scroll-day-selected * { color: var(--scroll-sel-ink) !important; }
+.scroll-roller {
+  position: relative;
+  z-index: 2;
+  height: 26px;
+  margin-top: -4px;
+  border-radius: 13px;
+  border: 1px solid var(--scroll-parch-edge);
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 3px, rgba(120, 85, 35, 0.16) 3px 4px),
+    linear-gradient(to bottom, var(--scroll-parch-2), var(--scroll-parch) 30%, var(--scroll-parch-2) 70%, #c4a978);
+  background-position: 0 var(--scroll-turn, 0px), 0 0;
+  box-shadow: 0 6px 8px -4px rgba(60, 35, 10, 0.45);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.scroll-roller:active { cursor: grabbing; }
+.scroll-roller:focus-visible { outline: 2px solid var(--scroll-sel); outline-offset: 4px; }
+.scroll-roller::before,
+.scroll-roller::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  width: 18px;
+  height: 20px;
+  border-radius: 6px;
+  background: linear-gradient(to bottom, var(--scroll-wood-hi), var(--scroll-wood) 50%, var(--scroll-wood-lo));
+}
+.scroll-roller::before { left: -14px; }
+.scroll-roller::after { right: -14px; }
+.scroll-tassel {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  translate: -50% 0;
+  transform-origin: top center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.scroll-cord { width: 2px; height: 14px; background: var(--scroll-cord); }
+.scroll-knot { width: 9px; height: 9px; border-radius: 50%; background: var(--scroll-cap); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2); }
+.scroll-fringe {
+  width: 12px;
+  height: 12px;
+  background: repeating-linear-gradient(to right, var(--scroll-cord) 0 1.5px, transparent 1.5px 3px);
+  clip-path: polygon(15% 0, 85% 0, 100% 100%, 0 100%);
+}
+.scroll-swing .scroll-tassel { animation: scroll-swing 0.9s ease-out; }
+@keyframes scroll-swing {
+  25% { rotate: 9deg; }
+  55% { rotate: -5deg; }
+  80% { rotate: 2deg; }
+  100% { rotate: 0deg; }
+}
+
 /* Paper slip lift on press (cards that are tappable). */
 .paper-press {
   transition:

@@ -12,14 +12,14 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { todayInTimeZone } from "@/lib/date";
 import { calculateExpenses, calculateIncome } from "@/lib/financial/calculations";
-import { addDaysIso, buildWeekStrip, isIsoDate } from "@/lib/financial/week-strip";
+import { addDaysIso, buildScrollWeeks, isIsoDate, SCROLL_WEEKS } from "@/lib/financial/week-strip";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyTransactionsIllustration } from "@/components/illustrations";
 import { TransactionListBody } from "./transaction-list-body";
 import { QuickAdd } from "./quick-add";
 import { DailyInboxCard } from "@/features/capture/components/daily-inbox-card";
 import { MonthSummary } from "./month-summary";
-import { WeekStrip } from "./week-strip";
+import { ScrollCalendar } from "./scroll-calendar";
 import { ListTabs, type ListTab } from "./list-tabs";
 import { ExportTransactionsButton } from "./export-button";
 import { ExportReportButton } from "@/features/reports/components/export-report-button";
@@ -65,7 +65,8 @@ export async function TransactionList({
       getDisplayAccounts({ includeArchived: true }),
       getCategories(),
       getProfile(),
-      getTransactions({ from: weekStart, to: addDaysIso(weekStart, 6) }),
+      // Every week the scroll calendar can unroll, oldest day to newest.
+      getTransactions({ from: addDaysIso(weekStart, -7 * (SCROLL_WEEKS - 1)), to: addDaysIso(weekStart, 6) }),
       getTransactions({ from: monthFrom, to: monthTo }),
       getBudgetSummary(new Date(`${monthFrom}T00:00:00`)),
       getDailyInbox(),
@@ -74,7 +75,7 @@ export async function TransactionList({
   const dict = getDictionary(locale);
 
   const pendingItems = (inbox?.items ?? []).filter((i) => i.review_status === "needs_review");
-  const weekDays = buildWeekStrip(weekStart, today, weekTransactions, pendingItems.map((i) => i.transaction_date));
+  const scrollWeeks = buildScrollWeeks(weekStart, today, weekTransactions, pendingItems.map((i) => i.transaction_date));
   const monthTitle = new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", {
     month: "long",
     year: "numeric",
@@ -94,9 +95,9 @@ export async function TransactionList({
 
       <ListTabs active={tab} pendingCount={pendingItems.length} />
 
-      {/* The 7-day strip sits right under the tabs (2026-10-12). */}
-      <WeekStrip
-        days={weekDays}
+      {/* The scroll calendar sits right under the tabs (2026-10-12). */}
+      <ScrollCalendar
+        weeks={scrollWeeks}
         prevWeek={addDaysIso(weekStart, -7)}
         nextWeek={weekStart < latestStart ? (addDaysIso(weekStart, 7) < latestStart ? addDaysIso(weekStart, 7) : latestStart) : null}
         selectedDate={selectedDate}

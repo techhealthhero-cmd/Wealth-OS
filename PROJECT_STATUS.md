@@ -44,6 +44,18 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   search behind 🔍, exports behind "⋯". Home nudge links to `?tab=pending`.
   Verified on the demo account at 390×844 (all tab, pending tab, a picked
   day); tests 1002/1002, build OK.
+- 2026-10-12, later the same day (user requests, one at a time): removed the
+  filter/search row, the weekly reminder note, the quick-repeat chips and
+  the three entry pills (recording now happens from the bottom-bar Record
+  button). Page is `MonthSummary` → `ListTabs` → `ScrollCalendar` → list.
+  `ScrollCalendar` (chosen from 3 mockups, "คัมภีร์") replaces `WeekStrip`:
+  a parchment scroll whose bottom roller pulls down to unroll 1–4 weeks
+  (newest on top, `buildScrollWeeks`, tested), each day and week showing
+  its NET (income − spending, green/red), open-week count remembered per
+  device in localStorage. Fixed: picking a day now updates the list
+  (`TransactionListBody` keyed by filters). Verified on the demo account at
+  390×844 (drag, tap, persistence across reload, day pick); tests
+  1003/1003, build OK.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

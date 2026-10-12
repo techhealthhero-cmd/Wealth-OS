@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addDaysIso, buildWeekStrip, isIsoDate, weekStartOf } from "@/lib/financial/week-strip";
+import { addDaysIso, buildScrollWeeks, buildWeekStrip, isIsoDate, weekStartOf } from "@/lib/financial/week-strip";
 
 describe("week strip", () => {
   it("weeks start on Monday", () => {
@@ -41,6 +41,30 @@ describe("week strip", () => {
     expect(days.map((d) => d.netCents)).toEqual([191_000, 0, 0, 0, 0, 0, -8_000]);
     expect(days[6]).toMatchObject({ date: "2026-10-11", hasPending: true, isToday: true, isFuture: false });
     expect(days[0].hasPending).toBe(false);
+  });
+
+  it("builds the scroll's weeks newest first, each with its own net", () => {
+    const weeks = buildScrollWeeks(
+      "2026-10-06",
+      "2026-10-12",
+      [
+        { transaction_date: "2026-10-11", type: "income", amount: "2000" },
+        { transaction_date: "2026-10-11", type: "expense", amount: "843" },
+        { transaction_date: "2026-09-29", type: "expense", amount: "100" },
+        { transaction_date: "2026-09-14", type: "expense", amount: "999" }, // before the 4 weeks
+      ],
+      ["2026-09-30"]
+    );
+    expect(weeks).toHaveLength(4);
+    expect(weeks.map((w) => [w.days[0].date, w.days[6].date])).toEqual([
+      ["2026-10-06", "2026-10-12"],
+      ["2026-09-29", "2026-10-05"],
+      ["2026-09-22", "2026-09-28"],
+      ["2026-09-15", "2026-09-21"],
+    ]);
+    expect(weeks.map((w) => w.netCents)).toEqual([115_700, -10_000, 0, 0]);
+    expect(weeks[1].days[1].hasPending).toBe(true);
+    expect(weeks[0].days[6].isToday).toBe(true);
   });
 
   it("marks days after today as future", () => {
