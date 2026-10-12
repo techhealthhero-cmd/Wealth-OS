@@ -156,7 +156,9 @@ export function WallCalendar({
   const label = (date: string, options: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat(dateLocale, { timeZone: "UTC", ...options }).format(new Date(`${date}T00:00:00Z`));
   const net = (cents: number) => {
-    const baht = Math.abs(Math.round(cents / 100));
+    // Round the size, not the signed value: Math.round(-1443.5) is -1443,
+    // while the month summary shows ฿1,444.
+    const baht = Math.round(Math.abs(cents) / 100);
     const formatted = new Intl.NumberFormat(dateLocale, {
       maximumFractionDigits: baht >= 100_000 ? 1 : 0,
       notation: baht >= 100_000 ? "compact" : "standard",
