@@ -2,7 +2,6 @@ import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
 import { getProfile } from "@/features/profile/queries";
 import {
-  getQuickRepeatCandidates,
   getTransactions,
   getTransactionsPage,
   type TransactionFilters,
@@ -22,7 +21,6 @@ import { DailyInboxCard } from "@/features/capture/components/daily-inbox-card";
 import { MonthSummary } from "./month-summary";
 import { WeekStrip } from "./week-strip";
 import { ListTabs, type ListTab } from "./list-tabs";
-import { QuickRepeat } from "./quick-repeat";
 import { ExportTransactionsButton } from "./export-button";
 import { ExportReportButton } from "@/features/reports/components/export-report-button";
 
@@ -55,7 +53,7 @@ export async function TransactionList({
   const monthFrom = `${today.slice(0, 7)}-01`;
   const monthTo = addDaysIso(`${addDaysIso(monthFrom, 32).slice(0, 7)}-01`, -1);
 
-  const [{ transactions, hasMore }, accounts, categories, profile, quickRepeatCandidates, weekTransactions, monthTransactions, budget, inbox] =
+  const [{ transactions, hasMore }, accounts, categories, profile, weekTransactions, monthTransactions, budget, inbox] =
     await Promise.all([
       // Perf audit finding: this page previously fetched a user's ENTIRE
       // transaction history on every visit (getTransactions(filters) with
@@ -67,7 +65,6 @@ export async function TransactionList({
       getDisplayAccounts({ includeArchived: true }),
       getCategories(),
       getProfile(),
-      isDefaultView ? getQuickRepeatCandidates() : Promise.resolve([]),
       getTransactions({ from: weekStart, to: addDaysIso(weekStart, 6) }),
       getTransactions({ from: monthFrom, to: monthTo }),
       getBudgetSummary(new Date(`${monthFrom}T00:00:00`)),
@@ -121,10 +118,6 @@ export async function TransactionList({
         )
       ) : (
         <>
-      {isDefaultView && !selectedDate ? (
-        <QuickRepeat candidates={quickRepeatCandidates} accounts={accounts} categories={categories} />
-      ) : null}
-
       {transactions.length === 0 && selectedDate && isDefaultView ? (
         // One quiet day picked on the strip: a line, not the big empty state.
         <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.dayEmpty}</p>
