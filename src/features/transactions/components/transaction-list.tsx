@@ -1,10 +1,7 @@
-import { ChevronDown, CircleAlert } from "lucide-react";
-
 import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
 import { getProfile } from "@/features/profile/queries";
 import {
-  getLatestTransactionDate,
   getQuickRepeatCandidates,
   getTransactions,
   getTransactionsPage,
@@ -17,7 +14,6 @@ import { getLocale } from "@/i18n/server";
 import { todayInTimeZone } from "@/lib/date";
 import { calculateExpenses, calculateIncome } from "@/lib/financial/calculations";
 import { addDaysIso, buildWeekStrip, isIsoDate } from "@/lib/financial/week-strip";
-import { calculateWeeklyCheckInStatus } from "@/lib/financial/streaks";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyTransactionsIllustration } from "@/components/illustrations";
 import { TransactionListBody } from "./transaction-list-body";
@@ -59,7 +55,7 @@ export async function TransactionList({
   const monthFrom = `${today.slice(0, 7)}-01`;
   const monthTo = addDaysIso(`${addDaysIso(monthFrom, 32).slice(0, 7)}-01`, -1);
 
-  const [{ transactions, hasMore }, accounts, categories, profile, quickRepeatCandidates, latestTransactionDate, weekTransactions, monthTransactions, budget, inbox] =
+  const [{ transactions, hasMore }, accounts, categories, profile, quickRepeatCandidates, weekTransactions, monthTransactions, budget, inbox] =
     await Promise.all([
       // Perf audit finding: this page previously fetched a user's ENTIRE
       // transaction history on every visit (getTransactions(filters) with
@@ -72,10 +68,6 @@ export async function TransactionList({
       getCategories(),
       getProfile(),
       isDefaultView ? getQuickRepeatCandidates() : Promise.resolve([]),
-      // Deliberately unfiltered — see getLatestTransactionDate()'s own doc
-      // comment — so this stays accurate regardless of the active filters
-      // above, and always answers "where did I actually leave off."
-      getLatestTransactionDate(),
       getTransactions({ from: weekStart, to: addDaysIso(weekStart, 6) }),
       getTransactions({ from: monthFrom, to: monthTo }),
       getBudgetSummary(new Date(`${monthFrom}T00:00:00`)),
@@ -83,20 +75,6 @@ export async function TransactionList({
     ]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
-
-  const weeklyStatus = calculateWeeklyCheckInStatus(
-    latestTransactionDate ? new Date(latestTransactionDate) : null
-  );
-  const statusText =
-    latestTransactionDate === null
-      ? dict.transactions.weeklyReminderStatusNever
-      : weeklyStatus.isDoneThisWeek
-        ? dict.transactions.weeklyReminderStatusDone
-        : (weeklyStatus.pendingDays === 1
-            ? dict.transactions.weeklyReminderStatusPendingOne
-            : dict.transactions.weeklyReminderStatusPendingOther
-          ).replace("{days}", String(weeklyStatus.pendingDays));
-  const isUpToDate = latestTransactionDate !== null && weeklyStatus.isDoneThisWeek;
 
   const pendingItems = (inbox?.items ?? []).filter((i) => i.review_status === "needs_review");
   const weekDays = buildWeekStrip(weekStart, today, weekTransactions, pendingItems.map((i) => i.transaction_date));
@@ -106,40 +84,6 @@ export async function TransactionList({
     timeZone: "UTC",
   }).format(new Date(`${monthFrom}T00:00:00Z`));
   const m = dict.transactions.month;
-
-  const activeAccountNames = accounts.filter((a) => !a.is_archived).map((a) => a.name);
-  const accountsList = new Intl.ListFormat(locale === "th" ? "th" : "en", {
-    style: "long",
-    type: "conjunction",
-  }).format(activeAccountNames);
-
-  // The three "how to update" bullets + step list, shared by the full note
-  // and the folded one-line version shown once this week is up to date.
-  const reminderDetails = (
-    <>
-      <p className="text-sm leading-relaxed text-foreground/80">{dict.transactions.weeklyReminderDescription}</p>
-      <ul className="grid gap-2 text-sm leading-relaxed sm:grid-cols-3">
-        <li>{dict.transactions.weeklyReminderIncome}</li>
-        <li>{dict.transactions.weeklyReminderExpense}</li>
-        <li>{dict.transactions.weeklyReminderTransfer}</li>
-      </ul>
-      <details className="group/how text-sm">
-        <summary className="flex cursor-pointer list-none items-center gap-1 font-medium underline-offset-2 hover:underline">
-          {dict.transactions.weeklyReminderHowToTitle}
-          <ChevronDown className="size-3.5 shrink-0 transition-transform group-open/how:rotate-180" aria-hidden="true" />
-        </summary>
-        <ol className="mt-2 list-decimal space-y-1.5 pl-5 leading-relaxed">
-          <li>
-            {activeAccountNames.length > 0
-              ? dict.transactions.weeklyReminderStep1WithAccounts.replace("{accounts}", accountsList)
-              : dict.transactions.weeklyReminderStep1NoAccounts}
-          </li>
-          <li>{dict.transactions.weeklyReminderStep2}</li>
-          <li>{dict.transactions.weeklyReminderStep3}</li>
-        </ol>
-      </details>
-    </>
-  );
 
   return (
     <div className="space-y-4">
@@ -152,31 +96,6 @@ export async function TransactionList({
         budget={budget ? { percentUsed: budget.overall.percentUsed, remainingCents: budget.overall.remainingCents } : null}
         labels={{ income: m.income, expense: m.expense, left: m.left, budgetUsed: m.budgetUsed, budgetLeft: m.budgetLeft, budgetOver: m.budgetOver }}
       />
-
-      {/* The weekly note only shows while there's something to catch up on. */}
-      {!isUpToDate ? (
-        <aside
-          aria-labelledby="weekly-transaction-reminder-title"
-          // Journal (2026-10-08): a taped sticky note. Up-to-date vs. needs-update
-          // stays clear from the icon + status text, never from the note color.
-          className="journal-note journal-tape mt-2 rounded-md p-4 pt-5 text-foreground"
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
-              <CircleAlert className="size-5" aria-hidden="true" />
-            </div>
-            <div className="min-w-0 space-y-3">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h2 id="weekly-transaction-reminder-title" className="font-heading font-medium">
-                  {dict.transactions.weeklyReminderTitle}
-                </h2>
-                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">{statusText}</span>
-              </div>
-              {reminderDetails}
-            </div>
-          </div>
-        </aside>
-      ) : null}
 
       <WeekStrip
         days={weekDays}
