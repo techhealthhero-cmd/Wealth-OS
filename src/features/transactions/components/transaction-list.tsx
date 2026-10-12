@@ -21,7 +21,6 @@ import { calculateWeeklyCheckInStatus } from "@/lib/financial/streaks";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EmptyTransactionsIllustration } from "@/components/illustrations";
 import { TransactionListBody } from "./transaction-list-body";
-import { TransactionFilters as TransactionFiltersBar } from "./transaction-filters";
 import { QuickAdd } from "./quick-add";
 import { DailyInboxCard } from "@/features/capture/components/daily-inbox-card";
 import { MonthSummary } from "./month-summary";
@@ -202,18 +201,6 @@ export async function TransactionList({
         )
       ) : (
         <>
-      {/* Search, filters and the rarely used exports ("⋯") share one row. */}
-      <TransactionFiltersBar
-        accounts={accounts}
-        categories={categories}
-        moreActions={
-          <>
-            <ExportTransactionsButton />
-            <ExportReportButton />
-          </>
-        }
-      />
-
       {isDefaultView && !selectedDate ? (
         <QuickRepeat candidates={quickRepeatCandidates} accounts={accounts} categories={categories} />
       ) : null}
@@ -253,6 +240,13 @@ export async function TransactionList({
           defaultDetailsOpen={filters.hasNotes}
         />
       )}
+
+      {/* The filter row was removed (2026-10-12); the rarely used exports
+          that lived behind its "⋯" pill now sit quietly under the list. */}
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+        <ExportTransactionsButton />
+        <ExportReportButton />
+      </div>
         </>
       )}
     </div>
