@@ -37,6 +37,8 @@ describe("week strip", () => {
     );
     expect(days).toHaveLength(7);
     expect(days.map((d) => d.spentCents)).toEqual([9_000, 0, 0, 0, 0, 0, 8_000]);
+    // Net = income − spending; transfers still count for nothing.
+    expect(days.map((d) => d.netCents)).toEqual([191_000, 0, 0, 0, 0, 0, -8_000]);
     expect(days[6]).toMatchObject({ date: "2026-10-11", hasPending: true, isToday: true, isFuture: false });
     expect(days[0].hasPending).toBe(false);
   });

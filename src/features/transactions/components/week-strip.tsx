@@ -9,7 +9,8 @@ import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
 /**
- * 7-day strip (2026-10-11, mockup "B + D"), today at the right end: each day's spending,
+ * 7-day strip (2026-10-11, mockup "B + D"), today at the right end: each day's net
+ * (income − spending, signed; green above zero, red below — 2026-10-12),
  * a gold dot where something still needs review. Tapping a day shows only
  * that day (the existing from/to filters, from = to = that date); tapping
  * it again clears it. ‹ › move 7 days at a time (?week=).
@@ -62,8 +63,11 @@ export function WeekStrip({
   const label = (date: string, options: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat(dateLocale, { timeZone: "UTC", ...options }).format(new Date(`${date}T00:00:00Z`));
   const range = `${label(days[0].date, { day: "numeric" })}–${label(days[6].date, { day: "numeric", month: "short" })}`;
-  const spent = (cents: number) =>
-    new Intl.NumberFormat(dateLocale, { maximumFractionDigits: 0 }).format(Math.round(cents / 100));
+  // Each day shows its net (income − spending), signed: "+1,157" / "-843" / "0".
+  const net = (cents: number) => {
+    const formatted = new Intl.NumberFormat(dateLocale, { maximumFractionDigits: 0 }).format(Math.abs(Math.round(cents / 100)));
+    return cents > 0 ? `+${formatted}` : cents < 0 ? `-${formatted}` : formatted;
+  };
 
   return (
     <section aria-label={t("transactions.week.label")} className={cn("space-y-1.5 transition-opacity", pending && "opacity-60")}>
@@ -99,7 +103,7 @@ export function WeekStrip({
               onClick={() => pickDay(day.date)}
               disabled={day.isFuture}
               aria-pressed={selected}
-              aria-label={`${label(day.date, { weekday: "long", day: "numeric", month: "long" })} · ${spent(day.spentCents)}${day.hasPending ? ` · ${t("transactions.week.hasPending")}` : ""}`}
+              aria-label={`${label(day.date, { weekday: "long", day: "numeric", month: "long" })} · ${net(day.netCents)}${day.hasPending ? ` · ${t("transactions.week.hasPending")}` : ""}`}
               className={cn(
                 "relative flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] text-muted-foreground transition-colors disabled:opacity-35",
                 selected ? "bg-primary text-primary-foreground" : "hover:bg-muted",
@@ -113,10 +117,16 @@ export function WeekStrip({
               <span
                 className={cn(
                   "text-[10px] tabular-nums",
-                  selected ? "text-primary-foreground/90" : day.spentCents > 0 ? "text-rose-600 dark:text-rose-400" : ""
+                  selected
+                    ? "text-primary-foreground/90"
+                    : day.netCents > 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : day.netCents < 0
+                        ? "text-rose-600 dark:text-rose-400"
+                        : ""
                 )}
               >
-                {day.isFuture ? "·" : spent(day.spentCents)}
+                {day.isFuture ? "·" : net(day.netCents)}
               </span>
               {day.hasPending ? (
                 <span aria-hidden="true" className="absolute top-1 right-1.5 size-1.5 rounded-full bg-amber-500" />

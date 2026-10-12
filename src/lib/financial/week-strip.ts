@@ -1,4 +1,4 @@
-import { calculateExpenses, type FinancialTransaction } from "./calculations";
+import { calculateExpenses, calculateIncome, type FinancialTransaction } from "./calculations";
 
 /**
  * The 7-day strip on Money › Transactions (2026-10-11): seven days from
@@ -33,6 +33,8 @@ export interface WeekStripDay {
   /** 0 = Monday … 6 = Sunday. */
   index: number;
   spentCents: number;
+  /** Income less spending that day (2026-10-12: the strip shows this, signed). */
+  netCents: number;
   hasPending: boolean;
   isToday: boolean;
   isFuture: boolean;
@@ -47,10 +49,13 @@ export function buildWeekStrip(
   const pending = new Set(pendingDates);
   return Array.from({ length: 7 }, (_, index) => {
     const date = addDaysIso(weekStart, index);
+    const dayTransactions = transactions.filter((t) => t.transaction_date === date);
+    const spentCents = calculateExpenses(dayTransactions);
     return {
       date,
       index,
-      spentCents: calculateExpenses(transactions.filter((t) => t.transaction_date === date)),
+      spentCents,
+      netCents: calculateIncome(dayTransactions) - spentCents,
       hasPending: pending.has(date),
       isToday: date === today,
       isFuture: date > today,
