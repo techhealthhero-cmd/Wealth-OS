@@ -70,6 +70,16 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   (`.wall-cal`). Verified on the demo account at 390×844 (drag snap, whole
   month, reload persistence, day pick, previous month, dark mode, no
   console errors); tests 1004/1004, typecheck, lint, build OK.
+- 2026-10-13, later (user picked mockup H of 12 pull-control designs): the
+  ribbon tab and the step chips are replaced by four colored index tabs
+  hanging under the card (1 สัปดาห์ · 2 · 3 · ทั้งเดือน, colors = the
+  notebook's own `--journal-tab-*` tokens); the open one hangs longest. Tap
+  a tab to open that far (tapping the open one steps once more); drag on
+  the tabs still pulls/pushes and snaps. Also fixed: the month net rounded
+  half-baht values the other way from the month summary (-1,443 vs
+  -฿1,444). Verified on the demo account at 390×844 (tap, re-tap, drag up,
+  Enter key, reload persistence, dark mode, no console errors); tests
+  1004/1004, typecheck, lint, build OK.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

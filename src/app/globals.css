@@ -621,7 +621,6 @@
   --wall-pos: #2f8a5b;
   --wall-neg: #c3324c;
   --wall-ring: #9c8a6a;
-  --wall-ribbon: #2b4a3d;
   --wall-shadow: 0 1px 0 rgba(80, 60, 30, 0.06), 0 8px 20px -12px rgba(80, 60, 30, 0.4);
   color: var(--wall-ink);
 }
@@ -635,7 +634,6 @@
   --wall-pos: #79d0a1;
   --wall-neg: #f07a8e;
   --wall-ring: #6b6352;
-  --wall-ribbon: #3f6b58;
   --wall-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.7);
 }
 .wall-muted { color: var(--wall-muted); }
@@ -644,8 +642,9 @@
 .wall-weekend { color: color-mix(in srgb, var(--wall-neg) 70%, var(--wall-muted)); }
 .wall-card {
   position: relative;
+  z-index: 1;
   margin-top: 9px;
-  padding: 16px 8px 0;
+  padding: 16px 8px 6px;
   border: 1px solid var(--wall-edge);
   border-radius: 14px;
   background: var(--wall-card);
@@ -686,41 +685,47 @@
 .wall-day-selected { background: var(--wall-sel); }
 .wall-day-selected .wall-n,
 .wall-day-selected .wall-v { color: var(--wall-sel-ink) !important; opacity: 1; }
-.wall-ribbon {
-  position: relative;
-  top: -1px;
+/* Index tabs under the card (mockup H): the open one hangs longest. The
+   button is a 44px touch target; the colored face inside it is the tab. */
+.wall-tabs {
   display: flex;
-  align-items: center;
   gap: 6px;
-  padding: 5px 16px 9px;
-  border-radius: 0 0 10px 10px;
-  background: var(--wall-ribbon);
-  color: #fdf9f0;
-  font-size: 11.5px;
-  font-weight: 500;
-  box-shadow: 0 4px 8px -4px rgba(0, 0, 0, 0.35);
+  padding-inline: 18px;
+  margin-top: -1px;
   touch-action: none;
-  cursor: grab;
   user-select: none;
   -webkit-user-select: none;
+  cursor: grab;
 }
-.wall-ribbon::after {
-  content: "";
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  translate: -50% 0;
-  border: 6px solid transparent;
-  border-top-color: var(--wall-ribbon);
-  border-bottom: 0;
+.wall-tabs:active { cursor: grabbing; }
+.wall-tab {
+  height: 44px;
+  display: flex;
+  align-items: flex-start;
 }
-.wall-ribbon:active { cursor: grabbing; }
-.wall-ribbon:focus-visible { outline: 2px solid var(--wall-sel); outline-offset: 3px; }
-.wall-stop { border-color: var(--wall-edge); color: var(--wall-muted); }
-.wall-stop-on { border-color: var(--wall-sel); background: var(--wall-sel); color: var(--wall-sel-ink); }
+.wall-tab:focus-visible { outline: none; }
+.wall-tab:focus-visible .wall-tab-face { outline: 2px solid var(--wall-sel); outline-offset: 2px; }
+.wall-tab-face {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 46px;
+  height: 28px;
+  padding: 0 11px 5px;
+  box-sizing: border-box;
+  border-radius: 0 0 9px 9px;
+  color: #2a251b;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 3px 5px -3px rgba(80, 60, 30, 0.45);
+  transition: height 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.wall-tab-on .wall-tab-face { height: 42px; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   .wall-rows,
-  .wall-inner { transition: none; }
+  .wall-inner,
+  .wall-tab-face { transition: none; }
 }
 
 /* Paper slip lift on press (cards that are tappable). */

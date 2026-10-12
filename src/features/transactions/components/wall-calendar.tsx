@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { MonthGrid } from "@/lib/financial/week-strip";
 import { useTranslation } from "@/i18n/client";
@@ -10,14 +10,22 @@ import { cn } from "@/lib/utils";
 
 const ROW_H = 56;
 const STORAGE_KEY = "wos.wallCalendarStop";
+/** The notebook's own section-tab colors, one per stop. */
+const TAB_COLORS = [
+  "var(--journal-tab-home)",
+  "var(--journal-tab-money)",
+  "var(--journal-tab-plan)",
+  "var(--journal-tab-earn)",
+];
 
 /**
  * The wall calendar (2026-10-12, mockup 2 "ปฏิทินแขวนผนัง"): a real calendar
  * month, Monday first, hanging from rings. Folded it shows one week — this
- * week, or a past month's last; pulling the ribbon tab down opens it to 2, 3
- * weeks and then the whole month. It grows upward from the focused week
- * first (earlier weeks), and only past the month's first row downward. A tap
- * on the ribbon opens one more step (from the whole month it folds back).
+ * week, or a past month's last. Four colored index tabs hang under it
+ * (2026-10-13, mockup H): tapping one opens it that far — 1, 2, 3 weeks or
+ * the whole month — and dragging on them pulls it open or pushes it shut,
+ * snapping to the nearest tab. It grows upward from the focused week first
+ * (earlier weeks), and only past the month's first row downward.
  * Each day shows its net (green above zero, red below) and a heat mark —
  * the redder, the more spent. Tapping a day filters the list to it (from =
  * to = that date), tapping it again clears it; ‹ › move a month (?month=).
@@ -48,7 +56,15 @@ export function WallCalendar({
   const [stop, setStop] = useState(0);
   const rowsRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ y0: number; h0: number; lastY: number; lastT: number; vel: number; moved: boolean } | null>(null);
+  const drag = useRef<{
+    y0: number;
+    h0: number;
+    lastY: number;
+    lastT: number;
+    vel: number;
+    moved: boolean;
+    tab: number | null;
+  } | null>(null);
 
   // A window over the month's rows that grows upward from the focused week.
   const setHeight = useCallback(
@@ -87,12 +103,22 @@ export function WallCalendar({
     }
   }
 
-  function onPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    // The tab under the finger, read before capture retargets later events.
+    const tab = (e.target as HTMLElement).closest<HTMLElement>("[data-stop]");
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { y0: e.clientY, h0: stops[stop] * ROW_H, lastY: e.clientY, lastT: performance.now(), vel: 0, moved: false };
+    drag.current = {
+      y0: e.clientY,
+      h0: stops[stop] * ROW_H,
+      lastY: e.clientY,
+      lastT: performance.now(),
+      vel: 0,
+      moved: false,
+      tab: tab ? Number(tab.dataset.stop) : null,
+    };
     rowsRef.current?.classList.add("wall-dragging");
   }
-  function onPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
     const d = drag.current;
     if (!d) return;
     const dy = e.clientY - d.y0;
@@ -114,7 +140,8 @@ export function WallCalendar({
     drag.current = null;
     rowsRef.current?.classList.remove("wall-dragging");
     if (!d.moved) {
-      commit(stop === last ? 0 : stop + 1);
+      // A tap opens to that tab; tapping the open tab steps once more.
+      commit(d.tab === null || d.tab === stop ? (stop === last ? 0 : stop + 1) : d.tab);
       return;
     }
     const h = parseFloat(rowsRef.current?.style.height ?? "0");
@@ -171,7 +198,6 @@ export function WallCalendar({
   const title = label(`${grid.month}-01`, { month: "long", year: "numeric" });
   const shown = stops[stop];
   const firstShown = shown * ROW_H <= focusBottom ? grid.focusRow + 1 - shown : 0;
-  const full = stop === last;
 
   return (
     <section aria-label={t("transactions.week.label")} className={cn("wall-cal transition-opacity", pending && "opacity-60")}>
@@ -269,54 +295,48 @@ export function WallCalendar({
         </div>
       </div>
 
-      <div className="mt-1 flex justify-center">
-        <button
-          type="button"
-          className="wall-ribbon"
-          role="slider"
-          aria-label={t("transactions.week.pull")}
-          aria-valuemin={1}
-          aria-valuemax={stops.length}
-          aria-valuenow={stop + 1}
-          aria-valuetext={full ? t("transactions.week.wholeMonth") : `${shown} ${t("transactions.week.weeks")}`}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerEnd}
-          onPointerCancel={onPointerEnd}
-          // Enter/Space (a click with no pointer): same as a tap.
-          onClick={(e) => {
-            if (e.detail === 0) commit(stop === last ? 0 : stop + 1);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              commit(stop + 1);
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              commit(stop - 1);
-            }
-          }}
-        >
-          <ChevronDown className={cn("size-3 transition-transform", full && "rotate-180")} aria-hidden="true" />
-          {full ? t("transactions.week.fold") : t("transactions.week.openMonth")}
-        </button>
-      </div>
-
-      <div className="mt-2 flex justify-center gap-1.5 text-[11px]">
+      {/* Index tabs hanging under the card (2026-10-13, mockup H): tap one to
+          open that far, or drag down/up anywhere on them. */}
+      <div
+        role="group"
+        aria-label={t("transactions.week.pull")}
+        className="wall-tabs"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerEnd}
+        onPointerCancel={onPointerEnd}
+      >
         {stops.map((n, i) => (
           <button
             key={i}
             type="button"
-            onClick={() => commit(i)}
+            data-stop={i}
             aria-pressed={i === stop}
-            className={cn("wall-stop rounded-full border px-2 py-0.5", i === stop && "wall-stop-on")}
+            aria-label={i === last ? t("transactions.week.wholeMonth") : `${n} ${t("transactions.week.weeks")}`}
+            // Taps arrive through the pointer handlers (capture retargets the
+            // click); this is Enter/Space.
+            onClick={(e) => {
+              if (e.detail === 0) commit(i);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+                e.preventDefault();
+                commit(stop + 1);
+              } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+                e.preventDefault();
+                commit(stop - 1);
+              }
+            }}
+            className={cn("wall-tab", i === stop && "wall-tab-on")}
           >
-            {i === last ? t("transactions.week.wholeMonth") : i === 0 ? `1 ${t("transactions.week.weeks")}` : n}
+            <span className="wall-tab-face" style={{ background: TAB_COLORS[i] }}>
+              {i === last ? t("transactions.week.wholeMonth") : i === stop || i === 0 ? `${n} ${t("transactions.week.weeks")}` : n}
+            </span>
           </button>
         ))}
       </div>
 
-      <div className="wall-muted mt-2 flex flex-wrap gap-3 px-1 text-[11.5px]">
+      <div className="wall-muted mt-1 flex flex-wrap gap-3 px-1 text-[11.5px]">
         <span>
           <i className="mr-1 inline-block h-[3px] w-3.5 rounded-sm align-middle" style={{ background: "var(--wall-neg)" }} />
           {t("transactions.week.heatSpend")}
