@@ -152,6 +152,10 @@ export async function TransactionList({
         )
       ) : (
         <TransactionListBody
+          // Remount when the filters change (e.g. a day picked on the strip):
+          // the body copies its first page into state, so without a new key
+          // it would keep showing the previous filter's rows.
+          key={JSON.stringify(filters)}
           initialTransactions={transactions}
           initialHasMore={hasMore}
           filters={filters}
