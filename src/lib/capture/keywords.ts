@@ -26,6 +26,7 @@ export type ExpenseCategoryKey =
   | "Insurance"
   | "Family"
   | "Gift"
+  | "Work Support"
   | "Other";
 
 export type IncomeCategoryKey = "Salary" | "Freelance" | "Business" | "Bonus" | "Interest" | "Cashback/Refund" | "Gift" | "Other";
@@ -79,6 +80,11 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
   Family: ["ให้แม่", "ให้พ่อ", "ค่าขนมลูก", "family"],
   // Buying/giving a gift (migration 0039).
   Gift: ["ของขวัญ", "ซื้อของขวัญ", "อั่งเปา", "แต๊ะเอีย", "ใส่ซอง", "ซองงาน", "gift", "present"],
+  // Spending that supports the user's work (migration 0043).
+  "Work Support": [
+    "อุปกรณ์ทำงาน", "ของใช้ทำงาน", "เครื่องเขียน", "ถ่ายเอกสาร", "ปริ้นงาน", "ค่าปริ้น", "หมึกปริ้น",
+    "ค่าโดเมน", "ค่าโฮสติ้ง", "co-working", "coworking", "โคเวิร์กกิ้ง", "hosting", "domain", "stationery",
+  ],
 };
 
 export const INCOME_CATEGORY_KEYWORDS: Record<Exclude<IncomeCategoryKey, "Other">, string[]> = {
