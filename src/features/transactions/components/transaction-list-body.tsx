@@ -94,8 +94,6 @@ export function TransactionListBody({
 
   return (
     <div className="space-y-3">
-      {groups.length > 0 ? <p className="px-1 text-[11px] text-muted-foreground">{t("transactions.swipeHint")}</p> : null}
-
       {groups.map((month) => (
         <section key={month.month} className="space-y-2">
           <h2 className="px-1 font-heading text-base font-semibold">

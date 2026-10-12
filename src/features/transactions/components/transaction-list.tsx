@@ -97,14 +97,15 @@ export async function TransactionList({
         labels={{ income: m.income, expense: m.expense, left: m.left, budgetUsed: m.budgetUsed, budgetLeft: m.budgetLeft, budgetOver: m.budgetOver }}
       />
 
+      <ListTabs active={tab} pendingCount={pendingItems.length} />
+
+      {/* The 7-day strip sits right under the tabs (2026-10-12). */}
       <WeekStrip
         days={weekDays}
         prevWeek={addDaysIso(weekStart, -7)}
         nextWeek={weekStart < latestStart ? (addDaysIso(weekStart, 7) < latestStart ? addDaysIso(weekStart, 7) : latestStart) : null}
         selectedDate={selectedDate}
       />
-
-      <ListTabs active={tab} pendingCount={pendingItems.length} />
 
       {tab === "pending" ? (
         inbox ? (
