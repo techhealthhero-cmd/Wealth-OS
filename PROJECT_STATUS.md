@@ -162,8 +162,13 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   migration. Applies everywhere `getBudgetSummary` is used (dashboard,
   safe-to-spend, Money summary, AI tools). Known: deleting a month's
   budget brings the copy back on the next visit; viewing a future month
-  creates its copy. Not yet exercised against a real database — first
-  visit to October's budget page in production is the first real run.
+  creates its copy. Confirmed by the user in production 2026-10-14:
+  October's budget page showed September's ฿20,000 + 3 category lines.
+- 2026-10-14 (user request): the bottom-bar center mic opens the voice
+  notebook with the mic OFF (`QuickAdd.openVoice` no longer calls
+  `speech.startHold`); the notebook's big mic starts listening. A fresh,
+  empty page reads "แตะไมค์ด้านล่างเพื่อเริ่มพูด หรือพิมพ์บนกระดาษก็ได้"
+  (`capture.voice.ready`) instead of "หยุดฟังแล้ว". Help text updated.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

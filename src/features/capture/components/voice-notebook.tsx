@@ -81,7 +81,8 @@ type Learn = { kind: "alias"; word: string } | { kind: "shop"; shop: string } | 
 
 /**
  * Voice capture as a journal page (chosen mockup, 2026-10-10): the center
- * mic opens it already listening, the words are written onto the ruled
+ * mic opens it (since 2026-10-14 with the mic off until its big mic is
+ * tapped), the words are written onto the ruled
  * page by hand, and each priced item they contain is pinned below as a
  * note to check before saving. Parsing is the same deterministic recap
  * parser Quick Capture uses (no AI, no amounts invented); saving goes
@@ -865,7 +866,13 @@ export function VoiceNotebook({
           {error ? <p className="text-destructive">{error}</p> : null}
           {!micMessage && !error ? (
             <p className="text-muted-foreground">
-              {listening ? (rows.length > 0 ? t("capture.voice.keepTalking") : t("capture.voice.listening")) : t("capture.voice.paused")}
+              {listening
+                ? rows.length > 0
+                  ? t("capture.voice.keepTalking")
+                  : t("capture.voice.listening")
+                : rows.length > 0
+                  ? t("capture.voice.paused")
+                  : t("capture.voice.ready")}
             </p>
           ) : null}
         </div>

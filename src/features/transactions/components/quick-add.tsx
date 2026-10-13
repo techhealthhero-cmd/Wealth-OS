@@ -95,8 +95,9 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
     voiceActiveRef.current = true;
     typedRef.current = false;
     setVoiceText("");
-    // Must stay synchronous inside the tap (see the speech hook above).
-    speech.startHold("");
+    // Opens the notebook with the mic OFF (2026-10-14, user request): the
+    // first tap only opens the page; the notebook's own big mic starts
+    // listening (a tap there is the user gesture iOS needs).
     setVoiceOpen(true);
     void refreshNavOptions();
   }
@@ -229,7 +230,7 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
           onPointerDown={() => void (speech.supported ? loadVoiceNotebook() : loadQuickCaptureSheet())}
           onClick={() => {
             // The center button is a mic (2026-10-10): it opens the voice
-            // notebook already listening. Where the browser has no speech
+            // notebook, mic off until tapped there. Where the browser has no speech
             // recognition it falls back to Quick Capture (typing), so it
             // is never a dead button.
             if (speech.supported) openVoice();
