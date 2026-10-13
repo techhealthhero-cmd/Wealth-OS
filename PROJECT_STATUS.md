@@ -134,6 +134,10 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   `TransactionListBody unlabeledMonth` drops this month's list heading
   (the section keeps it as `aria-label`). Browsing a past month on the
   calendar brings both back, so it's clear the summary is this month.
+- 2026-10-13 (user request): the "รอตรวจ" tab no longer shows the wall
+  calendar — just the summary (titled with its month, since no calendar
+  names it) and every pending item (`onlyDate` is null there, so a day
+  picked on the "ทั้งหมด" tab no longer narrows it). Help text updated.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

@@ -26,8 +26,8 @@ import { ExportReportButton } from "@/features/reports/components/export-report-
 
 /**
  * Money › Transactions (2026-10-11, mockup "B + D"): add → this month at a
- * glance → "ทั้งหมด | รอตรวจ" tabs → the wall calendar → the list (or the
- * pending review list). A day picked on the calendar is just the existing
+ * glance → "ทั้งหมด | รอตรวจ" tabs → the wall calendar → the list (or, on
+ * the pending tab, only the pending review list — no calendar). A day picked on the calendar is just the existing
  * from/to filter set to that one date, so the list, search and paging all
  * keep working unchanged.
  */
@@ -88,7 +88,8 @@ export async function TransactionList({
         title={monthTitle}
         // The calendar below names this month already; name the summary only
         // while the calendar is on another month, so it's clear which one it is.
-        showTitle={calendarMonth !== thisMonth}
+        // The pending tab has no calendar, so the summary names its own month there.
+        showTitle={tab === "pending" || calendarMonth !== thisMonth}
         incomeCents={calculateIncome(monthTransactions)}
         expenseCents={calculateExpenses(monthTransactions)}
         budget={budget ? { percentUsed: budget.overall.percentUsed, remainingCents: budget.overall.remainingCents } : null}
@@ -97,6 +98,22 @@ export async function TransactionList({
 
       <ListTabs active={tab} pendingCount={pendingItems.length} />
 
+      {tab === "pending" ? (
+        // The pending tab is just the review list (2026-10-13): no calendar,
+        // and every pending item, whatever day the "all" tab had picked.
+        inbox ? (
+          <DailyInboxCard
+            inbox={inbox}
+            categories={categories}
+            accounts={accounts}
+            onlyDate={null}
+            emptyText={dict.transactions.pendingEmpty}
+          />
+        ) : (
+          <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.pendingEmpty}</p>
+        )
+      ) : (
+        <>
       {/* The wall calendar sits right under the tabs (2026-10-12). */}
       <WallCalendar
         grid={calendar}
@@ -105,20 +122,6 @@ export async function TransactionList({
         selectedDate={selectedDate}
       />
 
-      {tab === "pending" ? (
-        inbox ? (
-          <DailyInboxCard
-            inbox={inbox}
-            categories={categories}
-            accounts={accounts}
-            onlyDate={selectedDate}
-            emptyText={selectedDate ? dict.transactions.pendingEmptyDay : dict.transactions.pendingEmpty}
-          />
-        ) : (
-          <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.pendingEmpty}</p>
-        )
-      ) : (
-        <>
       {transactions.length === 0 && selectedDate && isDefaultView ? (
         // One quiet day picked on the calendar: a line, not the big empty state.
         <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.dayEmpty}</p>
