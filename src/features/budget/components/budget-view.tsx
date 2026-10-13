@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { asTrigger } from "@/lib/as-trigger";
+import { CategoryIcon } from "@/components/shared/category-icon";
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
   no_budget: "bg-muted text-muted-foreground",
@@ -126,6 +127,7 @@ export function BudgetView({ summary, categories, month }: { summary: BudgetSumm
                 <div key={cb.categoryId} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2 text-sm">
                     <span className="flex min-w-0 items-center gap-1.5 font-medium">
+                      <CategoryIcon icon={categories.find((c) => c.id === cb.categoryId)?.icon} className="size-7" />
                       <span className="min-w-0 truncate">{categoryName(cb.categoryId)}</span>
                       {cb.isFixed ? (
                         <Badge variant="secondary" className="shrink-0 text-[10px]">

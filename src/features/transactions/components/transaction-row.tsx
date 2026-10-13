@@ -27,6 +27,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useConfirmDialog } from "@/components/shared/confirm-dialog";
+import { CategoryIcon } from "@/components/shared/category-icon";
+import { categoryArt } from "@/lib/transaction-ui";
 
 const loadTransactionForm = () => import("./transaction-form");
 const loadTransferForm = () => import("./transfer-form");
@@ -119,14 +121,20 @@ export function TransactionRow({
 
   const rowContent = (
     <>
-      <div
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-          TYPE_ICON_BG_CLASS[transaction.type]
-        )}
-      >
-        <Icon className="h-4 w-4" aria-hidden="true" />
-      </div>
+      {/* An expense in a category with a hand-drawn sticker shows the
+          sticker (2026-10-14); everything else keeps the type arrow. */}
+      {transaction.type === "expense" && categoryArt(transaction.category?.icon ?? null) ? (
+        <CategoryIcon icon={transaction.category?.icon} className="size-9" />
+      ) : (
+        <div
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+            TYPE_ICON_BG_CLASS[transaction.type]
+          )}
+        >
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </div>
+      )}
       <div className="min-w-0">
         {/* leading-tight, not leading-none: Thai tone marks/vowels stack
             above and below the consonant (e.g. ไม้เอก, สระอุ) and get

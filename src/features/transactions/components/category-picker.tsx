@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import type { Category } from "@/types/database";
-import { categoryEmoji } from "@/lib/transaction-ui";
+import { CategoryIcon } from "@/components/shared/category-icon";
 import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +54,7 @@ export function CategoryPicker({ name, categories, value, onValueChange }: Categ
                   : "border-border bg-background text-foreground hover:bg-muted"
               )}
             >
-              <span aria-hidden="true">{categoryEmoji(category.icon)}</span>
+              <CategoryIcon icon={category.icon} className="-my-1 size-7" />
               {label}
             </button>
           );

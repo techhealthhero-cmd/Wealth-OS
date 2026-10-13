@@ -8,7 +8,8 @@ import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatMoney, formatMoneyFromDecimal, parseMoneyToCents } from "@/lib/financial/money";
-import { ACCOUNT_TYPE_EMOJI, categoryEmoji, formatFriendlyDate } from "@/lib/transaction-ui";
+import { ACCOUNT_TYPE_EMOJI, formatFriendlyDate } from "@/lib/transaction-ui";
+import { CategoryIcon } from "@/components/shared/category-icon";
 import { canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
 import { CategoryPicker } from "@/features/transactions/components/category-picker";
 import { AccountPicker } from "@/features/transactions/components/account-picker";
@@ -149,7 +150,7 @@ export function TransactionPreview({
           aria-expanded={openPanel === "category"}
           onClick={() => setOpenPanel(openPanel === "category" ? null : "category")}
         >
-          <span aria-hidden="true">{categoryEmoji(category?.icon ?? null)}</span>
+          <CategoryIcon icon={category?.icon} className="-my-1 size-6" />
           <span className="truncate">{categoryLabel}</span>
           {guessed ? <span className="text-amber-600" aria-hidden="true">?</span> : null}
           <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />

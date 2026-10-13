@@ -10,7 +10,8 @@ import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatMoneyFromDecimal } from "@/lib/financial/money";
-import { categoryEmoji, formatFriendlyDate } from "@/lib/transaction-ui";
+import { formatFriendlyDate } from "@/lib/transaction-ui";
+import { CategoryIcon } from "@/components/shared/category-icon";
 import { CategoryPicker } from "@/features/transactions/components/category-picker";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { confirmInboxTransaction } from "@/features/capture/actions";
@@ -109,7 +110,7 @@ function InboxItem({
         >
           {decided && category ? (
             <>
-              <span aria-hidden="true">{categoryEmoji(category.icon ?? null)}</span>
+              <CategoryIcon icon={category.icon} className="-my-1 size-6" />
               <span className="truncate">
                 {locale === "th" ? category.name_th : category.name_en}
                 {unsure ? " ?" : ""}

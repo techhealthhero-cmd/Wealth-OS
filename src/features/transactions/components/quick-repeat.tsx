@@ -7,6 +7,7 @@ import type { QuickRepeatCandidate } from "@/features/transactions/queries";
 import { useTranslation } from "@/i18n/client";
 import { formatMoneyFromDecimal } from "@/lib/financial/money";
 import { itemEmoji, transactionTypeVisual } from "@/lib/transaction-ui";
+import { CategoryIcon } from "@/components/shared/category-icon";
 import { TransactionForm } from "./transaction-form";
 
 interface QuickRepeatProps {
@@ -51,7 +52,11 @@ export function QuickRepeat({ candidates, accounts, categories }: QuickRepeatPro
               className="flex shrink-0 flex-col items-start gap-0.5 rounded-xl border bg-card px-3 py-2 text-left transition-colors hover:bg-accent active:scale-[0.98]"
             >
               <span className="flex items-center gap-1 text-sm font-medium">
-                <span aria-hidden="true">{category ? itemEmoji(label, category.icon) : visual.emoji}</span>
+                {category ? (
+                  <CategoryIcon icon={category.icon} emoji={itemEmoji(label, category.icon)} className="-my-1 size-6" />
+                ) : (
+                  <span aria-hidden="true">{visual.emoji}</span>
+                )}
                 <span className="max-w-[9rem] truncate">{label}</span>
               </span>
               <span className={`text-xs font-semibold ${visual.colorClass}`}>

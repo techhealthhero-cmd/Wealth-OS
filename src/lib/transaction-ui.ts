@@ -36,6 +36,31 @@ export function categoryEmoji(icon: string | null): string {
 }
 
 /**
+ * Category icons that have a hand-drawn sticker (2026-10-14, the user's
+ * "My money category sketches" sheet, cut by scripts/artwork/
+ * crop-category-art.mjs). Food, transport, housing and the income
+ * categories have none yet and keep their emoji.
+ */
+const CATEGORY_ART = new Set([
+  "shopping-bag",
+  "heart-pulse",
+  "film",
+  "graduation-cap",
+  "plug-zap",
+  "repeat",
+  "shield",
+  "users",
+  "gift",
+  "tools",
+  "more-horizontal",
+]);
+
+/** The sticker's URL for a category icon key, or null when it has none. */
+export function categoryArt(icon: string | null): string | null {
+  return icon && CATEGORY_ART.has(icon) ? `/artwork/categories/${icon}.webp` : null;
+}
+
+/**
  * Drinks, most specific first (2026-10-04: "น้ำมะพร้าว should look like a
  * drink, not a noodle bowl"). Matched against the item's own text, so a
  * food-category row still shows what was actually bought. Thai + English.

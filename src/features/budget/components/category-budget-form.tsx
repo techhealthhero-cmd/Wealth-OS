@@ -20,6 +20,7 @@ import {
 import { Plus } from "lucide-react";
 import { useMinimizableFormActions } from "@/components/shared/minimizable-form-context";
 import { MinimizableFormShell } from "@/components/shared/minimizable-form-shell";
+import { CategoryIcon } from "@/components/shared/category-icon";
 
 interface CategoryBudgetFormProps {
   budgetId: string;
@@ -121,15 +122,26 @@ function CategoryBudgetFormFields({
         <div className="space-y-2">
           <Label htmlFor="category_id">{t("transactions.category")}</Label>
           <Select name="category_id" defaultValue={existing?.category_id}>
-            <SelectTrigger id="category_id">
+            <SelectTrigger id="category_id" className="w-full">
               <SelectValue placeholder={t("transactions.selectCategory")}>
-                {(value: string) => categories.find((c) => c.id === value)?.[locale === "th" ? "name_th" : "name_en"]}
+                {(value: string) => {
+                  const picked = categories.find((c) => c.id === value);
+                  return picked ? (
+                    <span className="flex items-center gap-2">
+                      <CategoryIcon icon={picked.icon} />
+                      {categoryName(picked)}
+                    </span>
+                  ) : null;
+                }}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
-                  {categoryName(category)}
+                  <span className="flex items-center gap-2">
+                    <CategoryIcon icon={category.icon} className="size-8" />
+                    {categoryName(category)}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

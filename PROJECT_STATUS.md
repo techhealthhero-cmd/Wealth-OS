@@ -183,6 +183,22 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   header and bottom nav stay put while the section title + tab strip turn
   with the page. Same demo-account check: Home and Money both turn from
   just under the header.
+- 2026-10-14 (user's "My money category sketches", sheet
+  `assets/artwork/drafts/expense-category-art-mockup-v8-gouache-ink.png`):
+  the 11 drawings are cut into 192px rounded WebP stickers
+  (`public/artwork/categories/<icon>.webp`, ~108 KB total) by
+  `scripts/artwork/crop-category-art.mjs`, keyed by `categories.icon`:
+  shopping-bag, heart-pulse, film, graduation-cap, plug-zap, repeat,
+  shield, users, gift, tools, more-horizontal. `categoryArt()` +
+  `<CategoryIcon>` show the sticker, else the old emoji (food, transport,
+  housing and most income categories have no drawing yet). Used in the
+  category picker (forms, quick capture), pending-review chips, capture
+  preview, recap review, quick-repeat chips, budget category rows, the
+  add-category-budget dropdown (trigger now full width), and the
+  transaction list (expense rows with a sticker replace the red arrow).
+  Verified on the demo account at 390×844, no broken images. Not
+  committed by this change: the user's own `assets/artwork/` drafts,
+  `public/artwork/.gitkeep` and their `GRAPHICS_PLAN.md` edit.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.
