@@ -138,6 +138,10 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   calendar — just the summary (titled with its month, since no calendar
   names it) and every pending item (`onlyDate` is null there, so a day
   picked on the "ทั้งหมด" tab no longer narrows it). Help text updated.
+- 2026-10-13 (user request): swipe-left-to-delete and swipe-right-to-edit
+  are removed from the Transactions list (`TransactionListBody` no longer
+  wraps rows in `SwipeToDelete`); edit/delete stay in each row's ⋮ menu.
+  The Daily Inbox (pending tab) swipes are unchanged. Help text updated.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.
