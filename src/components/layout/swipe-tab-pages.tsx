@@ -156,19 +156,19 @@ function placedClone(node: HTMLElement, left: number, top: number): HTMLElement 
 }
 
 /**
- * Snapshots the screen into a curlable sheet. The whole page turns from the
- * very top of the screen (2026-10-14, mockup "Page Turn Height" option B):
- * the app header and a section's title + tab strip turn with the content,
- * so every page — Home or a tabbed section — turns from the same edge. Only
- * the bottom nav (drawn above the sheet) stays put. Outside the app shell
- * (no `main`), it falls back to just `el`'s visible part.
+ * Snapshots the screen into a curlable sheet. The whole page turns from
+ * just under the app header (2026-10-14, mockup "Page Turn Height" option
+ * A, after option B — turning the header too — didn't look right): a
+ * section's title + tab strip turn with the content, so every page — Home
+ * or a tabbed section — turns from the same edge. The header and the bottom
+ * nav stay put. Outside the app shell (no `main`), it falls back to just
+ * `el`'s visible part.
  */
 function makeCurl(el: HTMLElement, cornerAtBottom: boolean): Curl | null {
   const main = el.closest("main");
-  const column = main?.parentElement ?? null;
-  const header = column ? Array.from(column.children).find((n) => n.tagName === "HEADER") : undefined;
-  const rect = (column ?? el).getBoundingClientRect();
-  const top = column ? 0 : Math.max(el.getBoundingClientRect().top, 0);
+  const rect = (main ?? el).getBoundingClientRect();
+  // `main` starts right under the header; once the header has scrolled away, at the screen top.
+  const top = Math.max(rect.top, 0);
   // The sheet runs to the bottom of the screen (not just the end of the
   // content) so a curling flap is never cut off by a straight edge mid-page;
   // below the content it's just more ruled paper, matching the page.
@@ -204,13 +204,7 @@ function makeCurl(el: HTMLElement, cornerAtBottom: boolean): Curl | null {
   // "page-curl-sheet" freezes the copy: cards that fade in on mount would
   // otherwise replay that fade from transparent in the snapshot.
   frontInner.classList.add("journal-page", "page-curl-sheet");
-  if (main) {
-    // main last so the page sits over the header's bottom edge, as on screen.
-    if (header instanceof HTMLElement) frontInner.append(placedClone(header, rect.left, top));
-    frontInner.append(placedClone(main, rect.left, top));
-  } else {
-    frontInner.append(placedClone(el, rect.left, top));
-  }
+  frontInner.append(placedClone(main ?? el, rect.left, top));
   frontWrap.append(frontInner);
 
   // The flap: the paper's back (plain ruled paper, a shade warmer), with a

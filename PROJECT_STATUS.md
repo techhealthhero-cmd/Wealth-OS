@@ -177,6 +177,12 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   the bottom nav stays put. Outside the app shell it falls back to the old
   content-only sheet. Verified on the demo account at 390×844 (Home →
   Money and Money › รายการ → บัญชี drags, both start at the screen top).
+- 2026-10-14, later: option B didn't look right on the phone; switched to
+  option A — the sheet clones only `<main>` and starts right under the
+  header (or the screen top once the header has scrolled away), so the
+  header and bottom nav stay put while the section title + tab strip turn
+  with the page. Same demo-account check: Home and Money both turn from
+  just under the header.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.
