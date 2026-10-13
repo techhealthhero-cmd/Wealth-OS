@@ -115,6 +115,19 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   -฿1,444). Verified on the demo account at 390×844 (tap, re-tap, drag up,
   Enter key, reload persistence, dark mode, no console errors); tests
   1004/1004, typecheck, lint, build OK.
+- 2026-10-13, later still (user mockup I "พลิกมุมกระดาษ"): the index tabs
+  are replaced by a dog-eared bottom-right corner on the card itself (card
+  clipped along the fold by `clip-path`, the flap is a sibling button so
+  the whole corner stays tappable; `drop-shadow` on `.wall-paper` follows
+  both shapes). Tap the corner = one more week, up to the whole month, then
+  back to one; drag it down/up still pulls/pushes and snaps — now to any
+  whole week, not just 1/2/3/month — and the corner lifts while pulled
+  (`--curl`, registered with `@property` so it animates back). A hint line
+  inside the card reads "พลิกมุมกระดาษลง … · 2/5" (or "แตะมุมกระดาษ
+  พับกลับ…" when fully open, arrow flips ↘ → ↖). Open weeks remembered
+  under a new key `wos.wallCalendarWeeks` (old `wos.wallCalendarStop`
+  ignored). Help text updated. Verified with a temporary preview page at
+  390px (folded, 2/5, mid-drag, full month, dark mode).
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.
