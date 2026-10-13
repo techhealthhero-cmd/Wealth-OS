@@ -49,8 +49,14 @@ export async function TransactionList({
   const thisMonth = today.slice(0, 7);
   const calendarMonth = month && isIsoMonth(month) && month < thisMonth ? month : thisMonth;
   const calendarRange = monthGridRange(calendarMonth);
-  const monthFrom = `${today.slice(0, 7)}-01`;
-  const monthTo = addDaysIso(`${addDaysIso(monthFrom, 32).slice(0, 7)}-01`, -1);
+  // The summary and the list follow the calendar's month (2026-10-13): turn
+  // the calendar to September and both show September, the whole month.
+  const monthFrom = `${calendarMonth}-01`;
+  const monthTo = addDaysIso(`${addMonthsIso(calendarMonth, 1)}-01`, -1);
+  // A day picked on the calendar (or any explicit from/to) wins over the
+  // month, and a search or filter still looks through all history.
+  const monthScoped = !filters.from && !filters.to && isDefaultView;
+  const listFilters = monthScoped ? { ...filters, from: monthFrom, to: monthTo } : filters;
 
   const [{ transactions, hasMore }, accounts, categories, profile, calendarTransactions, monthTransactions, budget, inbox] =
     await Promise.all([
@@ -60,7 +66,7 @@ export async function TransactionList({
       // Only the first page renders server-side now; TransactionListBody
       // (a client component) fetches further pages on demand via the
       // loadMoreTransactions() Server Action.
-      getTransactionsPage(filters),
+      getTransactionsPage(listFilters),
       getDisplayAccounts({ includeArchived: true }),
       getCategories(),
       getProfile(),
@@ -72,6 +78,12 @@ export async function TransactionList({
     ]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
+  // An empty month isn't an empty history: only a user with no transactions
+  // at all gets the big "start here" empty state.
+  const hasAnyTransaction =
+    transactions.length > 0 || !monthScoped
+      ? true
+      : (await getTransactionsPage({}, 0, 1)).transactions.length > 0;
 
   const pendingItems = (inbox?.items ?? []).filter((i) => i.review_status === "needs_review");
   const calendar = buildMonthGrid(calendarMonth, today, calendarTransactions, pendingItems.map((i) => i.transaction_date));
@@ -86,10 +98,9 @@ export async function TransactionList({
     <div className="space-y-4">
       <MonthSummary
         title={monthTitle}
-        // The calendar below names this month already; name the summary only
-        // while the calendar is on another month, so it's clear which one it is.
-        // The pending tab has no calendar, so the summary names its own month there.
-        showTitle={tab === "pending" || calendarMonth !== thisMonth}
+        // The calendar below names the month; the pending tab has no calendar,
+        // so the summary names its own month there.
+        showTitle={tab === "pending"}
         incomeCents={calculateIncome(monthTransactions)}
         expenseCents={calculateExpenses(monthTransactions)}
         budget={budget ? { percentUsed: budget.overall.percentUsed, remainingCents: budget.overall.remainingCents } : null}
@@ -125,6 +136,9 @@ export async function TransactionList({
       {transactions.length === 0 && selectedDate && isDefaultView ? (
         // One quiet day picked on the calendar: a line, not the big empty state.
         <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.dayEmpty}</p>
+      ) : transactions.length === 0 && monthScoped && hasAnyTransaction ? (
+        // A quiet month turned to on the calendar: a line, not the big empty state.
+        <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.monthEmpty}</p>
       ) : transactions.length === 0 ? (
         isDefaultView && !filters.from && !filters.to ? (
           // Genuinely zero transactions ever — explain why this matters and
@@ -152,15 +166,15 @@ export async function TransactionList({
           // Remount when the filters change (e.g. a day picked on the calendar):
           // the body copies its first page into state, so without a new key
           // it would keep showing the previous filter's rows.
-          key={JSON.stringify(filters)}
+          key={JSON.stringify(listFilters)}
           initialTransactions={transactions}
           initialHasMore={hasMore}
-          filters={filters}
+          filters={listFilters}
           accounts={accounts}
           categories={categories}
           defaultDetailsOpen={filters.hasNotes}
-          // This month's rows come first; the calendar above already names it.
-          unlabeledMonth={calendarMonth === thisMonth ? thisMonth : undefined}
+          // The calendar above already names its month.
+          unlabeledMonth={calendarMonth}
         />
       )}
 

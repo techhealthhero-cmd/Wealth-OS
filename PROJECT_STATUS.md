@@ -142,6 +142,16 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   are removed from the Transactions list (`TransactionListBody` no longer
   wraps rows in `SwipeToDelete`); edit/delete stay in each row's ⋮ menu.
   The Daily Inbox (pending tab) swipes are unchanged. Help text updated.
+- 2026-10-13 (user request): the month summary (income/spend/left +
+  budget) and the list now follow the wall calendar's month (`?month=`):
+  turn to September and both show the whole of September. The list is
+  month-scoped only in the default view — a picked day, explicit from/to,
+  search or filter still behave as before. A month with no rows shows
+  "ไม่มีรายการในเดือนนี้" (`transactions.monthEmpty`); the big first-run
+  empty state needs no transactions at all (one extra 1-row query, only
+  when the month is empty). The summary's own month title now shows only
+  on the pending tab; the list's heading for the calendar month is
+  dropped (calendar names it). Help text updated.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.
