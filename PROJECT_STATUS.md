@@ -169,6 +169,14 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   `speech.startHold`); the notebook's big mic starts listening. A fresh,
   empty page reads "แตะไมค์ด้านล่างเพื่อเริ่มพูด หรือพิมพ์บนกระดาษก็ได้"
   (`capture.voice.ready`) instead of "หยุดฟังแล้ว". Help text updated.
+- 2026-10-14 (user: the turning page started at different heights on Home
+  vs Money; picked option B of mockup "Page Turn Height"): the page-turn
+  sheet now covers the whole screen from its top edge — `makeCurl` clones
+  the app `<header>` and the whole `<main>` (section title + tab strip
+  included) into the sheet, so every page turns from the same edge; only
+  the bottom nav stays put. Outside the app shell it falls back to the old
+  content-only sheet. Verified on the demo account at 390×844 (Home →
+  Money and Money › รายการ → บัญชี drags, both start at the screen top).
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

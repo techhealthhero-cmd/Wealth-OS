@@ -136,10 +136,39 @@ function box(styles: Partial<CSSStyleDeclaration>): HTMLDivElement {
   return div;
 }
 
-/** Snapshots the visible part of `el` into a curlable sheet laid exactly over it. */
+/** A copy of `node` pinned at its on-screen place inside a sheet whose top-left is (`left`, `top`). */
+function placedClone(node: HTMLElement, left: number, top: number): HTMLElement {
+  const r = node.getBoundingClientRect();
+  const clone = node.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+  clone.removeAttribute("id");
+  // The live page may be mid-lean (a drag's translateX) or hidden; the copy is neither.
+  clone.querySelectorAll<HTMLElement>("[data-turn-page]").forEach((n) => n.removeAttribute("style"));
+  if (clone.hasAttribute("data-turn-page")) clone.removeAttribute("style");
+  Object.assign(clone.style, {
+    position: "absolute",
+    left: `${r.left - left}px`,
+    top: `${r.top - top}px`,
+    width: `${r.width}px`,
+    margin: "0",
+  } satisfies Partial<CSSStyleDeclaration>);
+  return clone;
+}
+
+/**
+ * Snapshots the screen into a curlable sheet. The whole page turns from the
+ * very top of the screen (2026-10-14, mockup "Page Turn Height" option B):
+ * the app header and a section's title + tab strip turn with the content,
+ * so every page — Home or a tabbed section — turns from the same edge. Only
+ * the bottom nav (drawn above the sheet) stays put. Outside the app shell
+ * (no `main`), it falls back to just `el`'s visible part.
+ */
 function makeCurl(el: HTMLElement, cornerAtBottom: boolean): Curl | null {
-  const rect = el.getBoundingClientRect();
-  const top = Math.max(rect.top, 0);
+  const main = el.closest("main");
+  const column = main?.parentElement ?? null;
+  const header = column ? Array.from(column.children).find((n) => n.tagName === "HEADER") : undefined;
+  const rect = (column ?? el).getBoundingClientRect();
+  const top = column ? 0 : Math.max(el.getBoundingClientRect().top, 0);
   // The sheet runs to the bottom of the screen (not just the end of the
   // content) so a curling flap is never cut off by a straight edge mid-page;
   // below the content it's just more ruled paper, matching the page.
@@ -175,17 +204,13 @@ function makeCurl(el: HTMLElement, cornerAtBottom: boolean): Curl | null {
   // "page-curl-sheet" freezes the copy: cards that fade in on mount would
   // otherwise replay that fade from transparent in the snapshot.
   frontInner.classList.add("journal-page", "page-curl-sheet");
-  const clone = el.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
-  clone.removeAttribute("style");
-  Object.assign(clone.style, {
-    position: "absolute",
-    left: "0",
-    top: `${rect.top - top}px`,
-    width: `${w}px`,
-    margin: "0",
-  } satisfies Partial<CSSStyleDeclaration>);
-  frontInner.append(clone);
+  if (main) {
+    // main last so the page sits over the header's bottom edge, as on screen.
+    if (header instanceof HTMLElement) frontInner.append(placedClone(header, rect.left, top));
+    frontInner.append(placedClone(main, rect.left, top));
+  } else {
+    frontInner.append(placedClone(el, rect.left, top));
+  }
   frontWrap.append(frontInner);
 
   // The flap: the paper's back (plain ruled paper, a shade warmer), with a
@@ -620,7 +645,7 @@ export function SwipeTabPages({
   // title + tab strip ≈ 16rem above, the layout's pb-28 ≈ 7rem below, plus
   // ~2rem slack) without making a short page scroll.
   return (
-    <div ref={wrapperRef} className="min-h-[calc(100dvh-25rem)]">
+    <div ref={wrapperRef} data-turn-page="" className="min-h-[calc(100dvh-25rem)]">
       {children}
     </div>
   );
