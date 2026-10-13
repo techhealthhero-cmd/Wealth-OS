@@ -199,6 +199,16 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   Verified on the demo account at 390×844, no broken images. Not
   committed by this change: the user's own `assets/artwork/` drafts,
   `public/artwork/.gitkeep` and their `GRAPHICS_PLAN.md` edit.
+- 2026-10-14, later: the supplement sheet
+  (`expense-category-art-supplement-v1-gouache-ink.png`, 2×5, no numbers)
+  adds stickers for utensils (food), car (transport), home (housing),
+  wallet (salary), laptop (freelance), briefcase (business, a shop),
+  percent (commission), landmark (interest), rotate-ccw (refund) and
+  gift-received — every seeded category now has a drawing (21 files,
+  ~187 KB). Its wide drawings are centred on a square of their own paper
+  colour. Transaction rows now show the sticker for income too (only
+  transfers and uncategorized rows keep the type arrow). Verified on the
+  demo account (list + budget), no broken images.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

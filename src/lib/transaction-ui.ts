@@ -37,11 +37,22 @@ export function categoryEmoji(icon: string | null): string {
 
 /**
  * Category icons that have a hand-drawn sticker (2026-10-14, the user's
- * "My money category sketches" sheet, cut by scripts/artwork/
- * crop-category-art.mjs). Food, transport, housing and the income
- * categories have none yet and keep their emoji.
+ * "My money category sketches" sheet plus its supplement for food,
+ * transport, housing and the income categories, cut by scripts/artwork/
+ * crop-category-art.mjs). Any other icon key (e.g. a future category)
+ * keeps its emoji.
  */
 const CATEGORY_ART = new Set([
+  "utensils",
+  "car",
+  "home",
+  "wallet",
+  "laptop",
+  "briefcase",
+  "percent",
+  "landmark",
+  "rotate-ccw",
+  "gift-received",
   "shopping-bag",
   "heart-pulse",
   "film",

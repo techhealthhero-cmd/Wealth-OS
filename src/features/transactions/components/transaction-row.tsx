@@ -121,9 +121,9 @@ export function TransactionRow({
 
   const rowContent = (
     <>
-      {/* An expense in a category with a hand-drawn sticker shows the
-          sticker (2026-10-14); everything else keeps the type arrow. */}
-      {transaction.type === "expense" && categoryArt(transaction.category?.icon ?? null) ? (
+      {/* A row whose category has a hand-drawn sticker shows the sticker
+          (2026-10-14); transfers and uncategorized rows keep the type arrow. */}
+      {transaction.type !== "transfer" && categoryArt(transaction.category?.icon ?? null) ? (
         <CategoryIcon icon={transaction.category?.icon} className="size-9" />
       ) : (
         <div
