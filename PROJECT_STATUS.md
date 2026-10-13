@@ -152,6 +152,18 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   when the month is empty). The summary's own month title now shows only
   on the pending tab; the list's heading for the calendar month is
   dropped (calendar names it). Help text updated.
+- 2026-10-14 (user request "ตั้งงบแล้วให้ใช้กับทุกเดือนถัดไป"): budgets carry
+  forward. `getBudgetForMonth` → `carryBudgetForward`: a month with no
+  budget copies the latest EARLIER month's budget (total, planned
+  savings/investment, notes) and all its `budget_categories` lines into
+  its own row (upsert ignoreDuplicates on `user_id,month`, so a race never
+  copies twice; a failed line copy deletes the new row so it retries).
+  Saved per month, so editing October never changes September. No
+  migration. Applies everywhere `getBudgetSummary` is used (dashboard,
+  safe-to-spend, Money summary, AI tools). Known: deleting a month's
+  budget brings the copy back on the next visit; viewing a future month
+  creates its copy. Not yet exercised against a real database — first
+  visit to October's budget page in production is the first real run.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

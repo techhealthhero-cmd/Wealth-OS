@@ -30,7 +30,70 @@ export async function getBudgetForMonth(monthKey: string): Promise<Budget | null
   const supabase = await createClient();
   const { data, error } = await supabase.from("budgets").select("*").eq("month", monthKey).maybeSingle();
   if (error) throwDbError(error, "budget.getBudgetForMonth", "Failed to load budget");
-  return data;
+  return data ?? carryBudgetForward(monthKey);
+}
+
+/**
+ * A budget carries forward (2026-10-13, user request): a month with no
+ * budget of its own gets a copy of the latest earlier month's — the total,
+ * planned savings/investment and every category line — saved as that
+ * month's own row. Saved, not borrowed, so editing October never rewrites
+ * September (history stays as it was). Returns null when there's nothing
+ * earlier to copy. Never throws: a failed copy just means "no budget yet".
+ */
+async function carryBudgetForward(monthKey: string): Promise<Budget | null> {
+  try {
+    const supabase = await createClient();
+    const { data: source } = await supabase
+      .from("budgets")
+      .select("*")
+      .lt("month", monthKey)
+      .order("month", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!source) return null;
+
+    // RLS scopes `source` to this user, so its user_id is the caller's own.
+    const { data: inserted, error } = await supabase
+      .from("budgets")
+      .upsert(
+        {
+          user_id: source.user_id,
+          month: monthKey,
+          total_budget: source.total_budget,
+          planned_savings: source.planned_savings,
+          planned_investment: source.planned_investment,
+          notes: source.notes,
+        },
+        { onConflict: "user_id,month", ignoreDuplicates: true }
+      )
+      .select("*")
+      .maybeSingle();
+    if (error) return null;
+    // Another request carried it first: use theirs, don't copy lines twice.
+    if (!inserted) {
+      const { data: existing } = await supabase.from("budgets").select("*").eq("month", monthKey).maybeSingle();
+      return existing;
+    }
+
+    const { data: lines } = await supabase
+      .from("budget_categories")
+      .select("category_id, amount, is_fixed, is_essential")
+      .eq("budget_id", source.id);
+    if (lines && lines.length > 0) {
+      const { error: linesError } = await supabase
+        .from("budget_categories")
+        .insert(lines.map((line) => ({ ...line, budget_id: inserted.id })));
+      if (linesError) {
+        // Half a copy is worse than none: undo it so the next visit retries.
+        await supabase.from("budgets").delete().eq("id", inserted.id);
+        return null;
+      }
+    }
+    return inserted;
+  } catch {
+    return null;
+  }
 }
 
 export async function getBudgetCategories(budgetId: string): Promise<BudgetCategoryWithCategory[]> {
