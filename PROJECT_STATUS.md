@@ -128,6 +128,12 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   under a new key `wos.wallCalendarWeeks` (old `wos.wallCalendarStop`
   ignored). Help text updated. Verified with a temporary preview page at
   390px (folded, 2/5, mid-drag, full month, dark mode).
+- 2026-10-13 (user: "ตุลาคม ซ้ำ 3 ที่"): the month was named three times
+  (summary heading, calendar, list's first month heading). On this month
+  only the calendar names it now: `MonthSummary showTitle` is off and
+  `TransactionListBody unlabeledMonth` drops this month's list heading
+  (the section keeps it as `aria-label`). Browsing a past month on the
+  calendar brings both back, so it's clear the summary is this month.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

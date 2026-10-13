@@ -86,6 +86,9 @@ export async function TransactionList({
     <div className="space-y-4">
       <MonthSummary
         title={monthTitle}
+        // The calendar below names this month already; name the summary only
+        // while the calendar is on another month, so it's clear which one it is.
+        showTitle={calendarMonth !== thisMonth}
         incomeCents={calculateIncome(monthTransactions)}
         expenseCents={calculateExpenses(monthTransactions)}
         budget={budget ? { percentUsed: budget.overall.percentUsed, remainingCents: budget.overall.remainingCents } : null}
@@ -153,6 +156,8 @@ export async function TransactionList({
           accounts={accounts}
           categories={categories}
           defaultDetailsOpen={filters.hasNotes}
+          // This month's rows come first; the calendar above already names it.
+          unlabeledMonth={calendarMonth === thisMonth ? thisMonth : undefined}
         />
       )}
 

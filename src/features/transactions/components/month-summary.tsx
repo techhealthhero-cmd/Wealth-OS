@@ -8,12 +8,15 @@ import { formatMoney } from "@/lib/financial/money";
  */
 export function MonthSummary({
   title,
+  showTitle = true,
   incomeCents,
   expenseCents,
   budget,
   labels,
 }: {
   title: string;
+  /** false when the wall calendar right below already names this month. */
+  showTitle?: boolean;
   incomeCents: number;
   expenseCents: number;
   budget: { percentUsed: number; remainingCents: number } | null;
@@ -25,7 +28,7 @@ export function MonthSummary({
 
   return (
     <section aria-label={title} className="space-y-2">
-      <h2 className="font-heading text-base font-semibold">{title}</h2>
+      {showTitle ? <h2 className="font-heading text-base font-semibold">{title}</h2> : null}
       <div className="rounded-2xl border bg-card p-3 shadow-card">
         <dl className="grid grid-cols-3 divide-x divide-dashed text-center">
           <div>

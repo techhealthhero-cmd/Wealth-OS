@@ -27,6 +27,8 @@ interface TransactionListBodyProps {
   accounts: Account[];
   categories: Category[];
   defaultDetailsOpen?: boolean;
+  /** A month (YYYY-MM) whose heading is left out — the calendar above already names it. */
+  unlabeledMonth?: string;
 }
 
 /**
@@ -49,6 +51,7 @@ export function TransactionListBody({
   accounts,
   categories,
   defaultDetailsOpen,
+  unlabeledMonth,
 }: TransactionListBodyProps) {
   const { t, locale } = useTranslation();
   const [transactions, setTransactions] = useState(initialTransactions);
@@ -95,11 +98,17 @@ export function TransactionListBody({
   return (
     <div className="space-y-3">
       {groups.map((month) => (
-        <section key={month.month} className="space-y-2">
-          <h2 className="px-1 font-heading text-base font-semibold">
-            {/* Journal: month headings get the highlighter stroke, rows are ruled ledger lines. */}
-            <span className="journal-heading">{formatMonthHeading(month.month, locale)}</span>
-          </h2>
+        <section
+          key={month.month}
+          className="space-y-2"
+          aria-label={month.month === unlabeledMonth ? formatMonthHeading(month.month, locale) : undefined}
+        >
+          {month.month === unlabeledMonth ? null : (
+            <h2 className="px-1 font-heading text-base font-semibold">
+              {/* Journal: month headings get the highlighter stroke, rows are ruled ledger lines. */}
+              <span className="journal-heading">{formatMonthHeading(month.month, locale)}</span>
+            </h2>
+          )}
           <Card>
             <CardContent className="space-y-1 py-2">
               {month.days.map((day) => (
