@@ -209,6 +209,13 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   colour. Transaction rows now show the sticker for income too (only
   transfers and uncategorized rows keep the type arrow). Verified on the
   demo account (list + budget), no broken images.
+- 2026-10-15: the onboarding pillars sheet
+  (`onboarding-pillars-concept-v2-gouache-ink.png`, 2×2) is cut into four
+  256px rounded WebPs (`public/artwork/pillars/{track,plan,earn,grow}.webp`)
+  by `scripts/artwork/crop-pillar-art.mjs`. They replace the lucide icons
+  in the landing page's Track → Plan → Earn → Grow row (56px, 80px from
+  `sm`). Verified at 375px: one row, no horizontal scroll. Not yet used on
+  `/onboarding` itself (it keeps `WelcomeIllustration`).
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

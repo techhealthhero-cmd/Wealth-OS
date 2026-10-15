@@ -1,17 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Eye, Sparkles, Target, TrendingUp } from "lucide-react";
-
 import { getCurrentUser } from "@/features/profile/queries";
 import { logNav } from "@/lib/dev-diagnostics";
 import { Button } from "@/components/ui/button";
 import { BrandMark, IllustrationFrame, WelcomeIllustration } from "@/components/illustrations";
 
+// Hand-drawn gouache pillars (2026-10-15), cut from the onboarding pillars
+// sheet by scripts/artwork/crop-pillar-art.mjs.
 const PILLARS = [
-  { icon: Eye, label: "Track" },
-  { icon: Target, label: "Plan" },
-  { icon: TrendingUp, label: "Earn" },
-  { icon: Sparkles, label: "Grow" },
+  { art: "/artwork/pillars/track.webp", label: "Track" },
+  { art: "/artwork/pillars/plan.webp", label: "Plan" },
+  { art: "/artwork/pillars/earn.webp", label: "Earn" },
+  { art: "/artwork/pillars/grow.webp", label: "Grow" },
 ];
 
 export default async function LandingPage() {
@@ -50,15 +50,24 @@ export default async function LandingPage() {
       </div>
 
       <ol
-        className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-3 sm:gap-x-6"
+        className="mt-4 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-3 sm:gap-x-4"
         aria-label="Track, Plan, Earn, Grow"
       >
         {PILLARS.map((pillar, index) => (
-          <li key={pillar.label} className="flex items-center gap-2 sm:gap-6">
+          <li key={pillar.label} className="flex items-center gap-1.5 sm:gap-4">
             <div className="flex flex-col items-center gap-1.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary sm:h-10 sm:w-10">
-                <pillar.icon className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
-              </div>
+              {/* Plain <img>: small pre-sized local WebP, like CategoryIcon. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={pillar.art}
+                alt=""
+                aria-hidden="true"
+                width={128}
+                height={128}
+                decoding="async"
+                draggable={false}
+                className="size-14 select-none sm:size-20"
+              />
               <span className="text-xs font-medium text-muted-foreground">{pillar.label}</span>
             </div>
             {index < PILLARS.length - 1 ? (
