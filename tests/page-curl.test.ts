@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyMatrix,
+  backDragCornerPosition,
   cornerAlongTurn,
   curlTransforms,
   dragCornerPosition,
@@ -75,5 +76,23 @@ describe("page curl fold geometry", () => {
     expect(t.frontWrap).toContain("matrix(");
     expect(t.flapInner).toContain("scale(1, -1)");
     expect(`${t.frontWrap}${t.flapWrap}${t.cast}`).not.toContain("NaN");
+  });
+});
+
+describe("back drag (previous page lifting in from the spine)", () => {
+  const w = 390;
+  const h = 800;
+  const c = { x: w, y: h - 96 };
+  // The fold is the visible edge of the lifting page: halfway between its resting corner and where the corner is.
+  const foldX = (dx: number) => (c.x + backDragCornerPosition(c, dx, 0, w, h).x) / 2;
+
+  it("shows nothing before the finger moves, then an edge that tracks the finger", () => {
+    expect(foldX(0)).toBeCloseTo(0, 6);
+    expect(foldX(60)).toBeCloseTo(54, 6);
+    expect(foldX(120)).toBeGreaterThan(foldX(60));
+  });
+
+  it("never brings the corner itself on screen while dragging", () => {
+    expect(backDragCornerPosition(c, 1000, 0, w, h).x).toBeLessThan(0);
   });
 });

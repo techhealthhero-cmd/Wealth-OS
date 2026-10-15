@@ -266,6 +266,16 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   every `InfoPopover` explanation. `Artwork` gains `square`. Verified on
   the demo account at 390px (AI page, assets info popover). Not seen live:
   the thinking bubble (needs a real AI message).
+- 2026-10-15, later (user report: dragging right to go back slid the cards
+  under a fixed title + tab strip, which then snapped back as the turn
+  began — a visible jerk): the live page no longer moves during any swipe.
+  Dragging back now lifts the previous page's plain back in from the spine
+  under the finger (`backDragCornerPosition`, tests in
+  `tests/page-curl.test.ts`), and on release the real incoming sheet
+  continues from that same pose for the rest of the turn; released short,
+  it drops back past the spine. Dead ends (no page that way) no longer
+  lean. Verified with a CDP touch filmstrip on /money/assets at 390px:
+  card x identical before/during the drag, turn lands on Budget.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.
