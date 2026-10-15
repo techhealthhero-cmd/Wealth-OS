@@ -78,6 +78,8 @@ interface Curl {
   c: Point;
   p: Point;
   cornerAtBottom: boolean;
+  /** False for a sheet whose face is blank paper (a page we have no snapshot of). */
+  face: boolean;
 }
 
 interface Flight {
@@ -109,6 +111,30 @@ interface Flight {
  * whose layout mounts a NEW wrapper — is finished by that new wrapper.
  */
 const flightRef: { current: Flight | null } = { current: null };
+
+/**
+ * A copy of each page as it was when last turned away from (2026-10-15), so
+ * dragging back can show the previous page's real face lifting in instead
+ * of blank paper. Pinned at the page's top (navigation lands scrolled to the
+ * top); replaced by the live page the moment it renders. Small and in
+ * memory only — a handful of DOM copies, never persisted.
+ */
+const pageSnapshots = new Map<string, HTMLElement>();
+const MAX_SNAPSHOTS = 10;
+
+function pathOf(href: string): string {
+  return new URL(href, window.location.origin).pathname;
+}
+
+function rememberPage(el: HTMLElement) {
+  const main = el.closest("main");
+  if (!main) return;
+  const r = main.getBoundingClientRect();
+  const key = window.location.pathname;
+  pageSnapshots.delete(key);
+  pageSnapshots.set(key, placedClone(main, r.left, r.top));
+  if (pageSnapshots.size > MAX_SNAPSHOTS) pageSnapshots.delete(pageSnapshots.keys().next().value!);
+}
 
 /**
  * Elements that own horizontal drags themselves: native horizontal
@@ -171,7 +197,7 @@ function placedClone(node: HTMLElement, left: number, top: number): HTMLElement 
  * nav stay put. Outside the app shell (no `main`), it falls back to just
  * `el`'s visible part.
  */
-function makeCurl(el: HTMLElement, cornerAtBottom: boolean, blank = false): Curl | null {
+function makeCurl(el: HTMLElement, cornerAtBottom: boolean, face?: HTMLElement | "blank"): Curl | null {
   const main = el.closest("main");
   const rect = (main ?? el).getBoundingClientRect();
   // `main` starts right under the header; once the header has scrolled away, at the screen top.
@@ -211,9 +237,11 @@ function makeCurl(el: HTMLElement, cornerAtBottom: boolean, blank = false): Curl
   // "page-curl-sheet" freezes the copy: cards that fade in on mount would
   // otherwise replay that fade from transparent in the snapshot.
   frontInner.classList.add("journal-page", "page-curl-sheet");
-  // `blank`: a page we don't have yet (the previous one, while dragging
-  // back) — only its back ever shows, so its face needs no content.
-  if (!blank) frontInner.append(placedClone(main ?? el, rect.left, top));
+  // `face`: by default this page as it is now; a saved snapshot of another
+  // page (the previous one, while dragging back); or "blank" when we have
+  // none — then only its back ever shows, so its face needs no content.
+  if (face === undefined) frontInner.append(placedClone(main ?? el, rect.left, top));
+  else if (face !== "blank") frontInner.append(face.cloneNode(true));
   frontWrap.append(frontInner);
 
   // The flap: the paper's back (plain ruled paper, a shade warmer), with a
@@ -244,7 +272,22 @@ function makeCurl(el: HTMLElement, cornerAtBottom: boolean, blank = false): Curl
   // The bottom corner sits just above the bottom nav (which covers the
   // screen's last ~96px), so the grabbed corner is never hidden behind it.
   const c = { x: w, y: cornerAtBottom ? Math.max(h - BOTTOM_NAV_CLEARANCE_PX, h * 0.6) : 0 };
-  const curl: Curl = { root, frontWrap, frontInner, flapWrap, flapInner, cast, dim, w, h, l, c, p: c, cornerAtBottom };
+  const curl: Curl = {
+    root,
+    frontWrap,
+    frontInner,
+    flapWrap,
+    flapInner,
+    cast,
+    dim,
+    w,
+    h,
+    l,
+    c,
+    p: c,
+    cornerAtBottom,
+    face: face !== "blank",
+  };
   applyCurl(curl, c);
   return curl;
 }
@@ -411,6 +454,7 @@ export function SwipeTabPages({
   function start(dir: PageFlipDirection, curlFromDrag: Curl | null, crossing = false) {
     endFlight();
     const el = wrapperRef.current;
+    if (el) rememberPage(el);
     if (!el || prefersReducedMotion()) {
       dropDragCurl();
       return;
@@ -560,12 +604,14 @@ export function SwipeTabPages({
           boundary.style.opacity = "";
         }
         if (!backPreviewRef.current) {
-          const curl = makeCurl(boundary, true, true);
+          const target = targetHref(dx);
+          const snapshot = target ? pageSnapshots.get(pathOf(target)) : undefined;
+          const curl = makeCurl(boundary, true, snapshot ?? "blank");
           if (!curl) return;
           backPreviewRef.current = curl;
         }
         const curl = backPreviewRef.current;
-        applyCurl(curl, backDragCornerPosition(curl.c, dx, dy, curl.w, curl.h));
+        applyCurl(curl, backDragCornerPosition(curl.c, dx, dy, curl.w, curl.h, curl.face));
         return;
       }
       if (backPreviewRef.current) {

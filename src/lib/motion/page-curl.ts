@@ -137,14 +137,24 @@ export function dragCornerPosition(c: Point, dx: number, dy: number, width: numb
  * Where the PREVIOUS page's corner is while a finger drags back (right):
  * that page lies turned over past the spine, and pulling it back lifts its
  * edge in from the left. The fold — the visible edge of its back — sits at
- * ~0.9·dx, so the paper tracks the finger from the first pixel. Capped
- * before the corner itself comes on screen (only the plain back shows
- * while dragging; the page's face appears once the turn commits).
+ * ~0.9·dx, so the paper tracks the finger from the first pixel.
+ *
+ * `revealFace` (2026-10-15): we have a snapshot of that page, so its face
+ * may come on screen as it's pulled further — the corner can travel well
+ * onto the page. Without one, it's capped before the corner comes on screen
+ * (only the plain back shows; the face appears once the turn commits).
  */
-export function backDragCornerPosition(c: Point, dx: number, dy: number, width: number, height: number): Point {
+export function backDragCornerPosition(
+  c: Point,
+  dx: number,
+  dy: number,
+  width: number,
+  height: number,
+  revealFace = false
+): Point {
   const pulled = Math.max(dx, 0);
   const towardMiddle = c.y > height / 2 ? -1 : 1;
-  const x = Math.min(1.8 * pulled - width, -width * 0.02);
+  const x = Math.min(1.8 * pulled - width, revealFace ? width * 0.6 : -width * 0.02);
   return { x, y: c.y + towardMiddle * height * 0.04 + dy * 0.35 };
 }
 

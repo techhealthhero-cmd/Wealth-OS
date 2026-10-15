@@ -282,6 +282,14 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   it drops back past the spine. Dead ends (no page that way) no longer
   lean. Verified with a CDP touch filmstrip on /money/assets at 390px:
   card x identical before/during the drag, turn lands on Budget.
+  Follow-up (user: "show the next page's content while opening"): every
+  turn keeps an in-memory DOM snapshot of the page being left (max 10,
+  `pageSnapshots` in swipe-tab-pages.tsx), so a back drag shows that
+  page's real face lifting in and the corner may travel onto the page;
+  the live page replaces it once rendered. A page never visited this
+  session still lifts in as blank paper. Filmstrip (budget → assets →
+  drag back): budget's cards visible mid-drag. Snapshots can be a little
+  stale (whatever the page showed when it was left).
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

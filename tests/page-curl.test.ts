@@ -92,7 +92,13 @@ describe("back drag (previous page lifting in from the spine)", () => {
     expect(foldX(120)).toBeGreaterThan(foldX(60));
   });
 
-  it("never brings the corner itself on screen while dragging", () => {
+  it("without a snapshot, never brings the corner itself on screen while dragging", () => {
     expect(backDragCornerPosition(c, 1000, 0, w, h).x).toBeLessThan(0);
+  });
+
+  it("with a snapshot, lets the page's face come on screen but keeps a fold", () => {
+    const p = backDragCornerPosition(c, 1000, 0, w, h, true);
+    expect(p.x).toBeGreaterThan(0);
+    expect(p.x).toBeLessThan(c.x);
   });
 });
