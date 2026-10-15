@@ -80,6 +80,12 @@ interface Curl {
   cornerAtBottom: boolean;
   /** False for a sheet whose face is blank paper (a page we have no snapshot of). */
   face: boolean;
+  /**
+   * Forward drags: what lies beneath the curling page until the next page
+   * renders — that page's snapshot, or plain paper (never the half-hidden
+   * live page, whose title + tab strip would show through).
+   */
+  underLayer: HTMLDivElement | null;
 }
 
 interface Flight {
@@ -197,7 +203,12 @@ function placedClone(node: HTMLElement, left: number, top: number): HTMLElement 
  * nav stay put. Outside the app shell (no `main`), it falls back to just
  * `el`'s visible part.
  */
-function makeCurl(el: HTMLElement, cornerAtBottom: boolean, face?: HTMLElement | "blank"): Curl | null {
+function makeCurl(
+  el: HTMLElement,
+  cornerAtBottom: boolean,
+  face?: HTMLElement | "blank",
+  beneath?: HTMLElement | "blank"
+): Curl | null {
   const main = el.closest("main");
   const rect = (main ?? el).getBoundingClientRect();
   // `main` starts right under the header; once the header has scrolled away, at the screen top.
@@ -267,6 +278,13 @@ function makeCurl(el: HTMLElement, cornerAtBottom: boolean, face?: HTMLElement |
 
   const dim = box({ width: "100%", height: "100%", background: "rgba(20,14,6,1)", opacity: "0" });
 
+  let underLayer: HTMLDivElement | null = null;
+  if (beneath !== undefined) {
+    underLayer = box({ width: `${w}px`, height: `${h}px`, background: "var(--background)" });
+    underLayer.classList.add("journal-page", "page-curl-sheet");
+    if (beneath !== "blank") underLayer.append(beneath.cloneNode(true));
+    root.append(underLayer);
+  }
   root.append(cast, frontWrap, flapWrap, dim);
   document.body.appendChild(root);
   // The bottom corner sits just above the bottom nav (which covers the
@@ -287,6 +305,7 @@ function makeCurl(el: HTMLElement, cornerAtBottom: boolean, face?: HTMLElement |
     p: c,
     cornerAtBottom,
     face: face !== "blank",
+    underLayer,
   };
   applyCurl(curl, c);
   return curl;
@@ -487,8 +506,10 @@ export function SwipeTabPages({
 
     if (flight.dir === 1) {
       // The next page is ready underneath — the turn carries on by itself
-      // (runCurl's hold releases once `arrived` is true).
+      // (runCurl's hold releases once `arrived` is true). The live page now
+      // takes over from the snapshot that stood in for it.
       el.style.opacity = "";
+      flight.curl?.underLayer?.remove();
       return;
     }
 
@@ -625,7 +646,10 @@ export function SwipeTabPages({
           const rect = boundary.getBoundingClientRect();
           const visibleTop = Math.max(rect.top, 0);
           const visibleBottom = Math.min(rect.bottom, window.innerHeight);
-          const curl = makeCurl(boundary, startY > (visibleTop + visibleBottom) / 2);
+          // Beneath it: the next page as last seen this session, else plain paper.
+          const target = targetHref(dx);
+          const snapshot = target ? pageSnapshots.get(pathOf(target)) : undefined;
+          const curl = makeCurl(boundary, startY > (visibleTop + visibleBottom) / 2, undefined, snapshot ?? "blank");
           if (!curl) return;
           dragCurlRef.current = curl;
           boundary.style.opacity = "0";

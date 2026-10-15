@@ -290,6 +290,11 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   session still lifts in as blank paper. Filmstrip (budget → assets →
   drag back): budget's cards visible mid-drag. Snapshots can be a little
   stale (whatever the page showed when it was left).
+  Same for forward drags (user: "turning forward still doesn't show the
+  next page"): beneath the curling page, the next page's snapshot (or plain
+  paper if never visited — no longer the hidden live page's leftover title
+  + tab strip) until the real page renders. Filmstrip (assets → back to
+  budget → drag forward): assets' cards visible under the curl.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.
