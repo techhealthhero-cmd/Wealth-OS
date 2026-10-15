@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { getUserProgress } from "@/features/engagement/queries";
+import { getMilestones, getUserProgress } from "@/features/engagement/queries";
+import { MilestoneAlbum } from "@/features/engagement/components/milestone-album";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -10,7 +11,7 @@ import { WealthMissionList } from "@/features/engagement/components/wealth-missi
 export const metadata: Metadata = { title: "Missions — Wealth OS" };
 
 export default async function MissionsPage() {
-  const [progress, profile] = await Promise.all([getUserProgress(), getProfile()]);
+  const [progress, milestones, profile] = await Promise.all([getUserProgress(), getMilestones(), getProfile()]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
 
@@ -21,6 +22,7 @@ export default async function MissionsPage() {
         <p className="text-sm text-muted-foreground">{dict.missions.subtitle}</p>
       </div>
       <ProgressCard progress={progress} />
+      <MilestoneAlbum milestones={milestones} />
       <WealthMissionList />
     </div>
   );

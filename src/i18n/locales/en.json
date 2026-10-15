@@ -2704,6 +2704,20 @@
     "daysConsistent": "days consistent",
     "monthsConsistent": "months consistent"
   },
+  "milestones": {
+    "title": "Your milestones",
+    "reached": "reached",
+    "notYet": "not yet",
+    "items": {
+      "first-transaction": "First entry",
+      "first-budget": "First budget",
+      "emergency-fund-started": "Safety fund started",
+      "goal-reached": "Goal reached",
+      "first-debt-paid": "First debt cleared",
+      "first-side-income": "Side income",
+      "saving-streak-7": "7 days in a row"
+    }
+  },
   "notifications": {
     "title": "Notifications",
     "subtitle": "Keep track of what matters in your finances",

@@ -14,6 +14,7 @@ import { parseMoneyToCents } from "@/lib/financial/money";
 import { calculateTrackingDaysStreak, calculateWeeklyStreak, calculateMonthlyReviewStreak } from "@/lib/financial/streaks";
 import { calculateTotalXp, calculateLevel, type LevelProgress } from "@/lib/financial/xp";
 import { generateWealthMissionCandidates, type WealthMissionInputs } from "@/lib/financial/wealth-missions";
+import { calculateMilestones, type MilestoneKey } from "@/lib/financial/milestones";
 import { toLocalDateString } from "@/lib/date";
 import type { FinancialNotification, NotificationPreferences, WealthMission } from "@/types/database";
 import { throwDbError } from "@/lib/db-error";
@@ -147,6 +148,39 @@ export async function getUserProgress(): Promise<UserProgress> {
     monthlyReviewStreak: calculateMonthlyReviewStreak(reviewDates, now),
     trackingDaysStreak: calculateTrackingDaysStreak(recentTx.map((t) => new Date(t.transaction_date)), now),
   };
+}
+
+/** Live inputs for the Milestones sticker album — all read from recorded data, see `calculateMilestones`. */
+export async function getMilestones(): Promise<Record<MilestoneKey, boolean>> {
+  const supabase = await createClient();
+  const recent = recentDaysRange(90);
+
+  const [{ count, error: countError }, { count: budgetCount, error: budgetError }, fund, goals, liabilities, incomeSources, recentTx] =
+    await Promise.all([
+      supabase.from("transactions").select("id", { count: "exact", head: true }),
+      supabase.from("budgets").select("id", { count: "exact", head: true }),
+      getEmergencyFund(),
+      getGoals(),
+      getLiabilities(),
+      getIncomeSources(),
+      getTransactions({ from: recent.from, to: recent.to }),
+    ]);
+  if (countError) throwDbError(countError, "engagement.getMilestones", "Failed to count transactions");
+  if (budgetError) throwDbError(budgetError, "engagement.getMilestones", "Failed to count budgets");
+
+  return calculateMilestones({
+    transactionCount: count ?? 0,
+    hasBudget: (budgetCount ?? 0) > 0,
+    emergencyFundCurrentCents: fund ? parseMoneyToCents(fund.current_amount) : 0,
+    goals: goals.map((g) => ({
+      currentCents: parseMoneyToCents(g.current_amount),
+      targetCents: parseMoneyToCents(g.target_amount),
+      completed: g.status === "completed",
+    })),
+    liabilityBalancesCents: liabilities.map((l) => parseMoneyToCents(l.balance)),
+    activeIncomeSourceTypes: incomeSources.filter((s) => s.is_active).map((s) => s.source_type),
+    transactionDates: recentTx.map((t) => new Date(`${t.transaction_date}T00:00:00`)),
+  });
 }
 
 export async function getNotifications(options?: { unreadOnly?: boolean; limit?: number }): Promise<FinancialNotification[]> {

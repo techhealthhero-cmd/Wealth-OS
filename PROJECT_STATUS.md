@@ -241,6 +241,21 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   art, no broken images, no horizontal scroll. Not seen live: notifications
   (a new user already gets a monthly-review notice) and forecast (Plus-only,
   the test user was Free) — same `EmptyState` path as the verified ones.
+- 2026-10-15, later: Milestones sticker album on `/missions` (under the
+  progress card). The Milestones sheet
+  (`milestones-celebrations-concept-v1-gouache-ink.png`, 3×3, 7 drawings) is
+  cut into square WebPs (`public/artwork/milestones/`) by
+  `scripts/artwork/crop-milestone-art.mjs`. Which ones are reached is
+  decided live by the pure `calculateMilestones()`
+  (`src/lib/financial/milestones.ts`, tests in `tests/milestones.test.ts`)
+  from recorded data via `getMilestones()`: any transaction; any budget
+  row; emergency fund balance > 0; a goal completed or funded to target; a
+  liability at balance 0; an active freelance/business/commission/
+  side-hustle/rental income source; 7 consecutive days with transactions
+  in the last 90 days (a tracking streak, not a savings streak). Nothing is
+  stored. Reached = full colour + ring + tick, not yet = faded grey; no
+  modal or confetti. Verified on the demo account at 390px (3/7 reached),
+  no broken images; full unit suite passes.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

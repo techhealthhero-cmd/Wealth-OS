@@ -2704,6 +2704,20 @@
     "daysConsistent": "วันติดต่อกัน",
     "monthsConsistent": "เดือนติดต่อกัน"
   },
+  "milestones": {
+    "title": "ก้าวสำคัญของคุณ",
+    "reached": "สำเร็จแล้ว",
+    "notYet": "ยังไม่ถึง",
+    "items": {
+      "first-transaction": "จดรายการแรก",
+      "first-budget": "ตั้งงบครั้งแรก",
+      "emergency-fund-started": "เริ่มเงินสำรอง",
+      "goal-reached": "ถึงเป้าหมาย",
+      "first-debt-paid": "ปลดหนี้ก้อนแรก",
+      "first-side-income": "มีรายได้เสริม",
+      "saving-streak-7": "จดครบ 7 วันติด"
+    }
+  },
   "notifications": {
     "title": "การแจ้งเตือน",
     "subtitle": "ติดตามเรื่องสำคัญทางการเงินของคุณ",
