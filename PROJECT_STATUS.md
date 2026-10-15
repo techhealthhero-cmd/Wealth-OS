@@ -295,6 +295,15 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   paper if never visited — no longer the hidden live page's leftover title
   + tab strip) until the real page renders. Filmstrip (assets → back to
   budget → drag forward): assets' cards visible under the curl.
+- 2026-10-15, later: section tabs (`SegmentedTabs`, Money/Plan/Earn) are
+  now notebook divider tabs — option A of the user-reviewed mockup
+  (https://claude.ai/artifact/Mybf12Zu8zxtW9cax4pr1W, 6 options). Paper
+  tabs on the page's top edge with a page number; the open one is the
+  page's own paper (no seam), the rest sit behind in `--journal-edge`.
+  Replaces the glossy sliding green tile, which read as a plastic button
+  on the paper once pages turned. Tab icons are no longer drawn. Verified
+  at 390px on Money (overflowing, scrolls to active), Earn (3 tabs,
+  stretched) and Plan in dark mode; no horizontal page scroll.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.
