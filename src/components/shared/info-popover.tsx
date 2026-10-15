@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Artwork } from "@/components/shared/artwork";
 import { asTrigger } from "@/lib/as-trigger";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +31,11 @@ export function InfoPopover({ label, explanation, className }: { label: string; 
           </Button>
         )}
       />
-      <PopoverContent>{explanation}</PopoverContent>
+      <PopoverContent>
+        {/* Hand-drawn busy page turned into clear cards — "here's what this means" (2026-10-15). */}
+        <Artwork src="/artwork/ai/explain.webp" square className="mb-1 size-12" />
+        {explanation}
+      </PopoverContent>
     </Popover>
   );
 }

@@ -660,7 +660,9 @@ export function AICoachChat({
                   ) : null}
                   {isThinking ? (
                     <Bubble align={align} variant="ghost">
-                      <BubbleContent>
+                      <BubbleContent className="flex items-center gap-2.5">
+                        {/* Hand-drawn notebook under a magnifier: reading your numbers (2026-10-15). */}
+                        <Artwork src="/artwork/ai/reading.webp" square className="size-10 motion-safe:animate-pulse" />
                         {/* Live status (2026-10-04): what's happening, not just "thinking…". */}
                         <LiveStatus className="text-[15px]/6" lines={thinkingLines} />
                       </BubbleContent>

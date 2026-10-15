@@ -7,8 +7,11 @@ import { buildNextBestActionText } from "@/features/ai/lib/next-best-action";
 import { useTranslation } from "@/i18n/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { IconChip } from "@/components/shared/icon-chip";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { Artwork } from "@/components/shared/artwork";
+import { ArrowRight } from "lucide-react";
+
+/** Hand-drawn map: several routes meeting at one tick (2026-10-15). */
+const NBA_ART = "/artwork/ai/next-best-action.webp";
 
 /**
  * Deterministic — every word here comes from the i18n dictionary plus real
@@ -39,7 +42,7 @@ export function NextBestActionCard({
       <Card variant="soft">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <IconChip icon={Sparkles} tone="mint" className="size-11" />
+            <Artwork src={NBA_ART} square className="size-14" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">{t("nextBestAction.title")}</p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -65,7 +68,7 @@ export function NextBestActionCard({
     <Card variant="soft">
       <CardContent className="pt-6">
         <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-3 min-[375px]:grid-cols-[auto_minmax(0,1fr)_auto] min-[375px]:items-center">
-          <IconChip icon={Sparkles} tone="mint" className="motion-pulse-once size-11" />
+          <Artwork src={NBA_ART} square className="motion-pulse-once size-14 sm:size-16" />
           <div className="min-w-0">
             <p className="text-sm font-medium text-muted-foreground">{t("nextBestAction.title")}</p>
             <p className="mt-1 break-words text-base font-semibold leading-snug sm:text-lg">{actionText}</p>

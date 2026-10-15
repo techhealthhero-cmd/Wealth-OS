@@ -256,6 +256,16 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   stored. Reached = full colour + ring + tick, not yet = faded grey; no
   modal or confetti. Verified on the demo account at 390px (3/7 reached),
   no broken images; full unit suite passes.
+- 2026-10-15, later: AI Coach art (`ai-coach-concept-v1-gouache-ink.png`,
+  2×2, no robot/mascot) cut into square WebPs (`public/artwork/ai/`) by
+  `scripts/artwork/crop-ai-coach-art.mjs`: the map replaces the Sparkles
+  chip on `NextBestActionCard` (AI page + everywhere else it renders); the
+  calendar/compass sits in the Monthly Health Check header and its
+  not-enough-data state; the notebook-under-magnifier pulses beside the
+  chat's live "thinking" status; the busy-page-to-clear-cards drawing tops
+  every `InfoPopover` explanation. `Artwork` gains `square`. Verified on
+  the demo account at 390px (AI page, assets info popover). Not seen live:
+  the thinking bubble (needs a real AI message).
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

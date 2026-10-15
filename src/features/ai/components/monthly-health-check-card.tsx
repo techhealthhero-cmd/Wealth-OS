@@ -6,6 +6,10 @@ import { formatMoney } from "@/lib/financial/money";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NextBestActionCard } from "@/features/ai/components/next-best-action-card";
+import { Artwork } from "@/components/shared/artwork";
+
+/** Hand-drawn calendar with a compass card — the month's advice (2026-10-15). */
+const ART = "/artwork/ai/monthly-advice.webp";
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
   good: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400",
@@ -70,9 +74,12 @@ export function MonthlyHealthCheckCard({
         <CardHeader>
           <CardTitle className="text-base">{t("monthlyHealthCheck.title")}</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm font-medium">{t("monthlyHealthCheck.emptyTitle")}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{t("monthlyHealthCheck.emptyState")}</p>
+        <CardContent className="flex items-start gap-3">
+          <Artwork src={ART} square className="size-16" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">{t("monthlyHealthCheck.emptyTitle")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("monthlyHealthCheck.emptyState")}</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -81,11 +88,15 @@ export function MonthlyHealthCheckCard({
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">{t("monthlyHealthCheck.title")}</CardTitle>
-          <Badge className={STATUS_BADGE_CLASS[health.overallStatus]}>
-            {t(`monthlyHealthCheck.status.${health.overallStatus}`)}
-          </Badge>
+        <CardHeader>
+          {/* One flex row of its own: CardHeader is a grid, so the badge would otherwise wrap below. */}
+          <div className="flex items-center gap-2.5">
+            <Artwork src={ART} square className="size-11" />
+            <CardTitle className="min-w-0 flex-1 text-base">{t("monthlyHealthCheck.title")}</CardTitle>
+            <Badge className={STATUS_BADGE_CLASS[health.overallStatus]}>
+              {t(`monthlyHealthCheck.status.${health.overallStatus}`)}
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
