@@ -14,6 +14,9 @@ import {
 import { EmergencyFundForm } from "./emergency-fund-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Artwork } from "@/components/shared/artwork";
+
+const ART = "/artwork/net-worth/emergency-fund.webp";
 
 interface EmergencyFundViewProps {
   emergencyFund: EmergencyFund | null;
@@ -36,6 +39,8 @@ export function EmergencyFundView({
   if (editing) {
     return (
       <div className="space-y-4">
+        {/* First setup only — a welcome, not repeated while editing an existing fund. */}
+        {!emergencyFund ? <Artwork src={ART} className="mx-auto w-36" /> : null}
         {!hasEssentialData ? (
           <Card>
             <CardContent className="pt-6 text-sm text-muted-foreground">
@@ -71,6 +76,7 @@ export function EmergencyFundView({
           card's own bg-secondary and would otherwise be invisible. */}
       <Card variant="soft">
         <CardContent className="space-y-3 pt-6 text-center">
+          <Artwork src={ART} className="mx-auto w-24" />
           <p className="text-sm text-muted-foreground">{t("emergencyFund.monthsProtected")}</p>
           <p className="text-3xl font-bold">
             {monthsProtected.toFixed(1)} <span className="text-lg font-normal text-muted-foreground">{t("emergencyFund.months")}</span>

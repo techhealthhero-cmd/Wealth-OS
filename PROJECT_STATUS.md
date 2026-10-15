@@ -216,6 +216,18 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   in the landing page's Track → Plan → Earn → Grow row (56px, 80px from
   `sm`). Verified at 375px: one row, no horizontal scroll. Not yet used on
   `/onboarding` itself (it keeps `WelcomeIllustration`).
+- 2026-10-15, later: the Net Worth & Financial Foundation sheet
+  (`net-worth-financial-foundation-concept-v1-gouache-ink.png`, 2×3) is cut
+  into five rounded 3:2 WebPs (`public/artwork/net-worth/`) by
+  `scripts/artwork/crop-net-worth-art.mjs`, shown through a new decorative
+  `<Artwork>` (`src/components/shared/artwork.tsx`): scale above the Net
+  Worth hero figure, open box on Total assets, clipboard on Total
+  liabilities, empty notebook in the "no history yet" state, and the
+  shield/jar/home on the Emergency Fund hero card and first-time setup.
+  Pictures sit beside the numbers, never in place of them. Verified on the
+  demo account at 390px (net worth + emergency fund): no broken images, no
+  horizontal scroll. The no-history and first-setup states weren't seen
+  live (the demo account has history and a fund).
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

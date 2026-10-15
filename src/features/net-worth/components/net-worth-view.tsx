@@ -6,6 +6,7 @@ import { useTranslation } from "@/i18n/client";
 import { formatMoney, formatMoneyFromDecimal, parseMoneyToCents } from "@/lib/financial/money";
 import { calculateNetWorthChange } from "@/lib/financial/net-worth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Artwork } from "@/components/shared/artwork";
 import { NetWorthHistoryChart } from "./charts-lazy";
 
 interface NetWorthViewProps {
@@ -36,6 +37,7 @@ export function NetWorthView({ breakdown, snapshots }: NetWorthViewProps) {
     <div className="space-y-4">
       <Card>
         <CardContent className="space-y-1 pt-6 text-center">
+          <Artwork src="/artwork/net-worth/balance.webp" className="mx-auto mb-2 w-24" />
           <p className="text-sm text-muted-foreground">{t("netWorth.currentNetWorth")}</p>
           <p className={`text-3xl font-bold ${breakdown.netWorthCents < 0 ? "text-destructive" : ""}`}>
             {formatMoney(breakdown.netWorthCents)}
@@ -52,6 +54,7 @@ export function NetWorthView({ breakdown, snapshots }: NetWorthViewProps) {
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardContent className="pt-6">
+            <Artwork src="/artwork/net-worth/assets.webp" className="mb-2 w-16" />
             <p className="text-xs text-muted-foreground">{t("netWorth.totalAssets")}</p>
             <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
               {formatMoney(breakdown.totalAssetsCents)}
@@ -60,6 +63,7 @@ export function NetWorthView({ breakdown, snapshots }: NetWorthViewProps) {
         </Card>
         <Card>
           <CardContent className="pt-6">
+            <Artwork src="/artwork/net-worth/liabilities.webp" className="mb-2 w-16" />
             <p className="text-xs text-muted-foreground">{t("netWorth.totalLiabilities")}</p>
             <p className="text-xl font-semibold text-destructive">{formatMoney(breakdown.totalLiabilitiesCents)}</p>
           </CardContent>
@@ -72,7 +76,8 @@ export function NetWorthView({ breakdown, snapshots }: NetWorthViewProps) {
         </CardHeader>
         <CardContent>
           {chartData.length < 2 ? (
-            <div className="flex h-40 items-center justify-center text-center text-sm text-muted-foreground">
+            <div className="flex min-h-40 flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
+              <Artwork src="/artwork/net-worth/no-history.webp" className="w-28" />
               {t("netWorth.noHistoryYet")}
             </div>
           ) : (
