@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 const mobileBrowserName: "chromium" | "webkit" = process.env.E2E_WEBKIT === "1" ? "webkit" : "chromium";
+const localBrowserChannel = process.env.E2E_CHROME === "1" ? "chrome" : undefined;
 
 /**
  * Mobile responsive/overflow QA (2026-09 — real-device iPhone bug audit).
@@ -16,6 +17,10 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL,
+    // Lets locked-down Windows QA machines reuse an installed Chrome instead
+    // of downloading Playwright's Chromium bundle. CI keeps the bundled
+    // browser unless it opts in explicitly.
+    channel: localBrowserChannel,
   },
   // Match Next.js's recommended Playwright setup: local runs bring up the
   // app automatically, while staging runs (E2E_BASE_URL set) never start a

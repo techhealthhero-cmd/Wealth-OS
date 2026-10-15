@@ -378,9 +378,13 @@ export function AICoachChat({
     // The user just acted — resume following the conversation even if they'd
     // scrolled away reading an earlier reply.
     stickToBottomRef.current = true;
+    const assistantId = crypto.randomUUID();
     setMessages((prev) => [
       ...prev,
       { id: crypto.randomUUID(), role: "user", content: trimmed, imageDataUrl: image?.dataUrl },
+      // Create this before fetch so the reading status is visible while the
+      // server/provider is still preparing the streamed response.
+      { id: assistantId, role: "assistant", content: "" },
     ]);
     setIsSending(true);
 
@@ -400,23 +404,25 @@ export function AICoachChat({
       if (contentType.includes("application/json")) {
         const data = await res.json();
         if (!res.ok) {
+          setMessages((prev) => prev.filter((message) => message.id !== assistantId));
           setErrorMessage(typeof data.error === "string" ? data.error : t("aiCoach.errorGeneric"));
           return;
         }
         if (typeof data.conversationId === "string") setConversationId(data.conversationId);
         if (typeof data.reply === "string") {
-          setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: data.reply }]);
+          setMessages((prev) => prev.map((message) => (message.id === assistantId ? { ...message, content: data.reply } : message)));
+        } else {
+          setMessages((prev) => prev.filter((message) => message.id !== assistantId));
         }
         return;
       }
 
       if (!res.body) {
+        setMessages((prev) => prev.filter((message) => message.id !== assistantId));
         setErrorMessage(t("aiCoach.errorGeneric"));
         return;
       }
 
-      const assistantId = crypto.randomUUID();
-      setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -457,6 +463,7 @@ export function AICoachChat({
         setMessages((prev) => prev.filter((m) => !(m.id === assistantId && m.content === "")));
       }
     } catch {
+      setMessages((prev) => prev.filter((message) => message.id !== assistantId));
       setErrorMessage(t("aiCoach.errorGeneric"));
     } finally {
       setIsSending(false);

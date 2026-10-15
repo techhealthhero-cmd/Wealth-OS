@@ -263,9 +263,15 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   calendar/compass sits in the Monthly Health Check header and its
   not-enough-data state; the notebook-under-magnifier pulses beside the
   chat's live "thinking" status; the busy-page-to-clear-cards drawing tops
-  every `InfoPopover` explanation. `Artwork` gains `square`. Verified on
-  the demo account at 390px (AI page, assets info popover). Not seen live:
-  the thinking bubble (needs a real AI message).
+  every `InfoPopover` explanation. `Artwork` gains `square`, and now uses
+  `next/image` with fixed intrinsic ratios. The chat creates its empty
+  assistant message before the request begins, so the reading state is
+  visible while the server/provider prepares the stream; JSON and network
+  error paths remove that placeholder. Verified with the real two-turn AI
+  E2E at 390px in light and dark mode: all four images load, there is no
+  horizontal overflow, messages persist, and usage logging remains correct.
+  The E2E runner can opt into installed Chrome with `E2E_CHROME=1` on
+  Windows hosts without bundled Chromium.
 - 2026-10-15, later (user report: dragging right to go back slid the cards
   under a fixed title + tab strip, which then snapped back as the turn
   began — a visible jerk): the live page no longer moves during any swipe.

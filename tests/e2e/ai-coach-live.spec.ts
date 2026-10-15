@@ -39,7 +39,6 @@ test("AI Coach: two-turn chat streams, saves, and logs chat usage", async ({ pag
     expect(
       (await admin.from("accounts").insert({ user_id: userId, name: "เงินสด", account_type: "cash", currency_code: "THB", opening_balance: "12000.00" })).error
     ).toBeNull();
-
     await page.goto("/login");
     await page.getByLabel(/email|อีเมล/i).fill(email);
     await page.getByLabel(/password|รหัสผ่าน/i).fill(password);
@@ -47,12 +46,38 @@ test("AI Coach: two-turn chat streams, saves, and logs chat usage", async ({ pag
     await page.waitForURL(/\/dashboard/, { timeout: 20_000 });
 
     await page.goto("/ai");
+    // next/image rewrites local public URLs through /_next/image in production.
+    const nextBestActionArt = page.locator('img[src*="next-best-action.webp"]');
+    const monthlyAdviceArt = page.locator('img[src*="monthly-advice.webp"]');
+    for (const artwork of [nextBestActionArt, monthlyAdviceArt]) {
+      await expect(artwork).toBeVisible();
+      await expect.poll(() => artwork.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("ai-coach-art-light-390.png"), fullPage: true });
+
+    await page.getByRole("button", { name: "สลับธีม" }).click();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await expect(nextBestActionArt).toBeVisible();
+    await expect(monthlyAdviceArt).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("ai-coach-art-dark-390.png"), fullPage: true });
+
+    // Hold the request briefly so the streaming/loading treatment is
+    // observable even when the real provider responds almost immediately.
+    await page.route("**/api/ai/chat", async (route) => {
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 750));
+      await route.continue();
+    });
     const input = page.getByLabel("พิมพ์คำถามเกี่ยวกับการเงินของคุณ...");
     const assistantCount = async () =>
       (await admin.from("ai_messages").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("role", "assistant")).count ?? 0;
 
     await input.fill("ตอนนี้ฉันมีเงินสดเท่าไหร่");
     await input.press("Enter");
+    const readingArt = page.locator('img[src*="reading.webp"]');
+    await expect(readingArt).toBeVisible();
+    await expect.poll(() => readingArt.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
     await expect.poll(assistantCount, { timeout: 60_000 }).toBe(1);
     await expect(input).toBeEnabled({ timeout: 30_000 });
 
@@ -71,6 +96,19 @@ test("AI Coach: two-turn chat streams, saves, and logs chat usage", async ({ pag
     expect(error).toBeNull();
     expect(usage).toHaveLength(2);
     for (const row of usage!) if ("feature" in row) expect(row.feature).toBe("chat");
+
+    // The fourth AI artwork explains unfamiliar figures inside the shared
+    // info popover. Keep this in the same mobile/dark-mode visual pass.
+    expect((await admin.from("assets").insert({ user_id: userId, name: "ทองคำ", asset_type: "gold", value: 42000 })).error).toBeNull();
+    await page.goto("/money/assets");
+    // Cross-section navigation intentionally keeps its page curl for 650ms.
+    await page.waitForTimeout(700);
+    await page.getByRole("button", { name: "สินทรัพย์คืออะไร" }).click();
+    const explainArt = page.locator('img[src*="explain.webp"]');
+    await expect(explainArt).toBeVisible();
+    await expect.poll(() => explainArt.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("ai-explain-popover-dark-390.png"), fullPage: true });
   } finally {
     if (userId) await admin.auth.admin.deleteUser(userId);
   }
