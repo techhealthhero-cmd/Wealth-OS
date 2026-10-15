@@ -9,7 +9,6 @@ import { MoneyYearView } from "@/features/money-year/components/money-year-view"
 import { YearSelector } from "@/features/money-year/components/year-selector";
 import { CompareYearsButton } from "@/features/money-year/components/compare-years-button";
 import { EmptyState } from "@/components/shared/empty-state";
-import { WelcomeIllustration } from "@/components/illustrations";
 import { getPrivacyGate } from "@/features/account-privacy/gate";
 import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
@@ -38,7 +37,7 @@ export default async function MoneyYearPage({ searchParams }: MoneyYearPageProps
         <YearSelector year={year} />
         <div className="mx-auto max-w-lg py-4">
           <EmptyState
-            illustration={<WelcomeIllustration size={140} />}
+            art="/artwork/empty/money-year.webp"
             title={dict.moneyYear.emptyTitle}
             description={dict.moneyYear.emptyState}
             action={<MoneyYearForm year={year} />}

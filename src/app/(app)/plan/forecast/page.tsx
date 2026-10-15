@@ -12,7 +12,6 @@ import { getLocale } from "@/i18n/server";
 import { ForecastView } from "@/features/forecast/components/forecast-view";
 import { ForecastScenarioForm } from "@/features/forecast/components/forecast-scenario-form";
 import { EmptyState } from "@/components/shared/empty-state";
-import { WelcomeIllustration } from "@/components/illustrations";
 import { requireFeature, FEATURES } from "@/lib/billing/entitlements";
 import { LockedFeatureCard } from "@/features/billing/components/locked-feature-card";
 import { getPrivacyGate } from "@/features/account-privacy/gate";
@@ -54,7 +53,7 @@ export default async function ForecastPage() {
     return (
       <div className="mx-auto max-w-lg py-8">
         <EmptyState
-          illustration={<WelcomeIllustration size={140} />}
+          art="/artwork/empty/forecast.webp"
           title={dict.forecast.emptyTitle}
           description={dict.forecast.emptyState}
           action={<ForecastScenarioForm defaults={defaultAssumptions} />}

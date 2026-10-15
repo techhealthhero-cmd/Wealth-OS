@@ -6,7 +6,6 @@ import { getLocale } from "@/i18n/server";
 import { LiabilityForm } from "./liability-form";
 import { LiabilityCard } from "./liability-card";
 import { EmptyState } from "@/components/shared/empty-state";
-import { EmptyAccountsIllustration } from "@/components/illustrations";
 
 export async function LiabilityList() {
   const [liabilities, accounts, profile] = await Promise.all([getLiabilities(), getDisplayAccounts(), getProfile()]);
@@ -20,7 +19,7 @@ export async function LiabilityList() {
   if (liabilities.length === 0) {
     return (
       <EmptyState
-        illustration={<EmptyAccountsIllustration size={140} />}
+        art="/artwork/empty/liabilities.webp"
         title={dict.liabilities.emptyTitle}
         description={dict.liabilities.emptyState}
         action={<LiabilityForm creditCardAccounts={creditCardAccounts} />}

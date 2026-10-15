@@ -30,6 +30,7 @@ import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Message, MessageContent, MessageFooter } from "@/components/ui/message";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group";
 import { AICoachIllustration } from "@/components/illustrations";
+import { Artwork } from "@/components/shared/artwork";
 import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useSpeechInput } from "@/lib/speech/use-speech-input";
 import type { AIConversation, AIMessageRow } from "@/types/database";
@@ -604,7 +605,7 @@ export function AICoachChat({
         ) : (
           <Card className="rounded-2xl">
             <CardContent className="flex flex-col items-center gap-3 pt-8 pb-8 text-center">
-              <AICoachIllustration size={120} />
+              <Artwork src="/artwork/empty/ai-conversation.webp" className="w-44 -rotate-2 drop-shadow-sm sm:w-52" />
               <p className="font-medium">{t("aiCoach.emptyTitle")}</p>
               <p className="max-w-sm text-sm text-muted-foreground">{t("aiCoach.emptyState")}</p>
               <div className="mt-2 flex flex-wrap justify-center gap-2">

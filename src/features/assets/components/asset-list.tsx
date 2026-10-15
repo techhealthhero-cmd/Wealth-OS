@@ -6,7 +6,6 @@ import { getLocale } from "@/i18n/server";
 import { AssetForm } from "./asset-form";
 import { AssetCard } from "./asset-card";
 import { EmptyState } from "@/components/shared/empty-state";
-import { EmptyAccountsIllustration } from "@/components/illustrations";
 import { InfoPopover } from "@/components/shared/info-popover";
 import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
@@ -27,7 +26,7 @@ export async function AssetList() {
   if (assets.length === 0) {
     return (
       <EmptyState
-        illustration={<EmptyAccountsIllustration size={140} />}
+        art="/artwork/empty/assets.webp"
         title={dict.assets.emptyTitle}
         description={dict.assets.emptyState}
         action={<AssetForm accounts={accounts} />}

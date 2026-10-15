@@ -228,6 +228,19 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   demo account at 390px (net worth + emergency fund): no broken images, no
   horizontal scroll. The no-history and first-setup states weren't seen
   live (the demo account has history and a fund).
+- 2026-10-15, later: the Empty States sheet
+  (`empty-states-concept-v1-gouache-ink.png`, 2×3) is cut into six 3:2
+  WebPs (`public/artwork/empty/`) by `scripts/artwork/crop-empty-state-art.mjs`.
+  `EmptyState` gains an `art` option (picture tilted slightly, like a photo
+  taped into the note) used by: no assets, no liabilities, no
+  notifications (was a plain text card, now an EmptyState), no Money Year
+  plan, no forecast scenario; the AI Coach page's empty chat shows the
+  speech-bubble book in place of `AICoachIllustration` (the overlay keeps
+  the companion avatar). Verified at 390px with a disposable empty user
+  (deleted afterwards): assets, liabilities, Money Year and AI show the
+  art, no broken images, no horizontal scroll. Not seen live: notifications
+  (a new user already gets a monthly-review notice) and forecast (Plus-only,
+  the test user was Free) — same `EmptyState` path as the verified ones.
 - Known: pending items also appear in the list under their own date (they
   are recorded transactions and count in balances). No badge on the Money
   nav tab yet.

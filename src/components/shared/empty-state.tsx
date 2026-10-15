@@ -1,14 +1,17 @@
 import type { LucideIcon } from "lucide-react";
 
 import { IllustrationFrame } from "@/components/illustrations";
+import { Artwork } from "@/components/shared/artwork";
 
 type EmptyStateProps = {
   title: string;
   description?: string;
   action?: React.ReactNode;
 } & (
-  | { icon: LucideIcon; illustration?: never }
-  | { icon?: never; illustration: React.ReactNode }
+  | { icon: LucideIcon; illustration?: never; art?: never }
+  | { icon?: never; illustration: React.ReactNode; art?: never }
+  // A hand-drawn 3:2 picture from public/artwork/empty/ (2026-10-15).
+  | { icon?: never; illustration?: never; art: string }
 );
 
 export function EmptyState({ title, description, action, ...visual }: EmptyStateProps) {
@@ -25,7 +28,10 @@ export function EmptyState({ title, description, action, ...visual }: EmptyState
     // Journal (2026-10-09): an empty state is a taped sticky note — the
     // first step of a task (UX_GUIDELINES.md #10), not a blank box.
     <div className="journal-note journal-tape mt-3 flex w-full min-w-0 max-w-full flex-col items-center justify-center gap-3 rounded-md px-4 py-14 text-center">
-      {"illustration" in visual && visual.illustration ? (
+      {"art" in visual && visual.art ? (
+        // Slight tilt, like a photo taped into the note.
+        <Artwork src={visual.art} className="w-44 -rotate-2 drop-shadow-sm sm:w-52" />
+      ) : "illustration" in visual && visual.illustration ? (
         <IllustrationFrame size={180}>{visual.illustration}</IllustrationFrame>
       ) : (
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted">

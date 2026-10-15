@@ -8,6 +8,7 @@ import { useTranslation } from "@/i18n/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/shared/empty-state";
 
 export function NotificationList({ notifications }: { notifications: FinancialNotification[] }) {
   const { t } = useTranslation();
@@ -16,13 +17,7 @@ export function NotificationList({ notifications }: { notifications: FinancialNo
   const hasUnread = notifications.some((n) => !n.is_read);
 
   if (notifications.length === 0) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground">{t("notifications.noNotifications")}</p>
-        </CardContent>
-      </Card>
-    );
+    return <EmptyState art="/artwork/empty/notifications.webp" title={t("notifications.noNotifications")} />;
   }
 
   return (
