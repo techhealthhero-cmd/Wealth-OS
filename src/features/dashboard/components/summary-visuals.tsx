@@ -61,7 +61,6 @@ interface MonthlyDonutCardProps {
     overIncome: string;
     spentOfIncome: string;
     dayProgress: string;
-    overIncomeLegend: string;
     cashFlow: string;
     savingsRate: string;
     vsLastMonth: string;
@@ -132,7 +131,7 @@ function BarRow({
                 left: `${overFromPct}%`,
                 width: `${fillPct - overFromPct}%`,
                 background:
-                  "repeating-linear-gradient(135deg, color-mix(in oklab, var(--destructive) 55%, transparent) 0 5px, color-mix(in oklab, var(--destructive) 25%, transparent) 5px 10px)",
+                  "repeating-linear-gradient(135deg, rgb(178 58 72 / 0.55) 0 5px, rgb(178 58 72 / 0.22) 5px 10px)",
               }}
             />
             <span className="absolute inset-y-0 w-0.5 bg-foreground" style={{ left: `${overFromPct}%` }} />
@@ -203,30 +202,44 @@ export function MonthlyDonutCard({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-baseline justify-between gap-3">
-        <CardTitle className="text-base">{labels.title}</CardTitle>
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-          {labels.dayProgress.replace("{day}", String(dayOfMonth)).replace("{total}", String(daysInMonth))}
-        </span>
+      <CardHeader className="space-y-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <CardTitle className="text-base">{labels.title}</CardTitle>
+          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+            {labels.dayProgress.replace("{day}", String(dayOfMonth)).replace("{total}", String(daysInMonth))}
+          </span>
+        </div>
+        {/* One slim gold line (the mic button's gold), not dots — dots read
+            like the dashed bottom-nav border. */}
+        <div className="h-1 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+          <span
+            className="block h-full rounded-full bg-[#C9A24A]"
+            style={{ width: `${daysInMonth > 0 ? (dayOfMonth / daysInMonth) * 100 : 0}%` }}
+          />
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
           <p className="text-xs text-muted-foreground">{labels.remaining}</p>
+          {/* Deep rose rather than the alarm-red destructive token: a coach
+              pointing something out, not a warning siren. */}
           <p
             className={cn(
               "break-all text-3xl font-bold leading-tight tabular-nums",
-              cashFlowCents < 0 && "text-destructive"
+              cashFlowCents < 0 && "text-[#B23A48] dark:text-rose-300"
             )}
           >
             {formatMoney(cashFlowCents, currencyCode)}
           </p>
-          {isOver ? (
-            <p className="text-xs text-muted-foreground">
-              {labels.overIncome.replace("{amount}", formatMoney(overCents, currencyCode))}
-            </p>
-          ) : income > 0 ? (
+          {/* The big number already says the amount; the caption adds the
+              ratio. With no income there's no ratio, so name the overspend. */}
+          {income > 0 ? (
             <p className="text-xs text-muted-foreground">
               {labels.spentOfIncome.replace("{percent}", ((expenses / income) * 100).toFixed(0))}
+            </p>
+          ) : isOver ? (
+            <p className="text-xs text-muted-foreground">
+              {labels.overIncome.replace("{amount}", formatMoney(overCents, currencyCode))}
             </p>
           ) : null}
         </div>
@@ -249,16 +262,6 @@ export function MonthlyDonutCard({
             fillColor="#E5989B"
             overFromPct={isOver ? incomePct : null}
           />
-          {isOver ? <p className="text-[11px] text-muted-foreground">{labels.overIncomeLegend}</p> : null}
-        </div>
-
-        <div className="flex gap-[3px]" aria-hidden="true">
-          {Array.from({ length: daysInMonth }, (_, i) => (
-            <span
-              key={i}
-              className={cn("h-1 flex-1 rounded-full", i < dayOfMonth ? "bg-amber-600/70 dark:bg-amber-400/70" : "bg-muted")}
-            />
-          ))}
         </div>
 
         <button

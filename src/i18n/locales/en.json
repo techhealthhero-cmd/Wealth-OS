@@ -347,8 +347,7 @@
     "expensesShort": "Expenses",
     "overIncome": "Spent {amount} more than income",
     "spentOfIncome": "Spent {percent}% of income",
-    "dayProgress": "Day {day} of {total}",
-    "overIncomeLegend": "Red stripes = spending above income"
+    "dayProgress": "Day {day} of {total}"
   },
   "accounts": {
     "title": "Accounts",

@@ -152,7 +152,6 @@ export default async function DashboardPage() {
             overIncome: dict.dashboard.overIncome,
             spentOfIncome: dict.dashboard.spentOfIncome,
             dayProgress: dict.dashboard.dayProgress,
-            overIncomeLegend: dict.dashboard.overIncomeLegend,
             cashFlow: dict.dashboard.cashFlow,
             savingsRate: dict.dashboard.savingsRate,
             vsLastMonth: dict.dashboard.vsLastMonth,

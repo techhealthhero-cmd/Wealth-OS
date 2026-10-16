@@ -347,8 +347,7 @@
     "expensesShort": "รายจ่าย",
     "overIncome": "จ่ายเกินรายรับ {amount}",
     "spentOfIncome": "ใช้ไป {percent}% ของรายรับ",
-    "dayProgress": "วันที่ {day}/{total}",
-    "overIncomeLegend": "ลายแดง = ส่วนที่จ่ายเกินรายรับ"
+    "dayProgress": "วันที่ {day}/{total}"
   },
   "accounts": {
     "title": "บัญชี",
