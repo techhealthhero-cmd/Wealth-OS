@@ -46,6 +46,8 @@ export default async function DashboardPage() {
   const currencyCode = profile?.currency_code ?? "THB";
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
+  // Same server-local clock getCurrentMonthRange() uses for "this month".
+  const today = new Date();
 
   if (!data.hasAnyData) {
     return (
@@ -135,6 +137,8 @@ export default async function DashboardPage() {
           cashFlowChangePercent={data.cashFlowChangePercent}
           savingsRateChangePoints={data.savingsRateChangePoints}
           hasDataThisMonth={data.hasMonthData}
+          dayOfMonth={today.getDate()}
+          daysInMonth={new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()}
           currencyCode={currencyCode}
           accounts={data.accounts}
           categories={data.categories}
@@ -143,6 +147,12 @@ export default async function DashboardPage() {
             income: dict.dashboard.monthlyIncome,
             expenses: dict.dashboard.monthlyExpenses,
             remaining: dict.dashboard.remaining,
+            incomeShort: dict.dashboard.incomeShort,
+            expensesShort: dict.dashboard.expensesShort,
+            overIncome: dict.dashboard.overIncome,
+            spentOfIncome: dict.dashboard.spentOfIncome,
+            dayProgress: dict.dashboard.dayProgress,
+            overIncomeLegend: dict.dashboard.overIncomeLegend,
             cashFlow: dict.dashboard.cashFlow,
             savingsRate: dict.dashboard.savingsRate,
             vsLastMonth: dict.dashboard.vsLastMonth,

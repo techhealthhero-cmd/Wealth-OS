@@ -45,6 +45,8 @@ interface MonthlyDonutCardProps {
   cashFlowChangePercent: number | null;
   savingsRateChangePoints: number | null;
   hasDataThisMonth: boolean;
+  dayOfMonth: number;
+  daysInMonth: number;
   currencyCode: string;
   accounts: Account[];
   categories: Category[];
@@ -54,6 +56,12 @@ interface MonthlyDonutCardProps {
     income: string;
     expenses: string;
     remaining: string;
+    incomeShort: string;
+    expensesShort: string;
+    overIncome: string;
+    spentOfIncome: string;
+    dayProgress: string;
+    overIncomeLegend: string;
     cashFlow: string;
     savingsRate: string;
     vsLastMonth: string;
@@ -90,7 +98,67 @@ function InlineTrend({
   );
 }
 
-/** The common monthly summary only needs two arcs, not the Recharts runtime. */
+function BarRow({
+  label,
+  ariaLabel,
+  amount,
+  trend,
+  fillPct,
+  fillColor,
+  overFromPct = null,
+}: {
+  label: string;
+  ariaLabel: string;
+  amount: string;
+  trend: ReactNode;
+  fillPct: number;
+  fillColor: string;
+  /** Where income ends on the shared scale; the fill beyond it is striped. */
+  overFromPct?: number | null;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        {trend}
+      </div>
+      <div className="relative h-7 overflow-hidden rounded-lg bg-muted" role="img" aria-label={ariaLabel}>
+        <span className="absolute inset-y-0 left-0 rounded-lg" style={{ width: `${fillPct}%`, background: fillColor }} />
+        {overFromPct !== null ? (
+          <>
+            <span
+              className="absolute inset-y-0 rounded-r-lg"
+              style={{
+                left: `${overFromPct}%`,
+                width: `${fillPct - overFromPct}%`,
+                background:
+                  "repeating-linear-gradient(135deg, color-mix(in oklab, var(--destructive) 55%, transparent) 0 5px, color-mix(in oklab, var(--destructive) 25%, transparent) 5px 10px)",
+              }}
+            />
+            <span className="absolute inset-y-0 w-0.5 bg-foreground" style={{ left: `${overFromPct}%` }} />
+          </>
+        ) : null}
+        {/* Over a wide pastel fill the label needs dark ink in both themes;
+            over a near-empty track it sits on the muted ground instead. */}
+        <span
+          className={cn(
+            "absolute inset-y-0 left-2.5 flex items-center text-xs font-semibold tabular-nums",
+            fillPct >= 40 ? "text-[#22332b]" : "text-foreground"
+          )}
+        >
+          {amount}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Monthly summary as two to-scale bars (income vs expenses) on one shared
+ * scale. When spending exceeds income, the part of the expense bar beyond
+ * the income mark is striped red, so "how far over" reads from length.
+ * Plain CSS — no charting runtime. (Name kept from the earlier donut design.)
+ */
 export function MonthlyDonutCard({
   incomeCents,
   expensesCents,
@@ -101,6 +169,8 @@ export function MonthlyDonutCard({
   cashFlowChangePercent,
   savingsRateChangePoints,
   hasDataThisMonth,
+  dayOfMonth,
+  daysInMonth,
   currencyCode,
   accounts,
   categories,
@@ -108,8 +178,13 @@ export function MonthlyDonutCard({
   labels,
 }: MonthlyDonutCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const total = Math.max(0, incomeCents) + Math.max(0, expensesCents);
-  const incomeDegrees = total > 0 ? (Math.max(0, incomeCents) / total) * 360 : 0;
+  const income = Math.max(0, incomeCents);
+  const expenses = Math.max(0, expensesCents);
+  const scale = Math.max(income, expenses);
+  const incomePct = scale > 0 ? (income / scale) * 100 : 0;
+  const expensesPct = scale > 0 ? (expenses / scale) * 100 : 0;
+  const isOver = expenses > income;
+  const overCents = expenses - income;
 
   if (!hasDataThisMonth) {
     return (
@@ -128,52 +203,62 @@ export function MonthlyDonutCard({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-baseline justify-between gap-3">
         <CardTitle className="text-base">{labels.title}</CardTitle>
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+          {labels.dayProgress.replace("{day}", String(dayOfMonth)).replace("{total}", String(daysInMonth))}
+        </span>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div
-            className="relative size-28 shrink-0 rounded-full sm:size-32"
-            role="img"
-            aria-label={`${labels.income}: ${formatMoney(incomeCents, currencyCode)}; ${labels.expenses}: ${formatMoney(expensesCents, currencyCode)}`}
-            style={{
-              background: `conic-gradient(#7FD6B2 0deg ${incomeDegrees}deg, #E5989B ${incomeDegrees}deg 360deg)`,
-            }}
+      <CardContent className="space-y-4">
+        <div>
+          <p className="text-xs text-muted-foreground">{labels.remaining}</p>
+          <p
+            className={cn(
+              "break-all text-3xl font-bold leading-tight tabular-nums",
+              cashFlowCents < 0 && "text-destructive"
+            )}
           >
-            <span className="absolute inset-[20%] rounded-full bg-card" aria-hidden="true" />
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
-              <p className="text-[11px] text-muted-foreground">{labels.remaining}</p>
-              <p
-                className={`max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold leading-tight tabular-nums sm:text-lg ${cashFlowCents < 0 ? "text-destructive" : ""}`}
-              >
-                {formatMoney(cashFlowCents, currencyCode, undefined, 0)}
-              </p>
-            </div>
-          </div>
+            {formatMoney(cashFlowCents, currencyCode)}
+          </p>
+          {isOver ? (
+            <p className="text-xs text-muted-foreground">
+              {labels.overIncome.replace("{amount}", formatMoney(overCents, currencyCode))}
+            </p>
+          ) : income > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {labels.spentOfIncome.replace("{percent}", ((expenses / income) * 100).toFixed(0))}
+            </p>
+          ) : null}
+        </div>
 
-          <div className="min-w-0 flex-1 space-y-3">
-            <div className="flex items-center gap-2">
-              <IconChip icon={TrendingUp} tone="mint" className="size-8" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs text-muted-foreground">{labels.income}</p>
-                <div className="flex flex-wrap items-baseline gap-x-1.5">
-                  <p className="break-all text-sm font-semibold tabular-nums sm:text-base">{formatMoney(incomeCents, currencyCode)}</p>
-                  <InlineTrend changeValue={incomeChangePercent} />
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <IconChip icon={TrendingDown} tone="rose" className="size-8" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs text-muted-foreground">{labels.expenses}</p>
-                <div className="flex flex-wrap items-baseline gap-x-1.5">
-                  <p className="break-all text-sm font-semibold tabular-nums sm:text-base">{formatMoney(expensesCents, currencyCode)}</p>
-                  <InlineTrend changeValue={expensesChangePercent} invertTone />
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="space-y-3">
+          <BarRow
+            label={labels.incomeShort}
+            ariaLabel={`${labels.income}: ${formatMoney(incomeCents, currencyCode)}`}
+            amount={formatMoney(incomeCents, currencyCode)}
+            trend={<InlineTrend changeValue={incomeChangePercent} />}
+            fillPct={incomePct}
+            fillColor="#7FD6B2"
+          />
+          <BarRow
+            label={labels.expensesShort}
+            ariaLabel={`${labels.expenses}: ${formatMoney(expensesCents, currencyCode)}`}
+            amount={formatMoney(expensesCents, currencyCode)}
+            trend={<InlineTrend changeValue={expensesChangePercent} invertTone />}
+            fillPct={expensesPct}
+            fillColor="#E5989B"
+            overFromPct={isOver ? incomePct : null}
+          />
+          {isOver ? <p className="text-[11px] text-muted-foreground">{labels.overIncomeLegend}</p> : null}
+        </div>
+
+        <div className="flex gap-[3px]" aria-hidden="true">
+          {Array.from({ length: daysInMonth }, (_, i) => (
+            <span
+              key={i}
+              className={cn("h-1 flex-1 rounded-full", i < dayOfMonth ? "bg-amber-600/70 dark:bg-amber-400/70" : "bg-muted")}
+            />
+          ))}
         </div>
 
         <button
