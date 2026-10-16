@@ -272,6 +272,20 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   horizontal overflow, messages persist, and usage logging remains correct.
   The E2E runner can opt into installed Chrome with `E2E_CHROME=1` on
   Windows hosts without bundled Chromium.
+- 2026-10-16: Earn & Skills concept v1 passed the production review without
+  a redraw: freelance/client work, online selling and skill development keep
+  distinct silhouettes at mobile size; first extra income (work flowing into
+  a coin jar) stays visually separate from mission completed (checked list +
+  route reaching a flag). `scripts/artwork/crop-earn-skills-art.mjs` cuts the
+  2×3 sheet into five rounded 3:2 WebPs under `public/artwork/earn/`.
+  Freelance + selling introduce the first-visit Earn diagnostic, skill
+  development replaces the generic empty-skills illustration, and the last
+  two sit beside the real Mission Result and Record Income forms. Verified
+  through the complete disposable-user Earn V2 E2E at 390px in light/dark
+  mode: every image loads, no horizontal overflow, and the diagnostic → path
+  → mission → result → project → income core loop still passes. The suite's
+  timeout is now five minutes and it waits for the income route before visual
+  assertions, removing two test-only races exposed by the added coverage.
 - 2026-10-15, later (user report: dragging right to go back slid the cards
   under a fixed title + tab strip, which then snapped back as the turn
   began — a visible jerk): the live page no longer moves during any swipe.

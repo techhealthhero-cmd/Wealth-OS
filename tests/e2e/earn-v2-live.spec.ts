@@ -31,13 +31,20 @@ async function expectNoHorizontalOverflow(page: import("@playwright/test").Page,
   expect(dimensions.scrollWidth, context).toBeLessThanOrEqual(dimensions.width + 1);
 }
 
+async function expectArtworkLoaded(page: import("@playwright/test").Page, filename: string) {
+  const artwork = page.locator(`img[src*="${filename}"]`);
+  await expect(artwork).toBeVisible();
+  await expect.poll(() => artwork.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  return artwork;
+}
+
 /**
  * Permanent Earn V2 core-loop regression. It uses a disposable user and the
  * real signed-in UI, then verifies the resulting database relationships.
  * Deleting the auth user cascades every fixture created by this test.
  */
 test("Earn V2 core loop: diagnostic → path → mission → result → project → income", async ({ page }, testInfo) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   test.skip(testInfo.project.name !== "desktop-1280", "One disposable-user run covers the live core loop");
 
   const env = localEnv();
@@ -77,6 +84,24 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     await page.getByLabel(/password|รหัสผ่าน/i).fill(password);
     await page.getByRole("button", { name: /^(log in|เข้าสู่ระบบ)$/i }).click();
     await page.waitForURL(/\/dashboard/, { timeout: 20_000 });
+
+    // Earn & Skills artwork: first-visit paths and empty skills at the
+    // narrow mobile width, in both themes, before the fixtures gain data.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/earn");
+    await expectArtworkLoaded(page, "freelance.webp");
+    await expectArtworkLoaded(page, "online-selling.webp");
+    await expectNoHorizontalOverflow(page, "Earn intro artwork overflow at 390px");
+    await page.screenshot({ path: testInfo.outputPath("earn-art-intro-light-390.png"), fullPage: true });
+    await page.getByRole("button", { name: /toggle theme|สลับธีม/i }).click();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await page.screenshot({ path: testInfo.outputPath("earn-art-intro-dark-390.png"), fullPage: true });
+    await page.getByRole("button", { name: /toggle theme|สลับธีม/i }).click();
+    await page.goto("/earn/skills");
+    await expectArtworkLoaded(page, "skill-development.webp");
+    await expectNoHorizontalOverflow(page, "Empty skills artwork overflow at 390px");
+    await page.screenshot({ path: testInfo.outputPath("earn-art-skills-390.png"), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 800 });
 
     await page.goto("/earn/diagnostic");
     await page.getByRole("radio", { name: "No income yet" }).click();
@@ -124,6 +149,11 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     await page.getByRole("button", { name: "Record result" }).click();
     await page.waitForURL(/\/earn\/missions\/[0-9a-f-]+\/result/, { timeout: 20_000 });
     const missionResultUrl = page.url();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectArtworkLoaded(page, "mission-completed.webp");
+    await expectNoHorizontalOverflow(page, "Mission-completed artwork overflow at 390px");
+    await page.screenshot({ path: testInfo.outputPath("earn-art-mission-result-390.png"), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 800 });
     await page.getByRole("textbox", { name: "Samples finished", exact: true }).fill("1");
     await page.getByLabel("Work / evidence name *").fill("Restaurant landing page");
     await page.getByLabel("What was built or demonstrated *").fill("A responsive landing page sample");
@@ -140,6 +170,12 @@ test("Earn V2 core loop: diagnostic → path → mission → result → project 
     await expect(page.getByText("Restaurant website")).toBeVisible({ timeout: 20_000 });
 
     await page.getByRole("button", { name: "Record real income" }).click();
+    await page.waitForURL(new RegExp(`/earn/paths/${pathId}/income$`), { timeout: 20_000 });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectArtworkLoaded(page, "first-extra-income.webp");
+    await expectNoHorizontalOverflow(page, "First-income artwork overflow at 390px");
+    await page.screenshot({ path: testInfo.outputPath("earn-art-first-income-390.png"), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 800 });
     await page.getByLabel("Amount").fill("500");
     await page.getByLabel("Description (optional)").fill("QA deposit");
     await page.getByRole("button", { name: "Record income" }).click();

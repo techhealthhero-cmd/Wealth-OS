@@ -177,10 +177,11 @@
 หลีกเลี่ยงภาพแนว get-rich-quick, เงินปลิว หรือความสำเร็จเกินจริง
 
 - [x] สร้าง concept sheet เวอร์ชัน 1 จำนวน 5 ภาพ โดยเน้นทักษะและงานจริง
-- [ ] รับข้อคิดเห็นต่อองค์ประกอบและความหมายของแต่ละภาพ
-- [ ] ตรวจความชัดเมื่อย่อและความแตกต่างระหว่างรายได้ครั้งแรกกับภารกิจสำเร็จ
-- [ ] ปรับ concept และอนุมัติภาพรวม
-- [ ] แยกเป็นไฟล์ production ติดตั้ง และตรวจในหน้าจอจริง
+- [x] ตรวจองค์ประกอบและความหมายของแต่ละภาพกับหน้าจอปลายทางจริง
+- [x] ตรวจความชัดเมื่อย่อและความแตกต่างระหว่างรายได้ครั้งแรกกับภารกิจสำเร็จ
+- [x] อนุมัติ concept v1 โดยไม่ต้องสร้างภาพใหม่
+- [x] แยกเป็นไฟล์ production และติดตั้งครบ 5 ภาพ
+- [x] ตรวจที่ 390 px ทั้ง light/dark mode และไม่มี horizontal overflow
 
 ### 7. Brand & Marketing
 
@@ -234,13 +235,13 @@
 | Empty states | ติดตั้งแล้ว | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | QA 2 หน้าค้าง |
 | Milestones | ติดตั้งและตรวจแล้ว | รับ feedback จากการใช้งานจริง | เสร็จ |
 | AI Coach | ติดตั้งและตรวจครบ 4 ภาพ | รับ feedback จากการใช้งานจริง | เสร็จ |
-| Earn & Skills | Concept v1 | รับข้อคิดเห็นต่อภาพทั้ง 5 | กำลังทำ |
+| Earn & Skills | ติดตั้งและตรวจครบ 5 ภาพ | รับ feedback จากการใช้งานจริง | เสร็จ |
 | Brand & Marketing | รอ | ทำท้ายสุด | Backlog |
 
 ## Check-in ครั้งถัดไป
 
-ทบทวน concept sheet ของ Earn & Skills เวอร์ชัน 1 โดยดูสามเรื่องก่อน:
+ปิด QA ที่ยังค้างในงาน product artwork ก่อนเริ่ม Brand & Marketing:
 
-1. ทั้งห้าภาพสื่อถึงทักษะและงานจริงโดยไม่ดูเป็นแนวรวยเร็วหรือไม่
-2. Freelance, Online Selling และ Skill Development แยกความหมายได้เมื่อย่อขนาดหรือไม่
-3. First Extra Income และ Income Mission Completed แตกต่างกันชัดเจนโดยไม่พึ่งข้อความหรือไม่
+1. Expense Categories: selected/disabled, dark mode และขนาด 32/40/48 px
+2. Net Worth: no-history และ first-time Emergency Fund
+3. Empty States: Notifications และ Forecast ด้วยสถานะจริง

@@ -14,7 +14,7 @@ import { getLocale } from "@/i18n/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { IconChip } from "@/components/shared/icon-chip";
-import { EarnIllustration } from "@/components/illustrations";
+import { Artwork } from "@/components/shared/artwork";
 import { IncomeGoalCard, NextActionCard, PathFocusCard, RecommendedExperimentCard } from "./hub-cards";
 import { localizeMission } from "./helpers";
 
@@ -116,8 +116,9 @@ function EarnIntro({ dict }: { dict: ReturnType<typeof getDictionary> }) {
   return (
     <Card className="mx-auto max-w-2xl overflow-hidden rounded-[2rem] border-primary/10 bg-linear-to-b from-primary/6 via-card to-card shadow-[0_18px_48px_-34px_color-mix(in_oklab,var(--primary)_55%,transparent)]">
       <CardContent className="flex flex-col items-center gap-5 px-5 pb-7 pt-8 text-center sm:px-10 sm:pb-10 sm:pt-10">
-        <div className="rounded-[2rem] bg-primary/6 p-3 ring-1 ring-primary/10">
-          <EarnIllustration size={136} />
+        <div className="flex items-end justify-center gap-2">
+          <Artwork src="/artwork/earn/freelance.webp" className="w-28 -rotate-2 drop-shadow-sm sm:w-32" />
+          <Artwork src="/artwork/earn/online-selling.webp" className="w-28 rotate-2 drop-shadow-sm sm:w-32" />
         </div>
         <div className="space-y-2">
           <p className="text-sm font-semibold text-primary dark:text-[#7FD6B2]">{v2.intro.eyebrow}</p>

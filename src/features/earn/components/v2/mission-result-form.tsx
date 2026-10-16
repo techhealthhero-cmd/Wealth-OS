@@ -9,6 +9,7 @@ import { useTranslation } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Artwork } from "@/components/shared/artwork";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -96,9 +97,12 @@ export function MissionResultForm({
 
   return (
     <form onSubmit={submit} className="space-y-5" data-result-kind={resultKind}>
-      <div className="space-y-1">
-        <h2 className="text-xl font-bold">{t("earn.v2.missions.result.title")}</h2>
-        <p className="text-sm text-muted-foreground">{t("earn.v2.missions.result.hint")}</p>
+      <div className="flex items-start gap-3">
+        <Artwork src="/artwork/earn/mission-completed.webp" className="w-24" />
+        <div className="min-w-0 space-y-1">
+          <h2 className="text-xl font-bold">{t("earn.v2.missions.result.title")}</h2>
+          <p className="text-sm text-muted-foreground">{t("earn.v2.missions.result.hint")}</p>
+        </div>
       </div>
 
       {fields.length > 0 ? (

@@ -4,7 +4,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { SkillForm } from "./skill-form";
 import { EmptyState } from "@/components/shared/empty-state";
-import { EarnIllustration } from "@/components/illustrations";
+import { Artwork } from "@/components/shared/artwork";
 import { SkillEvidenceSection } from "@/features/earn/components/v2/skill-evidence-section";
 
 /** Skills in Earn are evidence, not a second gamification dashboard. */
@@ -15,7 +15,7 @@ export async function SkillList() {
   if (skills.length === 0) {
     return (
       <EmptyState
-        illustration={<EarnIllustration size={120} />}
+        illustration={<Artwork src="/artwork/earn/skill-development.webp" className="w-44 -rotate-2 drop-shadow-sm sm:w-52" />}
         title={dict.earn.skills.emptyTitle}
         description={dict.earn.skills.emptyState}
         action={<SkillForm />}
