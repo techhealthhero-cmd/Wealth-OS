@@ -57,7 +57,7 @@
 
 ## ลำดับงาน
 
-### 0. Expense Category Artwork — กำลังติดตั้ง
+### 0. Expense Category Artwork — เสร็จ
 
 ขอบเขต: ภาพหมวดค่าใช้จ่าย 11 หมวด
 
@@ -66,12 +66,17 @@
 - [x] ส่งต่อให้ Claude นำไปทำในโปรเจกต์
 - [x] Claude ติดตั้งภาพชุดแรก 11 หมวดและตรวจ test/typecheck/build แล้ว
 - [x] ทำ mockup แผ่นเสริม 10 หมวดที่ยังขาด
-- [ ] อนุมัติแผ่นเสริมและส่งให้ Claude ตัด/ติดตั้ง
-- [ ] ตรวจ asset ที่ Claude สร้างจริงเทียบกับ mockup
-- [ ] ตรวจความชัดที่ 32/40/48 px
-- [ ] ตรวจ normal, hover/pressed, selected และ disabled
-- [ ] ตรวจ mobile + dark mode
-- [ ] อนุมัติและบันทึกเป็นมาตรฐานภาพชุดแรก
+- [x] อนุมัติแผ่นเสริมและส่งให้ Claude ตัด/ติดตั้ง
+- [x] ตรวจ asset ที่ Claude สร้างจริงเทียบกับ mockup
+- [x] ตรวจความชัดที่ 32/40/48 px
+- [x] ตรวจ normal, hover/pressed, selected และ disabled
+- [x] ตรวจ mobile + dark mode
+- [x] อนุมัติและบันทึกเป็นมาตรฐานภาพชุดแรก
+
+Visual QA วันที่ 2026-10-16: ตรวจภาพ production ครบ 21 ไฟล์ใน category picker
+จริงที่ 390 px ทั้ง light/dark, ขนาด 32/40/48 px และสถานะ normal, hover,
+pressed, selected, disabled โดยสถานะ selected ใช้ทั้งกรอบและเครื่องหมาย check
+และไม่มี horizontal overflow
 
 **เงื่อนไขก่อนเริ่มชุด 1:** ตรวจ category artwork ในหน้าจอจริงให้จบก่อน เพื่อใช้เป็น
 มาตรฐานสี เส้น และพื้นผิวสำหรับภาพทั้งหมดต่อจากนี้
@@ -229,7 +234,7 @@
 
 | ชุดงาน | ขั้นตอน | งานถัดไป | สถานะ |
 |---|---|---|---|
-| Expense categories | ติดตั้ง | ตรวจบนมือถือจริงเมื่อพร้อม | QA ค้าง |
+| Expense categories | ติดตั้งและตรวจครบ 21 ภาพ | รับ feedback จากการใช้งานจริง | เสร็จ |
 | Onboarding pillars | ติดตั้งบน Landing | พิจารณาการใช้ใน onboarding จริง | ติดตั้งแล้ว |
 | Net Worth | ติดตั้งแล้ว | ตรวจ no-history และ first-time setup | QA edge states ค้าง |
 | Empty states | ติดตั้งแล้ว | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | QA 2 หน้าค้าง |
@@ -242,6 +247,5 @@
 
 ปิด QA ที่ยังค้างในงาน product artwork ก่อนเริ่ม Brand & Marketing:
 
-1. Expense Categories: selected/disabled, dark mode และขนาด 32/40/48 px
-2. Net Worth: no-history และ first-time Emergency Fund
-3. Empty States: Notifications และ Forecast ด้วยสถานะจริง
+1. Net Worth: no-history และ first-time Emergency Fund
+2. Empty States: Notifications และ Forecast ด้วยสถานะจริง

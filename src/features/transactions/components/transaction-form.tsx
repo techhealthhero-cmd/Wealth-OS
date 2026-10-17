@@ -316,6 +316,7 @@ function TransactionFormFields({
           categories={relevantCategories}
           value={categoryId}
           onValueChange={setCategoryId}
+          disabled={isPending}
         />
 
         <div className="flex flex-wrap items-end gap-2">

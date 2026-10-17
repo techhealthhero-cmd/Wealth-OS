@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Check } from "lucide-react";
 
 import type { Category } from "@/types/database";
 import { CategoryIcon } from "@/components/shared/category-icon";
@@ -14,9 +15,10 @@ interface CategoryPickerProps {
   categories: Category[];
   value: string | null;
   onValueChange: (id: string | null) => void;
+  disabled?: boolean;
 }
 
-export function CategoryPicker({ name, categories, value, onValueChange }: CategoryPickerProps) {
+export function CategoryPicker({ name, categories, value, onValueChange, disabled = false }: CategoryPickerProps) {
   const { t, locale } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
@@ -46,24 +48,35 @@ export function CategoryPicker({ name, categories, value, onValueChange }: Categ
               type="button"
               role="radio"
               aria-checked={selected}
+              disabled={disabled}
               onClick={() => onValueChange(selected ? null : category.id)}
               className={cn(
-                "flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all active:scale-95",
+                "relative flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-50",
                 selected
                   ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
                   : "border-border bg-background text-foreground hover:bg-muted"
               )}
             >
-              <CategoryIcon icon={category.icon} className="-my-1 size-7" />
+              <CategoryIcon icon={category.icon} className="-my-1 size-8" />
               {label}
+              {selected ? (
+                <span
+                  data-category-selected-marker=""
+                  className="ml-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                  aria-hidden="true"
+                >
+                  <Check className="size-3" strokeWidth={3} />
+                </span>
+              ) : null}
             </button>
           );
         })}
         {canExpand && (
           <button
             type="button"
+            disabled={disabled}
             onClick={() => setExpanded((v) => !v)}
-            className="flex items-center gap-1 rounded-full border border-dashed px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+            className="flex items-center gap-1 rounded-full border border-dashed px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
           >
             {expanded ? t("transactions.showFewerCategories") : t("transactions.viewAllCategories")}
           </button>

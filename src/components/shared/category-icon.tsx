@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { categoryArt, categoryEmoji } from "@/lib/transaction-ui";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +16,7 @@ export function CategoryIcon({
 }: {
   icon: string | null | undefined;
   emoji?: string;
-  /** Sizes the sticker (default 1.5rem); the emoji fallback keeps the text size. */
+  /** Sizes the sticker (default 2rem); the emoji fallback keeps the text size. */
   className?: string;
 }) {
   const art = categoryArt(icon ?? null);
@@ -22,18 +24,14 @@ export function CategoryIcon({
     return <span aria-hidden="true">{emoji ?? categoryEmoji(icon ?? null)}</span>;
   }
   return (
-    // A plain <img>: tiny, pre-sized local WebP stickers need no optimizer pass.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
       src={art}
       alt=""
       aria-hidden="true"
       width={48}
       height={48}
-      loading="lazy"
-      decoding="async"
       draggable={false}
-      className={cn("size-6 shrink-0 select-none", className)}
+      className={cn("size-8 shrink-0 select-none", className)}
     />
   );
 }

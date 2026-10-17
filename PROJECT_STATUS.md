@@ -6,7 +6,7 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-13
+Last updated: 2026-10-16
 
 ## Counted units in capture ("ได้ 10 ดื่ม" = ฿2,000 income) — 2026-10-13
 
@@ -209,6 +209,17 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   colour. Transaction rows now show the sticker for income too (only
   transfers and uncategorized rows keep the type arrow). Verified on the
   demo account (list + budget), no broken images.
+
+- 2026-10-16: Expense Category Artwork production QA is complete. The shared
+  `CategoryIcon` now uses `next/image`; category pickers render at 32px,
+  transaction rows at 40px, and budget rows at 32px. Selected categories use
+  both a border/ring and a check marker (not colour alone), while the picker
+  exposes a real disabled state during form submission. The live mobile E2E
+  pass loaded all 14 expense and 9 income category rows (21 unique artwork
+  files), exercised normal/hover/pressed/selected/disabled, inspected
+  32/40/48px in light and dark mode at 390px, and found no horizontal
+  overflow. Typecheck, lint (0 errors; 7 pre-existing story-shot warnings),
+  36 focused unit tests, production build, and the live Playwright test pass.
 - 2026-10-15: the onboarding pillars sheet
   (`onboarding-pillars-concept-v2-gouache-ink.png`, 2×2) is cut into four
   256px rounded WebPs (`public/artwork/pillars/{track,plan,earn,grow}.webp`)
