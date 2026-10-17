@@ -203,6 +203,14 @@ overflow
 เริ่มชุดนี้หลังภาษาภาพในตัวผลิตภัณฑ์นิ่งแล้ว เพื่อไม่ให้ marketing มีหน้าตา
 ต่างจากแอปจริง
 
+- [x] สร้าง concept sheet เวอร์ชัน 1 จำนวน 5 ภาพ โดยยึดภาษากัวช์และเส้นปากกา
+  จาก product artwork ที่ผ่าน QA แล้ว
+- [ ] ทบทวนว่าแต่ละภาพทำงานได้เมื่อมี copy และ UI จริงซ้อนอยู่ด้านบน
+- [ ] อนุมัติองค์ประกอบและกำหนดอัตราส่วน production ของแต่ละช่องทาง
+- [ ] แยกไฟล์ production และติดตั้ง Splash / Landing
+- [ ] สร้าง template สำหรับ Feature Announcement / Product Preview / Social Share
+- [ ] ตรวจ light/dark, mobile/desktop และ social-safe area
+
 ## บทบาทในการทำงานร่วมกัน
 
 ### Codex
@@ -245,10 +253,11 @@ overflow
 | Milestones | ติดตั้งและตรวจแล้ว | รับ feedback จากการใช้งานจริง | เสร็จ |
 | AI Coach | ติดตั้งและตรวจครบ 4 ภาพ | รับ feedback จากการใช้งานจริง | เสร็จ |
 | Earn & Skills | ติดตั้งและตรวจครบ 5 ภาพ | รับ feedback จากการใช้งานจริง | เสร็จ |
-| Brand & Marketing | รอ | ทำท้ายสุด | Backlog |
+| Brand & Marketing | Concept v1 ครบ 5 ภาพ | ตรวจองค์ประกอบกับ copy/UI จริง | กำลังทำ |
 
 ## Check-in ครั้งถัดไป
 
-ปิด QA ที่ยังค้างในงาน product artwork ก่อนเริ่ม Brand & Marketing:
+ปิด QA ที่ยังค้าง แล้วทบทวน Brand & Marketing concept v1:
 
 1. Empty States: Notifications และ Forecast ด้วยสถานะจริง
+2. Brand & Marketing: ตรวจพื้นที่วาง copy, สัดส่วน และความต่างของทั้ง 5 ภาพ

@@ -6,7 +6,18 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-16
+Last updated: 2026-10-17
+
+## Brand & Marketing artwork concept — 2026-10-17
+
+- Created `assets/artwork/drafts/brand-marketing-concept-v1-gouache-ink.png`,
+  a five-panel concept sheet for splash/loading, feature announcements,
+  product previews, social sharing, and the landing-page feature story.
+  It deliberately reuses the approved product-art language (bold ink,
+  gouache/pencil texture, simple notebook objects, restrained finance
+  symbolism) without embedding copy or financial values in the bitmap.
+- This is a concept sheet only. Production crops, channel ratios, copy-safe
+  areas, app integration, and responsive QA are still pending.
 
 ## Counted units in capture ("ได้ 10 ดื่ม" = ฿2,000 income) — 2026-10-13
 
