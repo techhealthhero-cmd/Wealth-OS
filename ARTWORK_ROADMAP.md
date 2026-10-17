@@ -116,7 +116,11 @@ pressed, selected, disabled โดยสถานะ selected ใช้ทั้
 - [x] รับการอนุมัติภาพรวมและส่งต่อเพื่อติดตั้ง
 - [x] แยกเป็นไฟล์ production และกำหนดตำแหน่งใช้งานจริง
 - [x] ติดตั้งและตรวจหน้าหลักของ Net Worth / Financial Foundation ที่ 390 px
-- [ ] ตรวจ no-history และ first-time Emergency Fund ด้วยข้อมูลที่ตรงสถานะจริง
+- [x] ตรวจ no-history และ first-time Emergency Fund ด้วยข้อมูลที่ตรงสถานะจริง
+
+Visual QA วันที่ 2026-10-17: ใช้บัญชีทดสอบใหม่ตรวจ no-history และ first-time
+Emergency Fund ที่ 390 px ทั้ง light/dark ภาพโหลดครบ อ่านชัด และไม่มี horizontal
+overflow
 
 ### 3. Empty States
 
@@ -236,7 +240,7 @@ pressed, selected, disabled โดยสถานะ selected ใช้ทั้
 |---|---|---|---|
 | Expense categories | ติดตั้งและตรวจครบ 21 ภาพ | รับ feedback จากการใช้งานจริง | เสร็จ |
 | Onboarding pillars | ติดตั้งบน Landing | พิจารณาการใช้ใน onboarding จริง | ติดตั้งแล้ว |
-| Net Worth | ติดตั้งแล้ว | ตรวจ no-history และ first-time setup | QA edge states ค้าง |
+| Net Worth | ติดตั้งและตรวจครบ 5 ภาพ | รับ feedback จากการใช้งานจริง | เสร็จ |
 | Empty states | ติดตั้งแล้ว | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | QA 2 หน้าค้าง |
 | Milestones | ติดตั้งและตรวจแล้ว | รับ feedback จากการใช้งานจริง | เสร็จ |
 | AI Coach | ติดตั้งและตรวจครบ 4 ภาพ | รับ feedback จากการใช้งานจริง | เสร็จ |
@@ -247,5 +251,4 @@ pressed, selected, disabled โดยสถานะ selected ใช้ทั้
 
 ปิด QA ที่ยังค้างในงาน product artwork ก่อนเริ่ม Brand & Marketing:
 
-1. Net Worth: no-history และ first-time Emergency Fund
-2. Empty States: Notifications และ Forecast ด้วยสถานะจริง
+1. Empty States: Notifications และ Forecast ด้วยสถานะจริง

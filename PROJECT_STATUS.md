@@ -237,8 +237,10 @@ Chosen from two clickable mockups (3 inbox placements → "A: box on top";
   shield/jar/home on the Emergency Fund hero card and first-time setup.
   Pictures sit beside the numbers, never in place of them. Verified on the
   demo account at 390px (net worth + emergency fund): no broken images, no
-  horizontal scroll. The no-history and first-setup states weren't seen
-  live (the demo account has history and a fund).
+  horizontal scroll. On 2026-10-17 the previously-unseen no-history and
+  first-time Emergency Fund states were also exercised with a disposable
+  empty user at 390px in light and dark mode. Both approved images loaded,
+  remained legible, and caused no horizontal overflow.
 - 2026-10-15, later: the Empty States sheet
   (`empty-states-concept-v1-gouache-ink.png`, 2×3) is cut into six 3:2
   WebPs (`public/artwork/empty/`) by `scripts/artwork/crop-empty-state-art.mjs`.
