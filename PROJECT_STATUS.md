@@ -8,6 +8,25 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-10-18
 
+## Account cards flip open/closed — 2026-10-18
+
+- Money › บัญชี: tapping an account card turns it face-down with a 3D flip
+  (0.5s, off under reduced motion); the back is dot-grid paper with the
+  account name, "•••• ปิดการ์ดไว้" and "แตะเพื่อเปิดการ์ด". Tap again to flip it
+  open. Taps on ⋮ / the menu / dialogs never flip; a press longer than
+  250ms is the existing long-press-to-reorder, not a flip.
+- Remembered per device in localStorage (`src/features/accounts/closed-cards.ts`,
+  `useSyncExternalStore`, open during SSR/hydration). It's a display
+  preference, not privacy: the balance is still in the page (account
+  privacy mode is the real lock). The hidden face is `aria-hidden` + `inert`.
+- Also fixed a pre-existing hydration warning on that page: dnd-kit's
+  `DndDescribedBy-N` id differed server vs client; `DndContext` now gets a
+  `useId()` id.
+- Verified with `tests/e2e/account-card-flip-live.spec.ts` (375 px,
+  disposable user): flip closed, other card unaffected, ⋮ menu doesn't flip,
+  survives reload, flips open, no console errors, no horizontal overflow.
+  Help text (accounts entry) updated in th/en.
+
 ## Brand & Marketing artwork installed — 2026-10-18
 
 - `scripts/artwork/crop-brand-art.mjs` cuts the five-panel brand sheet into

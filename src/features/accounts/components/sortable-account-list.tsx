@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -69,6 +69,10 @@ export function SortableAccountList({ accounts }: { accounts: Account[] }) {
     setItems(accounts);
   }
 
+  // A stable id keeps dnd-kit's aria-describedby ("DndDescribedBy-N", from a
+  // module counter) identical on server and client — otherwise hydration warns.
+  const dndId = useId();
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -91,7 +95,7 @@ export function SortableAccountList({ accounts }: { accounts: Account[] }) {
   }
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext id={dndId} sensors={sensors} onDragEnd={handleDragEnd}>
       <SortableContext items={items.map((a) => a.id)} strategy={verticalListSortingStrategy}>
         <div className="grid gap-3">
           {items.map((account) => (
