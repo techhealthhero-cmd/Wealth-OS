@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeImportRow } from "@/lib/import/normalize";
+import { createImportFingerprint, normalizeImportRow } from "@/lib/import/normalize";
 import type { ImportHeaderMapping } from "@/lib/import/csv";
 
 const expenseOther = { id: "other-expense", name_th: "อื่นๆ", name_en: "Other", type: "expense" as const, icon: null, is_system: true };
@@ -81,5 +81,27 @@ describe("statement row normalization", () => {
     const three = normalizeImportRow({ date: "2026-09-02", description: "A", amount: "100", type: "expense", ref: "", currency: "" }, amountMapping, context);
     if (one.status === "error" || two.status === "error" || three.status === "error") throw new Error("fixture failed");
     expect(new Set([one.normalized.fingerprint, two.normalized.fingerprint, three.normalized.fingerprint]).size).toBe(3);
+  });
+});
+
+describe("createImportFingerprint", () => {
+  const input = {
+    accountId: context.accountId, currencyCode: "THB", date: "2026-09-01",
+    amount: "100.00", type: "expense" as const, merchant: "Coffee Shop",
+  };
+
+  it("returns a stable SHA-256 fingerprint for equivalent merchant text", () => {
+    const fingerprint = createImportFingerprint(input);
+    expect(fingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(createImportFingerprint({ ...input })).toBe(fingerprint);
+    expect(createImportFingerprint({ ...input, merchant: "  COFFEE   SHOP!  " })).toBe(fingerprint);
+  });
+
+  it.each([
+    { merchant: "Other Shop" }, { date: "2026-09-02" }, { amount: "100.01" },
+    { accountId: "22222222-2222-4222-8222-222222222222" },
+    { currencyCode: "USD" }, { type: "income" as const },
+  ])("distinguishes changed transaction identity %j", (change) => {
+    expect(createImportFingerprint({ ...input, ...change })).not.toBe(createImportFingerprint(input));
   });
 });
