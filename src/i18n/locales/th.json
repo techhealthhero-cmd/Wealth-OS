@@ -3321,5 +3321,40 @@
       "notReady": "ระบบหน้าปกยังไม่พร้อมใช้งาน ลองใหม่ภายหลัง",
       "saveFailed": "บันทึกหน้าปกไม่สำเร็จ ลองอีกครั้ง"
     }
+  },
+  "homeIncome": {
+    "sectionLabel": "รายได้เดือนนี้แยกตามแหล่ง",
+    "title": "รายได้เดือน{month}",
+    "received": "ได้รับแล้ว",
+    "percentPrefix": "คิดเป็น",
+    "percentHighlight": "{percent}% ของค่าเฉลี่ย",
+    "averagePerMonth": "{amount}/เดือน",
+    "noHistoryHint": "บันทึกรายรับต่อเนื่อง 2 เดือนขึ้นไป แล้วเราจะเทียบกับค่าเฉลี่ยให้",
+    "barLabel": "รายได้เดือนนี้แยกตามแหล่ง: {parts}",
+    "barGapLabel": "ยังห่างจากค่าเฉลี่ยอีก {amount}",
+    "colSourceWithShare": "แหล่งรายได้ (สัดส่วนเฉลี่ย)",
+    "colSource": "แหล่งรายได้",
+    "colOfAverage": "ของค่าเฉลี่ย",
+    "shareSr": "สัดส่วนเฉลี่ย {percent}%",
+    "atAverage": "ถึงค่าเฉลี่ยแล้ว",
+    "notYet": "ยังไม่เข้า",
+    "volatilitySteady": "รายได้ค่อนข้างคงที่",
+    "volatilityModerate": "รายได้ผันผวนปานกลาง",
+    "volatilityHigh": "รายได้ผันผวนสูง",
+    "range": "{months} เดือน {min} – {max}",
+    "rangeSr": "ช่วง {months} เดือนที่ผ่านมา ต่ำสุด {min} สูงสุด {max}",
+    "concentration": "พึ่ง{name}เกินครึ่ง",
+    "concentrationCta": "ดูไอเดียรายได้ทางใหม่",
+    "uncategorized": "ไม่ระบุหมวด",
+    "other": "อื่น ๆ",
+    "emptyTitle": "ยังไม่มีรายรับที่บันทึกไว้",
+    "emptyHint": "บันทึกรายรับครั้งแรก แล้วเราจะแยกให้เห็นว่าเงินมาจากทางไหนบ้าง",
+    "emptyCta": "บันทึกรายรับ"
+  },
+  "homeNetWorth": {
+    "label": "มูลค่าสุทธิ",
+    "sinceUp": "ตั้งแต่ {month} เพิ่มขึ้น {amount}",
+    "sinceDown": "ตั้งแต่ {month} ลดลง {amount}",
+    "sinceSame": "ตั้งแต่ {month} ยังเท่าเดิม"
   }
 }

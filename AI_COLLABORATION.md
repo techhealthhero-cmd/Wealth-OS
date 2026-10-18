@@ -150,6 +150,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 | AUTO-INFRA-02 | Pin Node 22+ | Grok | DONE — PR #1 merged (`7f62e87`) | `.nvmrc`=22, `engines.node >=22`, README Node 22+; `npm ci` ไม่มี EBADENGINE บน Node 22.23.3 และ 24.22.0 | — |
 | AUTO-INFRA-03 | Safe bot build profile | Claude | TODO | Build โดยไม่ใช้ production secrets/network writes | Codex security review ก่อน Grok ใช้ |
 | AUTO-SEC-01 | npm audit triage | Claude (tracking: Grok) | ESCALATED | รายงานเสร็จ (Claude Code ร่าง, Grok ตรวจ) บน branch local `claude/auto-sec-01-audit-triage`; เข้า stop condition จึงยังไม่ push; ไม่มีการเปลี่ยน dependency/lockfile | เจ้าของโปรเจกต์ตัดสินใจจากรายงานที่ส่งตรงให้ |
+| REVIEW-HOME-V3-A | Re-review income by source fixes | Codex | DONE — NO BLOCKING FINDINGS | Added 3 mocked loader regressions; lint, 1137 tests and typecheck pass; no production edits | Claude visual QA at 390px and dark mode; owner review |
+| UI-HOME-FREELANCER-A | Home redesign "A — รายได้แยกตามแหล่ง" (ฟรีแลนซ์) | Claude (impl) | VERIFY — uncommitted ใน worktree `claude/home-freelancer-a` | การ์ดรายได้เดือนนี้แยกตามแหล่ง (loader อ่านอย่างเดียว + aggregation display-only `src/features/dashboard/lib/income-by-source.ts` + tests) และการ์ดมูลค่าสุทธิแบบย่อ; ตัดการ์ด "รอเงินเข้า" ออกเพราะยังไม่มีระบบใบแจ้งหนี้; ไม่แตะสูตร/DB/auth. รอบแก้ review Codex (2026-10-19): today ตาม timezone โปรไฟล์, trackingStartMonth จากธุรกรรมแรก, paging 1000/batch 200 (`lib/paged-fetch.ts`), concentration > 50%, layout ตาราง/highlight/net worth ย่อ; typecheck error เหลือแค่ใน `src/app/dev-home-preview/` (harness ชั่วคราว ห้ามแก้) | เจ้าของโปรเจกต์ตรวจ preview แล้วสั่ง commit/PR |
 | UI-HOME-A | Home redesign variant A (สะอาด ชัดเจน) | Claude (impl) · Codex (review) · Grok (orchestration) | VERIFY — PR open | UI-only บน `claude/home-redesign-a`: header วันที่+ทักทาย, NetWorthHeroCard (ทศนิยมเล็ก, pill เปลี่ยนแปลง, เดือนใต้กราฟ, ปุ่มไป /money/net-worth), การ์ดเดือน (หัวข้อชื่อเดือน+เหลืออีก N วัน, แถบรายรับ/รายจ่ายพร้อม hatch, tile รายรับ/รายจ่าย); ไม่แตะสูตร/DB/auth | เจ้าของโปรเจกต์ตรวจ Preview แล้วตัดสินใจ merge |
 | AUTO-CLEAN-01 | Unused eslint-disable ใน `opengraph-image.tsx` | Grok | DONE — PR #1 merged (`7f62e87`) | ลบคอมเมนต์ที่ไม่ได้ใช้; lint 0 problems | — |
 
@@ -185,6 +187,14 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → Claude / Grok (REVIEW-HOME-V3-A)
+
+- Re-reviewed uncommitted Home v3 A diff, including untracked paged-fetch.ts; no blocking logic findings. Verified timezone/calendar windows, tracking start, future transaction exclusion, exact-page termination, unique Earn link precedence, strict >50% concentration, locale key/placeholder parity, money formatting and server/client boundaries.
+- Added tests/income-by-source-loader.test.ts: real loader with mocked Supabase checks 1001-row paging/order/range and 200-id batches without double counting, complete localized category fallback after a later Earn batch fails, and income read errors rejecting rather than displaying partial/zero totals. No production logic/UI edits.
+- Checks: npm run lint PASS; npx vitest run PASS (107 files, 1137 tests); npm run typecheck PASS including current preview harness; git diff --check PASS.
+- Protected scope unchanged: src/lib/financial, DB/migrations, auth/RLS (except ignored preview middleware line), billing, getDashboardData and net-worth-baseline. No install/network/commit/push.
+- FOR CLAUDE (UI): code inspection confirms auto amount columns, wrapping, dark highlight, Not yet state and 88px sparkline; browser rendering at 390px/dark mode was not exercised in this review. Keep visual QA as the remaining acceptance check. Ignore/remove temporary preview harness before commit as planned.
 
 ### 2026-10-19 — Codex → staging supervisor (STAGING-SEC-E2E)
 

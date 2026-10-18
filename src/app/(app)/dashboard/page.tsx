@@ -9,6 +9,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { WealthOverview } from "@/features/dashboard/components/wealth-overview";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
+import { IncomeThisMonth } from "@/features/dashboard/components/income-this-month";
 import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
 import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboard-details-toggle";
 import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
@@ -107,9 +108,20 @@ export default async function DashboardPage() {
           soon as they're ready instead of all waiting on each other —
           real progressive loading, not just a CSS effect on already-
           resolved content. */}
+      {/* 2026-10 freelancer redesign ("A — income streams first"): this
+          month's received income by source leads Home; Net Worth follows as
+          a compact row that links to /money/net-worth (full chart and
+          assets/liabilities). Each streams in its own Suspense boundary and
+          catches its own load errors. */}
       <div className="motion-reveal motion-reveal-1">
-        <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
-          <NetWorthHero />
+        <Suspense fallback={<Skeleton className="h-72 w-full rounded-[20px]" />}>
+          <IncomeThisMonth />
+        </Suspense>
+      </div>
+
+      <div className="motion-reveal motion-reveal-2">
+        <Suspense fallback={<Skeleton className="h-20 w-full rounded-[20px]" />}>
+          <NetWorthHero variant="compact" />
         </Suspense>
       </div>
 

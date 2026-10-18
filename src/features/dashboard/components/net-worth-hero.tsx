@@ -14,6 +14,7 @@ import type { Locale } from "@/i18n/config";
 import { getProfile } from "@/features/profile/queries";
 import { InlineLoadError } from "@/components/shared/inline-load-error";
 import { NetWorthHeroCard } from "./net-worth-hero-card";
+import { NetWorthCompactCard } from "./net-worth-compact-card";
 import type { NetWorthBreakdown } from "@/features/net-worth/queries";
 
 const CHART_HISTORY_MONTHS = 6;
@@ -26,6 +27,9 @@ interface NetWorthHeroData {
   hasHistory: boolean;
   chartData: { date: string; netWorth: number }[];
   monthLabels: { label: string; isCurrent: boolean }[];
+  /** Change from the first snapshot in the chart window (compact card); null with < 2 snapshots. */
+  sinceFirst: { monthLabel: string; change: NetWorthChange } | null;
+  currencyCode: string;
 }
 
 /**
@@ -73,7 +77,27 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
       isCurrent: key === currentMonthKey,
     }));
 
-    return { dict, locale, breakdown, change, hasHistory: previousSnapshot !== null, chartData, monthLabels };
+    // Compact card: change since the first snapshot in the window, through
+    // the same calculateNetWorthChange() — no new formula.
+    const firstSnapshot = snapshots.length >= 2 ? snapshots[0] : null;
+    const sinceFirst = firstSnapshot
+      ? {
+          monthLabel: monthFormatter.format(new Date(`${firstSnapshot.snapshot_date}T00:00:00`)),
+          change: calculateNetWorthChange(breakdown.netWorthCents, parseMoneyToCents(firstSnapshot.net_worth)),
+        }
+      : null;
+
+    return {
+      dict,
+      locale,
+      breakdown,
+      change,
+      hasHistory: previousSnapshot !== null,
+      chartData,
+      monthLabels,
+      sinceFirst,
+      currencyCode: profile?.currency_code ?? "THB",
+    };
   } catch (error) {
     captureError(error, { route: "dashboard.NetWorthHero", operation: "load_net_worth_hero_data" });
     return null;
@@ -92,7 +116,7 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
  * assets/liabilities breakdown is one tap away at /money/net-worth via the
  * card's row link instead of an in-place disclosure.
  */
-export async function NetWorthHero() {
+export async function NetWorthHero({ variant = "hero" }: { variant?: "hero" | "compact" } = {}) {
   const data = await loadNetWorthHeroData();
   if (!data) {
     // `data` is only ever null here from the catch block in
@@ -107,7 +131,23 @@ export async function NetWorthHero() {
     return <InlineLoadError message={dict.common.somethingWentWrong} />;
   }
 
-  const { dict, breakdown, change, hasHistory, chartData, monthLabels } = data;
+  const { dict, breakdown, change, hasHistory, chartData, monthLabels, sinceFirst, currencyCode } = data;
+
+  if (variant === "compact") {
+    return (
+      <NetWorthCompactCard
+        labels={{
+          ...dict.homeNetWorth,
+          noHistoryYet: dict.netWorth.noHistoryYet,
+          viewAssetsAndLiabilities: dict.netWorth.viewAssetsAndLiabilities,
+        }}
+        netWorthCents={breakdown.netWorthCents}
+        sinceFirst={sinceFirst}
+        sparkline={chartData.map((point) => point.netWorth)}
+        currencyCode={currencyCode}
+      />
+    );
+  }
 
   return (
     <NetWorthHeroCard
