@@ -49,16 +49,15 @@ function format(value: number, formatAs: AnimatedNumberFormat, currencyCode?: st
  * exists so React re-renders (e.g. a parent re-rendering for an unrelated
  * reason) can never replay the animation.
  *
- * `prefers-reduced-motion` skips the animation entirely: the initial state
- * itself is the final value (no reduced-motion branch runs inside the
- * effect), so there's no flash of an intermediate frame — the global CSS
+ * `prefers-reduced-motion` shows the final value directly, including when
+ * the preference becomes available after hydration. The global CSS
  * kill switch in globals.css only covers CSS animation/transition, not this
  * rAF-driven interpolation, so it's checked explicitly via
  * usePrefersReducedMotion.
  */
 export function AnimatedNumber({ value, formatAs, currencyCode, durationMs = 600, className }: AnimatedNumberProps) {
   const reducedMotion = usePrefersReducedMotion();
-  const [display, setDisplay] = useState(() => (reducedMotion ? value : 0));
+  const [display, setDisplay] = useState(0);
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -84,5 +83,6 @@ export function AnimatedNumber({ value, formatAs, currencyCode, durationMs = 600
     return () => cancelAnimationFrame(frame);
   }, [value, durationMs, reducedMotion]);
 
-  return <span className={className}>{format(display, formatAs, currencyCode)}</span>;
+  const shown = reducedMotion ? value : display;
+  return <span className={className}>{format(shown, formatAs, currencyCode)}</span>;
 }
