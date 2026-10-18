@@ -100,3 +100,12 @@ describe("CSV bridge", () => {
     expect(parseStatementCsv(statementRowsToCsv(Array.from({ length: 2000 }, () => row))).rows).toHaveLength(2000);
   });
 });
+
+ it.each(["purchase", "unknown"])("does not reverse same-day %s rows with unknown ordering", (description) => {
+   const result = parseGenericStatement(linesFromText([`01/10/26 ${description} 100.00 900.00`, `01/10/26 ${description} 100.00 800.00`]), 2026);
+   expect(result.rows.every((row) => row.creditCents === null)).toBe(true);
+   if (description === "unknown") {
+     expect(result.rows).toHaveLength(0);
+     expect(result.skippedLines).toBe(2);
+   } else expect(result.rows.map((row) => row.debitCents)).toEqual([10000, 10000]);
+ });

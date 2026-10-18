@@ -14,7 +14,7 @@ describe("browser PDF boundary", () => {
     mock.getDocument.mockReturnValue({ promise: Promise.resolve({ numPages: 1, getPage: async () => ({ getTextContent: async () => ({ items }), cleanup }) }), destroy });
     const result = await extractPdfLines(new File(["synthetic PDF bytes"], "synthetic.pdf"), "synthetic-password");
     expect(result[0].text).toBe("Synthetic");
-    expect(mock.getDocument).toHaveBeenCalledWith(expect.objectContaining({ data: expect.any(Uint8Array), password: "synthetic-password", verbosity: 0, useWorkerFetch: false }));
+    expect(mock.getDocument).toHaveBeenCalledWith(expect.objectContaining({ data: expect.any(Uint8Array), password: "synthetic-password", verbosity: 0, useWorkerFetch: false, enableXfa: false }));
     expect(mock.getDocument.mock.calls[0][0]).not.toHaveProperty("url");
     expect(mock.worker.workerSrc).toContain("pdfjs-dist/build/pdf.worker.min.mjs");
     expect(mock.worker.workerSrc).not.toMatch(/cdn|unpkg|jsdelivr/);
@@ -45,4 +45,28 @@ describe("browser PDF boundary", () => {
     await expect(extractPdfLines(new File(["test"], "test.pdf"), "")).rejects.toMatchObject({ code: "no_text" });
     expect(destroy).toHaveBeenCalledOnce();
   });
+});
+
+it.each(["loading", "page", "text"])("times out stalled %s and destroys the worker", async (stage) => {
+  vi.useFakeTimers();
+  try {
+    const never = new Promise<never>(() => {});
+    const destroy = vi.fn().mockResolvedValue(undefined);
+    mock.getDocument.mockReturnValue({ destroy, promise: stage === "loading" ? never : Promise.resolve({ numPages: 1, getPage: () => stage === "page" ? never : Promise.resolve({ getTextContent: () => never }) }) });
+    const result = extractPdfLines(new File(["test"], "test.pdf"), "");
+    const assertion = expect(result).rejects.toMatchObject({ code: "pdf_timeout" });
+    await vi.advanceTimersByTimeAsync(30_000);
+    await assertion;
+    expect(destroy).toHaveBeenCalledOnce();
+  } finally { vi.useRealTimers(); }
+});
+
+it.each(["pages", "items", "chars"])("rejects excessive %s and destroys the worker", async (budget) => {
+  const destroy = vi.fn().mockResolvedValue(undefined);
+  const cleanup = vi.fn();
+  const item = { str: budget === "chars" ? "x".repeat(5_000_001) : "x", transform: [1, 0, 0, 1, 0, 0], width: 1, height: 1 };
+  mock.getDocument.mockReturnValue({ destroy, promise: Promise.resolve({ numPages: budget === "pages" ? 101 : 1, getPage: async () => ({ getTextContent: async () => ({ items: budget === "items" ? Array(200_001).fill(item) : [item] }), cleanup }) }) });
+  await expect(extractPdfLines(new File(["test"], "test.pdf"), "")).rejects.toMatchObject({ code: "pdf_extraction_limit" });
+  expect(destroy).toHaveBeenCalledOnce();
+  if (budget !== "pages") expect(cleanup).toHaveBeenCalledOnce();
 });

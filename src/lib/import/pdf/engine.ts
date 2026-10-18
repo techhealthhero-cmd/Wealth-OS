@@ -269,7 +269,9 @@ export function runStatementEngine(
     last = candidate;
   }
 
-  // Infer order from differing dates. Never use a later balance as if it
+  // Infer order from differing dates. Same-day-only statements have unknown
+  // order: leave adjacent balances unused and rely on explicit data or hints.
+  // Never use a later balance as if it
   // preceded an oldest-first transaction: that can reverse debit and credit.
   const differingPair = candidates.findIndex((row, i) => i > 0 && row.date !== candidates[i - 1].date);
   const descending = differingPair < 0 ? null : candidates[differingPair].date < candidates[differingPair - 1].date;
@@ -281,11 +283,11 @@ export function runStatementEngine(
     const previous = i === 0 ? openingBalance : candidates[i - 1].balanceCents;
     const next = candidates[i + 1]?.balanceCents ?? null;
     const possible = new Set<Direction>();
-    if (descending !== true && previous !== null) {
+    if (descending === false && previous !== null) {
       if (previous - amount === row.balanceCents) possible.add("debit");
       if (previous + amount === row.balanceCents) possible.add("credit");
     }
-    if (descending !== false && next !== null) {
+    if (descending === true && next !== null) {
       if (next - amount === row.balanceCents) possible.add("debit");
       if (next + amount === row.balanceCents) possible.add("credit");
     }

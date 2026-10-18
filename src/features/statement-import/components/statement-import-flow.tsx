@@ -30,6 +30,8 @@ import {
   type ImportPreviewRow,
 } from "../actions";
 
+import { isPdfFile } from "../pdf-file";
+
 import { PdfImportError } from "@/lib/import/pdf/types";
 
 interface AccountOption {
@@ -169,7 +171,7 @@ export function StatementImportFlow({
     startTransition(async () => {
       try {
         let upload = file;
-        if (/\.pdf$/i.test(file.name)) {
+        if (await isPdfFile(file)) {
           const { extractPdfLines, PDF_IMPORT_MAX_BYTES } = await import("../pdf-extract");
           if (file.size > PDF_IMPORT_MAX_BYTES) throw new PdfImportError("pdf_too_large", "ไฟล์ PDF ต้องไม่เกิน 5 MB / PDF must be 5 MB or smaller.");
           const controller = new AbortController();

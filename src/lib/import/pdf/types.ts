@@ -59,6 +59,8 @@ export interface StatementParseResult {
 
 export type PdfImportErrorCode =
   | "pdf_too_large"
+  | "pdf_extraction_limit"
+  | "pdf_timeout"
   | "invalid_pdf"
   | "password_required"
   | "password_incorrect"
