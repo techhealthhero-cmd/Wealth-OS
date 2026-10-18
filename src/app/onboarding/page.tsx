@@ -37,10 +37,10 @@ export default async function OnboardingPage() {
     <I18nProvider locale={locale} dict={dict}>
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-muted/30 px-4 py-12">
         <Artwork
-          src="/artwork/brand/planner.webp"
+          src="/artwork/brand/planner-cutout.webp"
           square
           priority
-          className="w-32 -rotate-2 rounded-3xl shadow-card sm:w-36"
+          className="w-36 drop-shadow-[0_8px_12px_rgba(30,18,6,0.22)] sm:w-40"
         />
         <div className="w-full max-w-md">
           <OnboardingForm defaultDisplayName={profile.display_name} />

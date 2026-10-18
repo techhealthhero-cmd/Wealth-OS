@@ -11,8 +11,11 @@ Last updated: 2026-10-18
 ## Brand & Marketing artwork installed — 2026-10-18
 
 - `scripts/artwork/crop-brand-art.mjs` cuts the five-panel brand sheet into
-  `public/artwork/brand/`: `planner.webp` (Landing hero + `/onboarding`,
-  replacing the old SVG WelcomeIllustration), `journey.webp` (wide map at the
+  `public/artwork/brand/`: `planner-cutout.webp` (from Codex's transparent
+  master `assets/artwork/masters/brand-marketing/splash-loading-v1.png`,
+  contain-fit; Landing hero + `/onboarding`, replacing the old SVG
+  WelcomeIllustration; the in-app launch splash stays the notebook-cover
+  scene), `journey.webp` (wide map at the
   top of `/help`), `announcement.webp` (36 px "what's new" sticker beside the
   guide's last-updated line), `preview.webp` (above the brand line on
   login/signup/forgot/reset), `social.png` (right half of the Open Graph card,

@@ -14,7 +14,6 @@ const SHEET = "assets/artwork/drafts/brand-marketing-concept-v1-gouache-ink.png"
 const OUT = "public/artwork/brand";
 
 const CROPS = {
-  planner: { box: [58, 92, 412, 412], size: [360, 360] }, // green planner + route: welcome / opening
   announcement: { box: [538, 92, 436, 436], size: [256, 256] }, // planner page, megaphone: what's new
   preview: { box: [44, 574, 448, 448], size: [256, 256] }, // phone, ledger, calculator: the product
   social: { box: [556, 584, 432, 432], size: [360, 360] }, // chart, shield, jar: link previews
@@ -37,3 +36,12 @@ for (const [key, { box, size }] of Object.entries(CROPS)) {
   await (key === "social" ? rounded.png({ compressionLevel: 9 }) : rounded.webp({ quality: 82 })).toFile(file);
   console.log(file);
 }
+
+// Codex's approved transparent master of the same planner (contain-fit, never
+// cropped or recoloured, per assets/artwork/masters/brand-marketing/README.md):
+// the opening art on Landing and /onboarding, sitting straight on the page.
+await sharp("assets/artwork/masters/brand-marketing/splash-loading-v1.png")
+  .resize(480, 480, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+  .webp({ quality: 84, alphaQuality: 100 })
+  .toFile(`${OUT}/planner-cutout.webp`);
+console.log(`${OUT}/planner-cutout.webp`);

@@ -25,9 +25,16 @@ test("Landing, onboarding-adjacent auth screens and link preview show the brand 
   test.skip(!["iphone-375", "desktop-1280"].includes(testInfo.project.name), "One phone and one desktop pass");
 
   await page.goto("/");
-  await expectArtworkLoaded(page.locator('img[src*="brand%2Fplanner.webp"], img[src*="brand/planner.webp"]').first());
+  const planner = page.locator('img[src*="planner-cutout.webp"]');
+  await expectArtworkLoaded(planner);
   await expectNoHorizontalOverflow(page);
   await page.screenshot({ path: testInfo.outputPath("landing.png"), fullPage: true });
+  // The cut-out sits straight on the page, so check it on the dark paper too.
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.reload();
+  await expectArtworkLoaded(planner);
+  await page.screenshot({ path: testInfo.outputPath("landing-dark.png"), fullPage: true });
+  await page.emulateMedia({ colorScheme: "light" });
 
   for (const path of ["/login", "/signup"]) {
     await page.goto(path);

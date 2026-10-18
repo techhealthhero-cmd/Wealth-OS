@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/illustrations";
 import { Artwork } from "@/components/shared/artwork";
 
-// The closed green planner from the Brand & Marketing sheet (2026-10-18,
+// The closed green planner from Codex's transparent splash master (2026-10-18,
 // scripts/artwork/crop-brand-art.mjs) — the same journal the app opens into.
-const BRAND_PLANNER = "/artwork/brand/planner.webp";
+const BRAND_PLANNER = "/artwork/brand/planner-cutout.webp";
 
 // Hand-drawn gouache pillars (2026-10-15), cut from the onboarding pillars
 // sheet by scripts/artwork/crop-pillar-art.mjs.
@@ -33,7 +33,7 @@ export default async function LandingPage() {
         <span className="text-foreground">Wealth OS</span>
       </div>
 
-      <Artwork src={BRAND_PLANNER} square priority className="w-44 -rotate-2 rounded-[1.75rem] shadow-card sm:w-52" />
+      <Artwork src={BRAND_PLANNER} square priority className="-my-2 w-48 drop-shadow-[0_10px_14px_rgba(30,18,6,0.22)] sm:w-56" />
 
       <div className="max-w-md space-y-3">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
