@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { describe, expect, it } from "vitest";
 
 import { isTransientAuthError } from "@/lib/supabase/auth-errors";
-import { redirectWithSessionCookies } from "@/lib/supabase/middleware";
+import { isPublicRoute, redirectWithSessionCookies } from "@/lib/supabase/middleware";
 
 describe("auth session resilience", () => {
   it("does not sign a user out for retryable network and service failures", () => {
@@ -23,6 +23,15 @@ describe("auth session resilience", () => {
   it("fails closed for ordinary client-side authentication rejection", () => {
     expect(isTransientAuthError({ name: "AuthApiError", status: 401, code: "invalid_credentials" })).toBe(false);
     expect(isTransientAuthError(null)).toBe(false);
+  });
+
+  it("serves link-preview and install metadata without a session", () => {
+    for (const path of ["/opengraph-image", "/icon", "/apple-icon", "/icon-192", "/manifest.webmanifest", "/robots.txt"]) {
+      expect(isPublicRoute(path)).toBe(true);
+    }
+    expect(isPublicRoute("/opengraph-image-secret")).toBe(false);
+    expect(isPublicRoute("/dashboard")).toBe(false);
+    expect(isPublicRoute("/help")).toBe(false);
   });
 
   it("preserves rotated session cookies when auth handling redirects", () => {

@@ -1,4 +1,5 @@
 import { BrandMark } from "@/components/illustrations";
+import { Artwork } from "@/components/shared/artwork";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { I18nProvider } from "@/i18n/client";
@@ -17,6 +18,12 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
     <I18nProvider locale={locale} dict={dict}>
       <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-12">
         <div className="w-full max-w-sm space-y-6">
+          <Artwork
+            src="/artwork/brand/preview.webp"
+            square
+            priority
+            className="mx-auto w-20 rotate-2 rounded-2xl shadow-card"
+          />
           <div className="flex items-center justify-center gap-2 text-lg font-semibold text-primary">
             <BrandMark size={24} />
             <span className="text-foreground">Wealth OS</span>

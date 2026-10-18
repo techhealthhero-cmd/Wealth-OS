@@ -205,9 +205,11 @@ overflow
 
 - [x] สร้าง concept sheet เวอร์ชัน 1 จำนวน 5 ภาพ โดยยึดภาษากัวช์และเส้นปากกา
   จาก product artwork ที่ผ่าน QA แล้ว
-- [ ] ทบทวนว่าแต่ละภาพทำงานได้เมื่อมี copy และ UI จริงซ้อนอยู่ด้านบน
+- [x] ทบทวนว่าแต่ละภาพทำงานได้เมื่อมี copy และ UI จริงซ้อนอยู่ด้านบน
 - [ ] อนุมัติองค์ประกอบและกำหนดอัตราส่วน production ของแต่ละช่องทาง
-- [ ] แยกไฟล์ production และติดตั้ง Splash / Landing
+- [x] แยกไฟล์ production และติดตั้ง Splash / Landing (2026-10-18: ภาพสมุดเขียวบน Landing + Onboarding,
+  แผนที่เส้นทางบนหัวคู่มือ /help, โทรโข่ง "มีอะไรใหม่" ข้างวันที่อัปเดตคู่มือ, มือถือ+เครื่องคิดเลข
+  บนหน้า Login/Signup, กราฟ+โล่+โหลเหรียญในภาพ link preview — scripts/artwork/crop-brand-art.mjs)
 - [ ] สร้าง template สำหรับ Feature Announcement / Product Preview / Social Share
 - [ ] ตรวจ light/dark, mobile/desktop และ social-safe area
 
@@ -253,7 +255,7 @@ overflow
 | Milestones | ติดตั้งและตรวจแล้ว | รับ feedback จากการใช้งานจริง | เสร็จ |
 | AI Coach | ติดตั้งและตรวจครบ 4 ภาพ | รับ feedback จากการใช้งานจริง | เสร็จ |
 | Earn & Skills | ติดตั้งและตรวจครบ 5 ภาพ | รับ feedback จากการใช้งานจริง | เสร็จ |
-| Brand & Marketing | Concept v1 ครบ 5 ภาพ | ตรวจองค์ประกอบกับ copy/UI จริง | กำลังทำ |
+| Brand & Marketing | ติดตั้ง 5 ภาพในแอปแล้ว | ทำ template Feature Announcement / Social Share | ติดตั้งแล้ว |
 
 ## Check-in ครั้งถัดไป
 

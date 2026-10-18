@@ -6,7 +6,29 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-17
+Last updated: 2026-10-18
+
+## Brand & Marketing artwork installed — 2026-10-18
+
+- `scripts/artwork/crop-brand-art.mjs` cuts the five-panel brand sheet into
+  `public/artwork/brand/`: `planner.webp` (Landing hero + `/onboarding`,
+  replacing the old SVG WelcomeIllustration), `journey.webp` (wide map at the
+  top of `/help`), `announcement.webp` (36 px "what's new" sticker beside the
+  guide's last-updated line), `preview.webp` (above the brand line on
+  login/signup/forgot/reset), `social.png` (right half of the Open Graph card,
+  now in the notebook palette: warm paper + ink green instead of the old blue).
+- `<Artwork>` gained `wide` (720x289) and `priority` (eager hero) props.
+- **Bug fixed along the way:** the auth proxy redirected `/opengraph-image`,
+  `/icon`, `/apple-icon`, `/icon-192/512`, `/manifest.webmanifest`,
+  `/robots.txt`, `/sitemap.xml` to `/login` for signed-out requests, so link
+  crawlers never got the preview card. They are now public
+  (`isPublicRoute`, unit-tested in `tests/auth-session-resilience.test.ts`).
+- Verified with `tests/e2e/brand-artwork-live.spec.ts` (375 px + 1280 px:
+  landing, login, signup, OG image; `/help` light + dark with a disposable
+  user): all images load, no horizontal overflow. `/onboarding` uses the same
+  component as the landing hero but wasn't screenshotted separately.
+- Still open: Feature Announcement / Social Share *templates* (reusable
+  layouts with copy), per the roadmap.
 
 ## Brand & Marketing artwork concept — 2026-10-17
 

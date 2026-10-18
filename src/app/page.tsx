@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/features/profile/queries";
 import { logNav } from "@/lib/dev-diagnostics";
 import { Button } from "@/components/ui/button";
-import { BrandMark, IllustrationFrame, WelcomeIllustration } from "@/components/illustrations";
+import { BrandMark } from "@/components/illustrations";
+import { Artwork } from "@/components/shared/artwork";
+
+// The closed green planner from the Brand & Marketing sheet (2026-10-18,
+// scripts/artwork/crop-brand-art.mjs) — the same journal the app opens into.
+const BRAND_PLANNER = "/artwork/brand/planner.webp";
 
 // Hand-drawn gouache pillars (2026-10-15), cut from the onboarding pillars
 // sheet by scripts/artwork/crop-pillar-art.mjs.
@@ -28,9 +33,7 @@ export default async function LandingPage() {
         <span className="text-foreground">Wealth OS</span>
       </div>
 
-      <IllustrationFrame size={220} className="-my-2">
-        <WelcomeIllustration size={160} />
-      </IllustrationFrame>
+      <Artwork src={BRAND_PLANNER} square priority className="w-44 -rotate-2 rounded-[1.75rem] shadow-card sm:w-52" />
 
       <div className="max-w-md space-y-3">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">

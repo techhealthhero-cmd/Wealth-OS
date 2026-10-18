@@ -7,7 +7,7 @@ import { getLocale } from "@/i18n/server";
 import { I18nProvider } from "@/i18n/client";
 import { logNav } from "@/lib/dev-diagnostics";
 import { OnboardingForm } from "@/features/profile/components/onboarding-form";
-import { IllustrationFrame, WelcomeIllustration } from "@/components/illustrations";
+import { Artwork } from "@/components/shared/artwork";
 
 export const metadata: Metadata = { title: "Welcome — Wealth OS" };
 
@@ -36,9 +36,12 @@ export default async function OnboardingPage() {
   return (
     <I18nProvider locale={locale} dict={dict}>
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-muted/30 px-4 py-12">
-        <IllustrationFrame size={170}>
-          <WelcomeIllustration size={130} />
-        </IllustrationFrame>
+        <Artwork
+          src="/artwork/brand/planner.webp"
+          square
+          priority
+          className="w-32 -rotate-2 rounded-3xl shadow-card sm:w-36"
+        />
         <div className="w-full max-w-md">
           <OnboardingForm defaultDisplayName={profile.display_name} />
         </div>

@@ -14,8 +14,24 @@ const PUBLIC_ROUTES = [
   "/auth/callback",
 ];
 
-function isPublicRoute(pathname: string) {
+// Generated metadata files (src/app/opengraph-image.tsx, icon.tsx,
+// manifest.ts, ...). Link-preview crawlers and the browser's install/icon
+// requests never carry a session, so redirecting these to /login meant a
+// shared link showed the login page's HTML instead of the preview card.
+const PUBLIC_METADATA_FILES = [
+  "/opengraph-image",
+  "/icon",
+  "/apple-icon",
+  "/icon-192",
+  "/icon-512",
+  "/manifest.webmanifest",
+  "/robots.txt",
+  "/sitemap.xml",
+];
+
+export function isPublicRoute(pathname: string) {
   if (pathname === "/") return true;
+  if (PUBLIC_METADATA_FILES.includes(pathname)) return true;
   return PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );

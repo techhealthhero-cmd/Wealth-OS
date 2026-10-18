@@ -6,7 +6,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { WelcomeIllustration } from "@/components/illustrations";
+import { Artwork } from "@/components/shared/artwork";
 import { MoneyStoryGallery } from "@/features/help/components/money-story-gallery";
 
 export const metadata: Metadata = { title: "Help — Wealth OS" };
@@ -41,10 +41,13 @@ export default async function HelpPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-28">
       <div className="space-y-3 text-center">
-        <WelcomeIllustration size={104} className="mx-auto" />
+        <Artwork src="/artwork/brand/journey.webp" wide priority className="mx-auto w-full max-w-md rounded-2xl shadow-card" />
         <h1 className="font-heading text-2xl font-bold text-balance">{help.title}</h1>
         <p className="text-sm text-muted-foreground">{help.subtitle}</p>
-        <p className="text-xs text-muted-foreground">{help.lastUpdated}</p>
+        <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <Artwork src="/artwork/brand/announcement.webp" square className="size-9 rotate-3 rounded-lg" />
+          <span className="text-balance">{help.lastUpdated}</span>
+        </p>
 
         <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-2 rounded-xl border bg-card px-3 py-3 text-sm font-medium shadow-card">
           {philosophySteps.map((step, i) => (
