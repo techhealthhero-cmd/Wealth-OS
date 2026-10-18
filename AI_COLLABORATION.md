@@ -142,11 +142,11 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 | ART-01 | Brand & Marketing templates | Claude | TODO | จัด Feature Announcement, Product Preview และ Social Share จาก master ที่อนุมัติแล้ว | ส่งภาพหน้าจอ/ผล QA ให้ Codex ตรวจความสม่ำเสมอ |
 | QA-01 | Empty State live QA | Claude | TODO | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | บันทึก viewport, theme และผลตรวจใน `ARTWORK_ROADMAP.md` |
 | ART-02 | Brand artwork visual QA | Codex | WAITING | ตรวจ light/dark, mobile/desktop และ social safe area หลังติดตั้ง | รอ Claude ส่งหน้าจอจริง |
-| AUTO-INFRA-01 | Fresh-clone typecheck | Grok | VERIFY — PR #1 | `npm run typecheck` = `next typegen && tsc --noEmit` (ไม่มี script `typegen` แยก ตามที่เจ้าของโปรเจกต์ตัดสิน) ผ่านบน Node 22/24 จาก `.next` ว่าง; Codex review = APPROVE (https://github.com/techhealthhero-cmd/Wealth-OS/pull/1) | เจ้าของโปรเจกต์ review/merge PR #1 |
-| AUTO-INFRA-02 | Pin Node 22+ | Grok | VERIFY — PR #1 | `.nvmrc`=22, `engines.node >=22`, README Node 22+; `npm ci` ไม่มี EBADENGINE บน Node 22.23.3 และ 24.22.0 | เจ้าของโปรเจกต์ review/merge PR #1 |
+| AUTO-INFRA-01 | Fresh-clone typecheck | Grok | DONE — PR #1 merged (`7f62e87`) | `npm run typecheck` = `next typegen && tsc --noEmit` (ไม่มี script `typegen` แยก ตามที่เจ้าของโปรเจกต์ตัดสิน) ผ่านบน Node 22/24 จาก `.next` ว่าง; Codex review = APPROVE (https://github.com/techhealthhero-cmd/Wealth-OS/pull/1) | — |
+| AUTO-INFRA-02 | Pin Node 22+ | Grok | DONE — PR #1 merged (`7f62e87`) | `.nvmrc`=22, `engines.node >=22`, README Node 22+; `npm ci` ไม่มี EBADENGINE บน Node 22.23.3 และ 24.22.0 | — |
 | AUTO-INFRA-03 | Safe bot build profile | Claude | TODO | Build โดยไม่ใช้ production secrets/network writes | Codex security review ก่อน Grok ใช้ |
 | AUTO-SEC-01 | npm audit triage | Claude (tracking: Grok) | ESCALATED | รายงานเสร็จ (Claude Code ร่าง, Grok ตรวจ) บน branch local `claude/auto-sec-01-audit-triage`; เข้า stop condition จึงยังไม่ push; ไม่มีการเปลี่ยน dependency/lockfile | เจ้าของโปรเจกต์ตัดสินใจจากรายงานที่ส่งตรงให้ |
-| AUTO-CLEAN-01 | Unused eslint-disable ใน `opengraph-image.tsx` | Grok | VERIFY — PR #1 | ลบคอมเมนต์ที่ไม่ได้ใช้; lint 0 problems | เจ้าของโปรเจกต์ review/merge PR #1 |
+| AUTO-CLEAN-01 | Unused eslint-disable ใน `opengraph-image.tsx` | Grok | DONE — PR #1 merged (`7f62e87`) | ลบคอมเมนต์ที่ไม่ได้ใช้; lint 0 problems | — |
 
 ## Current Shared Context
 
@@ -189,7 +189,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - ทำเสร็จแล้ว: PR #1 เพิ่ม README Node 22+ (`a2e2f1e`); Codex review แบบ read-only = APPROVE (คอมเมนต์ใน PR #1); Claude Code ร่างรายงาน SEC-01
 - การตรวจที่รันและผลลัพธ์: Node 22.23.3 และ 24.22.0 — `npm ci` OK, typecheck OK (รันซ้ำ 2 ครั้ง), lint 0 problems, Vitest 1023/1023
 - ข้อจำกัด: SEC-01 เข้า stop condition → ไม่ push รายงาน รอเจ้าของโปรเจกต์ตัดสินใจ; ไม่มีการเปลี่ยน dependency/lockfile
-- ขั้นต่อไปที่ชัดเจน: เจ้าของโปรเจกต์ review/merge PR #1 และตัดสินใจเรื่อง SEC-01
+- ผลลัพธ์: เจ้าของโปรเจกต์ merge PR #1 แล้ว (merge commit `7f62e87`, 2026-10-19 00:50 Asia/Bangkok) รวม README Node 22+
+- ขั้นต่อไปที่ชัดเจน: เจ้าของโปรเจกต์ตัดสินใจเรื่อง SEC-01
 - คำถามที่ต้องการคำตอบ: อนุมัติแผนแก้ตามรายงาน SEC-01 หรือไม่
 
 ### 2026-10-19 — Codex → Claude
