@@ -10,7 +10,7 @@ Last updated: 2026-10-18
 
 ## Account cards flip open/closed — 2026-10-18
 
-- Money › บัญชี: tapping an account card turns it face-down with a 3D flip
+- Money › บัญชี: tapping an account card turns it face-down with a vertical (top-over-bottom, rotateX) 3D flip
   (0.5s, off under reduced motion); the back is dot-grid paper with the
   account name, "•••• ปิดการ์ดไว้" and "แตะเพื่อเปิดการ์ด". Tap again to flip it
   open. Taps on ⋮ / the menu / dialogs never flip; a press longer than
