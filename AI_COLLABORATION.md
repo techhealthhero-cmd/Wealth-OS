@@ -139,7 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
-| ANIMATED-RM-01 | AnimatedNumber reduced-motion hydration | Codex | VERIFY — local checks passed | Logic-only component fix and regression tests; typecheck/lint and 104 files / 1036 tests passed | PR to staging; merge only after all checks pass |
+| ANIMATED-RM-01 | AnimatedNumber reduced-motion hydration | Codex | DONE — implementation and local validation | Logic-only component fix and regression tests; typecheck/lint and 104 files / 1036 tests passed | PR #8 into staging; merge gated on all checks; final outcome in /workspace/reports/animated-number-pr.md |
 | LOGIC-HOME-01 | Home MoM baseline + timezone month card | Codex | READY FOR HANDOFF — commit blocked by read-only Git metadata | Pure calendar/snapshot helpers, dashboard logic and unit tests; no formula/UI/DB changes | Parent stage/commit in writable Git environment |
 | ART-01 | Brand & Marketing templates | Claude | TODO | จัด Feature Announcement, Product Preview และ Social Share จาก master ที่อนุมัติแล้ว | ส่งภาพหน้าจอ/ผล QA ให้ Codex ตรวจความสม่ำเสมอ |
 | QA-01 | Empty State live QA | Claude | TODO | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | บันทึก viewport, theme และผลตรวจใน `ARTWORK_ROADMAP.md` |
@@ -188,7 +188,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 - AnimatedNumber starts animated state at zero and renders the final value directly under reduced motion, matching SplitMoneyAmount; no styling changes.
 - Added five regression cases covering the post-hydration preference change for all formats, updated values, and normal-motion initial state. Four cases fail against the original implementation.
-- Validation: typecheck, lint, and full Vitest passed (104 files, 1036 tests). Next: PR into staging and merge only after all checks pass; outcome recorded in `/workspace/reports/animated-number-pr.md`.
+- Validation: typecheck, lint, and full Vitest passed (104 files, 1036 tests). PR: https://github.com/techhealthhero-cmd/Wealth-OS/pull/8 into staging; merge only after all checks pass; outcome recorded in `/workspace/reports/animated-number-pr.md`.
 
 ### 2026-10-19 — Codex → Parent (LOGIC-HOME-01)
 
