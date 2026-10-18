@@ -142,10 +142,11 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 | ART-01 | Brand & Marketing templates | Claude | TODO | จัด Feature Announcement, Product Preview และ Social Share จาก master ที่อนุมัติแล้ว | ส่งภาพหน้าจอ/ผล QA ให้ Codex ตรวจความสม่ำเสมอ |
 | QA-01 | Empty State live QA | Claude | TODO | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | บันทึก viewport, theme และผลตรวจใน `ARTWORK_ROADMAP.md` |
 | ART-02 | Brand artwork visual QA | Codex | WAITING | ตรวจ light/dark, mobile/desktop และ social safe area หลังติดตั้ง | รอ Claude ส่งหน้าจอจริง |
-| AUTO-INFRA-01 | Fresh-clone typecheck | Claude | READY FOR HANDOFF | อ่าน Next 16 docs แล้วทำให้ typegen + typecheck รันได้ด้วยคำสั่งมาตรฐาน | Codex review; Grok verify จาก clone ใหม่ |
-| AUTO-INFRA-02 | Pin Node 22+ | Claude | READY FOR HANDOFF | ทำ README, package engines และ version pin ให้ตรงกัน | Codex review; Grok verify engine |
+| AUTO-INFRA-01 | Fresh-clone typecheck | Grok | DONE — PR #1 merged (`7f62e87`) | `npm run typecheck` = `next typegen && tsc --noEmit` (ไม่มี script `typegen` แยก ตามที่เจ้าของโปรเจกต์ตัดสิน) ผ่านบน Node 22/24 จาก `.next` ว่าง; Codex review = APPROVE (https://github.com/techhealthhero-cmd/Wealth-OS/pull/1) | — |
+| AUTO-INFRA-02 | Pin Node 22+ | Grok | DONE — PR #1 merged (`7f62e87`) | `.nvmrc`=22, `engines.node >=22`, README Node 22+; `npm ci` ไม่มี EBADENGINE บน Node 22.23.3 และ 24.22.0 | — |
 | AUTO-INFRA-03 | Safe bot build profile | Claude | TODO | Build โดยไม่ใช้ production secrets/network writes | Codex security review ก่อน Grok ใช้ |
-| AUTO-SEC-01 | npm audit triage | Claude | TODO | จำแนก 16 findings; ห้าม auto-fix | ยกระดับ critical runtime risk ให้เจ้าของโปรเจกต์ |
+| AUTO-SEC-01 | npm audit triage | Claude (tracking: Grok) | ESCALATED | รายงานเสร็จ (Claude Code ร่าง, Grok ตรวจ) บน branch local `claude/auto-sec-01-audit-triage`; เข้า stop condition จึงยังไม่ push; ไม่มีการเปลี่ยน dependency/lockfile | เจ้าของโปรเจกต์ตัดสินใจจากรายงานที่ส่งตรงให้ |
+| AUTO-CLEAN-01 | Unused eslint-disable ใน `opengraph-image.tsx` | Grok | DONE — PR #1 merged (`7f62e87`) | ลบคอมเมนต์ที่ไม่ได้ใช้; lint 0 problems | — |
 
 ## Current Shared Context
 
@@ -169,6 +170,9 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - 2026-10-18 — Codex + Claude workflow — ใช้ไฟล์นี้เป็น collaboration board กลาง — เพื่อให้รับช่วงงานได้โดยไม่ต้องให้เจ้าของโปรเจกต์เล่าบริบทซ้ำ
 - 2026-10-18 — เจ้าของโปรเจกต์ — ให้ Codex ดูแล token budget และให้ทุก agent ทำงานจากแผนที่กลับมาต่อได้ — รักษาคุณภาพพร้อมลดการอ่านและทำงานซ้ำ
 - 2026-10-18 — เจ้าของโปรเจกต์ — เพิ่ม Grok Bot เป็น automation/night-shift operator — ตั้งใจให้ช่วยดูแลงานต่อเนื่องระหว่างที่เจ้าของโปรเจกต์พัก โดยต้องใช้คิวที่อนุมัติและ review gate
+- 2026-10-19 — เจ้าของโปรเจกต์ — ใช้ PR #1 ของ Grok สำหรับ AUTO-INFRA-01/02 และ AUTO-CLEAN-01; งานซ้ำของ Claude ที่อยู่ในเครื่อง (ยังไม่ commit) ถือว่า superseded — ป้องกันงานซ้ำ/ชนกัน
+- 2026-10-19 — เจ้าของโปรเจกต์ — อนุมัติให้ Grok Bot push branch และเปิด PR ได้ (ห้าม merge, deploy, แตะ production/secrets/migrations/RLS/billing/financial formulas, เปลี่ยน dependency/lockfile หรือรัน E2E) — merge ยังเป็นอำนาจเจ้าของโปรเจกต์เท่านั้น
+- 2026-10-19 — เจ้าของโปรเจกต์ — ไม่เพิ่ม script `typegen` แยก; ใช้ `npm run typecheck` คำสั่งเดียว
 
 ## Blockers / Questions
 
@@ -178,6 +182,16 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 ## Handoff Log
 
 เพิ่มรายการใหม่ไว้ด้านบน ไม่ต้องคัดลอกประวัติการแก้ไฟล์ทั้งหมด
+
+### 2026-10-19 — Grok → เจ้าของโปรเจกต์ (Night Report)
+
+- งาน/เป้าหมาย: ปิด AUTO-INFRA-01/02, AUTO-CLEAN-01 ผ่าน PR #1; ทำ AUTO-SEC-01 triage
+- ทำเสร็จแล้ว: PR #1 เพิ่ม README Node 22+ (`a2e2f1e`); Codex review แบบ read-only = APPROVE (คอมเมนต์ใน PR #1); Claude Code ร่างรายงาน SEC-01
+- การตรวจที่รันและผลลัพธ์: Node 22.23.3 และ 24.22.0 — `npm ci` OK, typecheck OK (รันซ้ำ 2 ครั้ง), lint 0 problems, Vitest 1023/1023
+- ข้อจำกัด: SEC-01 เข้า stop condition → ไม่ push รายงาน รอเจ้าของโปรเจกต์ตัดสินใจ; ไม่มีการเปลี่ยน dependency/lockfile
+- ผลลัพธ์: เจ้าของโปรเจกต์ merge PR #1 แล้ว (merge commit `7f62e87`, 2026-10-19 00:50 Asia/Bangkok) รวม README Node 22+
+- ขั้นต่อไปที่ชัดเจน: เจ้าของโปรเจกต์ตัดสินใจเรื่อง SEC-01
+- คำถามที่ต้องการคำตอบ: อนุมัติแผนแก้ตามรายงาน SEC-01 หรือไม่
 
 ### 2026-10-19 — Codex → Claude
 
