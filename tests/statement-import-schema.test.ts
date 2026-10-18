@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { prepareStatementImportSchema, statementImportBatchIdSchema } from "@/lib/validation/statement-import";
+
 const sql = readFileSync(resolve("supabase/migrations/0029_statement_csv_import.sql"), "utf8");
 
 describe("statement import database boundary", () => {
@@ -35,4 +37,27 @@ describe("statement import database boundary", () => {
     expect(sql).toContain("t.user_id = auth.uid()");
     expect(sql).toContain("transaction_import_rows_batch_owner_fk");
   });
+});
+
+const batchId = "11111111-1111-4111-8111-111111111111";
+const mapping = { date: "Date", description: "Description", amount: "Amount" };
+
+describe("statement import input schemas", () => {
+  it("accepts a UUID and a valid column mapping", () => {
+    expect(statementImportBatchIdSchema.parse(batchId)).toBe(batchId);
+    expect(prepareStatementImportSchema.parse({ batchId, mapping })).toEqual({ batchId, mapping });
+  });
+
+  it.each(["", "not-a-uuid", "11111111111141118111111111111111", null, undefined, 123])(
+    "rejects invalid batch ID %j in both schemas", (invalidId) => {
+      expect(statementImportBatchIdSchema.safeParse(invalidId).success).toBe(false);
+      expect(prepareStatementImportSchema.safeParse({ batchId: invalidId, mapping }).success).toBe(false);
+    }
+  );
+
+  it.each([undefined, null, {}, { ...mapping, date: "" }, { ...mapping, debit: "Debit" }])(
+    "rejects missing or invalid nested mapping %j", (invalidMapping) => {
+      expect(prepareStatementImportSchema.safeParse({ batchId, mapping: invalidMapping }).success).toBe(false);
+    }
+  );
 });

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   centsToDecimalString,
+  centsToNumber,
+  formatMoneyFromDecimal,
   formatMoney,
   parseMoneyToCents,
 } from "@/lib/financial/money";
@@ -56,5 +58,29 @@ describe("formatMoney", () => {
   it("formats USD", () => {
     const formatted = formatMoney(150000, "USD");
     expect(formatted).toContain("1,500.00");
+  });
+});
+
+describe("centsToNumber", () => {
+  it.each([[0, 0], [1, 0.01], [123450, 1234.5], [-5025, -50.25]])(
+    "converts %s cents to %s major units", (cents, expected) => {
+      expect(centsToNumber(cents)).toBe(expected);
+    }
+  );
+});
+
+describe("formatMoneyFromDecimal", () => {
+  it.each(["1234.50", 1234.5])("formats decimal input %j in the default currency", (value) => {
+    expect(formatMoneyFromDecimal(value)).toBe("฿1,234.50");
+  });
+
+  it("honors the currency locale and an explicit locale override", () => {
+    expect(formatMoneyFromDecimal("1234.50", "EUR")).toBe("1.234,50 €");
+    expect(formatMoneyFromDecimal("-1234.50", "USD", "en-US")).toBe("-$1,234.50");
+    expect(formatMoneyFromDecimal("0", "EUR", "en-US")).toBe("€0.00");
+  });
+
+  it.each(["invalid", "1.234", NaN, Infinity])("rejects invalid decimal input %j", (value) => {
+    expect(() => formatMoneyFromDecimal(value)).toThrow();
   });
 });

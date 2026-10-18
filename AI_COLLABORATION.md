@@ -139,6 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| MONEY-IMPORT-TESTS | Money/import unit coverage | Codex | DONE — tests and local validation | Tests only in money/import suites; no production changes. Plan: verify gaps, add boundary tests, typecheck/lint/full Vitest, PR into staging and merge only if all checks pass | Codex → staging reviewers; report /workspace/reports/money-import-tests-pr.md |
 | ANIMATED-RM-01 | AnimatedNumber reduced-motion hydration | Codex | DONE — implementation and local validation | Logic-only component fix and regression tests; typecheck/lint and 104 files / 1036 tests passed | PR #8 into staging; merge gated on all checks; final outcome in /workspace/reports/animated-number-pr.md |
 | LOGIC-HOME-01 | Home MoM baseline + timezone month card | Codex | READY FOR HANDOFF — commit blocked by read-only Git metadata | Pure calendar/snapshot helpers, dashboard logic and unit tests; no formula/UI/DB changes | Parent stage/commit in writable Git environment |
 | ART-01 | Brand & Marketing templates | Claude | TODO | จัด Feature Announcement, Product Preview และ Social Share จาก master ที่อนุมัติแล้ว | ส่งภาพหน้าจอ/ผล QA ให้ Codex ตรวจความสม่ำเสมอ |
@@ -183,6 +184,12 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → staging reviewers (MONEY-IMPORT-TESTS)
+
+- Added 51 unit cases across the four existing money/import suites: UUID and nested mapping validation, direct fingerprint stability/identity, cents conversion and decimal formatting, and header-mapping boundaries.
+- Tests and this collaboration board are the only changes; production logic is unchanged. All exported money helpers now have direct coverage.
+- Validation: typecheck, lint, and full Vitest passed (104 files, 1087 tests). Next: push `codex/money-import-unit-tests`, open PR into staging, wait for every check, and merge only if all pass as explicitly authorized by the user. Final PR URL and merge outcome: `/workspace/reports/money-import-tests-pr.md`.
 
 ### 2026-10-19 — Codex → staging reviewers (ANIMATED-RM-01)
 
