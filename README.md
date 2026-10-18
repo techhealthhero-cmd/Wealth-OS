@@ -135,7 +135,7 @@ edge cases (zero income, negative cash flow, large values, decimal amounts).
 ## Build
 
 ```bash
-npm run typecheck   # tsc --noEmit
+npm run typecheck   # next typegen && tsc --noEmit (generates route types first, works on a fresh clone)
 npm run lint        # eslint
 npm test            # vitest run
 npm run build        # next build
