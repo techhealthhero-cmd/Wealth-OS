@@ -27,8 +27,20 @@ application integration and implementation QA.
   the megaphone, journal rings, or colored section tabs.
 - Check both light and dark backgrounds after integration.
 
+## `product-preview-v1.png`
+
+- Purpose: decorative product-preview art for landing sections, release
+  notes, store screenshots, or marketing layouts.
+- Canvas: 1254 x 1254 PNG with real alpha transparency.
+- Composition: smartphone dashboard, ring-bound ledger, and calculator.
+- The charts, colored dots, and gray rules are intentionally generic visual
+  placeholders. Do not present them as a real customer's financial data.
+- For an accurate product demonstration, place a real app screenshot beside
+  this illustration rather than painting labels or balances into the PNG.
+- Suggested use: contain-fit; keep the phone, ledger rings, and calculator
+  fully visible. Check both light and dark backgrounds after integration.
+
 ## Production queue
 
-1. Product preview
-2. Social share
-3. Landing-page feature journey
+1. Social share
+2. Landing-page feature journey
