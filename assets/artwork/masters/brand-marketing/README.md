@@ -53,6 +53,21 @@ application integration and implementation QA.
   text below the chart line or behind the shield and jar.
 - The rising path communicates gradual progress, not guaranteed returns.
 
+## `landing-feature-journey-v1.png`
+
+- Purpose: wide landing-page illustration for the Track -> Plan -> Earn ->
+  Grow product story.
+- Canvas: 1774 x 887 PNG (2:1) with real alpha transparency outside the map.
+- Composition: receipt, calendar, work briefcase, and protected home connected
+  by one calm four-checkpoint route across an unfolded paper map.
+- Add the four stage labels and supporting copy as accessible HTML beside or
+  below the artwork; do not paint labels into this PNG.
+- Suggested use: contain-fit across the available width. Keep the receipt and
+  protected home visible at both edges; on narrow screens, scale the complete
+  map instead of center-cropping away a stage.
+- The route shows a practical sequence, not guaranteed financial success.
+
 ## Production queue
 
-1. Landing-page feature journey
+All five production masters are ready for Claude integration and responsive
+QA. Codex owns artwork revisions; Claude owns application installation.

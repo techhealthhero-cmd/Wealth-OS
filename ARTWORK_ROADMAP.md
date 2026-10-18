@@ -210,6 +210,8 @@ overflow
 - [x] แยกไฟล์ production และติดตั้ง Splash / Landing (2026-10-18: ภาพสมุดเขียวบน Landing + Onboarding,
   แผนที่เส้นทางบนหัวคู่มือ /help, โทรโข่ง "มีอะไรใหม่" ข้างวันที่อัปเดตคู่มือ, มือถือ+เครื่องคิดเลข
   บนหน้า Login/Signup, กราฟ+โล่+โหลเหรียญในภาพ link preview — scripts/artwork/crop-brand-art.mjs)
+- [x] สร้าง production artwork masters พื้นหลังโปร่งใส 5 ไฟล์สำหรับส่งต่อ Claude:
+  Splash, Feature Announcement, Product Preview, Social Share และภาพ Landing Journey แบบ 2:1
 - [ ] สร้าง template สำหรับ Feature Announcement / Product Preview / Social Share
 - [ ] ตรวจ light/dark, mobile/desktop และ social-safe area
 
