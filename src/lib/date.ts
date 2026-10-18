@@ -50,3 +50,17 @@ export function addMonthsClamped(date: Date, months: number): Date {
   if (result.getDate() !== day) result.setDate(0);
   return result;
 }
+
+/** Calendar month containing an ISO calendar date; UTC is only used for date arithmetic. */
+export function calendarMonth(today: string, offset = 0) {
+  const [year, month, day] = today.split("-").map(Number);
+  const monthDate = new Date(Date.UTC(year, month - 1 + offset, 1));
+  const lastDate = new Date(Date.UTC(year, month + offset, 0));
+  return {
+    from: monthDate.toISOString().slice(0, 10),
+    to: lastDate.toISOString().slice(0, 10),
+    dayOfMonth: day,
+    daysInMonth: lastDate.getUTCDate(),
+    monthDate,
+  };
+}

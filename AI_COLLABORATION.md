@@ -139,6 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| LOGIC-HOME-01 | Home MoM baseline + timezone month card | Codex | READY FOR HANDOFF — commit blocked by read-only Git metadata | Pure calendar/snapshot helpers, dashboard logic and unit tests; no formula/UI/DB changes | Parent stage/commit in writable Git environment |
 | ART-01 | Brand & Marketing templates | Claude | TODO | จัด Feature Announcement, Product Preview และ Social Share จาก master ที่อนุมัติแล้ว | ส่งภาพหน้าจอ/ผล QA ให้ Codex ตรวจความสม่ำเสมอ |
 | QA-01 | Empty State live QA | Claude | TODO | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | บันทึก viewport, theme และผลตรวจใน `ARTWORK_ROADMAP.md` |
 | ART-02 | Brand artwork visual QA | Codex | WAITING | ตรวจ light/dark, mobile/desktop และ social safe area หลังติดตั้ง | รอ Claude ส่งหน้าจอจริง |
@@ -181,6 +182,13 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → Parent (LOGIC-HOME-01)
+
+- Completed on `codex/logic-fixes`: Home badge selects the latest stored snapshot date in the immediately preceding calendar month, using profile timezone (Bangkok default) to identify today. Missing prior-month history uses the existing no-history state; no daily/older-month substitution.
+- Month card display and current/previous transaction windows share one timezone-aware calendar date; pure helpers in `src/lib/date.ts` and `src/features/dashboard/net-worth-baseline.ts` have focused unit coverage.
+- Verification: `npm run typecheck`, `npm run lint`, `npx vitest run` all passed (103 files, 1031 tests). No money-formula, UI styling, DB/auth, migration or snapshot-writer changes.
+- Commit blocked: `git add` and `git commit` fail creating `/workspace/Wealth-OS/.git/worktrees/logic-fixes/index.lock` (read-only filesystem). Changes remain unstaged. Next: parent stage and commit the completed patch in a writable Git environment; no PR, merge, push or QUEUE.md edit performed. Result summary: `/workspace/wt/logic-fixes-prompts/fix-result.md`.
 
 เพิ่มรายการใหม่ไว้ด้านบน ไม่ต้องคัดลอกประวัติการแก้ไฟล์ทั้งหมด
 
