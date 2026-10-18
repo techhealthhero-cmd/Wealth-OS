@@ -1,5 +1,3 @@
-import { TrendingDown, TrendingUp } from "lucide-react";
-
 import { captureError } from "@/lib/observability";
 import {
   ensureTodaysNetWorthSnapshot,
@@ -7,17 +5,13 @@ import {
   getNetWorthSnapshotsSince,
 } from "@/features/net-worth/queries";
 import { calculateNetWorthChange, type NetWorthChange } from "@/lib/financial/net-worth";
-import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
+import { parseMoneyToCents } from "@/lib/financial/money";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import type { Locale } from "@/i18n/config";
 import { getProfile } from "@/features/profile/queries";
-import { Card, CardContent } from "@/components/ui/card";
-import { AnimatedNumber } from "@/components/shared/animated-number";
 import { InlineLoadError } from "@/components/shared/inline-load-error";
-import { NetWorthMiniChart } from "./net-worth-mini-chart";
-import { NetWorthInfoPopover } from "./net-worth-info-popover";
-import { NetWorthBreakdownDisclosure } from "./net-worth-breakdown-disclosure";
+import { NetWorthHeroCard } from "./net-worth-hero-card";
 import type { NetWorthBreakdown } from "@/features/net-worth/queries";
 
 const CHART_HISTORY_MONTHS = 6;
@@ -29,6 +23,7 @@ interface NetWorthHeroData {
   change: NetWorthChange;
   hasHistory: boolean;
   chartData: { date: string; netWorth: number }[];
+  monthLabels: { label: string; isCurrent: boolean }[];
 }
 
 /**
@@ -57,14 +52,26 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
       previousSnapshot ? parseMoneyToCents(previousSnapshot.net_worth) : 0
     );
 
+    const intlLocale = locale === "th" ? "th-TH" : "en-US";
     const chartData = snapshots.map((s) => ({
-      date: new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "short", day: "numeric" }).format(
+      date: new Intl.DateTimeFormat(intlLocale, { month: "short", day: "numeric" }).format(
         new Date(`${s.snapshot_date}T00:00:00`)
       ),
       netWorth: parseMoneyToCents(s.net_worth),
     }));
 
-    return { dict, locale, breakdown, change, hasHistory: previousSnapshot !== null, chartData };
+    // Axis labels under the sparkline: one per distinct snapshot month
+    // (snapshot_date is "YYYY-MM-DD"), current month emphasized.
+    const monthFormatter = new Intl.DateTimeFormat(intlLocale, { month: "short" });
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const monthKeys = [...new Set(snapshots.map((s) => s.snapshot_date.slice(0, 7)))];
+    const monthLabels = monthKeys.map((key) => ({
+      label: monthFormatter.format(new Date(`${key}-01T00:00:00`)),
+      isCurrent: key === currentMonthKey,
+    }));
+
+    return { dict, locale, breakdown, change, hasHistory: previousSnapshot !== null, chartData, monthLabels };
   } catch (error) {
     captureError(error, { route: "dashboard.NetWorthHero", operation: "load_net_worth_hero_data" });
     return null;
@@ -79,10 +86,9 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
  * net-worth-view.tsx) — no new financial logic, just a second presentation
  * of the same numbers.
  *
- * 2026-09 Home redesign: renders a SINGLE Card now — the assets/liabilities
- * breakdown that used to be a second, separate Card (always one tap away in
- * full at /money/net-worth anyway) is folded into a chevron-expand section
- * via NetWorthBreakdownDisclosure, collapsed by default.
+ * 2026-10 Home redesign: the presentation lives in NetWorthHeroCard; the
+ * assets/liabilities breakdown is one tap away at /money/net-worth via the
+ * card's row link instead of an in-place disclosure.
  */
 export async function NetWorthHero() {
   const data = await loadNetWorthHeroData();
@@ -99,94 +105,24 @@ export async function NetWorthHero() {
     return <InlineLoadError message={dict.common.somethingWentWrong} />;
   }
 
-  const { dict, breakdown, change, hasHistory, chartData } = data;
-  const isNegative = breakdown.netWorthCents < 0;
+  const { dict, breakdown, change, hasHistory, chartData, monthLabels } = data;
 
-  // Requested (2026-09-29): the hero is ALWAYS the green card. It used to
-  // drop to a plain white card with a large red number whenever net worth
-  // was negative — which read as an alarm, against UX_GUIDELINES.md's
-  // "never shame" coaching tone. A negative figure is still unmistakable
-  // (minus sign + soft rose on green), just not styled as a warning.
-  //
-  // Requested (2026-10-03): tapping the hero no longer navigates to
-  // /money/net-worth — it stays on Home. The card keeps its press feel
-  // (.card-interactive's :active scale is pure CSS, independent of any
-  // click handler), and "ดูรายละเอียด" still expands the breakdown in place.
   return (
-    <section aria-label={dict.netWorth.currentNetWorth}>
-      <Card
-        variant="highlight"
-        className="card-interactive relative overflow-hidden rounded-3xl transition-opacity hover:opacity-90"
-        style={{
-          background:
-            "radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,0.14), transparent 55%), linear-gradient(145deg, var(--primary), color-mix(in oklab, var(--primary) 72%, black))",
-        }}
-      >
-        {/* Soft decorative glow, purely visual. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-16 -bottom-20 size-56 rounded-full bg-[#7FD6B2]/10 blur-2xl"
-        />
-        <CardContent className="relative space-y-4 pt-6">
-          <div className="space-y-1">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-1">
-                <p className="text-sm text-primary-foreground/75">{dict.netWorth.currentNetWorth}</p>
-                <NetWorthInfoPopover
-                  label={dict.netWorth.whatIsThis}
-                  explanation={dict.netWorth.explanation}
-                  tone="on-dark"
-                />
-              </div>
-              <p className="max-w-36 text-right text-xs leading-relaxed text-primary-foreground/60">
-                {dict.netWorth.tagline}
-              </p>
-            </div>
-            <AnimatedNumber
-              value={breakdown.netWorthCents}
-              formatAs="money"
-              className={`block break-all text-[clamp(2rem,10vw,3.75rem)] font-bold leading-none tracking-tight tabular-nums ${isNegative ? "text-rose-200" : "text-primary-foreground"}`}
-            />
-            {hasHistory ? (
-              <span
-                className={`inline-flex items-center gap-1 rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium ${
-                  change.changeCents >= 0 ? "text-[#7FD6B2]" : "text-rose-200"
-                }`}
-              >
-                {change.changeCents >= 0 ? (
-                  <TrendingUp className="size-3.5" aria-hidden="true" />
-                ) : (
-                  <TrendingDown className="size-3.5" aria-hidden="true" />
-                )}
-                {change.changeCents >= 0 ? "+" : ""}
-                {formatMoney(change.changeCents)}
-                {change.changePercent !== null
-                  ? ` · ${change.changeCents >= 0 ? "+" : ""}${change.changePercent.toFixed(1)}%`
-                  : ""}{" "}
-                {dict.netWorth.monthlyChange}
-              </span>
-            ) : (
-              <p className="text-sm text-primary-foreground/60">{dict.netWorth.noHistoryYet}</p>
-            )}
-          </div>
-
-          {chartData.length >= 2 ? (
-            <div className="space-y-1">
-              <p className="text-xs text-primary-foreground/60">{dict.netWorth.last6Months}</p>
-              <NetWorthMiniChart data={chartData} tone="highlight" />
-            </div>
-          ) : null}
-
-          <NetWorthBreakdownDisclosure
-            totalAssetsCents={breakdown.totalAssetsCents}
-            totalLiabilitiesCents={breakdown.totalLiabilitiesCents}
-            viewDetailsLabel={dict.dashboard2.viewDetails}
-            assetsLabel={dict.netWorth.totalAssets}
-            liabilitiesLabel={dict.netWorth.totalLiabilities}
-            tone="on-dark"
-          />
-        </CardContent>
-      </Card>
-    </section>
+    <NetWorthHeroCard
+      labels={{
+        currentNetWorth: dict.netWorth.currentNetWorth,
+        whatIsThis: dict.netWorth.whatIsThis,
+        explanation: dict.netWorth.explanation,
+        monthlyChange: dict.netWorth.monthlyChange,
+        noChange: dict.netWorth.noChangeFromLastMonth,
+        noHistoryYet: dict.netWorth.noHistoryYet,
+        viewAssetsAndLiabilities: dict.netWorth.viewAssetsAndLiabilities,
+      }}
+      netWorthCents={breakdown.netWorthCents}
+      change={change}
+      hasHistory={hasHistory}
+      chartData={chartData}
+      monthLabels={monthLabels}
+    />
   );
 }

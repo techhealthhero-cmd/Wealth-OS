@@ -143,15 +143,20 @@ export default async function DashboardPage() {
           accounts={data.accounts}
           categories={data.categories}
           labels={{
-            title: dict.dashboard.thisMonth,
-            income: dict.dashboard.monthlyIncome,
-            expenses: dict.dashboard.monthlyExpenses,
+            title: dict.dashboard.monthTitle.replace(
+              "{month}",
+              new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "long" }).format(today)
+            ),
+            daysLeft: dict.dashboard.daysLeft,
             remaining: dict.dashboard.remaining,
+            spentOverIncome: dict.dashboard.spentOverIncome,
             incomeShort: dict.dashboard.incomeShort,
             expensesShort: dict.dashboard.expensesShort,
+            incomeMark: dict.dashboard.incomeMark,
             overIncome: dict.dashboard.overIncome,
-            spentOfIncome: dict.dashboard.spentOfIncome,
-            dayProgress: dict.dashboard.dayProgress,
+            spendingBarLabel: dict.dashboard.spendingBarLabel,
+            spendingBarOverLabel: dict.dashboard.spendingBarOverLabel,
+            changeFromLastMonth: dict.dashboard.changeFromLastMonth,
             cashFlow: dict.dashboard.cashFlow,
             savingsRate: dict.dashboard.savingsRate,
             vsLastMonth: dict.dashboard.vsLastMonth,

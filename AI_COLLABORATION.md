@@ -146,6 +146,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 | AUTO-INFRA-02 | Pin Node 22+ | Grok | DONE — PR #1 merged (`7f62e87`) | `.nvmrc`=22, `engines.node >=22`, README Node 22+; `npm ci` ไม่มี EBADENGINE บน Node 22.23.3 และ 24.22.0 | — |
 | AUTO-INFRA-03 | Safe bot build profile | Claude | TODO | Build โดยไม่ใช้ production secrets/network writes | Codex security review ก่อน Grok ใช้ |
 | AUTO-SEC-01 | npm audit triage | Claude (tracking: Grok) | ESCALATED | รายงานเสร็จ (Claude Code ร่าง, Grok ตรวจ) บน branch local `claude/auto-sec-01-audit-triage`; เข้า stop condition จึงยังไม่ push; ไม่มีการเปลี่ยน dependency/lockfile | เจ้าของโปรเจกต์ตัดสินใจจากรายงานที่ส่งตรงให้ |
+| UI-HOME-A | Home redesign variant A (สะอาด ชัดเจน) | Claude (impl) · Codex (review) · Grok (orchestration) | VERIFY — PR open | UI-only บน `claude/home-redesign-a`: header วันที่+ทักทาย, NetWorthHeroCard (ทศนิยมเล็ก, pill เปลี่ยนแปลง, เดือนใต้กราฟ, ปุ่มไป /money/net-worth), การ์ดเดือน (หัวข้อชื่อเดือน+เหลืออีก N วัน, แถบรายรับ/รายจ่ายพร้อม hatch, tile รายรับ/รายจ่าย); ไม่แตะสูตร/DB/auth | เจ้าของโปรเจกต์ตรวจ Preview แล้วตัดสินใจ merge |
 | AUTO-CLEAN-01 | Unused eslint-disable ใน `opengraph-image.tsx` | Grok | DONE — PR #1 merged (`7f62e87`) | ลบคอมเมนต์ที่ไม่ได้ใช้; lint 0 problems | — |
 
 ## Current Shared Context
@@ -182,6 +183,13 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 ## Handoff Log
 
 เพิ่มรายการใหม่ไว้ด้านบน ไม่ต้องคัดลอกประวัติการแก้ไฟล์ทั้งหมด
+
+### 2026-10-19 — Grok → เจ้าของโปรเจกต์ (UI-HOME-A)
+
+- งาน: Home redesign variant A ตาม mock 'Finance Home Redesign'; Claude Code ลงมือ, Codex review (read-only) ผลคือ NO BLOCKING FINDINGS; non-blocking a11y (เปอร์เซ็นต์ในแถบ) แก้แล้ว
+- ตรวจแล้ว: typecheck / lint / vitest ผ่าน; ภาพหน้าจอ 390x844 จาก harness mock แบบ local (ไม่ commit)
+- ข้อสังเกต: `AnimatedNumber` (shared) มีรูปแบบเดียวกับบั๊กที่เจอใน `SplitMoneyAmount` — เมื่อเปิด reduced-motion อาจค้างที่ 0 หลัง hydrate; ยังไม่แก้เพราะอยู่นอก scope
+- ขั้นถัดไป: เจ้าของโปรเจกต์ตรวจ Vercel Preview ของ PR
 
 ### 2026-10-19 — Grok → เจ้าของโปรเจกต์ (Night Report)
 

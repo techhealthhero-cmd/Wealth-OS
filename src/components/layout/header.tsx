@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { BrandMark } from "@/components/illustrations";
+import { DashboardGreeting } from "@/features/dashboard/components/dashboard-greeting";
 
 function initials(name: string | null | undefined) {
   if (!name) return "?";
@@ -37,7 +37,7 @@ export function Header({
   /** Server-rendered slot (notification bell, plan badge, ...) — passed in from the (app) layout, a Server Component, since this file is a Client Component and can't import async Server Components directly. */
   actions?: React.ReactNode;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const pathname = usePathname();
   const isDashboard = pathname === "/dashboard";
   const compactGreeting = displayName
@@ -45,11 +45,16 @@ export function Header({
     : t("dashboard.greetingGenericCompact");
 
   return (
-    <header className="flex h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 items-center gap-1 border-b px-4 pt-[env(safe-area-inset-top)]">
+    <header
+      className={`flex shrink-0 items-center gap-1 border-b px-4 pt-[env(safe-area-inset-top)] ${
+        isDashboard
+          ? "h-[calc(4rem+env(safe-area-inset-top))] md:h-[calc(3.5rem+env(safe-area-inset-top))]"
+          : "h-[calc(3.5rem+env(safe-area-inset-top))]"
+      }`}
+    >
       {isDashboard ? (
-        <div className="flex min-w-0 items-center gap-2 text-primary md:hidden">
-          <BrandMark size={30} />
-          <h1 className="truncate text-xl font-semibold tracking-tight text-foreground">{compactGreeting}</h1>
+        <div className="min-w-0 md:hidden">
+          <DashboardGreeting date={new Date()} locale={locale} greeting={compactGreeting} />
         </div>
       ) : null}
       <div className="ml-auto flex items-center gap-1">

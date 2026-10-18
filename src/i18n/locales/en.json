@@ -348,7 +348,14 @@
     "expensesShort": "Expenses",
     "overIncome": "Spent {amount} more than income",
     "spentOfIncome": "Spent {percent}% of income",
-    "dayProgress": "Day {day} of {total}"
+    "dayProgress": "Day {day} of {total}",
+    "monthTitle": "{month}",
+    "daysLeft": "{days} days left",
+    "spentOverIncome": "Spent over income",
+    "incomeMark": "Income {amount}",
+    "spendingBarLabel": "Spent {expenses} of {income} income",
+    "spendingBarOverLabel": "Spent {expenses}, {over} more than {income} income",
+    "changeFromLastMonth": "{percent}% vs last month"
   },
   "accounts": {
     "title": "Accounts",
@@ -781,7 +788,9 @@
   "last6Months": "Last 6 months",
   "whatIsThis": "What is net worth?",
     "explanation": "Net worth = everything you own, minus everything you owe. It's the single number that best reflects your overall financial position.",
-    "tagline": "Small steps toward stronger financial health"
+    "tagline": "Small steps toward stronger financial health",
+    "noChangeFromLastMonth": "No change from last month",
+    "viewAssetsAndLiabilities": "View assets & liabilities"
   },
   "goals": {
     "title": "Financial Goals",
