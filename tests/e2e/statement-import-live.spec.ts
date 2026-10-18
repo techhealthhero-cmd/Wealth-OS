@@ -99,7 +99,7 @@ test("signed-in CSV import: mapping, preview, idempotency, RLS, privacy and roll
       buffer: Buffer.from(csv, "utf8"),
     });
     const uploadStarted = Date.now();
-    await page.getByRole("button", { name: /อ่านไฟล์ CSV|read CSV/i }).click();
+    await page.getByRole("button", { name: /อ่านไฟล์|read file/i }).click();
     await expect(page.getByText(/จับคู่คอลัมน์|map columns/i)).toBeVisible({ timeout: 20_000 });
     const uploadMs = Date.now() - uploadStarted;
 
@@ -151,7 +151,7 @@ test("signed-in CSV import: mapping, preview, idempotency, RLS, privacy and roll
     await page.goto("/money/import");
     await page.getByLabel(/นำเข้าไปยังบัญชี|import into account/i).selectOption({ label: "KBank · THB" });
     await page.getByLabel(/เลือกไฟล์รายการเดินบัญชี|choose statement file/i).setInputFiles({ name: "controlled-statement.csv", mimeType: "text/csv", buffer: Buffer.from(csv, "utf8") });
-    await page.getByRole("button", { name: /อ่านไฟล์ CSV|read CSV/i }).click();
+    await page.getByRole("button", { name: /อ่านไฟล์|read file/i }).click();
     await page.getByRole("button", { name: /สร้างตัวอย่าง|build preview/i }).click();
     await expect(page.getByTestId("import-row-duplicate")).toHaveCount(4, { timeout: 20_000 });
     await expect(page.getByRole("button", { name: /ยืนยันการนำเข้า|confirm import/i })).toBeDisabled();

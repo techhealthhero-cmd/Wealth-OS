@@ -109,3 +109,51 @@ describe("CSV bridge", () => {
      expect(result.skippedLines).toBe(2);
    } else expect(result.rows.map((row) => row.debitCents)).toEqual([10000, 10000]);
  });
+
+it("rejects extra amounts rather than discarding a numeric description", () => {
+  const result = parseGenericStatement(linesFromText(["01/10/26 purchase ref 42.00 100.00 0.00 900.00"]), 2026);
+  expect(result).toEqual({ rows: [], skippedLines: 1 });
+});
+
+it("does not infer across rejected transaction rows", () => {
+  const result = parseGenericStatement(linesFromText([
+    "01/10/26 purchase 10.00 1000.00",
+    "02/10/26 unclear 20.00 30.00 900.00",
+    "03/10/26 unknown 100.00 900.00",
+  ]), 2026);
+  expect(result.rows).toHaveLength(1);
+  expect(result.skippedLines).toBe(2);
+});
+
+it("rejects multiple positioned amounts assigned to one column", () => {
+  const lines = groupTextItemsIntoLines([
+    ...[[0, "Date"], [100, "Description"], [300, "Debit"], [420, "Credit"], [540, "Balance"]].map(([x, str]) => ({ x: Number(x), str: String(str), y: 100, width: 30, height: 10, page: 1 })),
+    ...[[0, "01/10/26"], [100, "purchase"], [280, "10.00"], [330, "20.00"], [540, "900.00"]].map(([x, str]) => ({ x: Number(x), str: String(str), y: 80, width: 30, height: 10, page: 1 })),
+  ]);
+  expect(parseGenericStatement(lines, 2026)).toEqual({ rows: [], skippedLines: 1 });
+});
+
+it("preserves duplicate printed transactions for downstream duplicate review", () => {
+  const result = parseGenericStatement(linesFromText(Array(2).fill("01/10/26 purchase 100.00")), 2026);
+  expect(result.rows).toHaveLength(2);
+});
+
+it("uses explicit BE and CE years across December and January", () => {
+  const result = parseGenericStatement(linesFromText(["31/12/68 purchase 100.00", "01/01/69 deposit 200.00"]), 2026);
+  expect(result.rows.map((row) => row.date)).toEqual(["2025-12-31", "2026-01-01"]);
+});
+
+it("does not infer balances from statements with mixed date ordering", () => {
+  const result = parseGenericStatement(linesFromText([
+    "01/10/26 purchase 10.00 1000.00",
+    "03/10/26 unknown 100.00 900.00",
+    "02/10/26 deposit 50.00 950.00",
+  ]), 2026);
+  expect(result.rows.map((row) => row.description)).toEqual(["purchase", "deposit"]);
+  expect(result.skippedLines).toBe(1);
+});
+
+it.each(["-1,234.56", "1,234.56-", "(1,234.56)", "1,234.56 Dr"])("reads debit amount %s", (amount) => {
+  const result = parseGenericStatement(linesFromText([`01/10/26 example ${amount}`]), 2026);
+  expect(result.rows[0].debitCents).toBe(123456);
+});

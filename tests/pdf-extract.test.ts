@@ -70,3 +70,16 @@ it.each(["pages", "items", "chars"])("rejects excessive %s and destroys the work
   expect(destroy).toHaveBeenCalledOnce();
   if (budget !== "pages") expect(cleanup).toHaveBeenCalledOnce();
 });
+
+it("does not start a worker when already aborted", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  await expect(extractPdfLines(new File(["test"], "test.pdf"), "secret", controller.signal)).rejects.toMatchObject({ code: "invalid_pdf" });
+  expect(mock.getDocument).not.toHaveBeenCalled();
+});
+
+it("maps file read failures to safe errors", async () => {
+  const file = new File(["test"], "test.pdf");
+  vi.spyOn(file, "arrayBuffer").mockRejectedValue(new Error("sensitive detail"));
+  await expect(extractPdfLines(file, "secret")).rejects.toMatchObject({ code: "invalid_pdf", message: expect.not.stringContaining("sensitive") });
+});

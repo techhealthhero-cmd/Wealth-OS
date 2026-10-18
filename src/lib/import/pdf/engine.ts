@@ -79,6 +79,7 @@ interface Candidate {
   balanceCents: number | null;
   /** True when direction came from columns/markers rather than inference. */
   explicit: boolean;
+  chain: number;
 }
 
 export interface EngineOutput {
@@ -91,7 +92,7 @@ function cellCenter(cell: { x: number; xEnd: number }): number {
 }
 
 function detectColumns(line: PdfTextLine): Columns | null {
-  if (!line.cells || line.cells.length < 3) return null;
+  if (!line.cells || line.cells.length < 3 || findAmountTokens(line.text).length) return null;
   const columns: Columns = {};
   for (const cell of line.cells) {
     const text = thaiDigitsToArabic(cell.text);
@@ -136,6 +137,8 @@ function amountsFromColumns(line: PdfTextLine, columns: Columns, dateEnd: number
   let balance: AmountToken | null = null;
   const textParts: string[] = [];
   let consumed = 0;
+  const assigned = new Set<keyof Columns>();
+  let ambiguous = false;
   for (const cell of line.cells) {
     const start = consumed;
     consumed += cell.text.length + 1;
@@ -151,11 +154,13 @@ function amountsFromColumns(line: PdfTextLine, columns: Columns, dateEnd: number
       .map(([name, x]) => ({ name, distance: Math.abs(x - center) }))
       .sort((a, b) => a.distance - b.distance);
     const nearest = options[0]?.name;
+    if (nearest && assigned.has(nearest)) ambiguous = true;
+    if (nearest) assigned.add(nearest);
     if (nearest === "debit") debit = amount;
     else if (nearest === "credit") credit = amount;
     else if (nearest === "balance") balance = amount;
   }
-  return { debit, credit, balance, description: textParts.join(" ") };
+  return { debit, credit, balance, ambiguous, description: textParts.join(" ") };
 }
 
 export function runStatementEngine(
@@ -168,6 +173,7 @@ export function runStatementEngine(
   let columns: Columns | null = null;
   let last: Candidate | null = null;
   let unresolved = 0;
+  let chain = 0;
 
   for (const line of lines) {
     const text = thaiDigitsToArabic(line.text).replace(/\s+/g, " ").trim();
@@ -196,6 +202,13 @@ export function runStatementEngine(
 
     const date = parseLeadingDate(text, refYear);
     if (!date) {
+      // A rejected dated row breaks balance adjacency, even if its date is invalid.
+      if (/^\d{1,2}[/.-]\d{1,2}[/.-]/.test(text)) {
+        unresolved += 1;
+        chain += 1;
+        last = null;
+        continue;
+      }
       if (last && last.page === line.page && amounts.length === 0 && text.length <= 120) last.parts.push(text);
       else last = null;
       continue;
@@ -213,13 +226,21 @@ export function runStatementEngine(
       direction: null,
       balanceCents: null,
       explicit: false,
+      chain,
     };
 
     const fromColumns = columns && line.cells ? amountsFromColumns({ ...line, text }, columns, text.length - rest.length) : null;
+    if (fromColumns?.ambiguous) {
+      unresolved += 1;
+      chain += 1;
+      last = null;
+      continue;
+    }
     if (fromColumns && (fromColumns.debit || fromColumns.credit)) {
       const { debit, credit, balance } = fromColumns;
       if (debit && credit && debit.cents && credit.cents) {
         unresolved += 1;
+        chain += 1;
         last = null;
         continue;
       }
@@ -231,7 +252,9 @@ export function runStatementEngine(
       candidate.parts.push(TIME_PREFIX.exec(fromColumns.description) ? fromColumns.description.replace(TIME_PREFIX, "") : fromColumns.description);
     } else {
       const tokens = findAmountTokens(rest);
-      if (tokens.length === 0) {
+      if (tokens.length === 0 || tokens.length > 3) {
+        unresolved += 1;
+        chain += 1;
         last = null;
         continue;
       }
@@ -243,6 +266,7 @@ export function runStatementEngine(
         const secondSet = second.cents !== 0;
         if (firstSet === secondSet) {
           unresolved += 1;
+          chain += 1;
           last = null;
           continue;
         }
@@ -262,6 +286,7 @@ export function runStatementEngine(
 
     if (!candidate.amountCents) {
       unresolved += 1;
+      chain += 1;
       last = null;
       continue;
     }
@@ -274,14 +299,17 @@ export function runStatementEngine(
   // Never use a later balance as if it
   // preceded an oldest-first transaction: that can reverse debit and credit.
   const differingPair = candidates.findIndex((row, i) => i > 0 && row.date !== candidates[i - 1].date);
-  const descending = differingPair < 0 ? null : candidates[differingPair].date < candidates[differingPair - 1].date;
+  const initialDescending = differingPair < 0 ? null : candidates[differingPair].date < candidates[differingPair - 1].date;
+  const mixedOrder = candidates.some((row, i) => i > 0 && row.date !== candidates[i - 1].date
+    && (row.date < candidates[i - 1].date) !== initialDescending);
+  const descending = mixedOrder ? null : initialDescending;
   // Pass 2: infer direction from running-balance deltas, then from keywords.
   for (let i = 0; i < candidates.length; i += 1) {
     const row = candidates[i];
     if (row.explicit || row.balanceCents === null || row.amountCents === null) continue;
     const amount = row.amountCents;
-    const previous = i === 0 ? openingBalance : candidates[i - 1].balanceCents;
-    const next = candidates[i + 1]?.balanceCents ?? null;
+    const previous = i === 0 ? (row.chain === 0 ? openingBalance : null) : candidates[i - 1].chain === row.chain ? candidates[i - 1].balanceCents : null;
+    const next = candidates[i + 1]?.chain === row.chain ? candidates[i + 1].balanceCents : null;
     const possible = new Set<Direction>();
     if (descending === false && previous !== null) {
       if (previous - amount === row.balanceCents) possible.add("debit");

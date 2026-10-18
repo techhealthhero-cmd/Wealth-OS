@@ -30,6 +30,7 @@ export async function extractPdfLines(file: File, password: string, signal?: Abo
   });
   const work = async () => {
     const pdfjs = await import("pdfjs-dist");
+    if (stopped) throw new Error("cancelled");
     pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (stopped) { bytes.fill(0); throw new Error("cancelled"); }
@@ -87,7 +88,11 @@ export async function extractPdfLines(file: File, password: string, signal?: Abo
   };
   try {
     return await Promise.race([interrupted, work()]);
+  } catch (error) {
+    if (error instanceof PdfImportError) throw error;
+    throw new PdfImportError("invalid_pdf", "อ่าน PDF ไม่ได้ / Unable to read PDF; try CSV.");
   } finally {
+    password = "";
     clearTimeout(timer);
     if (abort) signal?.removeEventListener("abort", abort);
   }
