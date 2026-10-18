@@ -55,6 +55,7 @@ const PDF_ERROR_COPY: Record<PdfImportErrorCode, { th: string; en: string }> = {
   pdf_extraction_limit: { th: "PDF มีหน้าหรือข้อความมากเกินไป ลองแบ่งไฟล์ หรือใช้ไฟล์ CSV จากธนาคาร", en: "This PDF has too many pages or too much text. Split it, or use a CSV from your bank." },
   pdf_timeout: { th: "อ่าน PDF นานเกินไป ลองไฟล์ที่เล็กลง หรือใช้ไฟล์ CSV", en: "Reading the PDF took too long. Try a smaller file or a CSV." },
   invalid_pdf: { th: "เปิดไฟล์ PDF นี้ไม่ได้ ตรวจสอบไฟล์อีกครั้ง หรือใช้ไฟล์ CSV", en: "Couldn't open this PDF. Check the file, or use a CSV." },
+  pdf_reader_unavailable: { th: "โหลดตัวอ่าน PDF ในเครื่องไม่สำเร็จ ลองรีเฟรชหน้า หรืออัปเดต iOS/Safari แล้วลองใหม่ หรือใช้ไฟล์ CSV", en: "Couldn't load the PDF reader on this device. Refresh the page or update iOS/Safari and try again, or use a CSV." },
   password_required: { th: "PDF นี้ล็อกด้วยรหัสผ่าน กรุณาใส่รหัสผ่านจากธนาคาร", en: "This PDF is password-protected. Enter the password from your bank." },
   password_incorrect: { th: "รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง", en: "Incorrect password. Please try again." },
   no_text: { th: "ไม่พบข้อความใน PDF (อาจเป็นภาพสแกน) ลองใช้ไฟล์ CSV จากธนาคาร", en: "No readable text found (it may be a scan). Try a CSV from your bank." },
@@ -242,7 +243,10 @@ export function StatementImportFlow({
         let upload = file;
         if (await isPdfFile(file)) {
           setIsPdf(true);
-          const { extractPdfLines, PDF_IMPORT_MAX_BYTES } = await import("../pdf-extract");
+          const { extractPdfLines, PDF_IMPORT_MAX_BYTES } = await import("../pdf-extract").catch((loadError: unknown) => {
+            console.warn(`[pdf-import] reader chunk failed: ${loadError instanceof Error ? loadError.name : typeof loadError}`);
+            throw new PdfImportError("pdf_reader_unavailable", "Couldn't load the PDF reader.");
+          });
           if (file.size > PDF_IMPORT_MAX_BYTES) throw new PdfImportError("pdf_too_large", "ไฟล์ PDF ต้องไม่เกิน 5 MB / PDF must be 5 MB or smaller.");
           const controller = new AbortController();
           extraction.current = controller;

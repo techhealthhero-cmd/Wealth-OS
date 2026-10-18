@@ -10,6 +10,30 @@ export const PDF_TIMEOUT_MS = 30_000;
 
 export const PDF_IMPORT_MAX_BYTES = 5 * 1024 * 1024;
 
+/**
+ * pdfjs-dist v5+/v6 "modern" build calls very new built-ins directly
+ * (Promise.try, Map#getOrInsertComputed, Math.sumPrecise, ...), which only
+ * exist from Safari/iOS 26.2. On older iPhones every getDocument() call threw
+ * a TypeError that surfaced as a generic "couldn't open PDF". The legacy build
+ * ships core-js polyfills for both the main thread and the worker.
+ */
+const loadPdfjs = () => import("pdfjs-dist/legacy/build/pdf.mjs");
+
+/** Error names only (never messages, which may contain document text). */
+function logPdfFailure(stage: string, error: unknown) {
+  const name = error instanceof Error ? error.name : typeof error;
+  console.warn(`[pdf-import] ${stage} failed: ${name}`);
+}
+
+const readerUnavailable = () => new PdfImportError("pdf_reader_unavailable", "โหลดตัวอ่าน PDF ไม่สำเร็จ / Couldn't load the PDF reader.");
+
+/** Missing-feature or worker/bootstrap failures, as opposed to a bad file. */
+function isReaderFailure(error: unknown) {
+  if (!(error instanceof Error)) return typeof error === "string" && /worker/i.test(error);
+  return error.name === "TypeError" || error.name === "ReferenceError" || error.name === "SyntaxError"
+    || error.name === "ChunkLoadError" || /setting up fake worker|worker/i.test(error.message);
+}
+
 /** Browser only. Never pass a file URL, password, bytes or pdfjs error to a server/logger. */
 export async function extractPdfLines(file: File, password: string, signal?: AbortSignal) {
   if (file.size > PDF_IMPORT_MAX_BYTES) throw new PdfImportError("pdf_too_large", "ไฟล์ PDF ต้องไม่เกิน 5 MB / PDF must be 5 MB or smaller.");
@@ -29,9 +53,15 @@ export async function extractPdfLines(file: File, password: string, signal?: Abo
     if (signal?.aborted) abort();
   });
   const work = async () => {
-    const pdfjs = await import("pdfjs-dist");
+    let pdfjs: Awaited<ReturnType<typeof loadPdfjs>>;
+    try {
+      pdfjs = await loadPdfjs();
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/legacy/build/pdf.worker.min.mjs", import.meta.url).toString();
+    } catch (error) {
+      logPdfFailure("load", error);
+      throw readerUnavailable();
+    }
     if (stopped) throw new Error("cancelled");
-    pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (stopped) { bytes.fill(0); throw new Error("cancelled"); }
     // isEvalSupported is not supported by the installed pdfjs API.
@@ -75,10 +105,12 @@ export async function extractPdfLines(file: File, password: string, signal?: Abo
       return lines;
     } catch (error) {
       if (error instanceof PdfImportError) throw error;
+      if (!stopped) logPdfFailure("read", error);
       if (error instanceof Error && error.name === "PasswordException") {
         const code = "code" in error && error.code === pdfjs.PasswordResponses.INCORRECT_PASSWORD ? "password_incorrect" : "password_required";
         throw new PdfImportError(code, code === "password_incorrect" ? "รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง / Incorrect password. Please try again." : "กรุณาใส่รหัสผ่าน PDF จากธนาคาร / Enter the PDF password from your bank.");
       }
+      if (!stopped && isReaderFailure(error)) throw readerUnavailable();
       throw new PdfImportError("invalid_pdf", "อ่าน PDF ไม่ได้ กรุณาตรวจสอบไฟล์หรือลองส่งออกเป็น CSV / Unable to read PDF; try CSV.");
     } finally {
       destroy();
