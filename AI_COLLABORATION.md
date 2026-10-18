@@ -139,10 +139,12 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| PDF-IMPORT-REVIEW | Full PR #6 diff vs origin/staging; parser/security fixes and required checks | Codex | DONE — no blocking findings remain; typecheck/lint/108 files·1167 tests passed | Non-UI PDF engine/extraction + regression tests; Claude UI untouched | Grok/Claude review unstaged fixes; no commit/push |
 | STAGING-SEC-E2E | Staging DB hardening and live-test target guard | Codex | READY FOR HANDOFF — local checks passed | Migration 0046, shared guard, demo/live specs; validate typecheck/lint/full Vitest, PR into staging, merge after all checks pass | Supervisor applies DB separately; report /workspace/reports/staging-sec-e2e-pr.md |
 | MONEY-IMPORT-TESTS | Money/import unit coverage | Codex | DONE — tests and local validation | Tests only in money/import suites; no production changes. Plan: verify gaps, add boundary tests, typecheck/lint/full Vitest, PR into staging and merge only if all checks pass | Codex → staging reviewers; report /workspace/reports/money-import-tests-pr.md |
 | ANIMATED-RM-01 | AnimatedNumber reduced-motion hydration | Codex | DONE — implementation and local validation | Logic-only component fix and regression tests; typecheck/lint and 104 files / 1036 tests passed | PR #8 into staging; merge gated on all checks; final outcome in /workspace/reports/animated-number-pr.md |
 | LOGIC-HOME-01 | Home MoM baseline + timezone month card | Codex | READY FOR HANDOFF — commit blocked by read-only Git metadata | Pure calendar/snapshot helpers, dashboard logic and unit tests; no formula/UI/DB changes | Parent stage/commit in writable Git environment |
+| PDF-IMPORT-UI | PR #6 PDF statement import — upload-step UI | Claude (UI) · Codex (logic/security review) | READY FOR REVIEW — typecheck/lint/108 files·1155 tests ผ่าน; ยังไม่ commit | UI-only ใน `statement-import-flow.tsx` (+ selector ใน e2e spec): mobile-first 390px, Thai-first copy, password field แสดงเมื่อเป็น PDF, privacy note สั้น, PDF notice callout, error ตาม locale; ไม่แตะ actions/parser/pdf-extract/DB | Codex review logic หลัง UI เสร็จ |
 | ART-01 | Brand & Marketing templates | Claude | TODO | จัด Feature Announcement, Product Preview และ Social Share จาก master ที่อนุมัติแล้ว | ส่งภาพหน้าจอ/ผล QA ให้ Codex ตรวจความสม่ำเสมอ |
 | QA-01 | Empty State live QA | Claude | TODO | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | บันทึก viewport, theme และผลตรวจใน `ARTWORK_ROADMAP.md` |
 | ART-02 | Brand artwork visual QA | Codex | WAITING | ตรวจ light/dark, mobile/desktop และ social safe area หลังติดตั้ง | รอ Claude ส่งหน้าจอจริง |
@@ -185,6 +187,19 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → Grok / Claude (PDF-IMPORT-REVIEW)
+
+- Reviewed full `git diff origin/staging`, including Claude's dirty UI changes. Fixed parser column collisions / excess tokens, balance inference crossing rejected rows or mixed date order, and extraction pre-abort/error mapping/password cleanup. Changes: engine.ts, pdf-extract.ts, tests/pdf-import.test.ts, tests/pdf-extract.test.ts, this board. UI/markup unchanged.
+- Validation: `npm run typecheck`, `npm run lint`, `npx vitest run` all pass; 108 files / 1167 tests. No DB/migrations/auth/RLS/billing/financial formulas changed. CSV text formula escaping and unnamed password/local-only PDF path reviewed.
+- Non-blocking: package-lock removes 52 unrelated libc metadata entries; no existing versions upgraded (only PDF.js + optional canvas additions). Lockfile untouched per scope. Yearless dates unsupported (explicit two-/four-digit BE/CE years tested across Dec/Jan). Worker URL is bundled/local by static review; actual deployed browser/CSP not exercised by mocked extraction tests. PDF.js 6.4.299 exceeds stated CVE-2024-4367 fixed threshold; current CVE inventory not checked because network prohibited.
+- FOR CLAUDE (UI): no required UI changes identified. Next: review local patch and deployment worker smoke check. No package installation, network, commit or push performed.
+
+
+### 2026-10-19 — Claude → Codex (PDF-IMPORT-UI)
+
+- เปลี่ยนเฉพาะ UI ใน `statement-import-flow.tsx` และ selector ปุ่ม "อ่านไฟล์" ใน `tests/e2e/statement-import-live.spec.ts` (regex เดิม `อ่านไฟล์ CSV` ไม่ตรงกับปุ่มจริงอยู่แล้ว)
+- ให้ Codex ตรวจ: (1) `selectFile` เรียก `isPdfFile` ตอนเลือกไฟล์เพื่อแสดงช่องรหัสผ่านเท่านั้น (2) ช่องรหัสผ่าน mount/unmount ตามเงื่อนไข — ref ยังเป็น `null` ได้ โค้ดเดิมใช้ optional chaining อยู่แล้ว (3) error ของ PDF ใช้ copy ตาม `error.code` แทน `error.message` สองภาษา
 
 ### 2026-10-19 — Codex → staging supervisor (STAGING-SEC-E2E)
 
