@@ -46,7 +46,7 @@ const ACCOUNT_ICONS: Record<AccountType, React.ElementType> = {
 const TAP_MAX_MS = 250;
 
 /**
- * One account, as a card that flips top-over-bottom: tap it to turn it face-down (name only,
+ * One account, as a card that flips: tap it to turn it face-down (name only,
  * balance covered), tap again to turn it back. Both faces share one grid
  * cell, so the card keeps its height through the turn.
  */
@@ -92,7 +92,7 @@ export function AccountCard({ account }: { account: Account }) {
         className={cn(
           "grid transform-3d",
           animate && "transition-transform duration-500 ease-in-out motion-reduce:transition-none",
-          closed && "rotate-x-180"
+          closed && "rotate-y-180"
         )}
       >
         <Card className="col-start-1 row-start-1 backface-hidden" inert={closed} aria-hidden={closed}>
@@ -173,7 +173,7 @@ export function AccountCard({ account }: { account: Account }) {
         {/* The back: dot-grid notebook paper, the name kept so the list still reads. */}
         <Card
           variant="soft"
-          className="col-start-1 row-start-1 rotate-x-180 backface-hidden ring-1 ring-foreground/5"
+          className="col-start-1 row-start-1 rotate-y-180 backface-hidden ring-1 ring-foreground/5"
           inert={!closed}
           aria-hidden={!closed}
         >
