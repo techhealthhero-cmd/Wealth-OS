@@ -31,7 +31,7 @@ Ownership" section for the full map of which doc owns what).
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 22+ (pinned in `.nvmrc`; `package.json` `engines.node >=22`)
 - A Supabase project (local via the [Supabase CLI](https://supabase.com/docs/guides/cli), or hosted)
 
 ## Installation
@@ -135,7 +135,7 @@ edge cases (zero income, negative cash flow, large values, decimal amounts).
 ## Build
 
 ```bash
-npm run typecheck   # tsc --noEmit
+npm run typecheck   # next typegen && tsc --noEmit (generates route types first, works on a fresh clone)
 npm run lint        # eslint
 npm test            # vitest run
 npm run build        # next build
