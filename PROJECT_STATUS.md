@@ -15,8 +15,10 @@ Last updated: 2026-10-18
   same paper and layout as the front (icon, name, institution) with a pill
   where the balance was, showing the account's purpose. No "ปิดการ์ด" wording,
   no "••••", no dot-grid.
-- New optional column `accounts.purpose` (≤40 chars) — **migration
-  `0045_account_purpose.sql`, NOT yet applied** (needs `supabase db push`).
+- New optional column `accounts.purpose` (≤40 chars) — migration
+  `0045_account_purpose.sql`, **applied to production 2026-10-18** (user ran
+  `supabase db push`; column confirmed present by a read-only PostgREST
+  check; the flip e2e then passed with the real purpose pill).
   Edit-account form has the field plus 6 quick-pick presets
   (`accounts.purposePresets`, each with its own pill colour in
   `src/features/accounts/purpose.ts`; custom text gets a plain pill).
@@ -112,7 +114,10 @@ and voice capture saved a ฿10 expense. Now:
   again) or remove units.
 - **Migration `0044_capture_units.sql`** — table `capture_units` (one price
   per user + word, RLS own-rows, trigger: category must be system or the
-  user's own). **Written, NOT yet applied to production** — until it is,
+  user's own). **Applied to production 2026-10-18** (pushed together with
+  0045; verified live by `tests/e2e/capture-units-live.spec.ts`: unit added
+  on the profile → `capture_units` row → typing "วันนี้ได้ 10 ดื่ม" shows
+  รายรับ ฿2,000 · เงินเดือน · 10 ดื่ม × ฿200). Before it was applied,
   answering the price shows "ยังจำหน่วยนับไม่ได้ — รอเปิดใช้ฟีเจอร์นี้อีก
   นิด" and nothing breaks (verified on the demo account at 390×844:
   "วันนี้ได้ 10 ดื่ม ข้าว 50" → two cards, the first asks the price, Save
