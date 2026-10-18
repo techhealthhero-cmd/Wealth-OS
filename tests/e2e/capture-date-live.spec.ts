@@ -1,3 +1,4 @@
+import { assertStagingSupabase } from "../../scripts/lib/assert-staging-supabase.mjs";
 import { expect, test, type CDPSession } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
@@ -33,6 +34,7 @@ test("Quick Capture: swipe the date wheel back, save on that day", async ({ page
   test.skip(!env.SUPABASE_SERVICE_ROLE_KEY, "SUPABASE_SERVICE_ROLE_KEY is required for disposable-user cleanup");
   test.setTimeout(150_000);
 
+  assertStagingSupabase(env.NEXT_PUBLIC_SUPABASE_URL);
   const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });

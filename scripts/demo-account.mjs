@@ -12,6 +12,7 @@
  * Re-running deletes the demo user (all its rows cascade) and seeds afresh,
  * so dates stay relative to "today".
  */
+import { assertStagingSupabase } from "./lib/assert-staging-supabase.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -41,6 +42,7 @@ if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
   process.exit(1);
 }
+assertStagingSupabase(env.NEXT_PUBLIC_SUPABASE_URL);
 const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
