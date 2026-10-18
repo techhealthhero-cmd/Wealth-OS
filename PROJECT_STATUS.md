@@ -8,6 +8,28 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-10-18
 
+## Account card back = "what this money is for" — 2026-10-18
+
+- The user wanted a flipped card not to *look* hidden when showing the app
+  to someone. Picked option B from a 5-option mockup: the back now uses the
+  same paper and layout as the front (icon, name, institution) with a pill
+  where the balance was, showing the account's purpose. No "ปิดการ์ด" wording,
+  no "••••", no dot-grid.
+- New optional column `accounts.purpose` (≤40 chars) — **migration
+  `0045_account_purpose.sql`, NOT yet applied** (needs `supabase db push`).
+  Edit-account form has the field plus 6 quick-pick presets
+  (`accounts.purposePresets`, each with its own pill colour in
+  `src/features/accounts/purpose.ts`; custom text gets a plain pill).
+- Until 0045 is applied (or when no purpose is set) the pill shows the
+  account type instead. Saving an account with the purpose left empty still
+  works before 0045 (the write is retried without the column); a filled-in
+  purpose returns `accounts.purposeNotReady` rather than being dropped.
+- Verified: `tests/e2e/account-card-flip-live.spec.ts` (375 px, disposable
+  user, against the unmigrated DB: fallback pill, no hidden-looking copy,
+  flip/menu/reload/edit-save, zero console errors) and
+  `tests/account-purpose.test.ts`. Purpose display with the column present is
+  covered by the same spec once 0045 is applied (it switches automatically).
+
 ## Account cards flip open/closed — 2026-10-18
 
 - Money › บัญชี: tapping an account card turns it face-down with a side-to-side (rotateY) 3D flip (a vertical rotateX flip was tried and reverted at the user's request)

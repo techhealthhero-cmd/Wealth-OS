@@ -285,6 +285,8 @@ export interface Database {
           include_in_net_worth: boolean;
           is_archived: boolean;
           sort_order: number;
+          /** What this money is for (migration 0045). Absent on a database without that migration. */
+          purpose?: string | null;
           created_at: string;
           updated_at: string;
         };

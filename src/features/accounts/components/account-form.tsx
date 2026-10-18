@@ -4,7 +4,9 @@ import { cloneElement, useActionState, useEffect, useState, type ReactElement } 
 
 import { createAccount, updateAccount } from "@/features/accounts/actions";
 import { ACCOUNT_TYPES } from "@/lib/validation/account";
+import { PURPOSE_PRESET_INDEXES } from "@/features/accounts/purpose";
 import { useTranslation } from "@/i18n/client";
+import { cn } from "@/lib/utils";
 import type { Account } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,6 +89,7 @@ function AccountFormFields({
   // ACCOUNT SEMANTICS") can show/hide as the user picks a type, without
   // waiting for a full form submit.
   const [accountType, setAccountType] = useState(account?.account_type ?? "bank");
+  const [purpose, setPurpose] = useState(account?.purpose ?? "");
 
   const action = account ? updateAccount.bind(null, account.id) : createAccount;
   const [state, formAction, isPending] = useActionState(action, undefined);
@@ -144,6 +147,41 @@ function AccountFormFields({
             placeholder={t("accounts.institutionPlaceholder")}
             maxLength={80}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="purpose">{`${t("accounts.purpose")} (${t("common.optional")})`}</Label>
+          <Input
+            id="purpose"
+            name="purpose"
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value)}
+            placeholder={t("accounts.purposePlaceholder")}
+            maxLength={40}
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {PURPOSE_PRESET_INDEXES.map((i) => {
+              const preset = t(`accounts.purposePresets.${i}`);
+              const selected = purpose.trim() === preset;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setPurpose(selected ? "" : preset)}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-xs transition-colors",
+                    selected
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {preset}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">{t("accounts.purposeHint")}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

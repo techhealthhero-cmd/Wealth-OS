@@ -17,6 +17,7 @@ import { formatMoneyFromDecimal } from "@/lib/financial/money";
 import { cn } from "@/lib/utils";
 import { archiveAccount, unarchiveAccount } from "@/features/accounts/actions";
 import { setAccountCardClosed, useAccountCardClosed } from "@/features/accounts/closed-cards";
+import { PURPOSE_PRESET_INDEXES, purposePillClass } from "@/features/accounts/purpose";
 import { useTranslation } from "@/i18n/client";
 import { AccountForm } from "./account-form";
 import { asTrigger } from "@/lib/as-trigger";
@@ -46,9 +47,10 @@ const ACCOUNT_ICONS: Record<AccountType, React.ElementType> = {
 const TAP_MAX_MS = 250;
 
 /**
- * One account, as a card that flips: tap it to turn it face-down (name only,
- * balance covered), tap again to turn it back. Both faces share one grid
- * cell, so the card keeps its height through the turn.
+ * One account, as a card that flips: tap it to turn it over to a back that
+ * shows what the money is for instead of the balance (for showing the app to
+ * someone without it looking hidden), tap again to turn it back. Both faces
+ * share one grid cell, so the card keeps its height through the turn.
  */
 export function AccountCard({ account }: { account: Account }) {
   const { t } = useTranslation();
@@ -63,6 +65,9 @@ export function AccountCard({ account }: { account: Account }) {
   const Icon = ACCOUNT_ICONS[account.account_type];
   const balanceCents = Number(account.current_balance) * 100;
   const subtitle = account.institution ?? t(`accounts.types.${account.account_type}`);
+  // No purpose set (or before migration 0045): the account type stands in.
+  const purposeLabel = account.purpose?.trim() || t(`accounts.types.${account.account_type}`);
+  const presets = PURPOSE_PRESET_INDEXES.map((i) => t(`accounts.purposePresets.${i}`));
 
   function handleTap(event: React.MouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement;
@@ -170,25 +175,25 @@ export function AccountCard({ account }: { account: Account }) {
           </CardContent>
         </Card>
 
-        {/* The back: dot-grid notebook paper, the name kept so the list still reads. */}
-        <Card
-          variant="soft"
-          className="col-start-1 row-start-1 rotate-y-180 backface-hidden ring-1 ring-foreground/5"
-          inert={!closed}
-          aria-hidden={!closed}
-        >
+        {/* The back: same paper and layout as the front, with what the money
+            is for where the balance was — it reads as an ordinary card. */}
+        <Card className="col-start-1 row-start-1 rotate-y-180 backface-hidden" inert={!closed} aria-hidden={!closed}>
           <CardContent className="flex h-full items-center justify-between gap-4 py-4">
             <div className="flex min-w-0 items-center gap-3">
-              {iconChip("bg-card")}
+              {iconChip("bg-muted")}
               <div className="min-w-0">
                 <p className="min-w-0 truncate font-medium leading-tight">{account.name}</p>
-                <p className="mt-1 truncate text-sm text-muted-foreground">{t("accounts.cardTapToOpen")}</p>
+                <p className="mt-1 truncate text-sm text-muted-foreground">{subtitle}</p>
               </div>
             </div>
-            <p className="shrink-0 text-right text-sm font-medium text-muted-foreground">
-              <span aria-hidden="true" className="mr-1 tracking-widest">••••</span>
-              {t("accounts.cardClosedBalance")}
-            </p>
+            <span
+              className={cn(
+                "max-w-[45%] shrink-0 truncate rounded-full px-2.5 py-1 text-xs font-medium",
+                purposePillClass(purposeLabel, presets)
+              )}
+            >
+              {purposeLabel}
+            </span>
           </CardContent>
         </Card>
       </div>

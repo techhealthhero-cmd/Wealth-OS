@@ -27,7 +27,33 @@ function parseAccountFormData(formData: FormData) {
     currency_code: formData.get("currency_code") || undefined,
     opening_balance: formData.get("opening_balance") ?? 0,
     include_in_net_worth: formData.get("include_in_net_worth") === "on",
+    purpose: formData.get("purpose") || undefined,
   };
+}
+
+type DbError = { code?: string; message: string };
+
+/** accounts.purpose not there yet (migration 0045 unapplied): Postgres 42703 / PostgREST PGRST204. */
+function isMissingPurposeColumn(error: DbError | null): boolean {
+  return (error?.code === "42703" || error?.code === "PGRST204") && /purpose/.test(error?.message ?? "");
+}
+
+/**
+ * Runs an accounts write that carries `purpose`. On a database without
+ * migration 0045 an empty purpose is simply dropped and the write retried, so
+ * the rest of the form still saves; a filled-in one is reported, never lost
+ * silently.
+ */
+async function writeWithPurpose<T extends { purpose?: string | null }>(
+  row: T,
+  write: (row: T | Omit<T, "purpose">) => PromiseLike<{ error: DbError | null }>
+): Promise<{ error: DbError | null; purposeNotReady?: boolean }> {
+  const first = await write(row);
+  if (!isMissingPurposeColumn(first.error)) return first;
+  if (row.purpose) return { error: first.error, purposeNotReady: true };
+  const { purpose: _dropped, ...rest } = row;
+  void _dropped;
+  return write(rest);
 }
 
 async function getRequestDictionary() {
@@ -66,13 +92,18 @@ export async function createAccount(
 
   // user_id is always derived from the server-side session, never trusted
   // from the client — see validation schemas' ownership note in README.
-  const { error } = await supabase.from("accounts").insert({
-    ...parsed.data,
-    institution: parsed.data.institution || null,
-    user_id: user.id,
-    sort_order: count ?? 0,
-  });
+  const { error, purposeNotReady } = await writeWithPurpose(
+    {
+      ...parsed.data,
+      institution: parsed.data.institution || null,
+      purpose: parsed.data.purpose || null,
+      user_id: user.id,
+      sort_order: count ?? 0,
+    },
+    (row) => supabase.from("accounts").insert(row)
+  );
 
+  if (purposeNotReady) return { error: dict.accounts.purposeNotReady };
   if (error) {
     return { error: friendlyDbError(error, "createAccount", dict.accounts.createFailed) };
   }
@@ -110,15 +141,16 @@ export async function updateAccount(
 
   // RLS also enforces this, but checking user_id here means a mismatched
   // owner gets a clear "not found"-shaped failure instead of a silent no-op.
-  const { error } = await supabase
-    .from("accounts")
-    .update({
+  const { error, purposeNotReady } = await writeWithPurpose(
+    {
       ...parsed.data,
       institution: parsed.data.institution || null,
-    })
-    .eq("id", accountId)
-    .eq("user_id", user.id);
+      purpose: parsed.data.purpose || null,
+    },
+    (row) => supabase.from("accounts").update(row).eq("id", accountId).eq("user_id", user.id)
+  );
 
+  if (purposeNotReady) return { error: dict.accounts.purposeNotReady };
   if (error) {
     return { error: friendlyDbError(error, "updateAccount", dict.accounts.updateFailed) };
   }

@@ -40,6 +40,12 @@ export function buildAccountSchema(dict: Dictionary) {
       .refine((n) => Math.abs(n) < 10 ** 15, dict.validation.amountTooLarge)
       .default(0),
     include_in_net_worth: z.boolean().default(true),
+    purpose: z
+      .string()
+      .trim()
+      .max(40, dict.validation.accountPurposeTooLong)
+      .optional()
+      .or(z.literal("")),
   });
 }
 
