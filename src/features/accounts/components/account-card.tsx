@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   Banknote,
   Building2,
@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useConfirmDialog } from "@/components/shared/confirm-dialog";
+import { FlipCard } from "@/components/shared/flip-card";
 
 const ACCOUNT_ICONS: Record<AccountType, React.ElementType> = {
   cash: Banknote,
@@ -42,15 +43,9 @@ const ACCOUNT_ICONS: Record<AccountType, React.ElementType> = {
   other: Building2,
 };
 
-// A press held longer than this is the list's long-press-to-drag (see
-// sortable-account-list.tsx's 250ms activation delay), not a tap to flip.
-const TAP_MAX_MS = 250;
-
 /**
- * One account, as a card that flips: tap it to turn it over to a back that
- * shows what the money is for instead of the balance (for showing the app to
- * someone without it looking hidden), tap again to turn it back. Both faces
- * share one grid cell, so the card keeps its height through the turn.
+ * One account, as a card that flips (see FlipCard): the back shows what the
+ * money is for instead of the balance.
  */
 export function AccountCard({ account }: { account: Account }) {
   const { t } = useTranslation();
@@ -58,26 +53,12 @@ export function AccountCard({ account }: { account: Account }) {
   const [editOpen, setEditOpen] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const closed = useAccountCardClosed(account.id);
-  // Only animate flips the viewer makes: a card remembered as closed
-  // appears closed on load instead of spinning shut.
-  const [animate, setAnimate] = useState(false);
-  const pressStart = useRef(0);
   const Icon = ACCOUNT_ICONS[account.account_type];
   const balanceCents = Number(account.current_balance) * 100;
   const subtitle = account.institution ?? t(`accounts.types.${account.account_type}`);
   // No purpose set (or before migration 0045): the account type stands in.
   const purposeLabel = account.purpose?.trim() || t(`accounts.types.${account.account_type}`);
   const presets = PURPOSE_PRESET_INDEXES.map((i) => t(`accounts.purposePresets.${i}`));
-
-  function handleTap(event: React.MouseEvent<HTMLDivElement>) {
-    const target = event.target as HTMLElement;
-    // Clicks bubble here from the portalled menu and dialogs too (React
-    // events follow the component tree), and the ⋮ button has its own job.
-    if (!event.currentTarget.contains(target) || target.closest("button, a, input, textarea, select")) return;
-    if (Date.now() - pressStart.current > TAP_MAX_MS) return;
-    setAnimate(true);
-    setAccountCardClosed(account.id, !closed);
-  }
 
   const iconChip = (surface: string) => (
     <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", surface)}>
@@ -86,21 +67,12 @@ export function AccountCard({ account }: { account: Account }) {
   );
 
   return (
-    <div
-      className="cursor-pointer perspective-[1200px]"
-      onPointerDown={() => {
-        pressStart.current = Date.now();
-      }}
-      onClick={handleTap}
-    >
-      <div
-        className={cn(
-          "grid transform-3d",
-          animate && "transition-transform duration-500 ease-in-out motion-reduce:transition-none",
-          closed && "rotate-y-180"
-        )}
-      >
-        <Card className="col-start-1 row-start-1 backface-hidden" inert={closed} aria-hidden={closed}>
+    <FlipCard
+      closed={closed}
+      onToggle={(next) => setAccountCardClosed(account.id, next)}
+      name={account.name}
+      front={
+        <Card>
           <CardContent className="flex items-center justify-between gap-4 py-4">
             <div className="flex min-w-0 items-center gap-3">
               {iconChip("bg-muted")}
@@ -174,10 +146,11 @@ export function AccountCard({ account }: { account: Account }) {
             </div>
           </CardContent>
         </Card>
-
-        {/* The back: same paper and layout as the front, with what the money
-            is for where the balance was — it reads as an ordinary card. */}
-        <Card className="col-start-1 row-start-1 rotate-y-180 backface-hidden" inert={!closed} aria-hidden={!closed}>
+      }
+      // The back: same paper and layout as the front, with what the money is
+      // for where the balance was — it reads as an ordinary card.
+      back={
+        <Card>
           <CardContent className="flex h-full items-center justify-between gap-4 py-4">
             <div className="flex min-w-0 items-center gap-3">
               {iconChip("bg-muted")}
@@ -196,8 +169,8 @@ export function AccountCard({ account }: { account: Account }) {
             </span>
           </CardContent>
         </Card>
-      </div>
-
+      }
+    >
       <AccountForm
         account={account}
         trigger={null}
@@ -205,6 +178,6 @@ export function AccountCard({ account }: { account: Account }) {
         onOpenChange={setEditOpen}
       />
       {confirmDialog}
-    </div>
+    </FlipCard>
   );
 }
