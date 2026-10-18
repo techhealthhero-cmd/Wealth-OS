@@ -3321,5 +3321,40 @@
       "notReady": "Covers aren't available yet — please try again later",
       "saveFailed": "Couldn't save your cover — please try again"
     }
+  },
+  "homeIncome": {
+    "sectionLabel": "This month's income by source",
+    "title": "{month} income",
+    "received": "received so far",
+    "percentPrefix": "That's",
+    "percentHighlight": "{percent}% of your average",
+    "averagePerMonth": "{amount}/month",
+    "noHistoryHint": "Log income for 2 months or more and we'll compare it with your average",
+    "barLabel": "This month's income by source: {parts}",
+    "barGapLabel": "{amount} still to go to your average",
+    "colSourceWithShare": "Source (avg. share)",
+    "colSource": "Source",
+    "colOfAverage": "of avg.",
+    "shareSr": "average share {percent}%",
+    "atAverage": "At average",
+    "notYet": "Not yet",
+    "volatilitySteady": "Fairly steady income",
+    "volatilityModerate": "Moderately variable income",
+    "volatilityHigh": "Highly variable income",
+    "range": "{months} months {min} – {max}",
+    "rangeSr": "Over the last {months} months, lowest {min}, highest {max}",
+    "concentration": "Over half comes from {name}",
+    "concentrationCta": "See new income ideas",
+    "uncategorized": "Uncategorized",
+    "other": "Other",
+    "emptyTitle": "No income logged yet",
+    "emptyHint": "Log your first income and we'll show where your money comes from",
+    "emptyCta": "Log income"
+  },
+  "homeNetWorth": {
+    "label": "Net worth",
+    "sinceUp": "Up {amount} since {month}",
+    "sinceDown": "Down {amount} since {month}",
+    "sinceSame": "Unchanged since {month}"
   }
 }
