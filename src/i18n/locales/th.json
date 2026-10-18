@@ -25,6 +25,7 @@
     "somethingWentWrong": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
     "noResults": "ไม่พบข้อมูล",
     "moreActions": "ตัวเลือกเพิ่มเติม",
+    "hideAmountFor": "ซ่อนยอดเงิน {name}",
     "optional": "ไม่บังคับ",
     "invalidInput": "ข้อมูลไม่ถูกต้อง",
     "pleaseLogin": "กรุณาเข้าสู่ระบบก่อน",

@@ -25,6 +25,7 @@
     "somethingWentWrong": "Something went wrong. Please try again.",
     "noResults": "No results found",
     "moreActions": "More options",
+    "hideAmountFor": "Hide amount for {name}",
     "optional": "optional",
     "invalidInput": "Invalid input",
     "pleaseLogin": "Please log in first",

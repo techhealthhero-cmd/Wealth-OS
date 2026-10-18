@@ -35,6 +35,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useConfirmDialog } from "@/components/shared/confirm-dialog";
+import { FlipCard } from "@/components/shared/flip-card";
+import { setAssetCardClosed, useAssetCardClosed } from "@/features/assets/closed-cards";
 
 const ASSET_ICONS: Record<AssetType, React.ElementType> = {
   cash: Banknote,
@@ -94,58 +96,88 @@ export function AssetCard({ asset, accounts }: { asset: Asset; accounts: Account
   const otherIconKey = asset.asset_type === "other" ? matchOtherAssetIconKey(asset.name) : null;
   const Icon = otherIconKey ? OTHER_ASSET_ICONS[otherIconKey] : ASSET_ICONS[asset.asset_type];
   const linkedAccount = asset.linked_account_id ? accounts.find((a) => a.id === asset.linked_account_id) : null;
+  const closed = useAssetCardClosed(asset.id);
+  const typeLabel = t(`assets.types.${asset.asset_type}`);
+
+  // Shared by both faces so the back reads as the same card.
+  const identity = (
+    <div className="flex min-w-0 items-center gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </div>
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          {/* leading-tight, not leading-none — see transaction-row.tsx's title for why (Thai tone-mark clipping). */}
+          <p className="min-w-0 truncate font-medium leading-tight">{asset.name}</p>
+          {linkedAccount ? (
+            // On a narrow card the badge gives way first (down to 3rem), so the
+            // name keeps its room. The text sits in its own span because
+            // Badge is a centred inline-flex — truncate on it clips both ends
+            // with no ellipsis. (! beats Badge's own shrink-0.)
+            <Badge variant="secondary" className="min-w-12 max-w-[8rem] shrink-[999]!">
+              <span className="min-w-0 truncate">{linkedAccount.name}</span>
+            </Badge>
+          ) : null}
+        </div>
+        <p className="mt-1 truncate text-sm text-muted-foreground">{typeLabel}</p>
+      </div>
+    </div>
+  );
 
   return (
-    <Card>
-      <CardContent className="flex items-center justify-between gap-4 py-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
-            <Icon className="h-5 w-5" aria-hidden="true" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              {/* leading-tight, not leading-none — see transaction-row.tsx's title for why (Thai tone-mark clipping). */}
-              <p className="min-w-0 truncate font-medium leading-tight">{asset.name}</p>
-              {linkedAccount ? (
-                <Badge variant="secondary" className="max-w-[8rem] shrink-0 truncate">
-                  {linkedAccount.name}
-                </Badge>
-              ) : null}
-            </div>
-            <p className="mt-1 truncate text-sm text-muted-foreground">{t(`assets.types.${asset.asset_type}`)}</p>
-          </div>
-        </div>
+    <FlipCard
+      closed={closed}
+      onToggle={(next) => setAssetCardClosed(asset.id, next)}
+      name={asset.name}
+      front={
+        <Card>
+          <CardContent className="flex items-center justify-between gap-4 py-4">
+            {identity}
 
-        <div className="flex items-center gap-2">
-          <p className="font-semibold">{formatMoneyFromDecimal(asset.value, asset.currency_code)}</p>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              {...asTrigger(
-                <Button variant="ghost" size="icon" aria-label={t("common.moreActions")}>
-                  <MoreVertical className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              )}
-            />
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setEditOpen(true)}>{t("common.edit")}</DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                disabled={isPending}
-                onClick={async () => {
-                  if (!(await confirm(t("assets.deleteConfirm"), { destructive: true }))) return;
-                  startTransition(async () => {
-                    await deleteAsset(asset.id);
-                  });
-                }}
-              >
-                {t("common.delete")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardContent>
+            <div className="flex shrink-0 items-center gap-2">
+              <p className="whitespace-nowrap font-semibold">{formatMoneyFromDecimal(asset.value, asset.currency_code)}</p>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  {...asTrigger(
+                    <Button variant="ghost" size="icon" aria-label={t("common.moreActions")}>
+                      <MoreVertical className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  )}
+                />
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>{t("common.edit")}</DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    disabled={isPending}
+                    onClick={async () => {
+                      if (!(await confirm(t("assets.deleteConfirm"), { destructive: true }))) return;
+                      startTransition(async () => {
+                        await deleteAsset(asset.id);
+                      });
+                    }}
+                  >
+                    {t("common.delete")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </CardContent>
+        </Card>
+      }
+      // The back: the asset's type where its value was — no amounts at all.
+      back={
+        <Card>
+          <CardContent className="flex h-full items-center justify-between gap-4 py-4">
+            {identity}
+            <span className="max-w-[45%] shrink-0 truncate rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              {typeLabel}
+            </span>
+          </CardContent>
+        </Card>
+      }
+    >
       <AssetForm asset={asset} accounts={accounts} trigger={null} open={editOpen} onOpenChange={setEditOpen} />
       {confirmDialog}
-    </Card>
+    </FlipCard>
   );
 }
