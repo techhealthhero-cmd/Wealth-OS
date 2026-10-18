@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -29,6 +29,8 @@ import {
   type ImportPreview,
   type ImportPreviewRow,
 } from "../actions";
+
+import { PdfImportError } from "@/lib/import/pdf/types";
 
 interface AccountOption {
   id: string;
@@ -72,6 +74,11 @@ export function StatementImportFlow({
   const { locale } = useTranslation();
   const th = locale === "th";
   const router = useRouter();
+  const passwordInput = useRef<HTMLInputElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const extraction = useRef<AbortController | null>(null);
+  const [pdfNotice, setPdfNotice] = useState<string | null>(null);
+  useEffect(() => () => { extraction.current?.abort(); }, []);
   const [pending, startTransition] = useTransition();
   const [step, setStep] = useState<Step>(initialPreview?.batch.status === "confirmed" ? "result" : initialPreview ? "preview" : "upload");
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
@@ -91,12 +98,12 @@ export function StatementImportFlow({
   const [rolledBack, setRolledBack] = useState(initialPreview?.batch.status === "rolled_back");
 
   const copy = th ? {
-    title: "นำเข้ารายการจาก CSV",
+    title: "นำเข้ารายการจาก CSV / PDF",
     subtitle: "ตรวจสอบก่อนบันทึกทุกครั้ง เงินจริงจะใช้ระบบรายการเดิมของ Wealth OS",
     chooseAccount: "นำเข้าไปยังบัญชี",
     chooseFile: "เลือกไฟล์รายการเดินบัญชี",
-    fileHint: "CSV UTF-8 เท่านั้น สูงสุด 750 KB และ 2,000 แถว",
-    analyze: "อ่านไฟล์ CSV",
+    fileHint: "CSV UTF-8 สูงสุด 750 KB หรือ PDF สูงสุด 5 MB; ข้อมูลที่แปลงแล้วสูงสุด 750 KB และ 2,000 แถว",
+    analyze: "อ่านไฟล์",
     mapping: "จับคู่คอลัมน์",
     mappingHint: "ตรวจว่าคอลัมน์จากธนาคารตรงกับข้อมูลใดก่อนสร้างตัวอย่าง",
     none: "ไม่ใช้คอลัมน์นี้",
@@ -116,12 +123,12 @@ export function StatementImportFlow({
     ready: "พร้อม",
     all: "ทั้งหมด",
   } : {
-    title: "Import transactions from CSV",
+    title: "Import transactions from CSV / PDF",
     subtitle: "Review before saving. Actual money continues through Wealth OS transactions.",
     chooseAccount: "Import into account",
     chooseFile: "Choose statement file",
-    fileHint: "UTF-8 CSV only, up to 750 KB and 2,000 rows",
-    analyze: "Read CSV",
+    fileHint: "UTF-8 CSV up to 750 KB or PDF up to 5 MB; converted data up to 750 KB and 2,000 rows",
+    analyze: "Read file",
     mapping: "Map columns",
     mappingHint: "Confirm how bank columns map before building the preview.",
     none: "Do not use",
@@ -150,18 +157,59 @@ export function StatementImportFlow({
   const visibleRows = filter === "all" ? rows : rows.filter((row) => row.status === filter);
   const canConfirm = Boolean(preview) && (counts.ready ?? 0) + (counts.needs_review ?? 0) > 0 && !pending;
 
-  function submitFile(formData: FormData) {
+  function submitFile(event: React.FormEvent<HTMLFormElement>) {
+    // Prevent native form submission: PDF bytes and the unnamed password input
+    // must never enter a server action's FormData (even before hydration).
+    event.preventDefault();
+    const file = fileInput.current?.files?.[0];
+    if (!file) return;
     setError(null);
-    formData.set("accountId", accountId);
+    setPdfNotice(null);
+    const targetAccount = accountId;
     startTransition(async () => {
-      const response = await createStatementImport(formData);
-      if (!response.success) return setError(response.error);
-      setBatchId(response.batchId);
-      setHeaders(response.headers);
-      setSampleRows(response.sampleRows);
-      setMapping(response.detectedMapping);
-      setStep("mapping");
-      router.replace(`/money/import?batch=${response.batchId}`, { scroll: false });
+      try {
+        let upload = file;
+        if (/\.pdf$/i.test(file.name)) {
+          const { extractPdfLines, PDF_IMPORT_MAX_BYTES } = await import("../pdf-extract");
+          if (file.size > PDF_IMPORT_MAX_BYTES) throw new PdfImportError("pdf_too_large", "ไฟล์ PDF ต้องไม่เกิน 5 MB / PDF must be 5 MB or smaller.");
+          const controller = new AbortController();
+          extraction.current = controller;
+          let secret = passwordInput.current?.value ?? "";
+          if (passwordInput.current) passwordInput.current.value = "";
+          const parsing = extractPdfLines(file, secret, controller.signal);
+          secret = "";
+          const lines = await parsing;
+          const { parsePdfStatement } = await import("@/lib/import/pdf/parsers");
+          const { statementRowsToCsv } = await import("@/lib/import/pdf/csv");
+          const parsed = parsePdfStatement(lines, new Date().getFullYear());
+          upload = new File([statementRowsToCsv(parsed.rows)], "statement.csv", { type: "text/csv" });
+          setPdfNotice(th
+            ? `อ่าน PDF แบบ best-effort (${parsed.parser}) ได้ ${parsed.rows.length} รายการ ข้าม ${parsed.skippedLines} รายการที่อ่านไม่ชัดเจน กรุณาเทียบกับต้นฉบับก่อนยืนยัน`
+            : `Best-effort PDF parsing (${parsed.parser}): ${parsed.rows.length} rows; ${parsed.skippedLines} ambiguous rows skipped. Compare with the original before confirming.`);
+        } else if (!/\.csv$/i.test(file.name)) {
+          setError("กรุณาเลือกไฟล์ CSV หรือ PDF / Choose a CSV or PDF file.");
+          return;
+        }
+        if (passwordInput.current) passwordInput.current.value = "";
+        if (fileInput.current) fileInput.current.value = "";
+        const payload = new FormData();
+        payload.set("accountId", targetAccount);
+        payload.set("file", upload);
+        const response = await createStatementImport(payload);
+        if (!response.success) return setError(response.error);
+        setBatchId(response.batchId);
+        setHeaders(response.headers);
+        setSampleRows(response.sampleRows);
+        setMapping(response.detectedMapping);
+        setStep("mapping");
+        router.replace(`/money/import?batch=${response.batchId}`, { scroll: false });
+      } catch (error) {
+        setError(error instanceof PdfImportError ? error.message : "อ่านไฟล์ไม่ได้ กรุณาลองอีกครั้ง / Unable to read file. Please try again.");
+        if (error instanceof PdfImportError && error.code.startsWith("password_")) passwordInput.current?.focus();
+      } finally {
+        if (passwordInput.current) passwordInput.current.value = "";
+        extraction.current = null;
+      }
     });
   }
 
@@ -226,6 +274,8 @@ export function StatementImportFlow({
         </CardHeader>
       </Card>
 
+      {pdfNotice && <div role="status" className="rounded-xl border p-3 text-sm">{pdfNotice}</div>}
+
       {error && <div role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}
 
       {step === "upload" && (
@@ -235,7 +285,7 @@ export function StatementImportFlow({
             {accounts.length === 0 ? (
               <div className="rounded-xl bg-muted p-4 text-sm">{th ? "เพิ่มบัญชีก่อนนำเข้า CSV" : "Add an account before importing CSV."}</div>
             ) : (
-              <form action={submitFile} className="space-y-4">
+              <form onSubmit={submitFile} className="space-y-4">
                 <label className="block space-y-1.5 text-sm font-medium">
                   <span>{copy.chooseAccount}</span>
                   <select className="h-10 w-full rounded-lg border border-input bg-background px-3" value={accountId} onChange={(event) => setAccountId(event.target.value)}>
@@ -244,8 +294,15 @@ export function StatementImportFlow({
                 </label>
                 <label className="block space-y-1.5 text-sm font-medium">
                   <span>{copy.chooseFile}</span>
-                  <Input name="file" type="file" accept=".csv,text/csv" required className="h-11 py-2" />
+                  <Input ref={fileInput} type="file" accept=".csv,.pdf,text/csv,application/pdf" disabled={pending} onChange={() => { if (passwordInput.current) passwordInput.current.value = ""; setError(null); }} required className="h-11 py-2" />
                 </label>
+                <label className="block space-y-1.5 text-sm font-medium">
+                  <span>{th ? "รหัสผ่าน PDF (ถ้ามี)" : "PDF password (if needed)"}</span>
+                  <Input ref={passwordInput} type="password" autoComplete="off" disabled={pending} />
+                </label>
+                <p className="text-xs text-muted-foreground">{th
+                  ? "PDF และรหัสผ่านอ่านเฉพาะในเบราว์เซอร์ ไม่ส่งขึ้นเซิร์ฟเวอร์ ส่งเฉพาะรายการ CSV ที่แปลงแล้ว การอ่านทุกธนาคารเป็น best-effort รวมถึง KBank/K PLUS, SCB, กรุงเทพ, กรุงไทย, กรุงศรี, TTB และออมสิน กรุณาตรวจเทียบต้นฉบับก่อนบันทึก"
+                  : "PDF bytes and passwords stay in your browser. Only converted CSV rows are uploaded. All bank parsers (KBank/K PLUS, SCB, Bangkok Bank, Krungthai, Krungsri, TTB, GSB) are best-effort. Compare with the original before saving."}</p>
                 <Button type="submit" size="lg" disabled={pending} className="w-full sm:w-auto"><Upload />{pending ? (th ? "กำลังอ่าน..." : "Reading...") : copy.analyze}</Button>
               </form>
             )}
