@@ -348,7 +348,14 @@
     "expensesShort": "รายจ่าย",
     "overIncome": "จ่ายเกินรายรับ {amount}",
     "spentOfIncome": "ใช้ไป {percent}% ของรายรับ",
-    "dayProgress": "วันที่ {day}/{total}"
+    "dayProgress": "วันที่ {day}/{total}",
+    "monthTitle": "เดือน{month}",
+    "daysLeft": "เหลืออีก {days} วัน",
+    "spentOverIncome": "ใช้เกินรายรับไป",
+    "incomeMark": "รายรับ {amount}",
+    "spendingBarLabel": "ใช้จ่ายไป {expenses} จากรายรับ {income}",
+    "spendingBarOverLabel": "ใช้จ่ายไป {expenses} เกินรายรับ {income} อยู่ {over}",
+    "changeFromLastMonth": "{percent}% จากเดือนก่อน"
   },
   "accounts": {
     "title": "บัญชี",
@@ -781,7 +788,9 @@
   "last6Months": "6 เดือนที่ผ่านมา",
   "whatIsThis": "มูลค่าสุทธิคืออะไร",
     "explanation": "มูลค่าสุทธิ = สินทรัพย์ทั้งหมดที่คุณมี ลบด้วยหนี้สินทั้งหมดที่คุณติดค้าง เป็นตัวเลขที่สะท้อนสถานะการเงินโดยรวมของคุณได้ตรงที่สุด",
-    "tagline": "ก้าวเล็กๆ สู่สุขภาพการเงินที่ดีขึ้น"
+    "tagline": "ก้าวเล็กๆ สู่สุขภาพการเงินที่ดีขึ้น",
+    "noChangeFromLastMonth": "ไม่เปลี่ยนจากเดือนก่อน",
+    "viewAssetsAndLiabilities": "ดูสินทรัพย์และหนี้สิน"
   },
   "goals": {
     "title": "เป้าหมายทางการเงิน",

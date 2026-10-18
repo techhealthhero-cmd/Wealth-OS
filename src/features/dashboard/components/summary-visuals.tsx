@@ -52,15 +52,24 @@ interface MonthlyDonutCardProps {
   categories: Category[];
   children?: ReactNode;
   labels: {
+    /** Already-localized month heading, e.g. "เดือนตุลาคม" / "October". */
     title: string;
-    income: string;
-    expenses: string;
+    /** Contains {days}. */
+    daysLeft: string;
     remaining: string;
+    spentOverIncome: string;
     incomeShort: string;
     expensesShort: string;
+    /** Contains {amount}. */
+    incomeMark: string;
+    /** Contains {amount}. */
     overIncome: string;
-    spentOfIncome: string;
-    dayProgress: string;
+    /** Contains {expenses} and {income}. */
+    spendingBarLabel: string;
+    /** Contains {expenses}, {income} and {over}. */
+    spendingBarOverLabel: string;
+    /** Contains {percent}. */
+    changeFromLastMonth: string;
     cashFlow: string;
     savingsRate: string;
     vsLastMonth: string;
@@ -69,6 +78,8 @@ interface MonthlyDonutCardProps {
     noDataHint: string;
   };
 }
+
+const OVER_HATCH = "repeating-linear-gradient(135deg, rgb(178 58 72 / 0.85) 0 5px, rgb(178 58 72 / 0.4) 5px 10px)";
 
 function InlineTrend({
   changeValue,
@@ -97,66 +108,53 @@ function InlineTrend({
   );
 }
 
-function BarRow({
+function MonthTile({
   label,
-  ariaLabel,
   amount,
-  trend,
-  fillPct,
-  fillColor,
-  overFromPct = null,
+  changeValue,
+  changeTemplate,
+  invertTone = false,
+  className,
+  amountClassName,
 }: {
   label: string;
-  ariaLabel: string;
   amount: string;
-  trend: ReactNode;
-  fillPct: number;
-  fillColor: string;
-  /** Where income ends on the shared scale; the fill beyond it is striped. */
-  overFromPct?: number | null;
+  changeValue: number | null;
+  changeTemplate: string;
+  invertTone?: boolean;
+  className: string;
+  amountClassName: string;
 }) {
+  const isGoodDirection =
+    changeValue === null ? true : invertTone ? changeValue <= 0 : changeValue >= 0;
   return (
-    <div className="space-y-1">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        {trend}
-      </div>
-      <div className="relative h-7 overflow-hidden rounded-lg bg-muted" role="img" aria-label={ariaLabel}>
-        <span className="absolute inset-y-0 left-0 rounded-lg" style={{ width: `${fillPct}%`, background: fillColor }} />
-        {overFromPct !== null ? (
-          <>
-            <span
-              className="absolute inset-y-0 rounded-r-lg"
-              style={{
-                left: `${overFromPct}%`,
-                width: `${fillPct - overFromPct}%`,
-                background:
-                  "repeating-linear-gradient(135deg, rgb(178 58 72 / 0.55) 0 5px, rgb(178 58 72 / 0.22) 5px 10px)",
-              }}
-            />
-            <span className="absolute inset-y-0 w-0.5 bg-foreground" style={{ left: `${overFromPct}%` }} />
-          </>
-        ) : null}
-        {/* Over a wide pastel fill the label needs dark ink in both themes;
-            over a near-empty track it sits on the muted ground instead. */}
-        <span
+    <div className={cn("min-w-0 space-y-1 rounded-2xl p-3", className)}>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={cn("break-all text-base font-bold leading-tight tabular-nums sm:text-lg", amountClassName)}>
+        {amount}
+      </p>
+      {changeValue !== null ? (
+        <p
           className={cn(
-            "absolute inset-y-0 left-2.5 flex items-center text-xs font-semibold tabular-nums",
-            fillPct >= 40 ? "text-[#22332b]" : "text-foreground"
+            "text-[11px] font-medium",
+            isGoodDirection ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"
           )}
         >
-          {amount}
-        </span>
-      </div>
+          <span aria-hidden="true">{changeValue >= 0 ? "↑ " : "↓ "}</span>
+          <span className="sr-only">{changeValue >= 0 ? "+" : "−"}</span>
+          {changeTemplate.replace("{percent}", Math.abs(changeValue).toFixed(1))}
+        </p>
+      ) : null}
     </div>
   );
 }
 
 /**
- * Monthly summary as two to-scale bars (income vs expenses) on one shared
- * scale. When spending exceeds income, the part of the expense bar beyond
- * the income mark is striped red, so "how far over" reads from length.
- * Plain CSS — no charting runtime. (Name kept from the earlier donut design.)
+ * Monthly summary: one headline (what's left, or how far spending went past
+ * income), ONE spending-vs-income bar, and income/expense tiles. When
+ * spending exceeds income the part beyond the income mark is striped red,
+ * so "how far over" reads from length. Plain CSS — no charting runtime.
+ * (Name kept from the earlier donut design.)
  */
 export function MonthlyDonutCard({
   incomeCents,
@@ -181,9 +179,11 @@ export function MonthlyDonutCard({
   const expenses = Math.max(0, expensesCents);
   const scale = Math.max(income, expenses);
   const incomePct = scale > 0 ? (income / scale) * 100 : 0;
+  const coveredPct = scale > 0 ? (Math.min(expenses, income) / scale) * 100 : 0;
   const expensesPct = scale > 0 ? (expenses / scale) * 100 : 0;
   const isOver = expenses > income;
   const overCents = expenses - income;
+  const daysLeft = Math.max(0, daysInMonth - dayOfMonth);
 
   if (!hasDataThisMonth) {
     return (
@@ -200,67 +200,96 @@ export function MonthlyDonutCard({
     );
   }
 
+  const incomeText = formatMoney(incomeCents, currencyCode);
+  const expensesText = formatMoney(expensesCents, currencyCode);
+  const spentPercentText = income > 0 ? `${((expenses / income) * 100).toFixed(0)}%` : null;
+  const barText = isOver
+    ? labels.spendingBarOverLabel
+        .replace("{expenses}", expensesText)
+        .replace("{income}", incomeText)
+        .replace("{over}", formatMoney(overCents, currencyCode))
+    : labels.spendingBarLabel.replace("{expenses}", expensesText).replace("{income}", incomeText);
+  // The visible percent caption is aria-hidden, so carry it in the label.
+  const barLabel = spentPercentText ? `${barText} (${spentPercentText})` : barText;
+  const incomeMarkText = labels.incomeMark.replace("{amount}", incomeText);
+  // Keep the centered income caption clear of the "0" / percent captions.
+  const incomeMarkLeft = Math.min(65, Math.max(30, incomePct));
+
   return (
     <Card>
-      <CardHeader className="space-y-2">
+      <CardHeader>
         <div className="flex items-baseline justify-between gap-3">
-          <CardTitle className="text-base">{labels.title}</CardTitle>
+          <CardTitle className="text-lg font-bold">{labels.title}</CardTitle>
           <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-            {labels.dayProgress.replace("{day}", String(dayOfMonth)).replace("{total}", String(daysInMonth))}
+            {labels.daysLeft.replace("{days}", String(daysLeft))}
           </span>
-        </div>
-        {/* One slim gold line (the mic button's gold), not dots — dots read
-            like the dashed bottom-nav border. */}
-        <div className="h-1 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-          <span
-            className="block h-full rounded-full bg-[#C9A24A]"
-            style={{ width: `${daysInMonth > 0 ? (dayOfMonth / daysInMonth) * 100 : 0}%` }}
-          />
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <p className="text-xs text-muted-foreground">{labels.remaining}</p>
+          <p className="text-xs text-muted-foreground">{isOver ? labels.spentOverIncome : labels.remaining}</p>
           {/* Deep rose rather than the alarm-red destructive token: a coach
               pointing something out, not a warning siren. */}
           <p
             className={cn(
               "break-all text-3xl font-bold leading-tight tabular-nums",
-              cashFlowCents < 0 && "text-[#B23A48] dark:text-rose-300"
+              (isOver || cashFlowCents < 0) && "text-[#B23A48] dark:text-rose-300"
             )}
           >
-            {formatMoney(cashFlowCents, currencyCode)}
+            {formatMoney(isOver ? overCents : cashFlowCents, currencyCode)}
           </p>
-          {/* The big number already says the amount; the caption adds the
-              ratio. With no income there's no ratio, so name the overspend. */}
-          {income > 0 ? (
-            <p className="text-xs text-muted-foreground">
-              {labels.spentOfIncome.replace("{percent}", ((expenses / income) * 100).toFixed(0))}
-            </p>
-          ) : isOver ? (
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="relative h-3 overflow-hidden rounded-full bg-muted" role="img" aria-label={barLabel}>
+            <span className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${coveredPct}%` }} />
+            {isOver ? (
+              <span
+                className="absolute inset-y-0"
+                style={{ left: `${incomePct}%`, width: `${expensesPct - incomePct}%`, background: OVER_HATCH }}
+              />
+            ) : null}
+          </div>
+          <div aria-hidden="true" className="relative flex h-4 items-center justify-between gap-2 text-[11px] text-muted-foreground tabular-nums">
+            <span>0</span>
+            {isOver && income > 0 ? (
+              <span
+                className="absolute top-0 -translate-x-1/2 whitespace-nowrap"
+                style={{ left: `${incomeMarkLeft}%` }}
+              >
+                {incomeMarkText}
+              </span>
+            ) : null}
+            <span className="flex min-w-0 items-center gap-2">
+              {!isOver && income > 0 ? <span className="truncate">{incomeMarkText}</span> : null}
+              {spentPercentText ? <span>{spentPercentText}</span> : null}
+            </span>
+          </div>
+          {/* With no income there's no ratio, so name the overspend. */}
+          {income === 0 && isOver ? (
             <p className="text-xs text-muted-foreground">
               {labels.overIncome.replace("{amount}", formatMoney(overCents, currencyCode))}
             </p>
           ) : null}
         </div>
 
-        <div className="space-y-3">
-          <BarRow
+        <div className="grid grid-cols-2 gap-3">
+          <MonthTile
             label={labels.incomeShort}
-            ariaLabel={`${labels.income}: ${formatMoney(incomeCents, currencyCode)}`}
-            amount={formatMoney(incomeCents, currencyCode)}
-            trend={<InlineTrend changeValue={incomeChangePercent} />}
-            fillPct={incomePct}
-            fillColor="#7FD6B2"
+            amount={incomeText}
+            changeValue={incomeChangePercent}
+            changeTemplate={labels.changeFromLastMonth}
+            className="bg-emerald-50 dark:bg-emerald-950/40"
+            amountClassName="text-emerald-900 dark:text-emerald-200"
           />
-          <BarRow
+          <MonthTile
             label={labels.expensesShort}
-            ariaLabel={`${labels.expenses}: ${formatMoney(expensesCents, currencyCode)}`}
-            amount={formatMoney(expensesCents, currencyCode)}
-            trend={<InlineTrend changeValue={expensesChangePercent} invertTone />}
-            fillPct={expensesPct}
-            fillColor="#E5989B"
-            overFromPct={isOver ? incomePct : null}
+            amount={expensesText}
+            changeValue={expensesChangePercent}
+            changeTemplate={labels.changeFromLastMonth}
+            invertTone
+            className="bg-rose-50 dark:bg-rose-950/40"
+            amountClassName="text-[#B23A48] dark:text-rose-300"
           />
         </div>
 
