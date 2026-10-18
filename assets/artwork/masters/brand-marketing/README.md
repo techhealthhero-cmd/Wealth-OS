@@ -40,7 +40,19 @@ application integration and implementation QA.
 - Suggested use: contain-fit; keep the phone, ledger rings, and calculator
   fully visible. Check both light and dark backgrounds after integration.
 
+## `social-share-v1.png`
+
+- Purpose: social-share card base for financial progress, savings, and
+  protection messages.
+- Canvas: 1254 x 1254 PNG with alpha transparency outside the paper card.
+- Composition: cream share card, gentle four-step progress path, protection
+  shield, and savings jar. The upper half is intentionally copy-safe.
+- Add the real share title, value, date, disclaimer, and brand mark as live
+  template layers. Do not bake user data into this master PNG.
+- Suggested use: keep the entire rounded paper card visible; avoid placing
+  text below the chart line or behind the shield and jar.
+- The rising path communicates gradual progress, not guaranteed returns.
+
 ## Production queue
 
-1. Social share
-2. Landing-page feature journey
+1. Landing-page feature journey
