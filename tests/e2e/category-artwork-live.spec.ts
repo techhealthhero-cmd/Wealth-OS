@@ -1,3 +1,4 @@
+import { assertStagingSupabase } from "../../scripts/lib/assert-staging-supabase.mjs";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
@@ -18,6 +19,7 @@ test("category artwork: full set, sizes and interactive states at 390px", async 
   const env = localEnv();
   test.skip(!env.SUPABASE_SERVICE_ROLE_KEY, "SUPABASE_SERVICE_ROLE_KEY is required for disposable-user cleanup");
 
+  assertStagingSupabase(env.NEXT_PUBLIC_SUPABASE_URL);
   const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });

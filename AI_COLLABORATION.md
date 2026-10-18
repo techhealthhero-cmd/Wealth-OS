@@ -139,6 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| STAGING-SEC-E2E | Staging DB hardening and live-test target guard | Codex | READY FOR HANDOFF — local checks passed | Migration 0046, shared guard, demo/live specs; validate typecheck/lint/full Vitest, PR into staging, merge after all checks pass | Supervisor applies DB separately; report /workspace/reports/staging-sec-e2e-pr.md |
 | MONEY-IMPORT-TESTS | Money/import unit coverage | Codex | DONE — tests and local validation | Tests only in money/import suites; no production changes. Plan: verify gaps, add boundary tests, typecheck/lint/full Vitest, PR into staging and merge only if all checks pass | Codex → staging reviewers; report /workspace/reports/money-import-tests-pr.md |
 | ANIMATED-RM-01 | AnimatedNumber reduced-motion hydration | Codex | DONE — implementation and local validation | Logic-only component fix and regression tests; typecheck/lint and 104 files / 1036 tests passed | PR #8 into staging; merge gated on all checks; final outcome in /workspace/reports/animated-number-pr.md |
 | LOGIC-HOME-01 | Home MoM baseline + timezone month card | Codex | READY FOR HANDOFF — commit blocked by read-only Git metadata | Pure calendar/snapshot helpers, dashboard logic and unit tests; no formula/UI/DB changes | Parent stage/commit in writable Git environment |
@@ -184,6 +185,12 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → staging supervisor (STAGING-SEC-E2E)
+
+- Added migration 0046 and one shared staging-only URL guard before admin-client construction in demo-account and all 20 live e2e specs using service-role clients.
+- Validation: typecheck, lint and full Vitest passed (105 files, 1102 tests), including guard rejection cases. No live tests or DB changes executed.
+- Next: push `codex/staging-sec-e2e-guard`, open generic PR into staging, wait for every check and merge only if all pass. Supervisor applies 0046 separately via Supabase MCP to staging `eovyvlesdgygjqrrvpas`; no production/main work authorized. Final PR and merge status: `/workspace/reports/staging-sec-e2e-pr.md`.
 
 ### 2026-10-19 — Codex → staging reviewers (MONEY-IMPORT-TESTS)
 

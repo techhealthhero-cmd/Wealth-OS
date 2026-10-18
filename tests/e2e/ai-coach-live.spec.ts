@@ -1,3 +1,4 @@
+import { assertStagingSupabase } from "../../scripts/lib/assert-staging-supabase.mjs";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
@@ -24,6 +25,7 @@ test("AI Coach: two-turn chat streams, saves, and logs chat usage", async ({ pag
   test.skip(!env.SUPABASE_SERVICE_ROLE_KEY || !env.AI_API_KEY, "Disposable cleanup and configured AI are required");
   test.setTimeout(180_000);
 
+  assertStagingSupabase(env.NEXT_PUBLIC_SUPABASE_URL);
   const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });

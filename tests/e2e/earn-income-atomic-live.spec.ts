@@ -1,3 +1,4 @@
+import { assertStagingSupabase } from "../../scripts/lib/assert-staging-supabase.mjs";
 import { expect, test } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
@@ -14,6 +15,7 @@ function env(): Record<string, string> {
 
 function client(key: "SUPABASE_SERVICE_ROLE_KEY" | "NEXT_PUBLIC_SUPABASE_ANON_KEY"): SupabaseClient {
   const values = env();
+  assertStagingSupabase(values.NEXT_PUBLIC_SUPABASE_URL);
   return createClient(values.NEXT_PUBLIC_SUPABASE_URL, values[key], {
     auth: { autoRefreshToken: false, persistSession: false },
   });
