@@ -25,9 +25,10 @@ import { ExportTransactionsButton } from "./export-button";
 import { ExportReportButton } from "@/features/reports/components/export-report-button";
 
 /**
- * Money › Transactions (2026-10-11, mockup "B + D"): add → this month at a
- * glance → "ทั้งหมด | รอตรวจ" tabs → the wall calendar → the list (or, on
- * the pending tab, only the pending review list — no calendar). A day picked on the calendar is just the existing
+ * Money › Transactions (2026-10-11, mockup "B + D"; reordered 2026-10-19):
+ * the wall calendar → this month at a glance → "ทั้งหมด | รอตรวจ" tabs →
+ * the list → exports (or, on the pending tab, no calendar: this month at a
+ * glance → tabs → only the pending review list). A day picked on the calendar is just the existing
  * from/to filter set to that one date, so the list, search and paging all
  * keep working unchanged.
  */
@@ -96,9 +97,19 @@ export async function TransactionList({
 
   return (
     <div className="space-y-4">
+      {/* The wall calendar comes first, right under the page's tabs (2026-10-19). */}
+      {tab !== "pending" && (
+        <WallCalendar
+          grid={calendar}
+          prevMonth={addMonthsIso(calendarMonth, -1)}
+          nextMonth={calendarMonth < thisMonth ? addMonthsIso(calendarMonth, 1) : null}
+          selectedDate={selectedDate}
+        />
+      )}
+
       <MonthSummary
         title={monthTitle}
-        // The calendar below names the month; the pending tab has no calendar,
+        // The calendar above names the month; the pending tab has no calendar,
         // so the summary names its own month there.
         showTitle={tab === "pending"}
         incomeCents={calculateIncome(monthTransactions)}
@@ -125,14 +136,6 @@ export async function TransactionList({
         )
       ) : (
         <>
-      {/* The wall calendar sits right under the tabs (2026-10-12). */}
-      <WallCalendar
-        grid={calendar}
-        prevMonth={addMonthsIso(calendarMonth, -1)}
-        nextMonth={calendarMonth < thisMonth ? addMonthsIso(calendarMonth, 1) : null}
-        selectedDate={selectedDate}
-      />
-
       {transactions.length === 0 && selectedDate && isDefaultView ? (
         // One quiet day picked on the calendar: a line, not the big empty state.
         <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.dayEmpty}</p>
