@@ -62,6 +62,7 @@ export type PdfImportErrorCode =
   | "pdf_extraction_limit"
   | "pdf_timeout"
   | "invalid_pdf"
+  | "pdf_reader_unavailable"
   | "password_required"
   | "password_incorrect"
   | "no_text"
