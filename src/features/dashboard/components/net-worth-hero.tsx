@@ -1,3 +1,5 @@
+import { todayInTimeZone } from "@/lib/date";
+import { previousMonthSnapshot } from "../net-worth-baseline";
 import { captureError } from "@/lib/observability";
 import {
   ensureTodaysNetWorthSnapshot,
@@ -46,7 +48,8 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
     await ensureTodaysNetWorthSnapshot(breakdown);
     const snapshots = await getNetWorthSnapshotsSince(CHART_HISTORY_MONTHS);
 
-    const previousSnapshot = snapshots.length >= 2 ? snapshots[snapshots.length - 2] : null;
+    const today = todayInTimeZone(profile?.timezone ?? "Asia/Bangkok");
+    const previousSnapshot = previousMonthSnapshot(snapshots, today);
     const change = calculateNetWorthChange(
       breakdown.netWorthCents,
       previousSnapshot ? parseMoneyToCents(previousSnapshot.net_worth) : 0
@@ -63,8 +66,7 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
     // Axis labels under the sparkline: one per distinct snapshot month
     // (snapshot_date is "YYYY-MM-DD"), current month emphasized.
     const monthFormatter = new Intl.DateTimeFormat(intlLocale, { month: "short" });
-    const now = new Date();
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const currentMonthKey = today.slice(0, 7);
     const monthKeys = [...new Set(snapshots.map((s) => s.snapshot_date.slice(0, 7)))];
     const monthLabels = monthKeys.map((key) => ({
       label: monthFormatter.format(new Date(`${key}-01T00:00:00`)),

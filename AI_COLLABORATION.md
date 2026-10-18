@@ -139,6 +139,10 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| STAGING-SEC-E2E | Staging DB hardening and live-test target guard | Codex | READY FOR HANDOFF — local checks passed | Migration 0046, shared guard, demo/live specs; validate typecheck/lint/full Vitest, PR into staging, merge after all checks pass | Supervisor applies DB separately; report /workspace/reports/staging-sec-e2e-pr.md |
+| MONEY-IMPORT-TESTS | Money/import unit coverage | Codex | DONE — tests and local validation | Tests only in money/import suites; no production changes. Plan: verify gaps, add boundary tests, typecheck/lint/full Vitest, PR into staging and merge only if all checks pass | Codex → staging reviewers; report /workspace/reports/money-import-tests-pr.md |
+| ANIMATED-RM-01 | AnimatedNumber reduced-motion hydration | Codex | DONE — implementation and local validation | Logic-only component fix and regression tests; typecheck/lint and 104 files / 1036 tests passed | PR #8 into staging; merge gated on all checks; final outcome in /workspace/reports/animated-number-pr.md |
+| LOGIC-HOME-01 | Home MoM baseline + timezone month card | Codex | READY FOR HANDOFF — commit blocked by read-only Git metadata | Pure calendar/snapshot helpers, dashboard logic and unit tests; no formula/UI/DB changes | Parent stage/commit in writable Git environment |
 | ART-01 | Brand & Marketing templates | Claude | TODO | จัด Feature Announcement, Product Preview และ Social Share จาก master ที่อนุมัติแล้ว | ส่งภาพหน้าจอ/ผล QA ให้ Codex ตรวจความสม่ำเสมอ |
 | QA-01 | Empty State live QA | Claude | TODO | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | บันทึก viewport, theme และผลตรวจใน `ARTWORK_ROADMAP.md` |
 | ART-02 | Brand artwork visual QA | Codex | WAITING | ตรวจ light/dark, mobile/desktop และ social safe area หลังติดตั้ง | รอ Claude ส่งหน้าจอจริง |
@@ -181,6 +185,31 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → staging supervisor (STAGING-SEC-E2E)
+
+- Added migration 0046 and one shared staging-only URL guard before admin-client construction in demo-account and all 20 live e2e specs using service-role clients.
+- Validation: typecheck, lint and full Vitest passed (105 files, 1102 tests), including guard rejection cases. No live tests or DB changes executed.
+- Next: push `codex/staging-sec-e2e-guard`, open generic PR into staging, wait for every check and merge only if all pass. Supervisor applies 0046 separately via Supabase MCP to staging `eovyvlesdgygjqrrvpas`; no production/main work authorized. Final PR and merge status: `/workspace/reports/staging-sec-e2e-pr.md`.
+
+### 2026-10-19 — Codex → staging reviewers (MONEY-IMPORT-TESTS)
+
+- Added 51 unit cases across the four existing money/import suites: UUID and nested mapping validation, direct fingerprint stability/identity, cents conversion and decimal formatting, and header-mapping boundaries.
+- Tests and this collaboration board are the only changes; production logic is unchanged. All exported money helpers now have direct coverage.
+- Validation: typecheck, lint, and full Vitest passed (104 files, 1087 tests). Next: push `codex/money-import-unit-tests`, open PR into staging, wait for every check, and merge only if all pass as explicitly authorized by the user. Final PR URL and merge outcome: `/workspace/reports/money-import-tests-pr.md`.
+
+### 2026-10-19 — Codex → staging reviewers (ANIMATED-RM-01)
+
+- AnimatedNumber starts animated state at zero and renders the final value directly under reduced motion, matching SplitMoneyAmount; no styling changes.
+- Added five regression cases covering the post-hydration preference change for all formats, updated values, and normal-motion initial state. Four cases fail against the original implementation.
+- Validation: typecheck, lint, and full Vitest passed (104 files, 1036 tests). PR: https://github.com/techhealthhero-cmd/Wealth-OS/pull/8 into staging; merge only after all checks pass; outcome recorded in `/workspace/reports/animated-number-pr.md`.
+
+### 2026-10-19 — Codex → Parent (LOGIC-HOME-01)
+
+- Completed on `codex/logic-fixes`: Home badge selects the latest stored snapshot date in the immediately preceding calendar month, using profile timezone (Bangkok default) to identify today. Missing prior-month history uses the existing no-history state; no daily/older-month substitution.
+- Month card display and current/previous transaction windows share one timezone-aware calendar date; pure helpers in `src/lib/date.ts` and `src/features/dashboard/net-worth-baseline.ts` have focused unit coverage.
+- Verification: `npm run typecheck`, `npm run lint`, `npx vitest run` all passed (103 files, 1031 tests). No money-formula, UI styling, DB/auth, migration or snapshot-writer changes.
+- Commit blocked: `git add` and `git commit` fail creating `/workspace/Wealth-OS/.git/worktrees/logic-fixes/index.lock` (read-only filesystem). Changes remain unstaged. Next: parent stage and commit the completed patch in a writable Git environment; no PR, merge, push or QUEUE.md edit performed. Result summary: `/workspace/wt/logic-fixes-prompts/fix-result.md`.
 
 เพิ่มรายการใหม่ไว้ด้านบน ไม่ต้องคัดลอกประวัติการแก้ไฟล์ทั้งหมด
 

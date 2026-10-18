@@ -1,3 +1,5 @@
+import { previousMonthSnapshot } from "@/features/dashboard/net-worth-baseline";
+import { todayInTimeZone } from "@/lib/date";
 import { describe, expect, it } from "vitest";
 
 import { calculateNetWorth, calculateNetWorthChange } from "@/lib/financial/net-worth";
@@ -146,5 +148,41 @@ describe("calculateNetWorthChange", () => {
     const change = calculateNetWorthChange(500000, 0);
     expect(change.changeCents).toBe(500000);
     expect(change.changePercent).toBeNull();
+  });
+});
+
+describe("Home previous-month net worth baseline", () => {
+  const snapshots = [
+    { snapshot_date: "2026-09-30", cents: 1000000 },
+    { snapshot_date: "2026-10-18", cents: 1200000 },
+    { snapshot_date: "2026-09-01", cents: 900000 },
+    { snapshot_date: "2026-10-19", cents: 1200000 },
+  ];
+
+  it("shows a non-zero monthly change even when yesterday equals today", () => {
+    const baseline = previousMonthSnapshot(snapshots, "2026-10-19");
+    expect(baseline?.snapshot_date).toBe("2026-09-30");
+    expect(calculateNetWorthChange(1200000, baseline!.cents).changeCents).toBe(200000);
+  });
+
+  it("shows zero when current net worth equals last month's baseline", () => {
+    const baseline = previousMonthSnapshot(snapshots, "2026-10-19");
+    expect(calculateNetWorthChange(1000000, baseline!.cents).changeCents).toBe(0);
+  });
+
+  it("returns no history rather than substituting current-month or older snapshots", () => {
+    expect(previousMonthSnapshot([], "2026-10-19")).toBeNull();
+    expect(previousMonthSnapshot([
+      { snapshot_date: "2026-08-31" },
+      { snapshot_date: "2026-10-18" },
+    ], "2026-10-19")).toBeNull();
+  });
+
+  it("selects the prior calendar month at Bangkok midnight and across a year boundary", () => {
+    const today = todayInTimeZone(undefined, new Date("2026-09-30T17:00:00Z"));
+    expect(previousMonthSnapshot(snapshots, today)?.snapshot_date).toBe("2026-09-30");
+    expect(previousMonthSnapshot([
+      { snapshot_date: "2025-12-31" }, { snapshot_date: "2026-01-01" },
+    ], "2026-01-01")?.snapshot_date).toBe("2025-12-31");
   });
 });

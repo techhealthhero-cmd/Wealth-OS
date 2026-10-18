@@ -1,3 +1,4 @@
+import { calendarMonth, todayInTimeZone } from "@/lib/date";
 import Link from "next/link";
 import { Suspense } from "react";
 import type { Metadata } from "next";
@@ -39,15 +40,13 @@ export default async function DashboardPage() {
     return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
   }
 
-  const [data, profile] = await Promise.all([
-    getDashboardData(),
-    getProfile(),
-  ]);
+  const profile = await getProfile();
+  const today = todayInTimeZone(profile?.timezone ?? "Asia/Bangkok");
+  const month = calendarMonth(today);
+  const data = await getDashboardData(today);
   const currencyCode = profile?.currency_code ?? "THB";
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
-  // Same server-local clock getCurrentMonthRange() uses for "this month".
-  const today = new Date();
 
   if (!data.hasAnyData) {
     return (
@@ -137,15 +136,15 @@ export default async function DashboardPage() {
           cashFlowChangePercent={data.cashFlowChangePercent}
           savingsRateChangePoints={data.savingsRateChangePoints}
           hasDataThisMonth={data.hasMonthData}
-          dayOfMonth={today.getDate()}
-          daysInMonth={new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()}
+          dayOfMonth={month.dayOfMonth}
+          daysInMonth={month.daysInMonth}
           currencyCode={currencyCode}
           accounts={data.accounts}
           categories={data.categories}
           labels={{
             title: dict.dashboard.monthTitle.replace(
               "{month}",
-              new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "long" }).format(today)
+              new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "long", timeZone: "UTC" }).format(month.monthDate)
             ),
             daysLeft: dict.dashboard.daysLeft,
             remaining: dict.dashboard.remaining,

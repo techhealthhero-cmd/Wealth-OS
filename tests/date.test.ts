@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addMonthsClamped, toLocalDateString } from "@/lib/date";
+import { addMonthsClamped, calendarMonth, todayInTimeZone, toLocalDateString } from "@/lib/date";
 
 describe("toLocalDateString", () => {
   it("formats a date as YYYY-MM-DD using local calendar fields", () => {
@@ -50,5 +50,31 @@ describe("addMonthsClamped", () => {
   it("adding 0 months returns the same calendar date", () => {
     const result = addMonthsClamped(new Date(2026, 8, 17), 0);
     expect(toLocalDateString(result)).toBe("2026-09-17");
+  });
+});
+
+describe("timezone dashboard calendar", () => {
+  it("uses Bangkok's first day while UTC is still in the previous month", () => {
+    const today = todayInTimeZone(undefined, new Date("2026-09-30T17:00:00Z"));
+    expect(today).toBe("2026-10-01");
+    const month = calendarMonth(today);
+    expect(month).toMatchObject({ from: "2026-10-01", to: "2026-10-31", dayOfMonth: 1, daysInMonth: 31 });
+    expect(new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(month.monthDate)).toBe("October");
+    expect(calendarMonth(today, -1)).toMatchObject({ from: "2026-09-01", to: "2026-09-30" });
+  });
+
+  it("keeps the previous month just before Bangkok midnight", () => {
+    expect(todayInTimeZone(undefined, new Date("2026-09-30T16:59:59Z"))).toBe("2026-09-30");
+  });
+
+  it("honors the profile timezone and falls back to Bangkok for an invalid zone", () => {
+    const now = new Date("2026-09-30T18:00:00Z");
+    expect(todayInTimeZone("America/New_York", now)).toBe("2026-09-30");
+    expect(todayInTimeZone("invalid-zone", now)).toBe("2026-10-01");
+  });
+
+  it("handles leap February and previous-month year rollover", () => {
+    expect(calendarMonth("2028-02-29")).toMatchObject({ from: "2028-02-01", to: "2028-02-29", dayOfMonth: 29, daysInMonth: 29 });
+    expect(calendarMonth("2026-01-01", -1)).toMatchObject({ from: "2025-12-01", to: "2025-12-31" });
   });
 });

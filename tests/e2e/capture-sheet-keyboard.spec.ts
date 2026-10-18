@@ -1,3 +1,4 @@
+import { assertStagingSupabase } from "../../scripts/lib/assert-staging-supabase.mjs";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
@@ -49,6 +50,7 @@ test("typing with the iOS keyboard up never makes the Quick Capture sheet jump",
     };
   });
 
+  assertStagingSupabase(env.NEXT_PUBLIC_SUPABASE_URL);
   const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });

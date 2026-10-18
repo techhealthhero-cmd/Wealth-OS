@@ -2,8 +2,8 @@ import "server-only";
 
 import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
-import { getCurrentMonthRange, getFinancialTransactions, getTransactions } from "@/features/transactions/queries";
-import { toLocalDateString } from "@/lib/date";
+import { getFinancialTransactions, getTransactions } from "@/features/transactions/queries";
+import { calendarMonth, todayInTimeZone, toLocalDateString } from "@/lib/date";
 import { withPerfLog } from "@/lib/dev-diagnostics";
 import {
   calculateChangePercent,
@@ -13,14 +13,6 @@ import {
   calculateSavingsRate,
   calculateSpendingByCategory,
 } from "@/lib/financial/calculations";
-
-/** Mirrors the local `previousMonthRange()` helper already used the same way in life-stage/queries.ts. */
-function getPreviousMonthRange(): { from: string; to: string } {
-  const now = new Date();
-  const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const to = new Date(now.getFullYear(), now.getMonth(), 0);
-  return { from: toLocalDateString(from), to: toLocalDateString(to) };
-}
 
 export interface MonthlyIncomeExpensePoint {
   /** "YYYY-MM" — a stable sort/dedupe key, formatted for display by the caller (locale-aware). */
@@ -80,10 +72,10 @@ export function getIncomeExpenseTrend() {
   });
 }
 
-export function getDashboardData() {
+export function getDashboardData(today = todayInTimeZone()) {
   return withPerfLog("getDashboardData", async () => {
-  const { from, to } = getCurrentMonthRange();
-  const { from: prevFrom, to: prevTo } = getPreviousMonthRange();
+  const { from, to } = calendarMonth(today);
+  const { from: prevFrom, to: prevTo } = calendarMonth(today, -1);
 
   const [monthTransactions, prevMonthTransactions, recentTransactions, accounts, categories] = await Promise.all([
     getFinancialTransactions({ from, to }),
