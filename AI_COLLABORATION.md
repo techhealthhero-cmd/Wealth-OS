@@ -141,6 +141,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| SMART-CAPTURE-BLOCKING-REVIEW | Strict money/security/retry review | Codex | DONE | Reviewed diff; fixed partial retry principal/down-payment recovery and invalid-rate save routing; 140 files / 1963 tests, typecheck and full lint pass | Owner local review; no DB/commit/push |
+| SMART-CAPTURE-COLUMNS | 0048 columns, loan transfers, principal repayment, rate override | Codex | DONE — local review | Dedicated columns + legacy fallback/recovery; deterministic loan ledger transfers; owned recurring links; principal balance updates and paid summing; shared rate UI. Node 22: 140 files / 1960 tests, typecheck, changed TS/TSX lint pass. | Owner review; no commit/push/DB |
 | NLP-PHASE1 | Confidence gate + synthetic corpus + evaluation (logic only) | Codex | READY FOR HANDOFF — required checks pass | Pure gate, additive draft adapter, 320 synthetic labels + measured per-slice baseline; no UI/save/schema/formula changes | Supervisor review/commit; changes uncommitted |
 | SMART-ASSETS-LOANS | Smart capture assets/installments/loans and asset valuation | Codex | IN PR → staging | New pure taxonomy/valuation/purchase modules, authenticated save action, minimal capture fields, tests, proposal SQL only. Checkpoints: pure logic → persistence → UI → full validation. Shared parser/UI edits surgical; no network/DB/commit/push. | Claude designs confirm screens later; proposal 0048 needs user approval |
 | VOICE-PAPER-TAP | Focus mounted textarea from empty paper pointer gesture | Grok Bot (Codex impl) | IN PR → staging | voice-notebook.tsx, adjacent pure target helper, focused Vitest; synchronous pointer focus on empty paper | Merge after CI green; owner iPhone Safari keyboard review |
@@ -455,3 +457,23 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Files: voice-notebook.tsx, voice-notebook-paper-tap.ts, tests/voice-notebook-paper-tap.test.ts, this board. Protected capture/parser/curl files untouched; no commit/push.
 - Node 22.23.3: requested Vitest command passed (1 file / 11 tests); changed-file ESLint and diff check passed. Initial tsc needed generated LayoutProps; next typegen followed by tsc --noEmit passed.
 - Next: owner iPhone Safari check for blank-paper keyboard opening, native caret selection and mic start/stop. No physical-device verification in this session.
+
+
+### 2026-10-19 — Codex → owner (SMART-CAPTURE-COLUMNS)
+
+- Completed the requested code/test changes on `codex/smart-capture-columns-loans`. Assets/liabilities use 0048 columns and short capture markers; 42703/PGRST204 insert fallback preserves legacy notes. Recovery reads columns, previous payment/recurring rows, or legacy JSON for older rows.
+- Loans create a deterministic validated `other` ledger account, link the liability, then use `create_transfer` with the original capture request key. Existing income-based loan captures remain compatible without backfill.
+- Owned recurring liability links include split final schedules; retry after 0048 can fill a link omitted by fallback. Before 0048 those fallback schedules retain ordinary recurring behavior.
+- Repayment uses the tested cents helper, occurrence precheck, unique-key handling and optimistic balance update. Linked debt posts principal transfer + interest expense; calendar sums both. Missing interest can be repaired on retry. A failed balance update preserves the payment and returns `balanceUpdateFailed`; reconciliation is deliberately not attempted by replaying a payment.
+- Shared missing-rate input and month/year controls pass through text, recap and voice, with validated server overrides and live preview/warnings. Tests include server mocks, legacy compatibility, concurrent confirms, calendar summing, pure math/net worth, draft overrides and rendered components.
+- Validation under Node v22.23.3 (`login: false`): full `npx vitest run --configLoader runner`: **140 files / 1960 tests passed**; `npm run -s typecheck` passed; ESLint all changed TS/TSX passed; `git diff --check` passed. An earlier Node 20 run failed the existing PDF test; switching to the supplied Node 22 resolved it without changing/omitting tests.
+- No database, migrations, secrets, commit or push used. Future proposal only: add a DB same-user ownership trigger for `recurring_transactions.liability_id` (current code checks ownership before linking and confirming). Multi-step writes remain independently retryable rather than atomic across tables.
+- Next action: owner review the local diff.
+
+### 2026-10-19 — Codex → owner (SMART-CAPTURE-BLOCKING-REVIEW)
+
+- Reviewed uncommitted money/ownership/0048 compatibility/recurring/rate-input changes against prompt.md.
+- Fixed zero-down retries posting an edited down payment; asset-insert failure retries now recover original principal from the liability before schedules can mutate it. Payment recovery read errors fail closed when ancillary installment rows exist.
+- Invalid effective smart drafts remain on the server-validated smart route rather than falling through to ordinary expense/income posting.
+- Added three regressions. Final Node 22 checks: requested full Vitest 140 files / 1963 tests passed; npm run -s typecheck passed; npm run -s lint passed; git diff --check passed.
+- No commits, pushes, database access, migrations or disabled tests. Next: owner review local fixes. Optional future DB ownership trigger remains defense in depth; browser/device interaction was not exercised.

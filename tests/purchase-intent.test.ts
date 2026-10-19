@@ -148,3 +148,19 @@ describe("codex review fixes", () => {
     expect(shirts).toHaveLength(2);
   });
 });
+
+it("rebuilds draft plans and warnings as rate and period overrides change", async () => {
+  const { effectiveSmartIntent } = await import("@/lib/capture/draft");
+  const draft: CaptureDraft = { ...parseCaptureText("ซื้อไอโฟน 40000 ผ่อน 10 เดือน", ctx), source: "quick_text", categoryConfirmedByUser: false };
+  const zero = effectiveSmartIntent(draft)!;
+  const monthly = effectiveSmartIntent({ ...draft, smartRatePct: 2, smartRatePeriod: "month" })!;
+  const yearly = effectiveSmartIntent({ ...draft, smartRatePct: 2, smartRatePeriod: "year" })!;
+  expect(monthly.rateMissing).toBe(false);
+  expect(monthly.plan!.totalInterestCents).toBeGreaterThan(yearly.plan!.totalInterestCents);
+  expect(yearly.plan!.monthlyPaymentCents).toBeGreaterThan(zero.plan!.monthlyPaymentCents);
+  expect(monthly.aboveLegalCap).toBe(true);
+  expect(yearly.aboveLegalCap).toBe(false);
+  expect(effectiveSmartIntent({ ...draft, smartRatePct: 0 })!.plan!.totalInterestCents).toBe(0);
+  expect(effectiveSmartIntent({ ...draft, smartRatePct: undefined })!.rateMissing).toBe(true);
+  expect(effectiveSmartIntent({ ...draft, smartRatePct: 1201 })).toBeNull();
+});

@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { confirmRecurringTransaction } from "@/features/recurring/actions";
+import { getPaymentCalendarSources } from "@/features/recurring/queries";
+import { deterministicUuid } from "@/lib/uuid";
 import { saveSmartCapture } from "@/features/capture/smart-capture-actions";
 import { parsePurchaseIntent } from "@/lib/capture/purchase-intent";
 import type { SmartCaptureSaveInput } from "@/features/capture/smart-capture-actions";
@@ -7,9 +10,13 @@ type Row = Record<string, unknown>;
 let db: Record<string, Row[]>;
 let currentUser: { id: string } | null;
 let migrated: boolean;
+let taxonomyMigrated: boolean;
+let missingColumnCode = "PGRST204";
 let nextId: number;
 let failingRecurring: "select" | "insert" | null = null;
 let failingTable: string | null = null;
+let failBalance = false;
+let failInterest = false;
 
 const NEW_COLUMNS = ["review_status", "ai_confidence", "reference"];
 
@@ -62,6 +69,12 @@ class Query {
     this.filters.push((r) => String(r[col] ?? "").toLowerCase() === val.toLowerCase());
     return this;
   }
+  is(col: string, val: unknown) {
+    this.filters.push((r) => (r[col] ?? null) === val);
+    return this;
+  }
+  not() { return this; }
+  range() { return this; }
   or() {
     return this;
   }
@@ -78,6 +91,8 @@ class Query {
   }
 
   private run(): { data: Row[] | null; error: { code: string; message: string } | null } {
+    if (failBalance && this.table === "liabilities" && this.op === "update") return { data: null, error: { code: "XX000", message: "balance failure" } };
+    if (failInterest && this.table === "transactions" && this.op === "insert") return { data: null, error: { code: "XX000", message: "interest failure" } };
     if (this.table === failingTable && this.op === "insert") return { data: null, error: { code: "XX000", message: "synthetic failure" } };
     if (this.table === "recurring_transactions" && this.op === failingRecurring) return { data: null, error: { code: "XX000", message: "synthetic failure" } };
     if (!migrated && this.table === "merchant_category_preferences") {
@@ -88,6 +103,7 @@ class Query {
         return { data: null, error: { code: "PGRST204", message: "Could not find the column" } };
       }
     }
+    if ((this.op === "insert" || this.op === "update") && !taxonomyMigrated && ["category_group", "term_months", "liability_id"].some((key) => key in this.payload!)) return { data: null, error: { code: missingColumnCode, message: "column not found" } };
     if (this.op === "insert") {
       const p = this.payload!;
       if (p.id && this.rows().some((r) => r.id === p.id)) return { data: null, error: { code: "23505", message: "duplicate primary key" } };
@@ -125,7 +141,7 @@ class Query {
   }
   maybeSingle() {
     const { data, error } = this.run();
-    return Promise.resolve({ data: data?.[0] ?? null, error });
+    return Promise.resolve({ data: data?.[0] ? { ...data[0] } : null, error });
   }
   then(onfulfilled: (r: { data: Row[] | null; error: unknown }) => unknown) {
     return Promise.resolve(onfulfilled(this.run()));
@@ -136,8 +152,14 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     auth: { getUser: async () => ({ data: { user: currentUser } }) },
     from: (table: string) => new Query(table),
+    rpc: async (_name: string, args: Row) => {
+      const existing = (db.transactions ?? []).find((r) => r.client_request_id === args.p_client_request_id);
+      if (!existing) (db.transactions ??= []).push({ id: `row-${nextId++}`, user_id: currentUser!.id, type: "transfer", amount: String(args.p_amount), account_id: null, from_account_id: args.p_from_account_id, to_account_id: args.p_to_account_id, transaction_date: args.p_transaction_date, client_request_id: args.p_client_request_id });
+      return { error: null };
+    },
   }),
 }));
+vi.mock("@/features/liabilities/queries", () => ({ getLiabilities: async () => db.liabilities ?? [] }));
 vi.mock("@/features/profile/queries", () => ({ getProfile: async () => null }));
 vi.mock("@/i18n/server", () => ({ getLocale: async () => "en" }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -155,7 +177,7 @@ function input(text = "ซื้อคอมใหม่ 20,000 เงินส�
 }
 beforeEach(() => {
   db = { accounts: [{ id: ACCOUNT, user_id: "user-1", is_archived: false }] };
-  currentUser = { id: "user-1" }; migrated = true; nextId = 1; failingRecurring = null; failingTable = null;
+  currentUser = { id: "user-1" }; migrated = true; taxonomyMigrated = true; missingColumnCode = "PGRST204"; nextId = 1; failingRecurring = null; failingTable = null; failBalance = false; failInterest = false;
 });
 describe("smart capture saves", () => {
   it("rejects unauthenticated and invalid calls without writes", async () => {
@@ -204,20 +226,20 @@ describe("smart capture saves", () => {
     db.accounts[0].user_id = "user-2";
     expect((await saveSmartCapture(input("ซื้อไอโฟน 40,000 ผ่อน 0% 10 เดือน"))).error).toBeTruthy();
   });
-  it("loan requires period confirmation and chooses loan income category", async () => {
+  it("loan requires period confirmation and posts a ledger transfer", async () => {
     const d = input("กู้นอกระบบ 20,000 ดอก 20%");
     expect((await saveSmartCapture(d)).error).toBeTruthy();
     const LOAN = "44444444-4444-4444-8444-444444444444";
     db.categories = [{ id: LOAN, name_th: "เงินกู้", name_en: "Loan", type: "income" }];
     expect(await saveSmartCapture({ ...d, ratePeriod: "month" })).toMatchObject({ success: true, liabilityCreated: true, recurringCreated: true });
-    expect(db.transactions[0]).toMatchObject({ type: "income", amount: "20000.00", category_id: LOAN });
+    expect(db.transactions[0]).toMatchObject({ type: "transfer", amount: "20000", to_account_id: ACCOUNT });
     expect(db.liabilities[0]).toMatchObject({ balance: 20000, interest_rate: 240, minimum_payment: 6014.11, liability_type: "informal_debt" });
     expect(db.assets ?? []).toHaveLength(0);
     expect(db.recurring_transactions[0]).toMatchObject({ type: "expense", amount: 6014.11, category_id: null, end_date: "2027-04-19" });
   });
   it("interest-free family loan with no term records the debt without a schedule", async () => {
     expect(await saveSmartCapture(input("ยืมเงินแม่ 5,000"))).toMatchObject({ success: true, liabilityCreated: true });
-    expect(db.transactions[0]).toMatchObject({ type: "income", amount: "5000.00" });
+    expect(db.transactions[0]).toMatchObject({ type: "transfer", amount: "5000" });
     expect(db.liabilities[0]).toMatchObject({ balance: 5000, interest_rate: 0, minimum_payment: null, liability_type: "informal_debt" });
     expect(db.recurring_transactions ?? []).toHaveLength(0);
   });
@@ -297,9 +319,159 @@ describe("retry recovery preserves the original intent", () => {
     expect(db.liabilities[0]).toMatchObject({ balance: 40000, minimum_payment: 4000 });
     expect(db.transactions ?? []).toHaveLength(0);
   });
+  it("recovers the purchase principal after the asset insert failed", async () => {
+    const d = input("ซื้อบ้าน 2000000 ดาวน์ 200000 ผ่อน 30 ปี ดอก 6%");
+    failingTable = "assets";
+    await saveSmartCapture(d);
+    expect(db.recurring_transactions ?? []).toHaveLength(0);
+    failingTable = null;
+    d.smart.priceCents = 30000000;
+    expect((await saveSmartCapture(d)).success).toBe(true);
+    expect(db.assets[0].value).toBe(2000000);
+    expect(db.liabilities[0].balance).toBe(1800000);
+  });
+  it("does not post an edited down payment when retrying a zero-down purchase", async () => {
+    const d = input("ซื้อไอโฟน 40000 ผ่อน 0% 10 เดือน");
+    failingTable = "liabilities";
+    await saveSmartCapture(d);
+    failingTable = null;
+    d.smart.downPaymentCents = 100000; d.capture.amountCents = 100000;
+    expect((await saveSmartCapture(d)).success).toBe(true);
+    expect(db.transactions ?? []).toHaveLength(0);
+    expect(db.liabilities[0]).toMatchObject({ balance: 40000, minimum_payment: 4000 });
+  });
   it("rejects impossible dates without throwing", async () => {
     const d = input(); d.capture.date = "2026-99-99";
     expect((await saveSmartCapture(d)).error).toBeTruthy();
     expect(db.transactions ?? []).toHaveLength(0);
   });
+});
+
+describe("0048 columns and compatibility", () => {
+  it("stores taxonomy and purchase columns with only a short dedupe note", async () => {
+    const d = input(); await saveSmartCapture(d);
+    expect(db.assets[0]).toMatchObject({ category_group: d.smart.group, subcategory: d.smart.subcategory, purchase_price: "20000.00", purchase_date: date, notes: `[capture:${d.capture.clientRequestId}]` });
+  });
+  it("links both installment schedules only to an owned liability", async () => {
+    const d = input("กู้เงิน 20000 ดอก 0% ผ่อนเดือนละ 1000 12 เดือน");
+    await saveSmartCapture({ ...d, ratePeriod: "year" });
+    expect(db.liabilities[0]).toMatchObject({ term_months: 12, interest_rate_period: "year", start_date: date });
+    for (const r of db.recurring_transactions) expect(r.liability_id).toBe(db.liabilities[0].id);
+    expect(db.liabilities[0].linked_account_id).toBe(db.accounts[1].id);
+    expect(db.accounts[1]).toMatchObject({ account_type: "other", opening_balance: 0, purpose: "บัญชีหนี้เงินกู้" });
+  });
+  it.each(["PGRST204", "42703"])("falls back to legacy notes and retries without 0048 columns (%s)", async (code) => {
+    taxonomyMigrated = false; missingColumnCode = code;
+    const d = input("ซื้อบ้าน 2000000 ดาวน์ 200000 ผ่อน 30 ปี ดอก 6%");
+    expect(await saveSmartCapture(d)).toMatchObject({ success: true, incomplete: false });
+    expect(db.assets[0].category_group).toBeUndefined();
+    expect(db.liabilities[0].term_months).toBeUndefined();
+    expect(db.recurring_transactions[0].liability_id).toBeUndefined();
+    expect(String(db.liabilities[0].notes)).toContain('"ratePct":6');
+    d.smart.ratePct = 100;
+    await saveSmartCapture(d);
+    expect(db.liabilities).toHaveLength(1);
+    expect(db.transactions).toHaveLength(1);
+  });
+  it("validates rate overrides and recomputes the plan on the server", async () => {
+    const d = input("ซื้อไอโฟน 40000 ผ่อน 10 เดือน");
+    expect((await saveSmartCapture({ ...d, ratePct: -1 })).error).toBeTruthy();
+    expect((await saveSmartCapture({ ...d, ratePct: 1201 })).error).toBeTruthy();
+    await saveSmartCapture({ ...d, ratePct: 1, ratePeriod: "month" });
+    expect(db.liabilities[0].interest_rate).toBe(12);
+    expect(Number(db.liabilities[0].minimum_payment)).toBeGreaterThan(4000);
+  });
+});
+
+describe("installment confirmation and calendar", () => {
+  const due = "2026-01-01";
+  function setup(linked = false, balance = 20000, payment = 2000) {
+    db.liabilities = [{ id: "debt", user_id: "user-1", balance, interest_rate: 12, linked_account_id: linked ? "ledger" : null }];
+    db.recurring_transactions = [{ id: "recurring", user_id: "user-1", liability_id: "debt", type: "expense", account_id: ACCOUNT, amount: payment, frequency: "monthly", start_date: due, next_due_date: due, is_active: true, merchant: "Loan", category_id: FOOD }];
+  }
+  it("reduces an unlinked debt by principal once, including simultaneous confirms", async () => {
+    setup();
+    const results = await Promise.all([confirmRecurringTransaction("recurring"), confirmRecurringTransaction("recurring")]);
+    expect(results.every((r) => r.success)).toBe(true);
+    expect(db.transactions).toHaveLength(1);
+    expect(db.transactions[0]).toMatchObject({ type: "expense", amount: 2000 });
+    expect(db.liabilities[0].balance).toBe("18200.00");
+    db.recurring_transactions[0].next_due_date = due;
+    await confirmRecurringTransaction("recurring");
+    expect(db.liabilities[0].balance).toBe("18200.00");
+  });
+  it("posts linked principal as transfer plus interest expense, and sums paid calendar amount", async () => {
+    setup(true);
+    await Promise.all([confirmRecurringTransaction("recurring"), confirmRecurringTransaction("recurring")]);
+    expect(db.transactions).toHaveLength(2);
+    expect(db.transactions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "transfer", amount: "1800", to_account_id: "ledger", client_request_id: deterministicUuid(`recurring-confirm:recurring:${due}`) }),
+      expect.objectContaining({ type: "expense", amount: "200.00", source: "recurring", client_request_id: deterministicUuid(`recurring-confirm-interest:recurring:${due}`) }),
+    ]));
+    expect(db.liabilities[0].balance).toBe("18200.00");
+    const sources = await getPaymentCalendarSources("2026-02-01");
+    expect(sources[0].paid).toEqual([{ date: due, amountCents: 200000 }]);
+  });
+  it("interest-only payments use the canonical key without a transfer", async () => {
+    setup(true, 20000, 100);
+    await confirmRecurringTransaction("recurring");
+    expect(db.transactions).toEqual([expect.objectContaining({ type: "expense", amount: "100.00", client_request_id: deterministicUuid(`recurring-confirm:recurring:${due}`) })]);
+    expect(db.liabilities[0].balance).toBe(20000);
+  });
+  it("a failed balance update preserves payment and returns a soft flag", async () => {
+    setup(); failBalance = true;
+    expect(await confirmRecurringTransaction("recurring")).toMatchObject({ success: true, balanceUpdateFailed: true });
+    expect(db.transactions).toHaveLength(1);
+    expect(db.liabilities[0].balance).toBe(20000);
+  });
+  it("cannot pay or mutate another user's liability", async () => {
+    setup(); db.liabilities[0].user_id = "other";
+    expect((await confirmRecurringTransaction("recurring")).error).toBeTruthy();
+    expect(db.transactions ?? []).toHaveLength(0);
+  });
+});
+
+it("repairs a missing interest expense without reposting principal or reducing balance twice", async () => {
+  const due = "2026-01-01";
+  db.liabilities = [{ id: "debt", user_id: "user-1", balance: 20000, interest_rate: 12, linked_account_id: "ledger" }];
+  db.recurring_transactions = [{ id: "recurring", user_id: "user-1", liability_id: "debt", type: "expense", account_id: ACCOUNT, amount: 2000, frequency: "monthly", next_due_date: due, is_active: true }];
+  failInterest = true;
+  expect((await confirmRecurringTransaction("recurring")).error).toBeTruthy();
+  expect(db.transactions).toHaveLength(1);
+  expect(db.liabilities[0].balance).toBe("18200.00");
+  failInterest = false;
+  expect((await confirmRecurringTransaction("recurring")).success).toBe(true);
+  expect(db.transactions).toHaveLength(2);
+  expect(db.transactions[1].amount).toBe("200.00");
+  expect(db.liabilities[0].balance).toBe("18200.00");
+});
+it("borrowing creates no income and recovers the original transfer on retry", async () => {
+  const d = input("กู้เงิน 20000 ดอก 12% ต่อปี 12 เดือน");
+  await saveSmartCapture(d);
+  expect(db.transactions.filter((r) => r.type === "income")).toHaveLength(0);
+  expect(db.accounts).toHaveLength(2);
+  d.smart.priceCents = 100; d.smart.ratePct = 100; d.capture.date = "2099-01-01";
+  await saveSmartCapture(d);
+  expect(db.transactions).toHaveLength(1);
+  expect(db.accounts).toHaveLength(2);
+  expect(db.liabilities[0]).toMatchObject({ balance: 20000, interest_rate: 12 });
+});
+it("tolerates a legacy loan income without creating a second transfer", async () => {
+  const d = input("ยืมเงินแม่ 5000");
+  db.transactions = [{ id: "legacy-loan", user_id: "user-1", client_request_id: d.capture.clientRequestId, type: "income", amount: "5000.00", account_id: ACCOUNT, transaction_date: date, category_id: FOOD }];
+  expect((await saveSmartCapture(d)).success).toBe(true);
+  expect(db.transactions).toHaveLength(1);
+  expect(db.accounts).toHaveLength(1);
+  expect(db.liabilities[0].linked_account_id).toBeNull();
+});
+
+it("a retry after 0048 completes a previously omitted recurring liability link", async () => {
+  taxonomyMigrated = false;
+  const d = input("ซื้อบ้าน 2000000 ดาวน์ 200000 ผ่อน 30 ปี ดอก 6%");
+  await saveSmartCapture(d);
+  expect(db.recurring_transactions[0].liability_id).toBeUndefined();
+  taxonomyMigrated = true;
+  await saveSmartCapture(d);
+  expect(db.recurring_transactions).toHaveLength(1);
+  expect(db.recurring_transactions[0].liability_id).toBe(db.liabilities[0].id);
 });

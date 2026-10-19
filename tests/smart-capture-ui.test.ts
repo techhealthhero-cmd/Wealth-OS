@@ -65,3 +65,35 @@ it("keeps required decisions pending when there are other saveable recap rows", 
   expect(smartCaptureNeedsAnswer(draft("กู้นอกระบบ 20000 ดอก 20%"))).toBe(true);
   expect(smartCaptureNeedsAnswer(draft("กู้นอกระบบ 20000 ดอก 20%", { smartRatePeriod: "year" }))).toBe(false);
 });
+
+it.each(["th", "en"] as const)("shows the missing-rate input for assets and loans in %s", (locale) => {
+  for (const text of ["ซื้อไอโฟน 40000 ผ่อน 10 เดือน", "ยืมเงินแม่ 20000"]) {
+    const d = draft(text);
+    const html = render(d, locale);
+    expect(html).toContain('inputMode="decimal"');
+    expect(html).toContain(getDictionary(locale).capture.smart.rateLabel);
+    expect(html).toContain(getDictionary(locale).capture.smart.rateMissing);
+    const entered = render({ ...d, smartRatePct: 2, smartRatePeriod: "month" }, locale);
+    expect(entered).toContain('value="2"');
+    expect(entered).not.toContain(getDictionary(locale).capture.smart.rateMissing);
+    expect(entered).toContain(getDictionary(locale).capture.smart.highInterest);
+    // Invalid input stays editable while save is blocked.
+    expect(render({ ...d, smartRatePct: -1 }, locale)).toContain('value="-1"');
+    expect(canSaveDraft({ ...d, smartRatePct: -1 })).toBe(false);
+  }
+});
+it.each(["quick_text", "voice"] as const)("passes the rate override through the shared save path for %s", async (source) => {
+  smartSave.mockClear();
+  const d = draft("ซื้อไอโฟน 40000 ผ่อน 10 เดือน", { source, smartRatePct: 1, smartRatePeriod: "month" });
+  await saveCaptureDraft(d, buildCaptureSaveInput(d, crypto.randomUUID())!);
+  expect(smartSave).toHaveBeenCalledWith(expect.objectContaining({ ratePct: 1, ratePeriod: "month", smart: expect.objectContaining({ ratePct: 1, plan: expect.objectContaining({ annualRatePct: 12 }) }) }));
+});
+
+it("keeps invalid rate overrides on the server-validated smart save path", async () => {
+  plain.mockClear(); smartSave.mockClear();
+  const d = draft("ยืมเงินแม่ 20000");
+  const payload = buildCaptureSaveInput(d, crypto.randomUUID())!;
+  await saveCaptureDraft({ ...d, smartRatePct: -1 }, payload);
+  expect(plain).not.toHaveBeenCalled();
+  expect(smartSave).toHaveBeenCalledWith(expect.objectContaining({ ratePct: -1 }));
+});

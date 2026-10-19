@@ -7,7 +7,7 @@ import { effectiveSmartIntent, type CaptureDraft } from "@/lib/capture/draft";
 /** Minimal confirmation controls shared by text, recap and voice. */
 export function SmartCaptureFields({ draft, onChange }: { draft: CaptureDraft; onChange: (patch: Partial<CaptureDraft>) => void }) {
   const { t } = useTranslation();
-  const smart = effectiveSmartIntent(draft);
+  const smart = effectiveSmartIntent(draft) ?? draft.smart;
   if (!smart) return null;
   const plan = smart.plan;
   return <div className="space-y-2 rounded-xl border bg-muted/30 p-3 text-sm">
@@ -16,7 +16,7 @@ export function SmartCaptureFields({ draft, onChange }: { draft: CaptureDraft; o
       <div className="flex gap-2">{[true, false].map((yes) => <Button key={String(yes)} type="button" size="sm" variant="outline" aria-pressed={draft.smartAssetAccepted === yes} onClick={() => onChange({ smartAssetAccepted: yes })}>{t(yes ? "capture.smart.yes" : "capture.smart.no")}</Button>)}</div>
     </div> : null}
     {smart.kind !== "loan" && draft.smartAssetAccepted !== false ? <p>{t("capture.smart.asset")}: {smart.assetName} · {formatMoney(smart.priceCents)}</p> : null}
-    {smart.kind === "loan" ? <div className="space-y-2">
+    {smart.kind !== "asset_cash" ? <div className="space-y-2">
       <p>{smart.ratePeriodNeedsConfirm ? t("capture.smart.confirmPeriod") : t("capture.smart.ratePeriod")}</p>
       <div className="flex gap-2">{(["month", "year"] as const).map((period) => <Button key={period} type="button" size="sm" variant="outline"
         aria-pressed={(draft.smartRatePeriod ?? smart.ratePeriod ?? smart.suggestedRatePeriod) === period}
@@ -24,6 +24,10 @@ export function SmartCaptureFields({ draft, onChange }: { draft: CaptureDraft; o
     </div> : null}
     {smart.kind !== "asset_cash" ? <>
       <p>{t("capture.smart.liability")}: {formatMoney(smart.principalCents)}</p>
+      {draft.smart?.rateMissing ? <label className="block">{t("capture.smart.rateLabel")}
+        <input type="number" inputMode="decimal" min={0} max={1200} step="any" className="mt-1 w-full rounded-md border bg-background p-2"
+          value={draft.smartRatePct ?? ""} onChange={(event) => onChange({ smartRatePct: event.target.value === "" ? undefined : Number(event.target.value) })} />
+      </label> : null}
       {smart.rateMissing ? <p className="text-muted-foreground">{t("capture.smart.rateMissing")}</p> : null}
       {smart.ratePeriodAssumed ? <p className="text-muted-foreground">{t("capture.smart.yearAssumed")}</p> : null}
       {plan ? <dl className="grid grid-cols-2 gap-1 tabular-nums">

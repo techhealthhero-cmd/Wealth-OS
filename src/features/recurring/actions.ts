@@ -10,6 +10,8 @@ import { friendlyDbError } from "@/lib/db-error";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { toLocalDateString } from "@/lib/date";
+import { splitInstallment } from "@/lib/financial/amortization";
+import { parseMoneyToCents, centsToDecimalString } from "@/lib/financial/money";
 import { deterministicUuid } from "@/lib/uuid";
 
 import { insertRecurringTransaction } from "./insert";
@@ -19,6 +21,7 @@ const PG_UNIQUE_VIOLATION = "23505";
 export interface ActionResult {
   error?: string;
   success?: boolean;
+  balanceUpdateFailed?: boolean;
 }
 
 function parseRecurringFormData(formData: FormData) {
@@ -147,7 +150,62 @@ export async function confirmRecurringTransaction(id: string): Promise<ActionRes
   // duplicate-prevention system.
   const idempotencyKey = deterministicUuid(`recurring-confirm:${recurring.id}:${recurring.next_due_date}`);
 
-  if (recurring.type === "transfer") {
+  let balanceUpdateFailed = false;
+  if (recurring.liability_id) {
+    if (recurring.type !== "expense") return { error: dict.common.invalidInput };
+    // Snapshot BEFORE the occurrence lookup: concurrent RPC retries must compare
+    // against the same pre-payment balance, even though RPC returns an existing id.
+    const { data: liability, error: liabilityError } = await supabase.from("liabilities").select("*")
+      .eq("id", recurring.liability_id).eq("user_id", user.id).maybeSingle();
+    if (liabilityError || !liability) return { error: dict.recurring.confirmFailed };
+    const { data: existing, error: lookupError } = await supabase.from("transactions").select("amount,type")
+      .eq("user_id", user.id).eq("client_request_id", idempotencyKey).maybeSingle();
+    if (lookupError) return { error: dict.recurring.confirmFailed };
+    const paymentCents = parseMoneyToCents(recurring.amount);
+    const split = splitInstallment({ balanceCents: parseMoneyToCents(liability.balance), annualRatePct: Number(liability.interest_rate ?? 0), paymentCents });
+    let created = !existing;
+    let paymentError = false;
+    if (liability.linked_account_id) {
+      const principal = existing ? existing.type === "transfer" ? parseMoneyToCents(existing.amount) : 0 : split.principalCents;
+      if (!existing && principal > 0) {
+        const { error } = await supabase.rpc("create_transfer", {
+          p_from_account_id: recurring.account_id, p_to_account_id: liability.linked_account_id,
+          p_amount: Number(centsToDecimalString(principal)), p_transaction_date: recurring.next_due_date,
+          p_description: recurring.description, p_notes: null, p_client_request_id: idempotencyKey,
+        });
+        if (error) return { error: dict.recurring.confirmFailed };
+      }
+      // Residual includes a below-interest payment or a contractual overpayment.
+      const expense = paymentCents - principal;
+      if (expense > 0 || principal === 0) {
+        const { error } = await supabase.from("transactions").insert({
+          user_id: user.id, type: "expense", account_id: recurring.account_id, category_id: recurring.category_id,
+          amount: centsToDecimalString(expense), transaction_date: recurring.next_due_date,
+          merchant: recurring.merchant, description: recurring.description, source: "recurring",
+          client_request_id: principal > 0 ? deterministicUuid(`recurring-confirm-interest:${recurring.id}:${recurring.next_due_date}`) : idempotencyKey,
+        });
+        if (error && error.code !== PG_UNIQUE_VIOLATION) paymentError = true;
+        if (principal === 0 && error) created = false;
+      }
+    } else {
+      const { error } = await supabase.from("transactions").insert({
+        user_id: user.id, type: recurring.type, account_id: recurring.account_id, category_id: recurring.category_id,
+        amount: recurring.amount, transaction_date: recurring.next_due_date, merchant: recurring.merchant,
+        description: recurring.description, source: "recurring", client_request_id: idempotencyKey,
+      });
+      if (error && error.code !== PG_UNIQUE_VIOLATION) return { error: dict.recurring.confirmFailed };
+      if (error) created = false;
+    }
+    if (created && split.principalCents > 0) {
+      try {
+        const { data, error } = await supabase.from("liabilities")
+          .update({ balance: centsToDecimalString(split.balanceCents) }).eq("id", liability.id).eq("user_id", user.id)
+          .eq("balance", liability.balance).select("id").maybeSingle();
+        balanceUpdateFailed = !!error || !data;
+      } catch { balanceUpdateFailed = true; }
+    }
+    if (paymentError) return { error: dict.recurring.confirmFailed, ...(balanceUpdateFailed ? { balanceUpdateFailed: true } : {}) };
+  } else if (recurring.type === "transfer") {
     const { error } = await supabase.rpc("create_transfer", {
       p_from_account_id: recurring.from_account_id,
       p_to_account_id: recurring.to_account_id,
@@ -192,6 +250,9 @@ export async function confirmRecurringTransaction(id: string): Promise<ActionRes
 
   revalidatePath("/money/recurring");
   revalidatePath("/money/transactions");
+  if (recurring.liability_id) {
+    revalidatePath("/money/liabilities"); revalidatePath("/money/accounts"); revalidatePath("/money/net-worth");
+  }
   revalidatePath("/dashboard");
-  return { success: true };
+  return { success: true, ...(balanceUpdateFailed ? { balanceUpdateFailed: true } : {}) };
 }
