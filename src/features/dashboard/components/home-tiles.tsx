@@ -40,8 +40,8 @@ export interface HomeExpectedTileProps {
 export function HomeExpectedTileCard({ labels, currencyCode, receivables }: HomeExpectedTileProps) {
   const outstanding = receivables !== null && receivables.outstandingCount > 0;
   return (
-    <section aria-label={labels.expectedTitle} className={TILE}>
-      <TileTitle aside={outstanding ? undefined : <SoonChip>{labels.comingSoon}</SoonChip>}>{labels.expectedTitle}</TileTitle>
+    <Link href="/money/invoices" aria-label={labels.expectedTitle} className={cn(TILE, LINK_TILE)}>
+      <TileTitle>{labels.expectedTitle}</TileTitle>
       {outstanding ? (
         <>
           <p className="mt-0.5 text-xl leading-7 font-bold tabular-nums [overflow-wrap:anywhere]">
@@ -65,10 +65,10 @@ export function HomeExpectedTileCard({ labels, currencyCode, receivables }: Home
             <circle cx="50" cy="27" r="4" fill="none" stroke="currentColor" strokeWidth="1.5" />
           </svg>
           <p className="mt-2 text-[13.5px] leading-snug font-semibold">{labels.expectedEmpty}</p>
-          <p className="mt-0.5 text-[11.5px] leading-[17px] text-muted-foreground">{labels.expectedHint}</p>
+          <p className="mt-0.5 text-[11.5px] leading-[17px] text-primary dark:text-emerald-200">{labels.expectedHint}</p>
         </>
       )}
-    </section>
+    </Link>
   );
 }
 

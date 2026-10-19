@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -76,9 +77,8 @@ function IconBox({ children, soon }: { children: ReactNode; soon?: boolean }) {
  * Home quick actions (2026-10 "C — freelancer dashboard"). Plain labels in,
  * no data. "Log income" and "Scan slip" open the app shell's real Quick Add
  * flows (the income form; the slip camera/file picker followed by Quick
- * Capture’s parse results). Invoices and the tax jar are not built yet:
- * their tiles say so and open a short "coming soon" note — never a
- * placeholder page.
+ * Capture’s parse results). Invoice creation opens its own route; the tax
+ * jar retains its coming-soon note.
  */
 export function HomeQuickActions({ labels }: { labels: HomeQuickActionsLabels }) {
   const router = useRouter();
@@ -88,7 +88,6 @@ export function HomeQuickActions({ labels }: { labels: HomeQuickActionsLabels })
     if (!requestQuickAdd(target)) router.push("/money/transactions");
   };
   const soonItems = [
-    { key: "invoice", label: labels.invoice, note: labels.invoiceSoon, icon: ICONS.invoice },
     { key: "taxJar", label: labels.taxJar, note: labels.taxJarSoon, icon: ICONS.taxJar },
   ] as const;
 
@@ -110,12 +109,12 @@ export function HomeQuickActions({ labels }: { labels: HomeQuickActionsLabels })
 
   return (
     <nav aria-label={labels.quickActionsLabel} className="grid grid-cols-4 gap-2">
-      {soonTile(soonItems[0])}
+      <Link href="/money/invoices/new" className={TILE}><IconBox>{ICONS.invoice}</IconBox><span>{labels.invoice}</span></Link>
       <button type="button" className={TILE} onClick={() => request("income")}>
         <IconBox>{ICONS.income}</IconBox>
         <span>{labels.recordIncome}</span>
       </button>
-      {soonTile(soonItems[1])}
+      {soonTile(soonItems[0])}
       <button type="button" className={TILE} onClick={() => request("scan")}>
         <IconBox>{ICONS.scan}</IconBox>
         <span>{labels.scanSlip}</span>

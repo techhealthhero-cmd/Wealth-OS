@@ -136,6 +136,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 ## Active Work
 
 - COVER-BACKFACE — Owner: Codex + Grok Bot; PR to staging. Added swipe-only ruled page, two-sided cover, angle shading and rAF release tween; static launch branch preserved. Vitest 9/9, tsc (after next typegen), focused ESLint and diff check pass. No commit/push/env changes. Next: owner iPhone review.
+- INVOICE-UI — Owner: Codex; READY FOR HANDOFF — second WebKit fixes complete: shared ThaiDateField in form/payment with max=today retained; explicit z-60 backdrop/z-61 popup above z-30 bottom nav, mobile safe-area bottom sheet and centered sm+ dialog; success status is sr-only aria-live while toast and visible selectable clipboard fallback remain. Node 22: requested full Vitest 147 files / 2070 tests, tsc, eslint src tests and diff check pass. No commit/push or edits to dev-harness, middleware or .env.local. Next: owner repeat 390px WebKit visual/picker review.
 
 - INFRA-SIN1-STAGING — Owner: Codex; READY FOR HANDOFF. Minimal region/allow-list/tests/README edits complete. Focused Vitest: 2 files / 37 tests passed with --configLoader runner (default loader blocked by read-only node_modules). Requested tsc failed: existing missing LayoutProps in src/app/layout.tsx:93. No env/secrets, commit or push.
 
@@ -509,3 +510,30 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Checks: requested focused Vitest 9/9; focused ESLint PASS; tsc PASS after next typegen repaired missing generated LayoutProps; git diff --check PASS. No env/secrets, commit or push.
 - Harness selectors: [data-cover-wrapper] gets coverFaceRef; its children [data-cover-front] and [data-cover-back]; sibling [data-cover-page].
 - Grok Bot follow-up: front/back side also toggled explicitly past 90deg (coverSideShowing) because Playwright Linux WebKit ignores backface-visibility/preserve-3d; book drifts/squares up with the cover like nb-quick-book (bookPoseFromAngle, closed pose byte-identical); will-change kept through the release tween. Playwright WebKit iPhone 13 harness: drag 45/120/165deg, release, snap-back, tap, keyboard, reduced motion, static still, rAF throttling all PASS.
+### 2026-10-19 — Codex → owner (INVOICE-UI)
+
+- Built approved list A, create/edit, detail and reminder flows under `/money/invoices`; Money title/tabs hidden only there, existing bottom nav remains active. All reads follow activity privacy gate; user-scoped history/accounts paginate and fail closed. UUID/calendar validation retained, missing 0047 uses existing localized error.
+- Pure UI helpers cover due +15 calendar days, historical client dedupe/filter, WHT suggestions, tab counts/sorting, Thai Buddhist dates, invoice text/LINE sharing and three courteous Thai reminder tones/endings. Existing financial functions supply every total. Reminder edits survive tone/ending changes until explicit regeneration; ending persists locally.
+- Screens accept data/copy and action callbacks (full signatures and sample fixture references in `src/features/invoices/README.md`). Create retains successful ID if sending fails; detail has Copy/LINE only, clipboard fallback, draft-to-sent, payment confirmation/account/date, suggestion toast, edit and cancel. No public link/PDF/remind-again box. Payment uses existing RPC; tax reserve is suggestion only.
+- Home invoice quick action and expected tile are real links. New copy lives in TH/EN invoiceUi; Home hint updated. Actions changed only for detail-path revalidation. No env/secrets, supabase/, migrations or src/lib/financial edits; no commits/pushes.
+- Final validation under supplied Node 22.23.3: `npx vitest run --configLoader runner` PASS (147 files / 2067 tests); `npx tsc --noEmit` PASS after `npx next typegen` generated existing missing LayoutProps; `npx eslint src tests` PASS; `git diff --check` PASS. New coverage includes pure helpers, rendered states, query scoping/errors/pagination and Home wiring.
+- Visual limitation: isolated harness bundled in `/tmp/invoice-ui-review`, but local listen returned EPERM and Chromium launch was blocked by the sandbox. No live Supabase writes or real-device validation performed. Editable fields/issue date/notes/account and payment dialogs add space beyond static mockups; app shell nav retained.
+- Next: owner render the four exported screen components with sample props for 390px/light/dark/desktop visual acceptance, then review real authenticated flows. Changes remain uncommitted on feat/invoice-ui.
+
+### 2026-10-19 — Codex → owner (INVOICE-UI-WEBKIT-FOLLOWUP)
+
+- Removed full TH/EN JSON imports from ui-logic.ts. Share/reminder helpers require injected Dictionary["invoiceUi"] copy (type-only import); screens and tests updated, including custom-copy regression coverage.
+- Create/edit issue/due fields render Thai Buddhist dates above full-size opacity-0 native date inputs with accessible labels and visible focus rings. Automatic due state remains until the user edits due; issue changes update an untouched due date. Relative +N-day helper sits inside the due field.
+- Item fields use text + decimal inputMode; new unit prices are empty with a placeholder and quantities default to 1. Quantity syntax rejects more than two decimal places; existing exact cents price parsing and validation messages retained. Description sits above the compact quantity × price line and right-aligned total.
+- Shared rounded bg-card appearance-none selects with chevrons cover WHT and receive accounts (including payment dialog). Kept Prettier print-width 120 style.
+- Node 22.23.3: npx vitest run --configLoader runner PASS (147 files / 2068 tests); npx tsc --noEmit PASS; npx eslint src tests PASS; git diff --check PASS. No new browser/device screenshot run during this follow-up.
+- No commits/pushes or changes to src/app/dev-harness/, src/lib/supabase/middleware.ts or .env.local. Existing uncommitted work preserved. Next: owner repeat 390px WebKit visual and native-picker acceptance.
+
+
+### 2026-10-19 — Codex → owner (INVOICE-UI-WEBKIT-DIALOG)
+
+- Renamed the existing shared native-picker overlay to ThaiDateField and reused it in the form and paid-date dialog. Thai Buddhist display, accessible native input, focus ring and max=today retained.
+- DialogContent accepts an optional overlayClassName, preserving other callers. Invoice dialogs use z-60 darkened backdrop and z-61 popup above BottomNav z-30. Mobile layout anchors to the bottom with rounded top and safe-area padding; sm+ stays centered and rounded.
+- Detail success feedback remains a toast plus an sr-only polite live region. Clipboard-failure fallback keeps its visible, read-only selectable textarea.
+- Added shared-date and visible-fallback regressions plus a detail live-region assertion. Node 22.23.3: npx vitest run --configLoader runner PASS (147 files / 2070 tests); npx tsc --noEmit PASS; npx eslint src tests PASS; git diff --check PASS.
+- No commit/push or changes to src/app/dev-harness/, src/lib/supabase/middleware.ts or .env.local. Existing uncommitted work preserved. No new browser/device run; next: owner repeat 390px WebKit dialog layering, safe-area and native-picker acceptance.

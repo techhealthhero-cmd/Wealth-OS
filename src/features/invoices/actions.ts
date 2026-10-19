@@ -11,8 +11,9 @@ import type { Database } from "@/types/database";
 
 type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
 export interface InvoiceActionResult { success?: boolean; id?: string; error?: string }
-function revalidate() {
+function revalidate(id?: string) {
   revalidatePath("/dashboard"); revalidatePath("/money/invoices");
+  if (id) revalidatePath(`/money/invoices/${id}`);
 }
 export async function createInvoice(input: InvoiceInput): Promise<InvoiceActionResult> {
   return saveInvoice(null, input);
@@ -94,14 +95,14 @@ async function saveInvoice(id: string | null, input: InvoiceInput): Promise<Invo
           subtotal_amount: previous.subtotal_amount, withholding_amount: previous.withholding_amount, net_amount: previous.net_amount,
           receive_account_id: previous.receive_account_id, category_id: previous.category_id, earn_project_id: previous.earn_project_id, notes: previous.notes,
         }).eq("id", invoiceId).eq("user_id", user.id).in("status", ["draft", "sent"]).eq("updated_at", updated.data.updated_at).select("id").maybeSingle();
-        if (restored.error || !restored.data) { revalidate(); return failure(restored.error ?? { message: "Invoice changed during failed save; reload before retrying" }); }
+        if (restored.error || !restored.data) { revalidate(invoiceId); return failure(restored.error ?? { message: "Invoice changed during failed save; reload before retrying" }); }
         const cleanupError = await cleanup();
-        revalidate();
+        revalidate(invoiceId);
         return cleanupError ? { error: cleanupError } : failure(removed.error);
       }
     }
   }
-  revalidate();
+  revalidate(invoiceId);
   return { success: true, id: invoiceId };
 }
 
@@ -118,7 +119,7 @@ async function changeStatus(id: string, status: "sent" | "void"): Promise<Invoic
     .eq("id", id).eq("user_id", user.id).in("status", status === "sent" ? ["draft"] : ["draft", "sent", "void"]).select("id").maybeSingle();
   if (error) return { error: invoiceDbError(error, dict) };
   if (!data) return { error: dict.invoices.notEditable };
-  revalidate();
+  revalidate(id);
   return { success: true, id };
 }
 
@@ -143,7 +144,7 @@ export async function markInvoicePaid(input: { invoiceId: string; paidDate: stri
     return { error: Object.hasOwn(messages, error.message) ? messages[error.message] : invoiceDbError(error, dict) };
   }
   if (!data) return { error: dict.invoices.failed };
-  revalidate(); revalidatePath("/money/transactions");
+  revalidate(v.invoiceId); revalidatePath("/money/transactions");
   // Use the recorded cash, including on idempotent retries.
   const invoice = await supabase.from("invoices").select("net_amount").eq("id", v.invoiceId).eq("user_id", user.id).single();
   if (invoice.error || !invoice.data) {
