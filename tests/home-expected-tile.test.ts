@@ -22,10 +22,10 @@ describe("Home expected tile presentation", () => {
     const html = render(receivables);
     expect(html).toContain(en.homeDash.expectedEmpty);
     expect(html).toContain(en.homeDash.expectedHint.replaceAll("'", "&#x27;"));
-    expect(html).toContain(en.homeDash.comingSoon);
+    expect(html).not.toContain(en.homeDash.comingSoon);
     expect(html).toContain('stroke-dasharray="4 3"');
     expect(html).not.toContain("invoices pending");
-    expect(html).not.toContain("<a ");
+    expect(html).toContain('href="/money/invoices"');
     expect(html).toBe(render(null));
   });
 
@@ -38,7 +38,7 @@ describe("Home expected tile presentation", () => {
     expect(html).not.toContain(labels.expectedEmpty);
     expect(html).not.toContain(labels.expectedOverdue.replace("{count}", "0"));
     expect(html).not.toContain("text-amber");
-    expect(html).not.toContain("<a ");
+    expect(html).toContain('href="/money/invoices"');
   });
 
   it.each([en.homeDash, th.homeDash])("shows a calm localized overdue line only for overdue invoices", (labels) => {

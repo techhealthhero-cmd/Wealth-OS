@@ -1,6 +1,6 @@
 # Invoice and tax jar server API
 
-No UI or anonymous access. All actions and loaders authenticate and scope queries
+No anonymous access. All actions and loaders authenticate and scope queries
 by the session user. Actions return `{ success, id }` or `{ error }`; loaders
 return `{ success, ...data }` or `{ error }`. Validate loader errors before rendering
 empty states. Money inputs/derived outputs use integer satang. Database amount
@@ -9,7 +9,7 @@ fields in returned ledger/receivable rows retain baht; use `amountCents` /
 
 - `actions.ts`: `createInvoice`, `updateInvoice`, `markInvoiceSent` (alias
   `sendInvoice`), `voidInvoice`, `markInvoicePaid`.
-- `queries.ts`: `getReceivablesSummary(today)`; calendar date in the user's timezone.
+- `queries.ts`: `getReceivablesSummary(today)` plus the UI read APIs documented below; calendar date in the user's timezone.
 - `number.ts`: pure `suggestNextInvoiceNumber(existingNumbers, gregorianYear)`;
   advisory only, since concurrent creation may claim the same number.
 - `../tax-jar/actions.ts`: `upsertTaxJarSettings`, `addTaxJarEntry`,
@@ -52,3 +52,61 @@ Tax jar settings: `ratePct`, `mode`, `accountId`, `expense408RatePct`,
 Ownership of referenced accounts/projects/transactions is additionally enforced
 by migration 0047's triggers and RLS. Missing migration errors explicitly name
 0047; database failures are never presented as empty/default data.
+
+## Authenticated Invoice UI
+
+Routes under `src/app/(app)/money/invoices/`:
+
+- `/money/invoices` — list A, including drafts in Unpaid and sent-only receivables.
+- `/money/invoices/new` — create draft or save and mark sent.
+- `/money/invoices/[id]` — invoice paper, text/LINE sharing, payment and cancellation.
+- `/money/invoices/[id]/edit` — reuse the form; only draft/sent are editable.
+- `/money/invoices/[id]/remind` — sent invoices only; other statuses redirect to detail.
+
+`route-screen.tsx` checks `getPrivacyGate("activity")` before invoice/account reads.
+Every page is a thin server wrapper; dynamic `params` and `searchParams` are awaited.
+`MoneyChrome` hides the Money title/tabs on these routes; the app's bottom nav is retained.
+There is no invoice entitlement in the current billing feature registry.
+
+New read-only APIs in `queries.ts`: `listInvoices(today)`, `getInvoice(id, today)`
+(`invoice: null` for an owned row not found), `getInvoiceFormContext(today)`.
+Each authenticates and explicitly scopes every read to the session user. History and
+accounts paginate in 500-row batches. Errors, including later-page failures, never
+become empty success. Pass today in the user's timezone; the route derives it from
+`profile.timezone`. UI dates are calendar dates, independent of process timezone.
+
+### Screenshot harness contract
+
+Import components directly from `src/features/invoices/components/`.
+They accept serializable data and injected action callbacks; no Supabase or Next
+router provider is needed. All four take `copy: Dictionary["invoiceUi"]` (use
+`th.invoiceUi` or `en.invoiceUi`) and optional `locale: "th" | "en"` (default `th`).
+Next's normal `Link` is used for links. Sample invoice data is in
+`tests/fixtures/invoice-ui.ts`; types are in `ui-logic.ts`.
+
+| Component / file | Additional props |
+| --- | --- |
+| `InvoiceListScreen` / `invoice-list-screen.tsx` | `invoices: InvoiceListEntry[]`, `today: string`, optional `error: string`, `initialTab: "unpaid" \| "overdue" \| "paid"` |
+| `InvoiceFormScreen` / `invoice-form-screen.tsx` | `context: InvoiceFormContext`, optional `invoice: InvoiceView` for editing, `onSave(InvoiceInput): Promise<InvoiceActionResult>`, `onMarkSent(id): Promise<InvoiceActionResult>`, optional `onNavigate(href): void` (default full navigation) |
+| `InvoiceDetailScreen` / `invoice-detail-screen.tsx` | `invoice: InvoiceView`, `today: string`, `accounts: ReceiveAccount[]`, optional `highlightShare: boolean`, `onMarkSent(id)`, `onVoid(id)` returning `Promise<InvoiceActionResult>`, `onPaid(input)` matching `markInvoicePaid` |
+| `InvoiceReminderScreen` / `invoice-reminder-screen.tsx` | `invoice: InvoiceView`, `today: string`, optional `initialTone: "polite" \| "friendly" \| "firm"`, `initialEnding: "ค่ะ" \| "ครับ"` |
+
+`InvoiceListEntry` includes `id`, `invoiceNumber`, `clientName`, `clientIsCompany`,
+`issueDate`, `dueDate`, `status`, `displayStatus`, `netReceivableCents`,
+`withholdingRatePct`, `paidAt`, `daysOverdue`. `InvoiceView` additionally has
+`items: { description, quantity, unitPriceCents }[]`, `receiveAccountId`,
+`receiveAccountName`, `notes`, and optional preserved `categoryId`/`earnProjectId`.
+`InvoiceFormContext` has `today`, `suggestedNumber`, `clients: ClientSuggestion[]`,
+`accounts: { id, name, account_type }[]`, `defaultReceiveAccountId`.
+
+Reminder messages intentionally stay Thai (including in an English UI), with a
+remembered Thai ending. Editing a message preserves it across tone/ending changes;
+Regenerate explicitly replaces edits. Clipboard failure exposes a selectable
+textarea. Sharing a draft marks it sent before handing over its text. If creation
+succeeds but marking sent fails, the form locks saved fields and retries only sending;
+Save as draft can still open that saved invoice. Payment suggestions are informational.
+
+Approved deviations from the source HTML: only Copy text and LINE on detail;
+no public link, PDF, or remind-me-again box; invoice numbers use Buddhist years.
+The app shell's existing bottom navigation is retained. Editable form controls,
+notes, issue-date input and account/payment dialogs add space beyond the static mockups.
