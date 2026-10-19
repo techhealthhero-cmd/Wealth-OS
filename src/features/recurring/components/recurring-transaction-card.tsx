@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MoreVertical } from "lucide-react";
+import { Check, LoaderCircle, MoreVertical } from "lucide-react";
 
 import type { Account, Category, RecurringTransaction } from "@/types/database";
 import { deleteRecurringTransaction, confirmRecurringTransaction } from "@/features/recurring/actions";
@@ -29,6 +29,7 @@ export function RecurringTransactionCard({
 }) {
   const { t, locale } = useTranslation();
   const [isPending, startTransition] = useTransition();
+  const [confirmTap, setConfirmTap] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
@@ -61,6 +62,30 @@ export function RecurringTransactionCard({
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <p className="font-medium tabular-nums">{formatMoneyFromDecimal(recurring.amount)}</p>
+            {due && recurring.is_active ? (
+              <Button
+                size="icon"
+                className="relative size-10 rounded-full shadow-sm after:absolute after:-inset-0.5 after:rounded-full active:scale-95"
+                aria-label={t("recurring.confirmButton")}
+                title={t("recurring.confirmButton")}
+                aria-busy={isPending}
+                disabled={isPending}
+                onClick={() => {
+                  setConfirmTap((tap) => tap + 1);
+                  startTransition(async () => {
+                    await confirmRecurringTransaction(recurring.id);
+                  });
+                }}
+              >
+                <span key={confirmTap} className={cn("inline-flex", confirmTap > 0 && "recurring-confirm-bounce motion-reduce:animate-none")}>
+                  {isPending ? (
+                    <LoaderCircle className="size-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                  ) : (
+                    <Check className="size-5" strokeWidth={2.5} aria-hidden="true" />
+                  )}
+                </span>
+              </Button>
+            ) : null}
             <DropdownMenu>
               <DropdownMenuTrigger
                 {...asTrigger(
@@ -98,20 +123,6 @@ export function RecurringTransactionCard({
             </>
           )}
         </p>
-
-        {due && recurring.is_active ? (
-          <Button
-            size="sm"
-            disabled={isPending}
-            onClick={() =>
-              startTransition(async () => {
-                await confirmRecurringTransaction(recurring.id);
-              })
-            }
-          >
-            {isPending ? t("common.saving") : t("recurring.confirmButton")}
-          </Button>
-        ) : null}
       </CardContent>
       <RecurringTransactionForm recurring={recurring} accounts={accounts} categories={categories} trigger={null} open={editOpen} onOpenChange={setEditOpen} />
       {confirmDialog}
