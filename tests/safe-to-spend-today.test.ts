@@ -4,7 +4,7 @@ import type { PaymentSource } from "@/lib/financial/payment-calendar";
 const base: SafeToSpendTodayInput = { today: "2026-10-20", liquidAccounts: [{ id: "cash", balanceCents: 12000 }], excludedAccountIds: [], paymentSources: [], nextIncomeDate: null, taxJar: null, emergencyFund: null };
 const bill = (patch: Partial<PaymentSource> = {}): PaymentSource => ({ id: "bill", label: "Rent", kind: "expense", amountCents: 1000, frequency: null, nextDueDate: "2026-10-21", endDate: null, active: true, paid: [], ...patch });
 const compute = (patch: Partial<SafeToSpendTodayInput> = {}) => computeSafeToSpendToday({ ...base, ...patch });
-describe("safe to spend today (pending approval)", () => {
+describe("safe to spend today (approved 2026-10-19)", () => {
   it("calculates total and floors daily allowance", () => {
     expect(compute({ paymentSources: [bill()] })).toMatchObject({ totalCents: 11000, perDayCents: 916, daysLeft: 12, horizonEnd: "2026-10-31", horizonReason: "month_end" });
   });

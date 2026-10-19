@@ -13,7 +13,7 @@ import { calculateNextDueDate } from "@/lib/financial/recurring";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 
-/** Read-only calculation; assumptions remain pending user approval. */
+/** Read-only calculation; assumptions approved by the user on 2026-10-19. */
 export async function getSafeToSpendToday(today: string) {
   if (!calendarDateSchema.safeParse(today).success) return { error: "Invalid calendar date" };
   const { supabase, user, dict } = await invoiceContext();

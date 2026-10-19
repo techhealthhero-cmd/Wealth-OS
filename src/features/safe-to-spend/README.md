@@ -3,7 +3,7 @@
 `getSafeToSpendToday(today: string)` is a server-only, read-only loader. Supply a
 validated local calendar date (`YYYY-MM-DD`). Success returns `success: true`,
 `totalCents`, `perDayCents`, `daysLeft`, `horizonEnd`, `horizonReason`, `isShort`,
-`breakdown`, `warnings`, and `assumptionsStatus: 'pending_user_approval'`.
+`breakdown`, `warnings`, and `assumptionsStatus: 'approved'`.
 The breakdown contains spendable liquid cash, excluded earmarked balances,
 unpaid bills (sorted by date then label), bill total, tax shortfall and emergency
 top-up. All amounts are integer satang; unsafe or fractional amounts throw.
@@ -14,7 +14,9 @@ and unauthenticated requests return `{ error }`. Tax-jar loader errors yield a
 are surfaced rather than silently inventing balances. The pure function is
 `computeSafeToSpendToday` in `src/lib/financial/safe-to-spend-today.ts`.
 
-## Assumptions (formula PENDING USER APPROVAL)
+## Assumptions (approved 2026-10-19)
+
+Formula approved by the user on 2026-10-19 at 21:14 Asia/Bangkok (PR #31).
 
 - Liquid account types are cash, bank and e_wallet, using existing account balances.
 - Emergency-fund linked accounts and tax-jar accounts are earmarked: their entire
