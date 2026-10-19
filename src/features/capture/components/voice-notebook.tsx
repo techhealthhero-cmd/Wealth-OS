@@ -476,9 +476,11 @@ export function VoiceNotebook({
       );
       try {
         const result = payload ? await saveCaptureDraft(row.draft, payload) : null;
-        if (result?.success) {
+        if (result?.success && result.incomplete) {
+          toast.error(t("capture.smart.partialFailed"));
+          failed += 1; // keep its request id; a retry fills only the missing parts
+        } else if (result?.success) {
           if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
-          if (result.assetError || result.liabilityError) toast.error(t("capture.smart.partialFailed"));
           saved += 1;
           lastAmount = payload!.amountCents;
           if (result.transactionId && (!row.draft.smart || row.draft.smartAssetAccepted === false)) savedIds.push(result.transactionId);

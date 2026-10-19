@@ -671,6 +671,11 @@ export function QuickCaptureSheet({
         setError(result.error ?? t("capture.saveFailed"));
         return;
       }
+      if (result.incomplete) {
+        // Payment saved, a smart part is missing: same draft + same request id retries only the gap.
+        setError(t("capture.smart.partialFailed"));
+        return;
+      }
 
       const needsReview = !(draft.confidence === "high" || draft.categoryConfirmedByUser);
       const savedId = draft.smart && draft.smartAssetAccepted !== false ? undefined : result.transactionId;
@@ -689,7 +694,6 @@ export function QuickCaptureSheet({
           : undefined,
       });
       if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
-      if (result.assetError || result.liabilityError) toast.error(t("capture.smart.partialFailed"));
       if (result.recurringSuggestion) showRecurringPrompt(result.recurringSuggestion, draft);
 
       setClientRequestId(crypto.randomUUID());
@@ -732,9 +736,11 @@ export function QuickCaptureSheet({
       const payload = buildCaptureSaveInput({ ...row.draft, categoryConfirmedByUser: reviewed }, requestId);
       try {
         const result = payload ? await saveCaptureDraft(row.draft, payload) : null;
-        if (result?.success) {
+        if (result?.success && result.incomplete) {
+          toast.error(t("capture.smart.partialFailed"));
+          failed += 1; // keep the row + its request id; a retry fills only the missing parts
+        } else if (result?.success) {
           if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
-          if (result.assetError || result.liabilityError) toast.error(t("capture.smart.partialFailed"));
           savedRowIds.push(row.id);
           if (result.transactionId && (!row.draft.smart || row.draft.smartAssetAccepted === false)) savedTransactionIds.push(result.transactionId);
           delete recapRequestIdsRef.current[row.id];

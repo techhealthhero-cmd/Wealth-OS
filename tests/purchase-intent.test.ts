@@ -128,3 +128,23 @@ describe("smart capture review fixes", () => {
     expect(s.plan).toBeNull();
   });
 });
+
+describe("codex review fixes", () => {
+  it.each(["โอนคืนเงินที่กู้มา 3000", "จ่ายค่าธรรมเนียมกู้เงิน 1000", "ซื้อทองม้วน 1200", "ซื้อรถของเล่น 1500", "ซื้อขนมทองหยอด 1500"])("%s is not smart", (text) => {
+    expect(parsePurchaseIntent(text, date)).toBeNull();
+  });
+  it("still reads a loan that says when it will be repaid", () => {
+    expect(parsePurchaseIntent("กู้นอกระบบ 20,000 ดอก 20% ต่อเดือน 6 เดือน", date)?.kind).toBe("loan");
+  });
+  it("recap keeps an existing-debt repayment separate from a purchase", async () => {
+    const { parseRecap } = await import("@/lib/capture/recap");
+    const rows = parseRecap("ซื้อคอม 20000 ผ่อนรถ 8000", ctx);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({ amountCents: 2000000 });
+    expect(rows[0].smart?.kind).toBe("asset_cash");
+    expect(rows[1].smart ?? null).toBeNull();
+    expect(rows[1].amountCents).toBe(800000);
+    const shirts = parseRecap("ซื้อเสื้อ 500 ผ่อนรองเท้า 200", ctx);
+    expect(shirts).toHaveLength(2);
+  });
+});

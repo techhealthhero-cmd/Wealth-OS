@@ -30,7 +30,12 @@ const schema = z.object({
   assetAccepted: z.boolean().optional(), ratePeriod: z.enum(["month", "year"]).optional(),
 });
 export interface SmartCaptureSaveInput { capture: CaptureSaveInput; smart: SmartCaptureIntent; assetAccepted?: boolean; ratePeriod?: RatePeriod }
-export interface SmartCaptureSaveResult extends CaptureSaveResult { assetError?: string; liabilityError?: string; assetCreated?: boolean; liabilityCreated?: boolean }
+export interface SmartCaptureSaveResult extends CaptureSaveResult {
+  assetError?: string; liabilityError?: string; assetCreated?: boolean; liabilityCreated?: boolean;
+  /** The money movement is saved but an asset/liability/schedule part is missing: keep the draft and
+   * its clientRequestId so a retry fills only the missing parts (markers + deterministic ids). */
+  incomplete?: boolean;
+}
 
 /** Session auth only; all numbers rebuilt from validated inputs, never client plan totals.
  * Deterministic PKs close the concurrent-retry race; notes markers allow recovery/auditing
@@ -139,19 +144,31 @@ export async function saveSmartCapture(input: SmartCaptureSaveInput): Promise<Sm
     const part = liability.success ? await insertPart("liabilities", liability.data) : { created: false, error: dict.common.invalidInput };
     result.liabilityCreated = part.created; result.liabilityError = part.error;
     if (plan && plan.monthlyPaymentCents > 0) {
-      try {
-        const recurring = await insertRecurringTransaction(supabase, user.id, {
-          type: "expense", amount: centsToDecimalString(plan.monthlyPaymentCents), account_id: c.accountId,
-          category_id: s.kind === "loan" ? null : c.categoryId, merchant: `ผ่อน${s.assetName}`.slice(0, 120),
-          // Fixed recurring templates cannot represent an adjusted final payment. Keep
-          // that exact amount visible in notes; no debt balance is auto-reconciled.
-          description: `${marker} ${dict.capture.smart.finalPayment}: ${centsToDecimalString(plan.schedule.at(-1)!.paymentCents)}`,
-          frequency: "monthly", start_date: plan.firstDueDate, end_date: plan.lastDueDate, is_active: true,
-        }, dict, { idempotencyId: deterministicUuid(`smart-capture:${user.id}:${c.clientRequestId}:recurring`) });
-        result.recurringCreated = recurring.created; result.recurringError = recurring.error;
-      } catch { result.recurringError = dict.capture.smart.partialFailed; }
+      // A recurring template posts one fixed amount. When the final installment differs by more
+      // than ฿1 (balloon / stated payment), the regular schedule stops one month early and the
+      // final installment gets its own one-occurrence schedule (start = end) with its exact amount.
+      const finalCents = plan.schedule.at(-1)!.paymentCents;
+      const splitFinal = plan.schedule.length > 1 && Math.abs(finalCents - plan.monthlyPaymentCents) > 100;
+      const parts = [
+        { key: "recurring", amount: plan.monthlyPaymentCents, start: plan.firstDueDate, end: splitFinal ? plan.schedule.at(-2)!.dueDate : plan.lastDueDate, label: `ผ่อน${s.assetName}` },
+        ...(splitFinal ? [{ key: "recurring-final", amount: finalCents, start: plan.lastDueDate, end: plan.lastDueDate, label: `ผ่อน${s.assetName} (งวดสุดท้าย)` }] : []),
+      ];
+      result.recurringCreated = true;
+      for (const part of parts) {
+        try {
+          const recurring = await insertRecurringTransaction(supabase, user.id, {
+            type: "expense", amount: centsToDecimalString(part.amount), account_id: c.accountId,
+            category_id: s.kind === "loan" ? null : c.categoryId, merchant: part.label.slice(0, 120),
+            description: `${marker} ${dict.capture.smart.finalPayment}: ${centsToDecimalString(finalCents)}`,
+            frequency: "monthly", start_date: part.start, end_date: part.end, is_active: true,
+          }, dict, { idempotencyId: deterministicUuid(`smart-capture:${user.id}:${c.clientRequestId}:${part.key}`) });
+          result.recurringCreated = result.recurringCreated && (recurring.created || !!recurring.alreadyExists);
+          if (recurring.error) result.recurringError = recurring.error;
+        } catch { result.recurringError = dict.capture.smart.partialFailed; result.recurringCreated = false; }
+      }
     }
   }
+  result.incomplete = !!(result.assetError || result.liabilityError || result.recurringError);
   for (const path of ["/money/assets", "/money/liabilities", "/money/net-worth", "/money/recurring", "/dashboard"]) revalidatePath(path);
   return result;
 }

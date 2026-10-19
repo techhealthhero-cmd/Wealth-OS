@@ -226,6 +226,14 @@ describe("smart capture saves", () => {
     expect(db.liabilities[0]).toMatchObject({ balance: 55000, minimum_payment: 2500 });
     expect(db.recurring_transactions[0]).toMatchObject({ amount: 2500, end_date: "2028-10-19" });
   });
+  it("a balloon final installment gets its own one-off schedule with the exact amount", async () => {
+    const d = input("กู้เงิน 20000 ดอก 0% ผ่อนเดือนละ 1000 12 เดือน");
+    expect(await saveSmartCapture({ ...d, ratePeriod: "year" })).toMatchObject({ success: true, recurringCreated: true, incomplete: false });
+    const rows = db.recurring_transactions;
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({ amount: 1000, start_date: "2026-11-19", end_date: "2027-09-19" });
+    expect(rows[1]).toMatchObject({ amount: 9000, start_date: "2027-10-19", end_date: "2027-10-19" });
+  });
   it("separate purchases with identical content remain separate", async () => {
     await saveSmartCapture(input()); await saveSmartCapture(input());
     expect(db.assets).toHaveLength(2); expect(db.transactions).toHaveLength(2);

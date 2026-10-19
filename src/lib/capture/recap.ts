@@ -198,7 +198,7 @@ export function splitRecap(input: string, unitWords: string[] = []): string[] {
       if (!cleaned) continue;
     }
     // Parameters carry numbers but belong to the preceding purchase/borrowing.
-    if (items.length && !/[;,]\s*$/.test(raw[pieceIndex - 1] ?? "") && !/ผ่อน(?:รถ|บ้าน|หนี้)?งวดนี้/.test(cleaned) && /^(?:ดาวน์|down payment|ผ่อน|ดอก|interest|เดือนละ|งวดละ|\d+\s*(?:เดือน|ปี|งวด|months?|years?))/i.test(cleaned)
+    if (items.length && !/[;,]\s*$/.test(raw[pieceIndex - 1] ?? "") && !/ผ่อน(?:รถ|บ้าน|หนี้)?งวดนี้/.test(cleaned) && /^(?:ดาวน์|down payment|ผ่อน(?=\s*(?:\d|เดือนละ|งวดละ|$))|ดอก|interest|เดือนละ|งวดละ|\d+\s*(?:เดือน|ปี|งวด|months?|years?))/i.test(cleaned)
       && /ซื้อ|ถอย|ออกรถ|สั่งซื้อ|จัด|กู้|ยืมเงิน|กยศ|\bbuy\b|\bbought\b|\bborrow/i.test(items[items.length - 1])) {
       items[items.length - 1] += ` ${cleaned}`;
       continue;

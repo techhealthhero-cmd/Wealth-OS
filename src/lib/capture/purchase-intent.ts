@@ -88,14 +88,16 @@ export function resolveSmartCapture(intent: SmartCaptureIntent, date: string, pe
   const plan = smartCaptureHasPlan(intent.kind, intent.ratePct, intent.termAssumed, ratePeriod) ? buildPaymentPlan({ principalCents: intent.principalCents, ratePct: intent.ratePct, ratePeriod: ratePeriod!, termMonths, captureDate: date, statedMonthlyCents: intent.statedMonthlyCents, fixedTerm: !intent.termAssumed }) : null;
   return { ...intent, ratePeriod, ratePeriodNeedsConfirm: intent.ratePeriodNeedsConfirm && period === undefined, termMonths, plan, aboveLegalCap: (plan?.annualRatePct ?? 0) > 15 };
 }
+/** "ผ่อน 30 ปี", "ผ่อน 0%", "ผ่อนเดือนละ" — not "ผ่อนรถ 8,000" (paying an existing debt). */
+export const PLAN_PAYMENT = /ผ่อน(?=\s*(?:\d|เดือนละ|งวดละ|$))|installments?/i;
 const NUM = "[0-9][0-9,]*(?:\\.[0-9]+)?(?:\\s*(?:ล้าน|หมื่น|พัน|[kK]))?";
 export function parseSmartMoney(text: string): number {
   const clean = text.replace(/,/g, "").trim();
   const multiplier = /ล้าน/.test(clean) ? 1e6 : /หมื่น/.test(clean) ? 1e4 : /พัน|k/i.test(clean) ? 1e3 : 1;
   return halfUp(parseFloat(clean) * multiplier * 100);
 }
-const EXCLUDED = /ซื้อ(?:เสื้อ|กางเกง|รองเท้าทั่วไป|อาหาร|ข้าว|ของกิน|ของชำ|เครื่องสำอาง)|ค่าซ่อม|ซ่อม|ค่าเช่า|เช่า|ล้างรถ|เติมน้ำมัน|ประกัน|ค่างวด|ผ่อน(?:รถ|บ้าน|หนี้)?งวดนี้|ภาษีรถ|ค่าไฟ|ค่าส่ง|อะไหล่เล็ก|เคส|ฟิล์ม|สายชาร์จ|repair|rent|insurance|phone case|screen protector|charging cable/i;
-const LENT_OR_REPAYMENT = /ให้.{0,12}(?:ยืม|กู้)|เพื่อนยืม|(?:จ่าย|ชำระ|โปะ|ปิด|คืน)\s*(?:เงิน|ค่า)?\s*(?:กู้|หนี้|ดอก|งวด)|ผ่อน\s*(?:เงิน)?(?:กู้|หนี้)|repay|pay(?:ing)?\s+(?:off|back)|lend|lent/i;
+const EXCLUDED = /ของเล่น|\btoys?\b|ทองม้วน|ทองหยอด|ทองหยิบ|ฝอยทอง|ขนม|โมเดล|ฟิกเกอร์จิ๋ว|สติ[๊]?กเกอร์|พวงกุญแจ|ซื้อ(?:เสื้อ|กางเกง|รองเท้าทั่วไป|อาหาร|ข้าว|ของกิน|ของชำ|เครื่องสำอาง)|ค่าซ่อม|ซ่อม|ค่าเช่า|เช่า|ล้างรถ|เติมน้ำมัน|ประกัน|ค่างวด|ผ่อน(?:รถ|บ้าน|หนี้)?งวดนี้|ภาษีรถ|ค่าไฟ|ค่าส่ง|อะไหล่เล็ก|เคส|ฟิล์ม|สายชาร์จ|repair|rent|insurance|phone case|screen protector|charging cable/i;
+const LENT_OR_REPAYMENT = /ให้.{0,12}(?:ยืม|กู้)|เพื่อนยืม|(?:จ่าย|ชำระ|โปะ|ปิด|คืน)\s*(?:เงิน|ค่า)?\s*(?:กู้|หนี้|ดอก|งวด)|ผ่อน\s*(?:เงิน)?(?:กู้|หนี้)|คืนเงิน|โอนคืน|ส่งคืน|ใช้คืน|ที่(?:กู้|ยืม)มา|ค่าธรรมเนียม|\bfees?\b|repay|pay(?:ing)?\s+(?:off|back)|lend|lent/i;
 /** Pure detection; caller supplies the capture's local date. No account/category policy here. */
 export function parsePurchaseIntent(input: string, captureDate: string): SmartCaptureIntent | null {
   const text = input.replace(/[๐-๙]/g, (d) => String(d.charCodeAt(0) - 0x0e50));
@@ -116,7 +118,7 @@ export function parsePurchaseIntent(input: string, captureDate: string): SmartCa
   const prices = [...beforePlan.matchAll(new RegExp(NUM, "g"))].map((m) => parseSmartMoney(m[0]));
   const price = Math.max(0, ...prices);
   if (price <= 0 || !Number.isSafeInteger(price) || price >= 1e15) return null;
-  const installment = !loan && /ผ่อน|installment/i.test(text);
+  const installment = !loan && PLAN_PAYMENT.test(text);
   const always = g?.captureTier === "always" && sub?.key !== "drone" && sub?.key !== "smartwatch";
   if (!loan && !installment && !always && price < DURABLE_ASK_THRESHOLD_CENTS) return null;
   const down = text.match(new RegExp(`(?:ดาวน์|down payment)\\s*(${NUM})`, "i"));
