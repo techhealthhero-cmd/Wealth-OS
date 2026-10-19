@@ -15,6 +15,7 @@ import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboar
 import { HomeQuickActions } from "@/features/dashboard/components/home-quick-actions";
 import { HomeUpcomingTiles } from "@/features/dashboard/components/home-tiles";
 import { HomeCushion } from "@/features/dashboard/components/home-cushion";
+import { UpNextPayments } from "@/features/dashboard/components/up-next-payments";
 import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
 import { MonthlyDonutCard } from "@/features/dashboard/components/summary-visuals";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
@@ -138,6 +139,13 @@ export default async function DashboardPage() {
 
       <div className="motion-reveal motion-reveal-3">
         <HomeUpcomingTiles labels={dict.homeDash} />
+      </div>
+
+      {/* "Up next" payments — money going out, right after money coming in. */}
+      <div className="motion-reveal motion-reveal-3">
+        <Suspense fallback={<Skeleton className="h-40 w-full rounded-[20px]" />}>
+          <UpNextPayments />
+        </Suspense>
       </div>
 
       <div className="motion-reveal motion-reveal-3">
