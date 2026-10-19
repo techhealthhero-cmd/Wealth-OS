@@ -139,6 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| INVOICE-TAXJAR-ACTIONS | Invoice and tax jar server data/actions | Codex | DONE — 75 new tests; lint/typecheck/full Vitest passed | Authenticated actions/loaders, types, Zod validation, TH/EN errors; no UI/migrations/formula edits. API + save consistency limits in src/features/invoices/README.md | Owner commit; UI agent integration |
 | CAPTURE-EMERGENCY | Emergency source intent and food classification | Codex | DONE — all requested checks passed on Node 22 | Parser + AI preservation, read-only linked account wiring, regression tests; no UI/DB changes | PR to staging |
 | RESUME-PILL-NAV | Mobile resume pill safe-area clearance | Codex | DONE | Host class/comment + focused rendering regression; inspect nav geometry, run typecheck/lint/related Vitest | PR to staging (screenshots 390px ± 34px safe area) |
 | SLIP-PARSE-MATCH | Portable Thai e-slip parser and matcher | Codex | VERIFY — typecheck/lint and 113 files / 1302 tests passed | src/lib/slip + synthetic tests; implement, validate, PR and merge into staging after checks | Codex → staging reviewers; report /workspace/reports/slip-parse-match-pr.md |
@@ -195,6 +196,16 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → owner / invoice-tax-jar UI agent (INVOICE-TAXJAR-ACTIONS)
+
+- Added invoice create/update/send/void/mark-paid actions, next-number pure helper, sent receivables loader, tax jar settings/append-only ledger actions and paginated summary loaders. All authenticate; session ownership filters and existing DB triggers/RLS retained. Added four handwritten table types, payment RPC type and invoice transaction source, shared Zod validation and matching TH/EN errors.
+- Invoice/line totals recomputed server-side using existing financial helpers; decimal baht boundary conversion. Income uses RPC only, net cash is tax-jar base (฿10,670 × 7% → 74,690 satang). Duplicate source set-asides return existing id. Default settings only when no row, never on read failure.
+- Tests: 75 new mocked/pure cases cover validation, ignored client totals, immutable paid/void status, optimistic update conflicts/cleanup, RPC mapping/idempotent pass-through, profile-timezone dates, defaults, duplicate ledger entries, balances, pagination, ownership/auth and receivables. All requested commands on Node 22 pass: npm run lint; npm run typecheck; npx vitest run (122 files / 1,522 tests). No live DB/network tests, commit or push.
+- UI integration API and input fields: `src/features/invoices/README.md`. Payment success survives a failed post-commit suggestion read (`setAsideSuggestion: null`, `suggestionError`); retry is safe. Mode auto still returns a suggestion; allocation requires explicit addTaxJarEntry call with sourceTransactionId.
+- Material limit: 0047 has no transactional invoice+items save RPC. Saves use staged items, optimistic header version/status guards and checked best-effort cleanup/restore; process interruption/intermediate reads and concurrent payment cannot be made fully atomic without a future save RPC. Documented in README; no migration changes made.
+- Scope preserved: no existing React components/pages, .env files, generated reference types, financial formulas, RLS/auth rules, migrations or main/production config changed. Next: owner reviews/commits; UI agent consumes exported APIs and handles loader errors before empty states.
+
 
 ### 2026-10-19 — Codex → owner: RESUME-PILL-NAV
 
