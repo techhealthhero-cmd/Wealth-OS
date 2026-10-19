@@ -319,6 +319,20 @@
   animation: checkmark-draw 420ms var(--ease-standard) 80ms both;
 }
 
+/* Recurring confirmation: replay once on each tap. */
+@keyframes recurring-confirm-bounce {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.18); }
+  65% { transform: scale(0.95); }
+}
+
+.recurring-confirm-bounce {
+  animation: recurring-confirm-bounce 400ms var(--ease-standard);
+}
+@media (prefers-reduced-motion: reduce) {
+  .recurring-confirm-bounce { animation: none; }
+}
+
 /* Card hover lift — max 1px translateY + a slightly deeper shadow, applied
    to clickable/linked cards only (never a static, non-interactive card).
    Deliberately tiny: "no dramatic floating effect." */

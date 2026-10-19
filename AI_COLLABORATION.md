@@ -144,6 +144,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 | SLIP-PARSE-MATCH | Portable Thai e-slip parser and matcher | Codex | VERIFY — typecheck/lint and 113 files / 1302 tests passed | src/lib/slip + synthetic tests; implement, validate, PR and merge into staging after checks | Codex → staging reviewers; report /workspace/reports/slip-parse-match-pr.md |
 | PDF-IMPORT-REVIEW | Full PR #6 diff vs origin/staging; parser/security fixes and required checks | Codex | DONE — no blocking findings remain; typecheck/lint/108 files·1167 tests passed | Non-UI PDF engine/extraction + regression tests; Claude UI untouched | Grok/Claude review unstaged fixes; no commit/push |
 | STAGING-SEC-E2E | Staging DB hardening and live-test target guard | Codex | READY FOR HANDOFF — local checks passed | Migration 0046, shared guard, demo/live specs; validate typecheck/lint/full Vitest, PR into staging, merge after all checks pass | Supervisor applies DB separately; report /workspace/reports/staging-sec-e2e-pr.md |
+| RECURRING-CONFIRM-ICON | Recurring card round confirm control | Codex | DONE | Card round icon, native tooltip, pending spinner, replayable reduced-motion-safe bounce; focused render coverage. Typegen/typecheck, TS lint, 21 related tests pass (runner loader); CSS ignored by ESLint config | PR to staging (390px before/after shots) |
 | MONEY-IMPORT-TESTS | Money/import unit coverage | Codex | DONE — tests and local validation | Tests only in money/import suites; no production changes. Plan: verify gaps, add boundary tests, typecheck/lint/full Vitest, PR into staging and merge only if all checks pass | Codex → staging reviewers; report /workspace/reports/money-import-tests-pr.md |
 | ANIMATED-RM-01 | AnimatedNumber reduced-motion hydration | Codex | DONE — implementation and local validation | Logic-only component fix and regression tests; typecheck/lint and 104 files / 1036 tests passed | PR #8 into staging; merge gated on all checks; final outcome in /workspace/reports/animated-number-pr.md |
 | LOGIC-HOME-01 | Home MoM baseline + timezone month card | Codex | READY FOR HANDOFF — commit blocked by read-only Git metadata | Pure calendar/snapshot helpers, dashboard logic and unit tests; no formula/UI/DB changes | Parent stage/commit in writable Git environment |
@@ -202,6 +203,13 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Files: `src/components/shared/minimizable-form-context.tsx`, `tests/minimizable-form-context.test.ts`, this collaboration board. Two server-rendered regressions cover minimized and minimizing states.
 - Validation: initial `npx tsc --noEmit -p .` lacked generated LayoutProps; `npx next typegen` then `npx tsc --noEmit -p .` passed. ESLint on both changed code/test files passed. Default Vitest config loader hit read-only node_modules/.vite-temp; rerun `npx vitest run tests/minimizable-form-context.test.ts tests/nav-notch-path.test.ts --configLoader runner` passed (2 files, 11 tests). `git diff --check` passed.
 - Next: PR to staging with 390px before/after screenshots (simulated 34px iPhone safe-area). No migrations, auth/RLS or financial changes.
+### 2026-10-19 — Codex → user (RECURRING-CONFIRM-ICON)
+
+- Replaced recurring card text CTA with a right-side 40px primary check circle and expanded 44px hit area; action and due/active gating preserved.
+- Added accessible label/native tooltip, pending spinner/aria-busy, and keyed 400ms icon bounce with reduced-motion override. No data/action/i18n changes.
+- Checks: `npx next typegen && npx tsc --noEmit` passed; ESLint TS files passed (globals.css ignored by repository config); Vitest runner loader: 3 files, 21 tests passed. Default loader blocked by read-only node_modules temp directory.
+- Visual: 390px before/after harness screenshots taken by supervisor; PR to staging.
+
 
 ### 2026-10-19 — Codex → staging reviewers (SLIP-PARSE-MATCH)
 
