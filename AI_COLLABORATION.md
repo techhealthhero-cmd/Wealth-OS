@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- CAPTURE-SAVE-VISIBLE — Owner: Codex; READY FOR HANDOFF. Supervisor follow-up complete: restored original 92dvh cap; reveal scrolls down only; four pure tests updated. Node 22 typecheck/lint PASS; full Vitest 149 files / 2134 tests PASS. Supervisor verified review-first/Save visibility at 390×664 + 34px safe area. No git operations; supervisor owns commit.
+
 - THAI-CAPTURE-FIXES — Owner: Codex; READY FOR HANDOFF. Capture-only fixes and 30 corpus additions complete; full Node 22 suite 148 files / 2113 tests, NLP criticalFailures=[] and autoSavePrecision=1, tsc and ESLint pass. Original 320-case baseline and labels preserved. No UI/schema/auth/formula changes or commits. Owner: review local diff.
 
 - COVER-BACKFACE — Owner: Codex + Grok Bot; PR to staging. Added swipe-only ruled page, two-sided cover, angle shading and rAF release tween; static launch branch preserved. Vitest 9/9, tsc (after next typegen), focused ESLint and diff check pass. No commit/push/env changes. Next: owner iPhone review.
@@ -556,3 +558,11 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Rent duration and percentage cases retain real prices; standalone percentages remain unpriced. WHT gross/tax/net and installment descriptions persist correctly; no additional blocking description findings.
 - Installed Node 22: full Vitest 148 files / 2130 tests PASS; NLP eval 350 cases criticalFailures=[] and autoSavePrecision=1; next typegen + tsc --noEmit PASS; eslint src tests PASS; diff check PASS.
 - No commits, pushes, dependency, UI, DB or schema changes. Next: owner review combined staged + unstaged diff.
+
+### 2026-10-20 — Codex → supervisor (CAPTURE-SAVE-VISIBLE)
+
+- Review-first placement and held-mic geometry retained. Follow-up restores the original max-h-[92dvh] cap when keyboard is closed; keyboardInset and listening/holdLayout branches unchanged.
+- Reveal helper uses only action/viewport bottoms and clamps delta to zero; effect scrolls only for delta > 0, preserving user scrolling on focusout. Four small pure tests cover fitting, clipped, scrolled-past and boundary cases.
+- Supplied Node 22 PATH: npm run typecheck PASS; npm run lint PASS; npx vitest run PASS (149 files / 2134 tests).
+- Supervisor reported WebKit iPhone 390×664 + 34px safe-area verification: all three review-first cases have Save fully visible at scrollTop 0 (bottoms 457/499/540; limit 630). No new browser run for this follow-up.
+- No git operations or metadata changes. Four scoped files remain for supervisor review and commit; supervisor owns push/PR.
