@@ -3344,7 +3344,7 @@
     "selected": "เลือกอยู่",
     "stepOf": "ขั้นที่ {n} จาก {total}",
     "openingLabel": "กำลังเปิดสมุดของคุณ",
-    "tapToOpen": "แตะเพื่อเปิดสมุด",
+    "tapToOpen": "แตะหรือปัดเพื่อเปิดสมุด",
     "closedHint": "ปิดสมุดแล้ว ยอดเงินไม่โชว์บนจอ",
     "openingHello": "Hello!",
     "openingWelcome": "ยินดีต้อนรับสู่สมุดการเงินของคุณ",

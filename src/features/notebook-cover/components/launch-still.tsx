@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Ref } from "react";
 
 import { NotebookCoverFace } from "@/components/notebook/notebook-cover";
 import { getCoverTheme, type CoverPreferences } from "@/lib/notebook-covers/config";
@@ -38,7 +38,10 @@ export function LaunchStill({
  * screen and this first paint line up — re-capture them if the pose, desk
  * or default cover changes.
  */
-export function LaunchStillScene({ prefs }: { prefs: Pick<CoverPreferences, "theme" | "decorations" | "name"> }) {
+export function LaunchStillScene({ prefs, coverFaceRef }: {
+  prefs: Pick<CoverPreferences, "theme" | "decorations" | "name">;
+  coverFaceRef?: Ref<HTMLDivElement>;
+}) {
   const theme = getCoverTheme(prefs.theme);
   return (
     <div
@@ -55,7 +58,7 @@ export function LaunchStillScene({ prefs }: { prefs: Pick<CoverPreferences, "the
             className="absolute inset-0 rounded-[6px_10px_10px_6px] shadow-[0_18px_30px_-12px_rgba(30,18,6,0.55)]"
             style={{ background: theme.shade, transform: "translate(5px, 4px)" }}
           />
-          <div className="absolute inset-0">
+          <div ref={coverFaceRef} className="absolute inset-0" style={coverFaceRef ? { transformOrigin: "left center", backfaceVisibility: "hidden" } : undefined}>
             <NotebookCoverFace theme={prefs.theme} decorations={prefs.decorations} name={prefs.name} />
           </div>
         </div>
