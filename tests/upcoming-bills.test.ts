@@ -96,3 +96,15 @@ describe("deduplicateBillItems — duplicate obligation prevention", () => {
     expect(deduplicateBillItems(items)).toHaveLength(2);
   });
 });
+
+describe("recurring bill eligibility", () => {
+  it("includes the capture's next due date and excludes cancelled, ended and income schedules", async () => {
+    const { recurringBillItems } = await import("@/lib/financial/upcoming-bills");
+    const captured = { id: "grok", merchant: "Grok Bot", description: null, amount: "1079.00", type: "expense" as const, is_active: true, end_date: null, next_due_date: "2026-11-19" };
+    expect(recurringBillItems([captured], "2026-10-19")).toEqual([{ id: "grok", source: "recurring", label: "Grok Bot", amountCents: 107900, dueDate: "2026-11-19", type: "expense" }]);
+    expect(categorizeUpcomingBills(recurringBillItems([captured], "2026-11-15"), new Date(2026, 10, 15)).next7Days).toHaveLength(1);
+    for (const patch of [{ is_active: false }, { end_date: "2026-10-18" }, { end_date: "2026-11-18" }, { type: "income" as const }]) {
+      expect(recurringBillItems([{ ...captured, ...patch }], "2026-10-19")).toEqual([]);
+    }
+  });
+});

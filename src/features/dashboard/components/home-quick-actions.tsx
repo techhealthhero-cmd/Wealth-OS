@@ -75,9 +75,10 @@ function IconBox({ children, soon }: { children: ReactNode; soon?: boolean }) {
 /**
  * Home quick actions (2026-10 "C — freelancer dashboard"). Plain labels in,
  * no data. "Log income" and "Scan slip" open the app shell's real Quick Add
- * flows (the income form; Quick Capture, whose camera/upload reads a slip
- * or receipt). Invoices and the tax jar are not built yet: their tiles say
- * so and open a short "coming soon" note — never a placeholder page.
+ * flows (the income form; the slip camera/file picker followed by Quick
+ * Capture’s parse results). Invoices and the tax jar are not built yet:
+ * their tiles say so and open a short "coming soon" note — never a
+ * placeholder page.
  */
 export function HomeQuickActions({ labels }: { labels: HomeQuickActionsLabels }) {
   const router = useRouter();
@@ -115,7 +116,7 @@ export function HomeQuickActions({ labels }: { labels: HomeQuickActionsLabels })
         <span>{labels.recordIncome}</span>
       </button>
       {soonTile(soonItems[1])}
-      <button type="button" className={TILE} onClick={() => request("capture")}>
+      <button type="button" className={TILE} onClick={() => request("scan")}>
         <IconBox>{ICONS.scan}</IconBox>
         <span>{labels.scanSlip}</span>
       </button>

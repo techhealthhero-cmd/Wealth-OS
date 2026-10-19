@@ -1,9 +1,14 @@
 import type { CaptureConfidence } from "@/types/database";
+import type { SubscriptionIntent } from "./subscription-intent";
 import type { CategorySource } from "./transaction-parser";
 import type { CaptureSaveInput } from "@/lib/validation/capture";
 
 /** What the Quick Capture preview card shows and lets the user adjust before saving. */
 export interface CaptureDraft {
+  subscription?: SubscriptionIntent | null;
+  subscriptionAccountMissing?: boolean;
+  cancelIntent?: { serviceQuery: string } | null;
+  addRecurring?: boolean;
   type: "expense" | "income";
   amountCents: number | null;
   categoryId: string | null;
@@ -20,7 +25,7 @@ export interface CaptureDraft {
 }
 
 export function canSaveDraft(draft: CaptureDraft): boolean {
-  return draft.amountCents !== null && draft.amountCents > 0 && Boolean(draft.accountId);
+  return !draft.cancelIntent && !draft.subscriptionAccountMissing && draft.amountCents !== null && draft.amountCents > 0 && Boolean(draft.accountId);
 }
 
 /**
@@ -39,6 +44,8 @@ export function buildCaptureSaveInput(draft: CaptureDraft, clientRequestId: stri
       ? draft.description.trim()
       : null;
   return {
+    ...(draft.type === "expense" && draft.subscription && draft.addRecurring !== false && (draft.subscription.serviceName || merchant)
+      ? { recurring: { frequency: draft.subscription.frequency, name: draft.subscription.serviceName || merchant! } } : {}),
     clientRequestId,
     type: draft.type,
     amountCents: draft.amountCents!,

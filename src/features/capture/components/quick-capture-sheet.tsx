@@ -53,6 +53,8 @@ import {
   type RecurringSuggestion,
 } from "@/features/capture/actions";
 import { prepareReceiptImage } from "@/features/capture/lib/image";
+import { parseCancelIntent } from "@/lib/capture/subscription-intent";
+import { SubscriptionCancelCard } from "./subscription-cancel-card";
 import { TransactionPreview } from "./transaction-preview";
 import { HoldToTalkButton } from "./hold-to-talk-button";
 import { RecapReview, type RecapRow } from "./recap-review";
@@ -72,6 +74,9 @@ interface QuickCaptureSheetProps {
   onTransfer: () => void;
   /** Words handed over from the voice notebook ("แก้ไข / พิมพ์เอง"), filled in on open. */
   initialText?: string | null;
+  /** Image selected by the shell’s already-mounted slip picker. */
+  initialImageFile?: File | null;
+  onInitialImageConsumed?: () => void;
 }
 
 type ReceiptState =
@@ -106,6 +111,8 @@ export function QuickCaptureSheet({
   onIncome,
   onTransfer,
   initialText = null,
+  initialImageFile = null,
+  onInitialImageConsumed,
 }: QuickCaptureSheetProps) {
   const { t, locale } = useTranslation();
   // A string-array dictionary entry (live-status steps), with a single-line fallback.
@@ -277,6 +284,9 @@ export function QuickCaptureSheet({
       if (recapRemoved.has(id)) return [];
       const aiCategory = recapAI[id];
       const base: CaptureDraft = {
+        subscription: item.subscription,
+        subscriptionAccountMissing: item.subscriptionAccountMissing,
+        cancelIntent: item.cancelIntent,
         type: item.type,
         amountCents: item.amountCents,
         categoryId: aiCategory ?? item.categoryId,
@@ -403,6 +413,9 @@ export function QuickCaptureSheet({
     if (!localParsed) return null;
     const parsed = aiReading ? mergeAIParse(textKey, localParsed, aiReading, ctx) : localParsed;
     return {
+      subscription: parsed.subscription,
+      subscriptionAccountMissing: parsed.subscriptionAccountMissing,
+      cancelIntent: parsed.cancelIntent,
       type: parsed.type,
       amountCents: parsed.amountCents,
       categoryId: parsed.categoryId,
@@ -527,6 +540,20 @@ export function QuickCaptureSheet({
     }
   }
 
+  const appliedInitialImageRef = useRef<File | null>(null);
+  // Check each render so handleImage uses current capture state. The ref also
+  // prevents Strict Mode effect replay from starting a second scan.
+  useEffect(() => {
+    if (!initialImageFile) {
+      appliedInitialImageRef.current = null;
+      return;
+    }
+    if (!open || appliedInitialImageRef.current === initialImageFile) return;
+    appliedInitialImageRef.current = initialImageFile;
+    void handleImage(initialImageFile);
+    onInitialImageConsumed?.();
+  });
+
   // ---------------------------------------------------------------- save
 
   function patchDraft(patch: Partial<CaptureDraft>) {
@@ -565,7 +592,7 @@ export function QuickCaptureSheet({
 
   async function save(options: { skipDuplicateCheck?: boolean } = {}) {
     const draft = activeDraft;
-    if (!draft || saving) return;
+    if (!draft || saving || draft.cancelIntent || (receipt.status === "idle" && parseCancelIntent(text))) return;
     if (transferIntent && draft.amountCents !== null) {
       const fromId = transferSide("from");
       const toId = transferSide("to");
@@ -659,6 +686,7 @@ export function QuickCaptureSheet({
             }
           : undefined,
       });
+      if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
       if (result.recurringSuggestion) showRecurringPrompt(result.recurringSuggestion, draft);
 
       setClientRequestId(crypto.randomUUID());
@@ -701,6 +729,7 @@ export function QuickCaptureSheet({
       try {
         const result = payload ? await saveCapturedTransaction(payload) : null;
         if (result?.success) {
+          if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
           savedRowIds.push(row.id);
           if (result.transactionId) savedTransactionIds.push(result.transactionId);
           delete recapRequestIdsRef.current[row.id];
@@ -1012,7 +1041,10 @@ export function QuickCaptureSheet({
               />
             ) : null}
 
-            {activeDraft && transferIntent && receipt.status !== "scanning" && !recapMode ? (
+            {activeDraft?.cancelIntent ? (
+              <SubscriptionCancelCard key={activeDraft.cancelIntent.serviceQuery} serviceQuery={activeDraft.cancelIntent.serviceQuery}
+                onCancelled={() => { resetAll(); onOpenChange(false); }} />
+            ) : activeDraft && transferIntent && receipt.status !== "scanning" && !recapMode ? (
               <TransferPreview
                 intent={transferIntent}
                 accounts={accounts}

@@ -22,6 +22,7 @@ import {
   KNOWN_MERCHANTS,
   LEADING_VERBS,
 } from "./keywords";
+import { hasExplicitSubscriptionIntent, parseCancelIntent, parseSubscriptionIntent, type SubscriptionIntent } from "./subscription-intent";
 import { findSpokenDateMention } from "./capture-date";
 
 export interface CaptureAccount {
@@ -77,9 +78,12 @@ export interface ParseContext {
 
 export type CategorySource = "learned" | "keyword" | "ai" | "fallback";
 /** matched = named in the words · merchant = the shop's set account · default = first account. */
-export type AccountSource = "matched" | "merchant" | "default";
+export type AccountSource = "matched" | "merchant" | "subscription" | "default";
 
 export interface ParsedCapture {
+  subscription?: SubscriptionIntent | null;
+  subscriptionAccountMissing?: boolean;
+  cancelIntent?: { serviceQuery: string } | null;
   isEmergencyFundDraw: boolean;
   /** Intent could not resolve an active emergency account. Default retained; not a merchant suggestion. */
   emergencyFundAccountMissing?: boolean;
@@ -410,6 +414,19 @@ export interface CategorySuggestion {
   source: CategorySource | null;
 }
 
+function keywordCategory(text: string, merchant: string | null, type: "expense" | "income", ctx: ParseContext): CaptureCategory | null {
+  const dictionary = type === "income" ? INCOME_CATEGORY_KEYWORDS : EXPENSE_CATEGORY_KEYWORDS;
+  const hit = longestMatch(
+    `${normalizeText(text).toLowerCase()} ${merchant ? merchant.toLowerCase() : ""}`.trim(),
+    Object.entries(dictionary).map(([key, keywords]) => ({ value: key, keywords }))
+  );
+  return hit ? categoryByKey(ctx, hit.value, type) : null;
+}
+
+function shouldUseSubscriptionDefaults(text: string, merchant: string | null, ctx: ParseContext): boolean {
+  return hasExplicitSubscriptionIntent(text) || !keywordCategory(text, merchant, "expense", ctx);
+}
+
 /**
  * Category for a capture: the user's learned preference for this merchant
  * first, then the keyword dictionary, then the type's "Other" category.
@@ -422,8 +439,6 @@ export function suggestCategory(
   ctx: ParseContext
 ): CategorySuggestion {
   const validIds = new Set(ctx.categories.filter((c) => c.type === type || c.type === "both").map((c) => c.id));
-  const lower = normalizeText(text).toLowerCase();
-
   // 1) learned — exact merchant key first, then any learned key present in the text.
   // Stored keys are normalizeMerchant() output, so the text is searched in that
   // same normalized form — searching raw text missed any key whose punctuation
@@ -440,16 +455,20 @@ export function suggestCategory(
     .find((p) => findKeyword(normalizedText, p.merchant_normalized));
   if (learnedInText) return { categoryId: learnedInText.category_id, source: "learned" };
 
-  // 2) keywords
-  const dictionary = type === "income" ? INCOME_CATEGORY_KEYWORDS : EXPENSE_CATEGORY_KEYWORDS;
-  const hit = longestMatch(
-    `${lower} ${merchant ? merchant.toLowerCase() : ""}`.trim(),
-    Object.entries(dictionary).map(([key, keywords]) => ({ value: key, keywords }))
-  );
-  if (hit) {
-    const category = categoryByKey(ctx, hit.value, type);
-    if (category) return { categoryId: category.id, source: "keyword" };
+  // Learned preferences win. Cadence-only bills keep their generic keyword category.
+  const accountMention = matchAccount(text, ctx.accounts);
+  const subscriptionText = accountMention?.span ? removeSpan(normalizeText(text), accountMention.span) : text;
+  if (type === "expense" && parseSubscriptionIntent(subscriptionText) && shouldUseSubscriptionDefaults(subscriptionText, merchant, ctx)) {
+    const pool = ctx.categories.filter((c) => c.type === "expense" || c.type === "both");
+    const subscription = categoryByKey(ctx, "Subscriptions", type)
+      ?? pool.find((c) => /subscription|สมาชิก|ซับ|บริการรายเดือน/i.test(`${c.name_en} ${c.name_th}`))
+      ?? ["Entertainment", "Bills", "Utilities"].map((key) => categoryByKey(ctx, key, type)).find(Boolean);
+    if (subscription) return { categoryId: subscription.id, source: "keyword" };
   }
+
+  // 2) keywords
+  const category = keywordCategory(text, merchant, type, ctx);
+  if (category) return { categoryId: category.id, source: "keyword" };
 
   // 3) fallback
   const other = categoryByKey(ctx, "Other", type);
@@ -667,6 +686,12 @@ function cleanDescription(text: string): string | null {
 // ---------------------------------------------------------------------------
 
 export function parseCaptureText(input: string, ctx: ParseContext): ParsedCapture {
+  const cancelIntent = parseCancelIntent(normalizeText(input));
+  if (cancelIntent) return {
+    cancelIntent, isEmergencyFundDraw: false, type: "expense", amountCents: null,
+    categoryId: null, categorySource: null, accountId: null, accountSource: null,
+    merchant: null, description: null, date: ctx.today, confidence: "low", missing: ["amount", "account"],
+  };
   const emergency = stripEmergencySource(normalizeText(input));
   const text = emergency.text;
   const lower = text.toLowerCase();
@@ -709,15 +734,20 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
       : null
     : (amountHit?.cents ?? null);
 
-  const merchant = merchantHit?.name ?? null;
-  const description = counted
+  const namedAccountSpan = accountHit ? matchAccount(dated, ctx.accounts)?.span : null;
+  const subscriptionText = namedAccountSpan ? removeSpan(dated, namedAccountSpan) : dated;
+  const subscription = parseSubscriptionIntent(subscriptionText);
+  const subscriptionMerchant = subscription?.serviceName ?? merchantHit?.name ?? null;
+  const subscriptionDefaults = !!subscription && shouldUseSubscriptionDefaults(subscriptionText, subscriptionMerchant, ctx);
+  const merchant = subscriptionDefaults ? subscriptionMerchant : merchantHit?.name ?? null;
+  const description = subscriptionDefaults ? merchant : counted
     ? `${counted.count} ${counted.unit?.unit_label ?? counted.word}`
     : (cleanDescription(working) ?? merchant);
   // Learning decides the TYPE too: once the user has filed "แม่ให้" under an
   // income category, the same words read as income next time even without
   // an explicit marker. Explicit markers ("+", "รายรับ") still win. A unit
   // carries its own type; an unpriced "ได้ N <unit>" is something received.
-  const type = counted
+  const type = subscription ? "expense" : counted
     ? (counted.unit?.type ?? "income")
     : learnedTypeOverride(lower, text, merchant, detectedType, ctx);
   const unitCategory = counted?.unit?.category_id
@@ -733,11 +763,13 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
   const isEmergencyFundDraw = emergency.detected && type === "expense";
   const emergencyId = isEmergencyFundDraw ? emergencyAccount(ctx) : null;
   const emergencyFundAccountMissing = isEmergencyFundDraw && !emergencyId;
+  const subscriptionId = subscriptionDefaults ? ctx.accounts.find((a) => !a.is_archived && /\bsub(scription)?s?\b|ซับ|สมาชิก|รายเดือน/i.test(`${a.name} ${a.purpose ?? ""}`))?.id : null;
+  const subscriptionAccountMissing = subscriptionDefaults && !accountHit && !shopAccount && !subscriptionId && !isEmergencyFundDraw;
   const accountId = isEmergencyFundDraw
     ? emergencyId ?? defaultAccountId(ctx.accounts)
-    : accountHit?.accountId ?? shopAccount ?? defaultAccountId(ctx.accounts);
+    : accountHit?.accountId ?? shopAccount ?? subscriptionId ?? defaultAccountId(ctx.accounts);
   const suggestedAccountId =
-    !isEmergencyFundDraw && !accountHit && !shopAccount && merchant
+    !subscriptionDefaults && !isEmergencyFundDraw && !accountHit && !shopAccount && merchant
       ? (accountsNamedForMerchant(merchant, ctx.accounts).find((id) => id !== accountId) ?? null)
       : null;
 
@@ -753,6 +785,8 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
       : "high";
 
   return {
+    subscription,
+    subscriptionAccountMissing,
     isEmergencyFundDraw,
     emergencyFundAccountMissing,
     type,
@@ -762,7 +796,7 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
     accountId,
     accountSource: isEmergencyFundDraw
       ? emergencyId ? "matched" : accountId ? "default" : null
-      : accountHit ? "matched" : shopAccount ? "merchant" : accountId ? "default" : null,
+      : accountHit ? "matched" : shopAccount ? "merchant" : subscriptionId ? "subscription" : accountId ? "default" : null,
     merchant,
     description,
     date,

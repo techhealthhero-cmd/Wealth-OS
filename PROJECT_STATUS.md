@@ -8,6 +8,15 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-10-19
 
+## Subscription capture and cancellation — 2026-10-19
+
+- Voice/text capture recognizes explicit subscription signup/renewal and monthly/yearly cadence, extracts the service, and uses the existing สมาชิก/Subscription category. Learned merchant categories and named/merchant accounts take precedence; otherwise an active subscription account is preferred. Missing subscription accounts require a user choice before save, without warning about the unchosen default's balance.
+- Text preview, recap and voice notebook show subscription cadence/service and an enabled-by-default recurring checkbox. Capture saves the payment first, then creates the recurring schedule through the same validated internal helper as manual creation. The next due date is one interval after the payment; scheduling errors are reported without reversing the payment. Active merchants and capture retries are deduplicated, including concurrent capture confirms.
+- Thai/English cancellation commands replace expense capture with an explicit confirmation card. Matching ignores case/spacing and supports substring/simple similarity, with an explicit choice for ambiguity. The authenticated action deactivates only the user's schedule and sets end_date to today (or a future start_date). Past payments remain unchanged, and stale confirm buttons cannot post cancelled/ended schedules.
+- Calendar tests cover the next monthly/yearly date and removal of cancelled/ended future occurrences. Upcoming bills also excludes due dates beyond end_date. TH/EN copy is included. No migration, schema or RLS change is required or performed.
+- Verified locally: route typegen + TypeScript and changed TS/TSX ESLint pass; full Vitest runner loader passes (123 files / 1507 tests). Browser/device QA was not run; no production data accessed, commits or pushes performed.
+
+
 ## Maintenance: fresh-clone checks + Node 22 pin — 2026-10-19
 
 - QA baseline from a fresh clone of `main` at `1be3c58`: Vitest 1023/1023
