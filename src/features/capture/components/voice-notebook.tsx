@@ -24,16 +24,18 @@ import {
   type MerchantAccountPref,
 } from "@/features/accounts/actions";
 import { isAccountPrivacyRedacted } from "@/features/account-privacy/account-redaction";
-import { getCaptureEmergencyFundAccountId, getCapturePreferences, saveCapturedTransaction } from "@/features/capture/actions";
+import { getCaptureEmergencyFundAccountId, getCapturePreferences } from "@/features/capture/actions";
 import { getCaptureUnits, getIncomeSourceUnits, saveCaptureUnit, type CaptureUnitRow } from "@/features/capture/units";
 import { mergeCaptureUnits, toCaptureUnits } from "@/lib/capture/units";
 import type { AccountSource, CaptureMerchantPreference, ParseContext } from "@/lib/capture/transaction-parser";
 import { parseRecap } from "@/lib/capture/recap";
 import { detectTransferIntent, type AccountSlot, type TransferIntent } from "@/lib/capture/transfer";
-import { buildCaptureSaveInput, canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
+import { buildCaptureSaveInput, canSaveDraft, smartCaptureNeedsAnswer, type CaptureDraft } from "@/lib/capture/draft";
 
 import { parseCancelIntent } from "@/lib/capture/subscription-intent";
+import { SmartCaptureFields } from "./smart-capture-fields";
 import { SubscriptionFields } from "./subscription-fields";
+import { saveCaptureDraft } from "../save-capture-draft";
 import { SubscriptionCancelCard } from "./subscription-cancel-card";
 
 interface VoiceNotebookProps {
@@ -118,6 +120,7 @@ export function VoiceNotebook({
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
   }, [transcript, open]);
+  const [smartChoices, setSmartChoices] = useState<Record<string, Partial<CaptureDraft>>>({});
   const [recurringChoices, setRecurringChoices] = useState<Record<string, boolean>>({});
   const [emergencyFundAccountId, setEmergencyFundAccountId] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<CaptureMerchantPreference[]>([]);
@@ -238,6 +241,7 @@ export function VoiceNotebook({
     return parseRecap(parseText, ctx).map((item, i) => ({
       id: `${i}:${item.sourceText}`,
       draft: {
+        smart: item.smart,
         subscription: item.subscription,
         subscriptionAccountMissing: item.subscriptionAccountMissing,
         cancelIntent: item.cancelIntent,
@@ -252,6 +256,7 @@ export function VoiceNotebook({
         confidence: item.confidence,
         source: "voice",
         categoryConfirmedByUser: false,
+        ...smartChoices[`${i}:${item.sourceText}`],
       },
       transfer: detectTransferIntent(item.sourceText, aliasedAccounts),
       accountSource: item.accountSource,
@@ -259,7 +264,7 @@ export function VoiceNotebook({
       unit: item.unit ?? null,
       unknownUnit: item.unknownUnit ?? null,
     }));
-  }, [parseText, ctx, aliasedAccounts]);
+  }, [parseText, ctx, aliasedAccounts, smartChoices]);
   /** A transfer side's account: the user's tap wins, then a match from the words; null = still to pick. */
   const sideAccount = (row: Row, side: Side): string | null => {
     if (side === "pay") return picks[row.id]?.pay ?? row.draft.accountId;
@@ -275,7 +280,7 @@ export function VoiceNotebook({
   const needsShopAnswer = (row: Row) =>
     !row.transfer && row.suggestedAccountId !== null && !picks[row.id]?.pay && row.draft.amountCents !== null;
   const unresolved = rows.filter(
-    (r) => (r.transfer && r.draft.amountCents !== null && !transferReady(r)) || needsShopAnswer(r) || (r.draft.subscriptionAccountMissing && !picks[r.id]?.pay) || (!r.transfer && r.unknownUnit)
+    (r) => (r.transfer && r.draft.amountCents !== null && !transferReady(r)) || needsShopAnswer(r) || (r.draft.subscriptionAccountMissing && !picks[r.id]?.pay) || smartCaptureNeedsAnswer(r.draft) || (!r.transfer && r.unknownUnit)
   ).length;
   const saveable = rows.filter((r) => (r.transfer ? r.draft.amountCents !== null && transferReady(r) : canSaveDraft({ ...r.draft, subscriptionAccountMissing: r.draft.subscriptionAccountMissing && !picks[r.id]?.pay })));
 
@@ -455,7 +460,7 @@ export function VoiceNotebook({
           if (result.success) {
             saved += 1;
             lastAmount = row.draft.amountCents;
-            if (result.transactionId) savedIds.push(result.transactionId);
+            if (result.transactionId && (!row.draft.smart || row.draft.smartAssetAccepted === false)) savedIds.push(result.transactionId);
             delete requestIdsRef.current[row.id];
           } else failed += 1;
         } catch {
@@ -470,12 +475,13 @@ export function VoiceNotebook({
         requestId
       );
       try {
-        const result = payload ? await saveCapturedTransaction(payload) : null;
+        const result = payload ? await saveCaptureDraft(row.draft, payload) : null;
         if (result?.success) {
           if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
+          if (result.assetError || result.liabilityError) toast.error(t("capture.smart.partialFailed"));
           saved += 1;
           lastAmount = payload!.amountCents;
-          if (result.transactionId) savedIds.push(result.transactionId);
+          if (result.transactionId && (!row.draft.smart || row.draft.smartAssetAccepted === false)) savedIds.push(result.transactionId);
           delete requestIdsRef.current[row.id];
           if (!reviewed) needsReview += 1;
         } else failed += 1;
@@ -495,7 +501,7 @@ export function VoiceNotebook({
         icon: <SuccessBadge />,
         description:
           saved > 1 && needsReview > 0 ? t("capture.recap.savedReview").replace("{n}", String(needsReview)) : undefined,
-        action: savedIds.length
+        action: savedIds.length && !saveable.some((r) => r.draft.smart && r.draft.smartAssetAccepted !== false)
           ? {
               label: t("capture.undo"),
               onClick: async () => {
@@ -640,6 +646,7 @@ export function VoiceNotebook({
                       <span className="text-sm text-amber-700 dark:text-amber-400">{t("capture.voice.noAmount")}</span>
                     )}
                   </div>
+                  <SmartCaptureFields draft={d} onChange={(patch) => setSmartChoices((prev) => ({ ...prev, [row.id]: { ...prev[row.id], ...patch } }))} />
                   <SubscriptionFields draft={{ ...d, subscriptionAccountMissing: d.subscriptionAccountMissing && !picks[row.id]?.pay, addRecurring: recurringChoices[row.id] !== false }} accounts={accounts}
                     onChange={(patch) => {
                       if (patch.accountId) pick(row.id, "pay", patch.accountId);

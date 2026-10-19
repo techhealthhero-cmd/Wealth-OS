@@ -1,3 +1,4 @@
+import { maskPurchasePlanNumbers, purchasePlanParameterEnds } from "./purchase-intent";
 import { parseCancelIntent } from "./subscription-intent";
 /**
  * Daily money recap — one long spoken/typed sentence → many transactions.
@@ -155,10 +156,10 @@ export function splitRecap(input: string, unitWords: string[] = []): string[] {
   // normalizeText collapses newlines — keep them as item separators first.
   const text = normalizeText(input.replace(/\r?\n+/g, " ; "));
   if (!text) return [];
-  const masked = maskNonAmounts(text);
+  const masked = maskNonAmounts(maskPurchasePlanNumbers(text));
 
   // Hard separators (newline, ;, a comma that isn't a thousands separator).
-  const cuts = new Set<number>();
+  const cuts = new Set<number>(purchasePlanParameterEnds(text));
   for (const m of masked.matchAll(/\n|;|,(?!\d{3}(?!\d))/g)) cuts.add(m.index! + m[0].length);
   // Each real amount ends an item. A count of a priced unit ("ได้ 10 ดื่ม")
   // ends it after the unit word instead.
@@ -182,7 +183,7 @@ export function splitRecap(input: string, unitWords: string[] = []): string[] {
   raw.push(text.slice(start));
 
   const items: string[] = [];
-  for (const piece of raw) {
+  for (const [pieceIndex, piece] of raw.entries()) {
     let cleaned = stripLeading(piece.replace(/^[\s,;]+|[\s,;]+$/g, ""), [...PREAMBLES, ...LEADING_CONNECTORS]);
     if (!cleaned) continue;
     // "ข้าว 40 จ่ายเงินสด แล้วก็กาแฟ 60": the payment words after an amount
@@ -195,6 +196,12 @@ export function splitRecap(input: string, unitWords: string[] = []): string[] {
       items[items.length - 1] = `${items[items.length - 1]} ${cleaned.slice(0, cutAt).trim()}`;
       cleaned = stripLeading(cleaned.slice(cutAt), LEADING_CONNECTORS);
       if (!cleaned) continue;
+    }
+    // Parameters carry numbers but belong to the preceding purchase/borrowing.
+    if (items.length && !/[;,]\s*$/.test(raw[pieceIndex - 1] ?? "") && !/ผ่อน(?:รถ|บ้าน|หนี้)?งวดนี้/.test(cleaned) && /^(?:ดาวน์|down payment|ผ่อน|ดอก|interest|เดือนละ|งวดละ|\d+\s*(?:เดือน|ปี|งวด|months?|years?))/i.test(cleaned)
+      && /ซื้อ|ถอย|ออกรถ|สั่งซื้อ|จัด|กู้|ยืมเงิน|กยศ|\bbuy\b|\bbought\b|\bborrow/i.test(items[items.length - 1])) {
+      items[items.length - 1] += ` ${cleaned}`;
+      continue;
     }
     const hasAmount = [...cleaned.matchAll(AMOUNT_PATTERN)].length > 0;
     const prev = items.length - 1;

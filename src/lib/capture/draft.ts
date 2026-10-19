@@ -1,3 +1,4 @@
+import { resolveSmartCapture, type SmartCaptureIntent, type RatePeriod } from "./purchase-intent";
 import type { CaptureConfidence } from "@/types/database";
 import type { SubscriptionIntent } from "./subscription-intent";
 import type { CategorySource } from "./transaction-parser";
@@ -5,6 +6,9 @@ import type { CaptureSaveInput } from "@/lib/validation/capture";
 
 /** What the Quick Capture preview card shows and lets the user adjust before saving. */
 export interface CaptureDraft {
+  smart?: SmartCaptureIntent | null;
+  smartAssetAccepted?: boolean;
+  smartRatePeriod?: RatePeriod;
   subscription?: SubscriptionIntent | null;
   subscriptionAccountMissing?: boolean;
   cancelIntent?: { serviceQuery: string } | null;
@@ -24,8 +28,30 @@ export interface CaptureDraft {
   categoryConfirmedByUser: boolean;
 }
 
+export function effectiveSmartIntent(draft: CaptureDraft): SmartCaptureIntent | null {
+  if (!draft.smart) return null;
+  const s = { ...draft.smart };
+  if (draft.amountCents !== null) {
+    if (s.kind === "asset_installment") s.downPaymentCents = draft.amountCents;
+    else s.priceCents = draft.amountCents;
+  }
+  s.principalCents = s.kind === "loan" ? s.priceCents : s.priceCents - s.downPaymentCents;
+  try { return resolveSmartCapture(s, draft.date, draft.smartRatePeriod); } catch { return null; }
+}
+
+/** Required smart decisions must not be silently skipped in a multi-item save. */
+export function smartCaptureNeedsAnswer(draft: CaptureDraft): boolean {
+  const s = draft.smart;
+  return !!s && ((s.kind === "asset_cash" && s.assetDecision === "ask" && draft.smartAssetAccepted === undefined)
+    || (s.ratePeriodNeedsConfirm && !draft.smartRatePeriod));
+}
+
 export function canSaveDraft(draft: CaptureDraft): boolean {
-  return !draft.cancelIntent && !draft.subscriptionAccountMissing && draft.amountCents !== null && draft.amountCents > 0 && Boolean(draft.accountId);
+  const smart = effectiveSmartIntent(draft);
+  if (draft.smart && (!smart || smart.priceCents <= 0 || smart.principalCents < 0)) return false;
+  if (smartCaptureNeedsAnswer(draft)) return false;
+  const zeroDown = smart?.kind === "asset_installment" && draft.amountCents === 0;
+  return !draft.cancelIntent && !draft.subscriptionAccountMissing && draft.amountCents !== null && (draft.amountCents > 0 || zeroDown) && Boolean(draft.accountId);
 }
 
 /**

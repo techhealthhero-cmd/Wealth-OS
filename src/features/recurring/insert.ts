@@ -14,12 +14,12 @@ export async function insertRecurringTransaction(
   userId: string,
   input: unknown,
   dict: Dictionary,
-  options: { paymentAlreadyPosted?: boolean; deduplicateMerchant?: boolean; resumeInactive?: boolean } = {}
+  options: { idempotencyId?: string; paymentAlreadyPosted?: boolean; deduplicateMerchant?: boolean; resumeInactive?: boolean } = {}
 ): Promise<{ error?: string; created: boolean; alreadyExists?: boolean }> {
   const parsed = buildRecurringTransactionSchema(dict).safeParse(input);
   if (!parsed.success) return { created: false, error: parsed.error.issues[0]?.message ?? dict.common.invalidInput };
   const d = parsed.data;
-  let id: string | undefined;
+  let id: string | undefined = options.idempotencyId;
   if (options.deduplicateMerchant && d.merchant) {
     // Escape ILIKE wildcards: dedupe an exact merchant, not a pattern supplied by a user.
     const escaped = d.merchant.replace(/[\\%_]/g, "\\$&");

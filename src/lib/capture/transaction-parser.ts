@@ -23,6 +23,7 @@ import {
   LEADING_VERBS,
 } from "./keywords";
 import { hasExplicitSubscriptionIntent, parseCancelIntent, parseSubscriptionIntent, type SubscriptionIntent } from "./subscription-intent";
+import { parsePurchaseIntent, type SmartCaptureIntent } from "./purchase-intent";
 import { findSpokenDateMention } from "./capture-date";
 
 export interface CaptureAccount {
@@ -81,6 +82,7 @@ export type CategorySource = "learned" | "keyword" | "ai" | "fallback";
 export type AccountSource = "matched" | "merchant" | "subscription" | "default";
 
 export interface ParsedCapture {
+  smart?: SmartCaptureIntent | null;
   subscription?: SubscriptionIntent | null;
   subscriptionAccountMissing?: boolean;
   cancelIntent?: { serviceQuery: string } | null;
@@ -698,6 +700,7 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
   const detectedType = detectType(lower);
   const dateHit = extractCaptureDate(lower, ctx.today);
   const date = dateHit.date;
+  const smart = parsePurchaseIntent(dateHit.span ? removeSpan(text, dateHit.span) : text, date);
 
   // A spoken date ("วันที่ 8 ตุลาคม") goes first, so its day can't become
   // the amount or stay in the description.
@@ -728,7 +731,7 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
 
   const amountHit = counted ? null : extractAmount(working);
   if (amountHit) working = removeSpan(working, amountHit.span);
-  const amountCents = counted
+  const amountCents = smart ? smart.amountCents : counted
     ? perUnitCents !== null
       ? Math.round(counted.count * perUnitCents)
       : null
@@ -747,7 +750,7 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
   // income category, the same words read as income next time even without
   // an explicit marker. Explicit markers ("+", "รายรับ") still win. A unit
   // carries its own type; an unpriced "ได้ N <unit>" is something received.
-  const type = subscription ? "expense" : counted
+  const type = smart ? (smart.kind === "loan" ? "income" : "expense") : subscription ? "expense" : counted
     ? (counted.unit?.type ?? "income")
     : learnedTypeOverride(lower, text, merchant, detectedType, ctx);
   const unitCategory = counted?.unit?.category_id
@@ -785,6 +788,7 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
       : "high";
 
   return {
+    ...(smart ? { smart } : {}),
     subscription,
     subscriptionAccountMissing,
     isEmergencyFundDraw,
