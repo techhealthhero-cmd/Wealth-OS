@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- INFRA-SIN1-STAGING — Owner: Codex; READY FOR HANDOFF. Minimal region/allow-list/tests/README edits complete. Focused Vitest: 2 files / 37 tests passed with --configLoader runner (default loader blocked by read-only node_modules). Requested tsc failed: existing missing LayoutProps in src/app/layout.tsx:93. No env/secrets, commit or push.
+
 - SAFE-TO-SPEND-APPROVED — Owner: Codex; READY FOR HANDOFF to supervisor; user approved on 2026-10-19 at 21:14 Asia/Bangkok (PR #31). Approval-only update in the five requested files; no calculation changes. Focused tests 34/34, typecheck, ESLint (Markdown ignored), full suite 139 files / 1928 tests and diff check passed. Changes uncommitted; supervisor handles commit/push/PR.
 
 อัปเดตตารางนี้ทุกครั้งที่รับหรือส่งต่องาน เก็บเฉพาะงานที่กำลังทำและงานถัดไปใกล้ที่สุด
@@ -211,6 +213,12 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → owner (INFRA-SIN1-STAGING)
+
+- Changed staging functions to sin1; exact-host Set accepts Singapore and rollback Tokyo staging. Existing safety checks/messages and rejection cases retained; added both requested Singapore spoof rejections. README documents production icn1 until functions/DB move together.
+- Validation: requested Vitest startup blocked by read-only node_modules; rerun with --configLoader runner passed (2 files / 37 tests). Requested `npx tsc --noEmit -p .` failed with TS2304, missing LayoutProps at src/app/layout.tsx:93; unrelated source left unchanged. Diff check passed; vercel.json verified byte-identical except region replacement.
+- Changes uncommitted on infra/sin1-staging; no push, env/secrets edits or deployment. Next: owner review; generated Next.js types needed for a clean typecheck.
 
 ### 2026-10-19 — Codex → supervisor (NLP-PHASE1)
 
