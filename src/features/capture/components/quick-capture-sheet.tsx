@@ -45,6 +45,7 @@ import {
   assistRecapCategories,
   checkCaptureDuplicate,
   dismissRecurringSuggestion,
+  getCaptureEmergencyFundAccountId,
   getCapturePreferences,
   saveCapturedTransaction,
   scanReceipt,
@@ -150,6 +151,7 @@ export function QuickCaptureSheet({
   const [text, setText] = useState("");
   const [textSource, setTextSource] = useState<"quick_text" | "voice">("quick_text");
   const [overrides, setOverrides] = useState<Partial<CaptureDraft>>({});
+  const [emergencyFundAccountId, setEmergencyFundAccountId] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<CaptureMerchantPreference[]>([]);
   // Per-unit prices ("ดื่ม" = ฿200): "ได้ 10 ดื่ม" is 10 × the price.
   const [unitSources, setUnitSources] = useState<{ saved: CaptureUnit[]; income: { unit_label: string; unit_rate: string }[] }>({ saved: [], income: [] });
@@ -211,10 +213,11 @@ export function QuickCaptureSheet({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    Promise.all([getCapturePreferences(), getAccountAliases(), getCaptureUnits(), getIncomeSourceUnits()])
-      .then(([prefs, accountAliases, unitRows, incomeUnits]) => {
+    Promise.all([getCapturePreferences(), getAccountAliases(), getCaptureUnits(), getIncomeSourceUnits(), getCaptureEmergencyFundAccountId()])
+      .then(([prefs, accountAliases, unitRows, incomeUnits, emergencyId]) => {
         if (cancelled) return;
         setPreferences(prefs);
+        setEmergencyFundAccountId(emergencyId);
         setAliases(accountAliases);
         setUnitSources({ saved: toCaptureUnits(unitRows), income: incomeUnits });
       })
@@ -227,6 +230,7 @@ export function QuickCaptureSheet({
   const ctx: ParseContext = useMemo(
     () => ({
       accounts,
+      emergencyFundAccountId,
       categories,
       merchantPreferences: preferences,
       units: mergeCaptureUnits(
@@ -236,7 +240,7 @@ export function QuickCaptureSheet({
       ),
       today: toLocalDateString(new Date()),
     }),
-    [accounts, categories, preferences, unitSources]
+    [accounts, emergencyFundAccountId, categories, preferences, unitSources]
   );
 
   // Fresh per-open AI budget.

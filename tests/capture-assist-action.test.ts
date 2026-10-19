@@ -35,6 +35,7 @@ const accounts = [
 class Query {
   constructor(private table: string) {}
   select() { return this; }
+  maybeSingle() { return Promise.resolve({ data: null, error: null }); }
   eq() { return this; }
   order() { return this; }
   limit() { return this; }

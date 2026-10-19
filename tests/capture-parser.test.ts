@@ -250,3 +250,55 @@ describe("extractAmount", () => {
     expect(extractAmount("ข้าว")).toBeNull();
   });
 });
+
+describe("emergency-fund source intent", () => {
+  const sentence = "ตอนนี้ใช้เงินกระเป๋าสำรองฉุกเฉินอยู่ กินเบอร์เกอร์ 20";
+  const fund = { ...CTX.accounts[0], id: "fund", name: "Savings", purpose: "เงินสำรองฉุกเฉิน" };
+  it("cleans source chatter and flags an unresolved source while retaining the default", () => {
+    expect(parseCaptureText(sentence, CTX)).toMatchObject({ type: "expense", amountCents: 2000,
+      categoryId: "cat-food", description: "เบอร์เกอร์", accountId: "acc-kbank",
+      accountSource: "default", isEmergencyFundDraw: true, emergencyFundAccountMissing: true });
+  });
+  it.each(["purpose", "name", "linked"])("resolves by %s", (mode) => {
+    const account = mode === "name" ? { ...fund, purpose: null, name: "Emergency fund" } :
+      mode === "linked" ? { ...fund, purpose: null } : fund;
+    const ctx = { ...CTX, accounts: [...CTX.accounts, account], emergencyFundAccountId: mode === "linked" ? "fund" : null };
+    expect(parseCaptureText(sentence, ctx)).toMatchObject({ accountId: "fund", accountSource: "matched",
+      isEmergencyFundDraw: true, emergencyFundAccountMissing: false, description: "เบอร์เกอร์" });
+    expect(parseCaptureText(`${sentence} cash`, ctx).accountId).toBe("fund");
+  });
+  it("prioritizes a valid link over purpose, bank hints and merchant preferences", () => {
+    const ctx = { ...CTX, accounts: [...CTX.accounts, fund], emergencyFundAccountId: "acc-kbank",
+      merchantAccounts: [{ merchant_normalized: "kfc", account_id: "acc-cash" }] };
+    expect(parseCaptureText("ใช้เงินฉุกเฉิน kfc 50 cash", ctx)).toMatchObject({
+      accountId: "acc-kbank", accountSource: "matched", isEmergencyFundDraw: true,
+      emergencyFundAccountMissing: false, suggestedAccountId: null });
+  });
+  it("flags a missing source even when no default exists", () => {
+    expect(parseCaptureText(sentence, { ...CTX, accounts: [] })).toMatchObject({
+      accountId: null, isEmergencyFundDraw: true, emergencyFundAccountMissing: true, missing: ["account"] });
+  });
+  it("ignores archived and unknown links, falling back to active name/purpose", () => {
+    for (const id of ["old-fund", "unknown"]) {
+      const ctx = { ...CTX, emergencyFundAccountId: id, accounts: [...CTX.accounts,
+        { ...fund, id: "old-fund", is_archived: true }, fund] };
+      expect(parseCaptureText(sentence, ctx).accountId).toBe("fund");
+      expect(parseCaptureText(sentence, { ...ctx, accounts: ctx.accounts.filter((a) => a.id !== "fund") })
+        .emergencyFundAccountMissing).toBe(true);
+    }
+  });
+  it.each(["เงินสำรองฉุกเฉิน", "เงินสำรอง ฉุกเฉิน", "กระเป๋าสำรองฉุกเฉิน", "กระเป๋าฉุกเฉิน", "เงินฉุกเฉิน", "บัญชีฉุกเฉิน", "กองทุนฉุกเฉิน", "emergency fund", "emergency"])("recognizes %s", (source) => {
+    expect(parseCaptureText(`ใช้${source} ข้าว 50`, CTX)).toMatchObject({ amountCents: 5000, categoryId: "cat-food", description: "ข้าว", isEmergencyFundDraw: true });
+  });
+  it("supports English food and leaves ordinary captures unchanged", () => {
+    expect(parseCaptureText("emergency fund burger 120", CTX)).toMatchObject({ amountCents: 12000, description: "burger", categoryId: "cat-food", isEmergencyFundDraw: true });
+    expect(parseCaptureText("ข้าว 80 cash", CTX).isEmergencyFundDraw).toBe(false);
+    expect(parseCaptureText("ซื้อกระเป๋า 500", CTX)).toMatchObject({ categoryId: "cat-shopping", isEmergencyFundDraw: false });
+    expect(parseCaptureText("เงินสำรอง 500", CTX).isEmergencyFundDraw).toBe(false);
+    expect(parseCaptureText("ได้รับเงินฉุกเฉิน 500", CTX).isEmergencyFundDraw).toBe(false);
+    expect(parseCaptureText("nonemergency burger 120", CTX).isEmergencyFundDraw).toBe(false);
+  });
+  it.each(["เบอร์เกอร์", "เบอเกอร์", "burger", "แฮมเบอร์เกอร์", "hamburger", "แซนวิช", "แซนด์วิช", "sandwich", "สเต็ก", "steak", "ซูชิ", "sushi", "ราเมง", "ramen", "ข้าวผัด", "ไก่ทอด", "เฟรนช์ฟราย", "fries", "โดนัท", "donut", "เค้ก", "cake", "ไอศครีม", "สลัด", "salad", "pasta", "พาสต้า", "สปาเก็ตตี้", "ติ่มซำ", "หมูทอด", "ข้าวขาหมู", "ข้าวหมูแดง", "burger king", "เบอร์เกอร์คิง"])("categorizes %s as food", (food) => {
+    expect(parseCaptureText(`${food} 120`, CTX).categoryId).toBe("cat-food");
+  });
+});

@@ -24,7 +24,7 @@ import {
   type MerchantAccountPref,
 } from "@/features/accounts/actions";
 import { isAccountPrivacyRedacted } from "@/features/account-privacy/account-redaction";
-import { getCapturePreferences, saveCapturedTransaction } from "@/features/capture/actions";
+import { getCaptureEmergencyFundAccountId, getCapturePreferences, saveCapturedTransaction } from "@/features/capture/actions";
 import { getCaptureUnits, getIncomeSourceUnits, saveCaptureUnit, type CaptureUnitRow } from "@/features/capture/units";
 import { mergeCaptureUnits, toCaptureUnits } from "@/lib/capture/units";
 import type { AccountSource, CaptureMerchantPreference, ParseContext } from "@/lib/capture/transaction-parser";
@@ -114,6 +114,7 @@ export function VoiceNotebook({
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
   }, [transcript, open]);
+  const [emergencyFundAccountId, setEmergencyFundAccountId] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<CaptureMerchantPreference[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +161,9 @@ export function VoiceNotebook({
     setLowDismissed([]);
     closeRef.current?.focus();
     let cancelled = false;
+    getCaptureEmergencyFundAccountId()
+      .then((id) => { if (!cancelled) setEmergencyFundAccountId(id); })
+      .catch(() => {});
     getCapturePreferences()
       .then((prefs) => {
         if (!cancelled) setPreferences(prefs);
@@ -199,6 +203,7 @@ export function VoiceNotebook({
   const ctx: ParseContext = useMemo(
     () => ({
       accounts,
+      emergencyFundAccountId,
       categories,
       merchantPreferences: preferences,
       merchantAccounts: shopPrefs.map((p) => ({ merchant_normalized: p.merchant_normalized, account_id: p.account_id })),
@@ -209,7 +214,7 @@ export function VoiceNotebook({
       ),
       today,
     }),
-    [accounts, categories, preferences, shopPrefs, unitRows, incomeUnits, today]
+    [accounts, emergencyFundAccountId, categories, preferences, shopPrefs, unitRows, incomeUnits, today]
   );
   const aliasedAccounts = useMemo(
     () =>

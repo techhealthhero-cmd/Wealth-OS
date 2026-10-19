@@ -30,6 +30,7 @@ export interface CaptureAccount {
   account_type: AccountType;
   institution: string | null;
   is_archived: boolean;
+  purpose?: string | null;
 }
 
 export interface CaptureCategory {
@@ -62,6 +63,7 @@ export interface CaptureUnit {
 }
 
 export interface ParseContext {
+  emergencyFundAccountId?: string | null;
   accounts: CaptureAccount[];
   categories: CaptureCategory[];
   merchantPreferences: CaptureMerchantPreference[];
@@ -78,6 +80,9 @@ export type CategorySource = "learned" | "keyword" | "ai" | "fallback";
 export type AccountSource = "matched" | "merchant" | "default";
 
 export interface ParsedCapture {
+  isEmergencyFundDraw: boolean;
+  /** Intent could not resolve an active emergency account. Default retained; not a merchant suggestion. */
+  emergencyFundAccountMissing?: boolean;
   type: "expense" | "income";
   amountCents: number | null;
   categoryId: string | null;
@@ -175,6 +180,28 @@ function blankSpans(text: string, spans: (Match | null | undefined)[]): string {
   let out = text;
   for (const s of spans) if (s) out = out.slice(0, s.start) + " ".repeat(s.end - s.start) + out.slice(s.end);
   return out;
+}
+
+/** Bare เงินสำรอง can mean general savings, so only explicit emergency phrases count. */
+const EMERGENCY_SOURCE = /(?:เงินสำรอง\s*ฉุกเฉิน|(?:เงิน)?กระเป๋าสำรอง\s*ฉุกเฉิน|(?:เงิน)?กระเป๋าฉุกเฉิน|เงินฉุกเฉิน|บัญชีฉุกเฉิน|กองทุนฉุกเฉิน|(?<![a-z0-9])emergency(?:\s+fund)?(?![a-z0-9]))/gi;
+
+function stripEmergencySource(text: string): { text: string; detected: boolean } {
+  let detected = false;
+  const cleaned = text.replace(EMERGENCY_SOURCE, () => {
+    detected = true;
+    return " ";
+  });
+  // Only remove chatter immediately adjacent to a recognized source phrase.
+  const source = EMERGENCY_SOURCE.source;
+  const chatter = new RegExp(`(?:ตอนนี้\\s*)?(?:ใช้\\s*)?(?:${source})(?:\\s*อยู่)?`, "gi");
+  return { text: detected ? text.replace(chatter, " ").trim() : cleaned, detected };
+}
+
+function emergencyAccount(ctx: ParseContext): string | null {
+  const active = ctx.accounts.filter((a) => !a.is_archived);
+  return active.find((a) => a.id === ctx.emergencyFundAccountId)?.id
+    ?? active.find((a) => stripEmergencySource(`${a.name} ${a.purpose ?? ""}`).detected)?.id
+    ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -640,7 +667,8 @@ function cleanDescription(text: string): string | null {
 // ---------------------------------------------------------------------------
 
 export function parseCaptureText(input: string, ctx: ParseContext): ParsedCapture {
-  const text = normalizeText(input);
+  const emergency = stripEmergencySource(normalizeText(input));
+  const text = emergency.text;
   const lower = text.toLowerCase();
   const detectedType = detectType(lower);
   const dateHit = extractCaptureDate(lower, ctx.today);
@@ -702,9 +730,14 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
   // wallet), then the standing default. An account merely NAMED like the
   // shop is only suggested — the user confirms it once.
   const shopAccount = accountHit ? null : accountForMerchant(text, merchant, ctx.merchantAccounts ?? [], ctx.accounts);
-  const accountId = accountHit?.accountId ?? shopAccount ?? defaultAccountId(ctx.accounts);
+  const isEmergencyFundDraw = emergency.detected && type === "expense";
+  const emergencyId = isEmergencyFundDraw ? emergencyAccount(ctx) : null;
+  const emergencyFundAccountMissing = isEmergencyFundDraw && !emergencyId;
+  const accountId = isEmergencyFundDraw
+    ? emergencyId ?? defaultAccountId(ctx.accounts)
+    : accountHit?.accountId ?? shopAccount ?? defaultAccountId(ctx.accounts);
   const suggestedAccountId =
-    !accountHit && !shopAccount && merchant
+    !isEmergencyFundDraw && !accountHit && !shopAccount && merchant
       ? (accountsNamedForMerchant(merchant, ctx.accounts).find((id) => id !== accountId) ?? null)
       : null;
 
@@ -720,12 +753,16 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
       : "high";
 
   return {
+    isEmergencyFundDraw,
+    emergencyFundAccountMissing,
     type,
     amountCents,
     categoryId: category.categoryId,
     categorySource: category.source,
     accountId,
-    accountSource: accountHit ? "matched" : shopAccount ? "merchant" : accountId ? "default" : null,
+    accountSource: isEmergencyFundDraw
+      ? emergencyId ? "matched" : accountId ? "default" : null
+      : accountHit ? "matched" : shopAccount ? "merchant" : accountId ? "default" : null,
     merchant,
     description,
     date,
