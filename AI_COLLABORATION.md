@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- COVER-BACKFACE — Owner: Codex + Grok Bot; PR to staging. Added swipe-only ruled page, two-sided cover, angle shading and rAF release tween; static launch branch preserved. Vitest 9/9, tsc (after next typegen), focused ESLint and diff check pass. No commit/push/env changes. Next: owner iPhone review.
+
 - INFRA-SIN1-STAGING — Owner: Codex; READY FOR HANDOFF. Minimal region/allow-list/tests/README edits complete. Focused Vitest: 2 files / 37 tests passed with --configLoader runner (default loader blocked by read-only node_modules). Requested tsc failed: existing missing LayoutProps in src/app/layout.tsx:93. No env/secrets, commit or push.
 
 - SAFE-TO-SPEND-APPROVED — Owner: Codex; READY FOR HANDOFF to supervisor; user approved on 2026-10-19 at 21:14 Asia/Bangkok (PR #31). Approval-only update in the five requested files; no calculation changes. Focused tests 34/34, typecheck, ESLint (Markdown ignored), full suite 139 files / 1928 tests and diff check passed. Changes uncommitted; supervisor handles commit/push/PR.
@@ -499,3 +501,11 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Thai/English tapToOpen copy updated; closedHint retained. No RTL setup exists, so component test omitted; Node math tests cover clamping, thresholds, flick direction/distance and diagonal/vertical taps.
 - Validation: targeted notebook/gesture 3 files / 27 tests passed; Node 22 full `npx vitest run --configLoader runner` 143 files / 1996 tests passed; `npm run typecheck`, `npm run lint`, diff check passed. Initial login shell reset PATH to Node 20 and failed existing PDF built-ins test; checks rerun with supplied Node 22 PATH (`login: false`), no tests changed/skipped.
 - No commits, pushes, remote changes, secrets or dependencies. Physical iPhone/390px gesture/visual verification remains for owner review.
+
+### 2026-10-19 — Codex → owner (COVER-BACKFACE)
+
+- Swipeable LaunchStillScene now has cream ruled paper, rose margin, gutter and stacked edges; rotating wrapper contains separately hidden front/back faces with WebKit properties. Static branch/pose unchanged.
+- Shading CSS variables are written with rotation in rAF; release uses pure duration/easing helpers and current painted angle, reduced motion remains immediate. Snap-back clears transform/will-change and resets lighting.
+- Checks: requested focused Vitest 9/9; focused ESLint PASS; tsc PASS after next typegen repaired missing generated LayoutProps; git diff --check PASS. No env/secrets, commit or push.
+- Harness selectors: [data-cover-wrapper] gets coverFaceRef; its children [data-cover-front] and [data-cover-back]; sibling [data-cover-page].
+- Grok Bot follow-up: front/back side also toggled explicitly past 90deg (coverSideShowing) because Playwright Linux WebKit ignores backface-visibility/preserve-3d; book drifts/squares up with the cover like nb-quick-book (bookPoseFromAngle, closed pose byte-identical); will-change kept through the release tween. Playwright WebKit iPhone 13 harness: drag 45/120/165deg, release, snap-back, tap, keyboard, reduced motion, static still, rAF throttling all PASS.

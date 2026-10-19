@@ -1,12 +1,13 @@
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 
-import { angleFromProgress, isTap, progressFromDrag, shouldOpenOnRelease } from "../cover-swipe";
+import { angleFromProgress, bookPoseFromAngle, coverShading, coverSideShowing, coverReleaseDuration, coverReleaseEasing, isTap, progressFromDrag, shouldOpenOnRelease } from "../cover-swipe";
 
 /** Imperative animation keeps pointer movement out of React's render path. */
 export function useCoverSwipe(onSwipeOpen: () => void, onTapOpen: () => void) {
   const face = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const angle = useRef(0);
+  const latestDx = useRef(0);
   const suppressClick = useRef(false);
   const busy = useRef(false);
   const gesture = useRef<{
@@ -16,34 +17,71 @@ export function useCoverSwipe(onSwipeOpen: () => void, onTapOpen: () => void) {
 
   useEffect(() => () => {
     cancelAnimationFrame(frame.current);
-    if (timer.current) clearTimeout(timer.current);
   }, []);
 
-  function settle(progress: number, open: boolean, reduced: boolean) {
+  /** The cover and the book under it move together, so both get a layer. */
+  function promote(node: HTMLElement | null, on: boolean) {
+    const value = on ? "transform" : "";
+    if (node) node.style.willChange = value;
+    if (node?.parentElement) node.parentElement.style.willChange = value;
+  }
+
+  function paint(value: number) {
+    const node = face.current;
+    if (!node) return;
+    angle.current = value;
+    node.style.transform = `rotateY(${value}deg)`;
+    const shading = coverShading(value);
+    const stage = node.parentElement;
+    if (stage) stage.style.transform = bookPoseFromAngle(value);
+    for (const key of ["front", "back", "page"] as const) {
+      stage?.style.setProperty(`--cover-${key}`, String(shading[key]));
+    }
+    const side = coverSideShowing(value);
+    stage?.style.setProperty("--cover-front-visibility", side === "front" ? "visible" : "hidden");
+    stage?.style.setProperty("--cover-back-visibility", side === "back" ? "visible" : "hidden");
+  }
+
+  function reset() {
+    paint(0);
+    if (face.current) {
+      face.current.style.transform = "";
+      promote(face.current, false);
+    }
+  }
+
+  function settle(open: boolean, reduced: boolean) {
     cancelAnimationFrame(frame.current);
+    frame.current = 0;
     const node = face.current;
     if (!node) return;
     if (reduced) {
-      node.style.transform = "";
-      node.style.willChange = "";
+      reset();
       if (open) onSwipeOpen();
       return;
     }
     busy.current = true;
-    const duration = open ? 220 : 380;
-    // Flush the final finger position before starting the release transition.
-    node.style.transform = `rotateY(${angleFromProgress(progress)}deg)`;
-    frame.current = requestAnimationFrame(() => {
-      node.style.transition = `transform ${duration}ms ${open ? "ease-out" : "cubic-bezier(.2,.9,.3,1.12)"}`;
-      node.style.transform = `rotateY(${open ? -180 : 0}deg)`;
-      timer.current = setTimeout(() => {
-        node.style.willChange = "";
-        node.style.transition = "";
+    const from = angle.current;
+    const target = open ? -180 : 0;
+    const duration = coverReleaseDuration(from, open);
+    const start = performance.now();
+    // Keep the layer promoted through the tween; reset() / unmount clears it.
+    promote(node, true);
+    function tick(now: number) {
+      const progress = Math.min(1, (now - start) / duration);
+      paint(from + (target - from) * coverReleaseEasing(progress, open));
+      if (progress < 1) {
+        frame.current = requestAnimationFrame(tick);
+      } else {
+        frame.current = 0;
         busy.current = false;
-        timer.current = null;
-        if (open) onSwipeOpen();
-      }, duration);
-    });
+        if (open) {
+          promote(node, false);
+          onSwipeOpen();
+        } else reset();
+      }
+    }
+    frame.current = requestAnimationFrame(tick);
   }
 
   function end(event: ReactPointerEvent<HTMLButtonElement>, cancelled = false) {
@@ -63,13 +101,11 @@ export function useCoverSwipe(onSwipeOpen: () => void, onTapOpen: () => void) {
     const first = recent[0];
     const velocityX = first ? (event.clientX - first.x) / Math.max(1, event.timeStamp - first.time) : 0;
     if (cancelled || !tap) {
-      settle(progress, !cancelled && shouldOpenOnRelease({ progress, velocityX, dx }), current.reduced);
+      settle(!cancelled && shouldOpenOnRelease({ progress, velocityX, dx }), current.reduced);
     } else {
       cancelAnimationFrame(frame.current);
-      if (face.current) {
-        face.current.style.transform = "";
-        face.current.style.willChange = "";
-      }
+      frame.current = 0;
+      reset();
     }
   }
 
@@ -88,8 +124,8 @@ export function useCoverSwipe(onSwipeOpen: () => void, onTapOpen: () => void) {
           width: node.offsetWidth, moved: false, reduced,
           samples: [{ x: event.clientX, time: event.timeStamp }],
         };
-        node.style.transition = "";
-        if (!reduced) node.style.willChange = "transform";
+        angle.current = 0;
+        if (!reduced) promote(node, true);
         event.currentTarget.setPointerCapture(event.pointerId);
       },
       onPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
@@ -101,9 +137,10 @@ export function useCoverSwipe(onSwipeOpen: () => void, onTapOpen: () => void) {
         current.samples = current.samples.filter(sample => event.timeStamp - sample.time <= 100);
         current.samples.push({ x: event.clientX, time: event.timeStamp });
         if (current.reduced) return;
-        cancelAnimationFrame(frame.current);
-        frame.current = requestAnimationFrame(() => {
-          if (face.current) face.current.style.transform = `rotateY(${angleFromProgress(progressFromDrag(dx, current.width))}deg)`;
+        latestDx.current = dx;
+        if (!frame.current) frame.current = requestAnimationFrame(() => {
+          frame.current = 0;
+          paint(angleFromProgress(progressFromDrag(latestDx.current, current.width)));
         });
       },
       onPointerUp: end,
