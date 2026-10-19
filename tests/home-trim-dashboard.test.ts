@@ -61,11 +61,19 @@ describe("Home dashboard page trim", () => {
     "utf8"
   );
 
+  it("streams receivables with the same empty tile behind the existing privacy gate", () => {
+    expect(pageSource).toContain('<Suspense fallback={<HomeExpectedTileCard labels={dict.homeDash} receivables={null} />}>' );
+    expect(pageSource).toContain('<HomeExpectedTile today={today}');
+    expect(pageSource.indexOf("if (privacyGate)")).toBeLessThan(pageSource.indexOf("<HomeExpectedTile today="));
+  });
+
   it("keeps the core Home sections and drops the trimmed cards", () => {
     for (const keep of [
       "NetWorthHero",
       "HomeQuickActions",
-      "HomeUpcomingTiles",
+      "HomeExpectedTile",
+      "HomeExpectedTileCard",
+      "HomeTaxTile",
       "UpNextPayments",
       "IncomeThisMonth",
       "DailyInboxSection",

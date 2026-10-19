@@ -4,6 +4,7 @@ import { useEffect, useImperativeHandle, useLayoutEffect, useRef, type ReactNode
 import { useRouter } from "next/navigation";
 
 import { finishPageAnimations, waitForNoSkeleton } from "@/lib/motion/page-arrival";
+import { viewportClone } from "@/lib/motion/viewport-clone";
 import { listenToTouchGesture } from "@/lib/motion/touch-gesture";
 import { prefersReducedMotion } from "@/lib/motion/black-hole";
 import {
@@ -12,6 +13,7 @@ import {
   curlTransforms,
   dragCornerPosition,
   easeOutCubic,
+  sheetGeometry,
   turnedCornerPosition,
   type Point,
 } from "@/lib/motion/page-curl";
@@ -92,6 +94,8 @@ interface Curl {
    * live content showing through the fold).
    */
   underLayer: HTMLDivElement | null;
+  /** Already pruned face, reused for history without reading/cloning live main again. */
+  snapshot: HTMLElement | null;
 }
 
 interface Flight {
@@ -141,13 +145,14 @@ function pathOf(href: string): string {
   return new URL(href, window.location.origin).pathname;
 }
 
-function rememberPage(el: HTMLElement) {
-  const main = el.closest("main");
-  if (!main) return;
-  const r = main.getBoundingClientRect();
+function rememberPage(snapshot: HTMLElement) {
   const key = window.location.pathname;
+  const saved = snapshot.cloneNode(true) as HTMLElement;
+  // History is pinned relative to main, independent of the outgoing scroll offset.
+  saved.style.top = "0px";
+  saved.style.left = "0px";
   pageSnapshots.delete(key);
-  pageSnapshots.set(key, placedClone(main, r.left, r.top));
+  pageSnapshots.set(key, saved);
   if (pageSnapshots.size > MAX_SNAPSHOTS) pageSnapshots.delete(pageSnapshots.keys().next().value!);
 }
 
@@ -187,12 +192,21 @@ function box(styles: Partial<CSSStyleDeclaration>): HTMLDivElement {
 /** A copy of `node` pinned at its on-screen place inside a sheet whose top-left is (`left`, `top`). */
 function placedClone(node: HTMLElement, left: number, top: number): HTMLElement {
   const r = node.getBoundingClientRect();
-  const clone = node.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
-  clone.removeAttribute("id");
+  // Keep what is on screen now AND the node's first screenful: the copy is
+  // also saved as this page's history face, which is shown pinned at the
+  // page's top (navigation lands scrolled to the top).
+  const clone = viewportClone(node, {
+    top: Math.min(Math.max(top, 0), r.top),
+    bottom: Math.max(window.innerHeight, r.top + window.innerHeight),
+  });
   // The live page may be mid-lean (a drag's translateX) or hidden; the copy is neither.
-  clone.querySelectorAll<HTMLElement>("[data-turn-page]").forEach((n) => n.removeAttribute("style"));
-  if (clone.hasAttribute("data-turn-page")) clone.removeAttribute("style");
+  function resetTurnStyle(n: HTMLElement) {
+    n.style.removeProperty("opacity");
+    n.style.removeProperty("transform");
+    n.style.removeProperty("transition");
+  }
+  clone.querySelectorAll<HTMLElement>("[data-turn-page]").forEach(resetTurnStyle);
+  if (clone.hasAttribute("data-turn-page")) resetTurnStyle(clone);
   Object.assign(clone.style, {
     position: "absolute",
     left: `${r.left - left}px`,
@@ -204,11 +218,9 @@ function placedClone(node: HTMLElement, left: number, top: number): HTMLElement 
 }
 
 /**
- * Snapshots content into a curlable sheet starting at the swipe wrapper.
- * 2026-10-19: supersedes the 2026-10-14 whole-main turn decision. Section
- * titles and tab strips stay live above the sheet; only content turns.
- * Home has no strip and keeps its existing content edge. The main clone
- * retains its screen position inside the clipped sheet.
+ * 2026-10-19 (later): supersedes the strip-stays-live note. The user wants
+ * ONE continuous sheet covering the whole visible main, including its title
+ * and tab strip, down behind the bottom nav. Home uses the same origin.
  */
 function makeCurl(
   el: HTMLElement,
@@ -218,10 +230,9 @@ function makeCurl(
 ): Curl | null {
   const main = el.closest("main");
   const rect = (main ?? el).getBoundingClientRect();
-  const wrapperRect = el.getBoundingClientRect();
-  const top = Math.max(wrapperRect.top, rect.top, 0);
+  const geometry = sheetGeometry(rect, window.innerHeight);
+  const { top, width: w, height: h, backgroundOffsetY: mainOffsetY } = geometry;
   // Saved snapshots are relative to main; paper rules share that origin.
-  const mainOffsetY = rect.top - top;
   function snapshotClone(snapshot: HTMLElement): HTMLElement {
     const clone = snapshot.cloneNode(true) as HTMLElement;
     clone.style.top = `${mainOffsetY}px`;
@@ -230,9 +241,6 @@ function makeCurl(
   // The sheet runs to the bottom of the screen (not just the end of the
   // content) so a curling flap is never cut off by a straight edge mid-page;
   // below the content it's just more ruled paper, matching the page.
-  const bottom = window.innerHeight;
-  const w = rect.width;
-  const h = bottom - top;
   if (h < 1 || w < 1) return null;
   const l = Math.ceil(Math.hypot(w, h) * 2);
 
@@ -266,8 +274,9 @@ function makeCurl(
   // `face`: by default this page as it is now; a saved snapshot of another
   // page (the previous one, while dragging back); or "blank" when we have
   // none — then only its back ever shows, so its face needs no content.
-  if (face === undefined) frontInner.append(placedClone(main ?? el, rect.left, top));
-  else if (face !== "blank") frontInner.append(snapshotClone(face));
+  const snapshot = face === undefined ? placedClone(main ?? el, rect.left, top) : null;
+  if (snapshot) frontInner.append(snapshot);
+  else if (face !== undefined && face !== "blank") frontInner.append(snapshotClone(face));
   frontWrap.append(frontInner);
 
   // The flap: the paper's back (plain ruled paper, a shade warmer), with a
@@ -323,6 +332,7 @@ function makeCurl(
     cornerAtBottom,
     face: face !== "blank",
     underLayer,
+    snapshot,
   };
   applyCurl(curl, c);
   return curl;
@@ -494,8 +504,13 @@ export function SwipeTabPages({
   function start(dir: PageFlipDirection, curlFromDrag: Curl | null, crossing = false) {
     endFlight();
     const el = wrapperRef.current;
-    if (el) rememberPage(el);
     if (!el || prefersReducedMotion()) {
+      // Keep session history even when the user opts out of the turn animation.
+      const main = el?.closest("main");
+      if (main) {
+        const rect = main.getBoundingClientRect();
+        rememberPage(placedClone(main, rect.left, rect.top));
+      }
       dropDragCurl();
       return;
     }
@@ -509,6 +524,7 @@ export function SwipeTabPages({
       preview?.root.remove();
       return;
     }
+    if (curl.snapshot) rememberPage(curl.snapshot);
     document.documentElement.dataset.pageTurning = "";
     // The sheet stands in for the live page until the new one renders.
     el.style.opacity = "0";

@@ -22,55 +22,80 @@ export interface HomeUpcomingTilesLabels {
   expectedTitle: string;
   expectedEmpty: string;
   expectedHint: string;
+  expectedPending: string;
+  expectedOverdue: string;
   taxTitle: string;
   taxEmpty: string;
   taxHint: string;
   comingSoon: string;
 }
 
-/**
- * "Money expected" (invoices) and "Tax jar" — neither is built yet, so both
- * tiles are calm, honest empty states with a "coming soon" chip. No
- * amounts, names, dates or percentages: there is no data behind them.
- */
-export function HomeUpcomingTiles({ labels }: { labels: HomeUpcomingTilesLabels }) {
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <section aria-label={labels.expectedTitle} className={TILE}>
-        <TileTitle aside={<SoonChip>{labels.comingSoon}</SoonChip>}>{labels.expectedTitle}</TileTitle>
-        {/* An empty invoice slip — decoration only. */}
-        <svg aria-hidden="true" viewBox="0 0 64 40" className="mt-2.5 h-10 w-16 text-muted-foreground/45">
-          <rect x="1" y="1" width="62" height="38" rx="7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" />
-          <path d="M10 13h22M10 20h30M10 27h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <circle cx="50" cy="27" r="4" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-        <p className="mt-2 text-[13.5px] leading-snug font-semibold">{labels.expectedEmpty}</p>
-        <p className="mt-0.5 text-[11.5px] leading-[17px] text-muted-foreground">{labels.expectedHint}</p>
-      </section>
+export interface HomeExpectedTileProps {
+  labels: HomeUpcomingTilesLabels;
+  currencyCode?: string;
+  receivables: { outstandingCents: number; outstandingCount: number; overdueCount: number } | null;
+}
 
-      <section aria-label={labels.taxTitle} className={TILE}>
-        <TileTitle aside={<SoonChip>{labels.comingSoon}</SoonChip>}>{labels.taxTitle}</TileTitle>
-        {/* An empty jar — decoration only. */}
-        <svg aria-hidden="true" viewBox="0 0 56 64" className="mt-2 h-11 w-10">
-          <rect x="15" y="5" width="26" height="9" rx="3" className="fill-[#e6d6b4] dark:fill-[#4a3f2e]" />
-          <rect x="7" y="15" width="42" height="45" rx="12" className="fill-[#fbf4e4] dark:fill-[#2f281f]" />
-          <rect
-            x="7"
-            y="15"
-            width="42"
-            height="45"
-            rx="12"
-            fill="none"
-            strokeWidth="1.5"
-            strokeDasharray="5 4"
-            className="stroke-[#b99a65] dark:stroke-[#9c8155]"
-          />
-          <path d="M14 30v18" stroke="currentColor" strokeOpacity=".12" strokeWidth="3" strokeLinecap="round" />
-        </svg>
-        <p className="mt-2 text-[13.5px] leading-snug font-semibold">{labels.taxEmpty}</p>
-        <p className="mt-0.5 text-[11.5px] leading-[17px] text-muted-foreground">{labels.taxHint}</p>
-      </section>
-    </div>
+/** Pure presentation shared by the streamed tile and its empty fallback. */
+export function HomeExpectedTileCard({ labels, currencyCode, receivables }: HomeExpectedTileProps) {
+  const outstanding = receivables !== null && receivables.outstandingCount > 0;
+  return (
+    <section aria-label={labels.expectedTitle} className={TILE}>
+      <TileTitle aside={outstanding ? undefined : <SoonChip>{labels.comingSoon}</SoonChip>}>{labels.expectedTitle}</TileTitle>
+      {outstanding ? (
+        <>
+          <p className="mt-0.5 text-xl leading-7 font-bold tabular-nums [overflow-wrap:anywhere]">
+            {formatMoney(receivables.outstandingCents, currencyCode, undefined, 0)}
+          </p>
+          <p className="mt-2 text-[11.5px] leading-[17px] text-muted-foreground">
+            {labels.expectedPending.replace("{count}", String(receivables.outstandingCount))}
+          </p>
+          {receivables.overdueCount > 0 ? (
+            <p className="mt-0.5 text-[11.5px] leading-[17px] text-amber-700 dark:text-amber-300">
+              {labels.expectedOverdue.replace("{count}", String(receivables.overdueCount))}
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <>
+          {/* An empty invoice slip — decoration only. */}
+          <svg aria-hidden="true" viewBox="0 0 64 40" className="mt-2.5 h-10 w-16 text-muted-foreground/45">
+            <rect x="1" y="1" width="62" height="38" rx="7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" />
+            <path d="M10 13h22M10 20h30M10 27h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="50" cy="27" r="4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+          <p className="mt-2 text-[13.5px] leading-snug font-semibold">{labels.expectedEmpty}</p>
+          <p className="mt-0.5 text-[11.5px] leading-[17px] text-muted-foreground">{labels.expectedHint}</p>
+        </>
+      )}
+    </section>
+  );
+}
+
+export function HomeTaxTile({ labels }: { labels: HomeUpcomingTilesLabels }) {
+  return (
+    <section aria-label={labels.taxTitle} className={TILE}>
+      <TileTitle aside={<SoonChip>{labels.comingSoon}</SoonChip>}>{labels.taxTitle}</TileTitle>
+      {/* An empty jar — decoration only. */}
+      <svg aria-hidden="true" viewBox="0 0 56 64" className="mt-2 h-11 w-10">
+        <rect x="15" y="5" width="26" height="9" rx="3" className="fill-[#e6d6b4] dark:fill-[#4a3f2e]" />
+        <rect x="7" y="15" width="42" height="45" rx="12" className="fill-[#fbf4e4] dark:fill-[#2f281f]" />
+        <rect
+          x="7"
+          y="15"
+          width="42"
+          height="45"
+          rx="12"
+          fill="none"
+          strokeWidth="1.5"
+          strokeDasharray="5 4"
+          className="stroke-[#b99a65] dark:stroke-[#9c8155]"
+        />
+        <path d="M14 30v18" stroke="currentColor" strokeOpacity=".12" strokeWidth="3" strokeLinecap="round" />
+      </svg>
+      <p className="mt-2 text-[13.5px] leading-snug font-semibold">{labels.taxEmpty}</p>
+      <p className="mt-0.5 text-[11.5px] leading-[17px] text-muted-foreground">{labels.taxHint}</p>
+    </section>
   );
 }
 

@@ -139,7 +139,10 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
-| SMART-ASSETS-LOANS | Smart capture assets/installments/loans and asset valuation | Codex | VERIFY — implementation complete; final full checks running | New pure taxonomy/valuation/purchase modules, authenticated save action, minimal capture fields, tests, proposal SQL only. Checkpoints: pure logic → persistence → UI → full validation. Shared parser/UI edits surgical; no network/DB/commit/push. | Owner review after lint/typecheck/full Vitest |
+| SMART-ASSETS-LOANS | Smart capture assets/installments/loans and asset valuation | Codex | IN PR → staging | New pure taxonomy/valuation/purchase modules, authenticated save action, minimal capture fields, tests, proposal SQL only. Checkpoints: pure logic → persistence → UI → full validation. Shared parser/UI edits surgical; no network/DB/commit/push. | Claude designs confirm screens later; proposal 0048 needs user approval |
+| PAGE-TURN-SNAPSHOT | Turn-start cost + one continuous sheet | Grok Bot (Codex impl) | IN PR → staging | Viewport-only clone (`src/lib/motion/viewport-clone.ts`), single clone reused for history, sheet covers whole visible main incl. title + tab strip (`sheetGeometry`); harness 4× CPU longtask median ~144ms → ~79ms | Owner device check of turn feel |
+| HOME-RECEIVABLES-TILE | Home รอเงินเข้า tile uses getReceivablesSummary | Grok Bot (Codex impl) | IN PR → staging (#32) | Amount + count + calm overdue line; exact empty state on none/error/loading | Claude may restyle after 22:00 |
+| SAFE-TO-SPEND-TODAY | Add isolated today calculation, server loader, tests and assumptions docs | Codex | READY FOR HANDOFF | Logic only; legacy formulas/Home unchanged; branch codex/safe-to-spend-today; no commit/push; typecheck/lint/131 files · 1731 tests passed | Supervisor review and commit |
 | HOME-TRIM-CARDS | Remove unused Home cards (cushion, next-action, savings-rate insight, month summary, goals, mission/level, more-insights expander); keep greeting/NW/quick actions/upcoming tiles/up-next/income-by-source; trim unused Home fetching; update tests | Grok Bot (Codex impl) | IN PR → staging | Home render-only trim + `hasAnyDashboardData`; component files kept; tests in `tests/home-trim-dashboard.test.ts` | Merge after CI green; 390px shot under /workspace/home-trim/shots/ |
 | TAB-STRIP-STILL | Keep section strips outside content turns | Codex | DONE — Node 22 lint/typecheck/1461 tests passed | Curl geometry/snapshot alignment, horizontal strip helper + tests; preserve prior fixes, no git/harness/deps | Implement, run Node 22 lint/tsc/full Vitest, owner device review |
 | CURL-CONTENT-READY | iOS turn landing and raster cost | Codex | DONE — Node 22 lint/typecheck/1456 tests passed | Shared curl lifecycle, CSS, section marker, Node tests; preserve gesture fix; no git/harness/deps | Implement bounded readiness, validate lint/tsc/full Vitest, owner device review |
@@ -204,6 +207,15 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → supervisor (SAFE-TO-SPEND-TODAY)
+
+- Completed isolated pure integer-satang calculation, server-only loader, pending-approval assumptions README, 34 focused tests, and additive tax-settings configured flag with existing-loader regression assertions.
+- Scope: src/lib/financial/safe-to-spend-today.ts; src/features/safe-to-spend/{today.ts,README.md}; src/features/tax-jar/queries.ts; tests/safe-to-spend-today*.test.ts; tests/invoices-tax-jar-actions.test.ts; this board.
+- Node 22 checks passed: npm run typecheck; ESLint all changed TS files; npx vitest run --configLoader runner (131 files / 1731 tests). Protected legacy financial modules and getSafeToSpend queries have no diff.
+- Formula and tax/emergency assumptions remain pending_user_approval. No UI/Home, migrations, auth/RLS, production data, DB writes, commits, pushes or PRs. Branch codex/safe-to-spend-today starts at 7aa2c18.
+- Next: supervisor review and commit the uncommitted patch; no implementation work remains.
+
 
 ### HOME-TRIM-CARDS (2026-10-19 Asia/Bangkok)
 - Removed Home-only cards: HomeCushion, NextBestAction/InsightCards, MonthlyDonutCard, GoalProgressCard, EngagementSummaryCard, DashboardDetailsToggle (+ children).

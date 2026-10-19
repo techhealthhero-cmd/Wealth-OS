@@ -67,8 +67,8 @@ export function SegmentedTabs({
       {/* Divider tabs (2026-10-15, mockup option A): paper tabs standing on
           the page's top edge, like a notebook's section dividers. The open
           one is the page itself — same paper, no seam — while the others
-          sit behind it in the darker page-edge colour. They stay live above the
-          content sheet and never turn with it. */}
+          sit behind it in the darker page-edge colour. 2026-10-19 (later): they turn with the title and content as
+          one continuous sheet covering the whole visible main. */}
       <nav ref={navRef} className="relative overflow-x-auto pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div
           className={cn(
