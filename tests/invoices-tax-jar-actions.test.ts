@@ -216,7 +216,7 @@ describe("mark paid RPC", () => {
 
 describe("tax jar", () => {
   it("returns defaults only for an absent settings row", async () => {
-    expect(await getTaxJarSettings()).toMatchObject({ settings: { ratePct: 7, mode: "ask", expense408RatePct: 60, extraDeductionsCents: 0, accountId: null } });
+    expect(await getTaxJarSettings()).toMatchObject({ configured: false, settings: { ratePct: 7, mode: "ask", expense408RatePct: 60, extraDeductionsCents: 0, accountId: null } });
     failures.push({ table: "tax_jar_settings", op: "select", error: { message: "offline" } });
     expect((await getTaxJarSettings()).error).toBeTruthy();
   });
@@ -226,7 +226,7 @@ describe("tax jar", () => {
   it("upserts decimal baht and reads integer satang back", async () => {
     expect((await upsertTaxJarSettings({ ratePct: 7.5, mode: "auto", expense408RatePct: 40, extraDeductionsCents: 12345, accountId: ACCOUNT })).success).toBe(true);
     expect(db.tax_jar_settings[0]).toMatchObject({ user_id: "me", extra_deductions_amount: "123.45", account_id: ACCOUNT });
-    expect((await getTaxJarSettings()).settings).toMatchObject({ ratePct: 7.5, extraDeductionsCents: 12345 });
+    expect(await getTaxJarSettings()).toMatchObject({ configured: true, settings: { ratePct: 7.5, extraDeductionsCents: 12345 } });
   });
   it("delegates account ownership to the DB trigger and reports its failure", async () => {
     failures.push({ table: "tax_jar_settings", op: "upsert", error: { message: "account_id must reference an account owned by the same user" } });
