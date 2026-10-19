@@ -139,6 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| SLIP-PARSE-MATCH | Portable Thai e-slip parser and matcher | Codex | VERIFY — typecheck/lint and 113 files / 1302 tests passed | src/lib/slip + synthetic tests; implement, validate, PR and merge into staging after checks | Codex → staging reviewers; report /workspace/reports/slip-parse-match-pr.md |
 | PDF-IMPORT-REVIEW | Full PR #6 diff vs origin/staging; parser/security fixes and required checks | Codex | DONE — no blocking findings remain; typecheck/lint/108 files·1167 tests passed | Non-UI PDF engine/extraction + regression tests; Claude UI untouched | Grok/Claude review unstaged fixes; no commit/push |
 | STAGING-SEC-E2E | Staging DB hardening and live-test target guard | Codex | READY FOR HANDOFF — local checks passed | Migration 0046, shared guard, demo/live specs; validate typecheck/lint/full Vitest, PR into staging, merge after all checks pass | Supervisor applies DB separately; report /workspace/reports/staging-sec-e2e-pr.md |
 | MONEY-IMPORT-TESTS | Money/import unit coverage | Codex | DONE — tests and local validation | Tests only in money/import suites; no production changes. Plan: verify gaps, add boundary tests, typecheck/lint/full Vitest, PR into staging and merge only if all checks pass | Codex → staging reviewers; report /workspace/reports/money-import-tests-pr.md |
@@ -190,6 +191,14 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → staging reviewers (SLIP-PARSE-MATCH)
+
+- Implemented portable label-based Thai/English e-slip parsing and deterministic transaction ranking in `src/lib/slip/`; exact integer satang via existing money helper, BE/CE dates, Bangkok timestamps, masked parties, 13 bank codes, confidence and reference extraction. No UI/DB/auth/migration/dependency changes.
+- Added synthetic parser/matcher coverage; README documents API, options, matching/duplicate semantics and heuristic limits. No actual slip data retained or logged.
+- Final validation: typecheck/lint passed; full Vitest 113 files / 1302 tests passed (93 new synthetic cases). Vitest uses `npm test -- --configLoader runner` because the default bundled config loader writes into read-only symlinked node_modules.
+- Git worktree metadata is read-only (FETCH_HEAD/index.lock creation rejected). Publishing the same validated files from an isolated writable checkout under `/tmp/slip-parse-match-publish`; original worktree metadata and node_modules untouched.
+- Next: commit/push `codex/slip-parse-match`, open PR into staging, merge only after all PR checks pass, record final outcome in `/workspace/reports/slip-parse-match-pr.md`.
 
 ### 2026-10-19 — Codex → Claude / Grok (REVIEW-HOME-V3-A)
 
