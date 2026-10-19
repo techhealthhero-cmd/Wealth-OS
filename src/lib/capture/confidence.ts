@@ -1,9 +1,9 @@
-import { emergencyAccountCandidates, extractAmountCandidates, extractCaptureDate, findKnownMerchant, matchAccount, normalizeText, type ParsedCapture, type ParseContext } from "./transaction-parser";
+import { hasExplicitIncomeMarker, hasForeignCurrency, maskCaptureParameters, emergencyAccountCandidates, extractAmountCandidates, extractCaptureDate, findKnownMerchant, matchAccount, normalizeText, type ParsedCapture, type ParseContext } from "./transaction-parser";
 import { findSpokenDateMention, isValidCaptureDate } from "./capture-date";
 import { parseSubscriptionIntent } from "./subscription-intent";
 
 /** Stable API codes; array order is also the single-question priority. */
-export const REASON_PRIORITY = ["emergency_account_unresolved", "conflicting_amounts", "missing_amount", "invalid_date", "unresolved_date", "default_account_guess", "subscription_account_unresolved", "subscription_false_positive_risk", "ambiguous_direction", "duplicate_uncertain"] as const;
+export const REASON_PRIORITY = ["foreign_currency", "emergency_account_unresolved", "conflicting_amounts", "missing_amount", "invalid_date", "unresolved_date", "default_account_guess", "subscription_account_unresolved", "subscription_false_positive_risk", "ambiguous_direction", "duplicate_uncertain"] as const;
 export type ReasonCode = typeof REASON_PRIORITY[number];
 export type ConfidenceField = "amount" | "direction" | "date" | "account" | "category" | "subscription" | "duplicate";
 export interface FieldEvidence<T> { value: T; reliable: boolean; source: string; candidates: T[] }
@@ -15,6 +15,7 @@ export interface ConfidenceContext extends ParseContext {
   duplicateUncertain?: boolean;
 }
 const QUESTION: Record<ReasonCode, { field: ConfidenceField; promptTh: string }> = {
+  foreign_currency: { field: "amount", promptTh: "ช่วยยืนยันยอดเป็นเงินบาทให้หน่อยได้ไหม?" },
   emergency_account_unresolved: { field: "account", promptTh: "ใช้เงินฉุกเฉินจากบัญชีไหน?" },
   conflicting_amounts: { field: "amount", promptTh: "รายการนี้เป็นเงินกี่บาท?" },
   missing_amount: { field: "amount", promptTh: "รายการนี้เป็นเงินกี่บาท?" },
@@ -32,7 +33,8 @@ const evidence = <T>(value: T, reliable: boolean, source: string, candidates: T[
 export function evaluateCaptureConfidence(parsed: ParsedCapture, context: ConfidenceContext) {
   const text = normalizeText(context.text).toLowerCase();
   const reasons = new Set<ReasonCode>();
-  let working = text;
+  if (hasForeignCurrency(text)) reasons.add("foreign_currency");
+  let working = maskCaptureParameters(text);
   // Remove every named date, retaining invalid-date evidence rather than its today fallback.
   let mention = findSpokenDateMention(working, context.today);
   let invalidDate = false;
@@ -64,16 +66,16 @@ export function evaluateCaptureConfidence(parsed: ParsedCapture, context: Confid
   if (parsed.subscriptionAccountMissing) reasons.add("subscription_account_unresolved");
   // Service identity alone is not consent to create a recurring schedule.
   const recurring = /สมัครสมาชิก|ต่อสมาชิก|ต่ออายุ|สมัคร(?!\s*(?:เรียน|งาน|สอบ|แข่งขัน))|รายเดือน|รายปี|เดือนละ|ปีละ|ต่อเดือน|ต่อปี|\b(?:subscribe|subscription|monthly|yearly|annual|annually)\b/i.test(text);
-  if ((parsed.subscription || parseSubscriptionIntent(text)) && (!recurring || /ไม่(?:ได้|ต้องการ|เอา)?\s*(?:สมัคร|ต่ออายุ)|ครั้งเดียว|เคยสมัคร|ทดลอง|ยกเลิก|not subscribe|one.off|trial/i.test(text))) reasons.add("subscription_false_positive_risk");
-  const incoming = /รายรับ|เงินเดือน|รับเงิน|ได้เงิน|โอนมา|คืนเงิน|freelance|salary|^\+/.test(text);
+  if (parsed.type === "expense" && (parsed.subscription || parseSubscriptionIntent(text)) && (!recurring || /ไม่(?:ได้|ต้องการ|เอา)?\s*(?:สมัคร|ต่ออายุ)|ครั้งเดียว|เคยสมัคร|ทดลอง|ยกเลิก|not subscribe|one.off|trial/i.test(text))) reasons.add("subscription_false_positive_risk");
+  const incoming = hasExplicitIncomeMarker(text) || /รายรับ|เงินเดือน|รับเงิน|ได้เงิน|โอนมา|คืนเงิน|freelance|salary|^\+/.test(text);
   const outgoing = /ซื้อ|จ่าย|กิน|ข้าว|กาแฟ|ค่า|โอนให้|โอนเงินให้|เบอร์เกอร์|น้ำ|ขนม|แท็กซี่|รถเมล์|เติม|อาหาร|ช้อป|spent|paid/.test(text);
-  const mixedDirection = incoming && /จ่าย|ซื้อ|โอนให้|โอนเงินให้/.test(text);
+  const mixedDirection = incoming && /จ่าย|ซื้อ|โอนให้|โอนเงินให้/.test(text.replace(/ลูกค้าจ่าย|หัก\s*ณ\s*ที่จ่าย/g, ""));
   const hypothetical = /ไม่ได้จ่าย|ยังไม่จ่าย|ไม่ได้ซื้อ|ยังไม่ได้ซื้อ|สมมติ|ถ้าซื้อ|ถ้าจ่าย|จะจ่าย/.test(text);
   if (mixedDirection || hypothetical || (incoming && parsed.type !== "income") || (!incoming && !outgoing && !parsed.unit && !recurring) || /เงินเข้า.*เงินออก|รับหรือจ่าย|โอนระหว่าง|ย้ายเงิน|โอนจาก.*ไป|ยืม|ให้ยืม/.test(text) || parsed.cancelIntent || parsed.smart) reasons.add("ambiguous_direction");
   if (context.duplicateUncertain) reasons.add("duplicate_uncertain");
   const ordered = REASON_PRIORITY.filter(r => reasons.has(r));
   const fields = {
-    amount: evidence(parsed.amountCents, !reasons.has("missing_amount") && !reasons.has("conflicting_amounts"), parsed.unit ? "unit" : "text", amountValues),
+    amount: evidence(parsed.amountCents, !reasons.has("foreign_currency") && !reasons.has("missing_amount") && !reasons.has("conflicting_amounts"), parsed.unit ? "unit" : "text", amountValues),
     direction: evidence(parsed.type, !reasons.has("ambiguous_direction"), "rules", reasons.has("ambiguous_direction") ? ["expense", "income"] as const : [parsed.type]),
     date: evidence(parsed.date, !reasons.has("invalid_date") && !reasons.has("unresolved_date"), relative.named ? "named" : "today", [...new Set([parsed.date, ...namedDates])]),
     account: evidence(parsed.accountId, !ordered.some(r => ["default_account_guess", "emergency_account_unresolved", "subscription_account_unresolved"].includes(r)), parsed.accountSource ?? "missing", active.map(a => a.id)),

@@ -6860,6 +6860,865 @@
         "questionField": null,
         "categoryId": "food"
       }
+    },
+    {
+      "id": "thai-regression-001",
+      "text": "ห้าสิบ",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 5000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "thai-regression-002",
+      "text": "สองพัน",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 200000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "thai-regression-003",
+      "text": "หมื่นสอง",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 1200000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "thai-regression-004",
+      "text": "สามร้อยห้าสิบ",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 35000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "thai-regression-005",
+      "text": "ซื้อผัก ห้าสิบบาท",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 5000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "food",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "thai-regression-006",
+      "text": "2 พัน",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 200000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "thai-regression-007",
+      "text": "25k",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 2500000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "thai-regression-008",
+      "text": "วิ่งแกร็บได้ 850 วันนี้",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 85000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other-in",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "thai-regression-009",
+      "text": "ลูกค้าจ่ายค่าโลโก้ 15,000 หัก ณ ที่จ่าย 3%",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 1500000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other-in",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "thai-regression-010",
+      "text": "ค่าผ่อนมอไซค์ 2,890 งวดที่ 5 จาก 36",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 289000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "thai-regression-011",
+      "text": "ผ่อนไอโฟน 1,590 10 เดือน 0%",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 159000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "thai-regression-012",
+      "text": "ผ่อนรถ 8,900",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 890000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "thai-regression-013",
+      "text": "รายได้ YouTube 18,400",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 1840000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other-in",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "thai-regression-014",
+      "text": "ได้ YouTube 18,400",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 1840000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other-in",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "thai-regression-015",
+      "text": "ลูกค้าโอน YouTube 18,400",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 1840000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other-in",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "thai-regression-016",
+      "text": "สปอนเซอร์ YouTube 18,400",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 1840000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "freelance",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "thai-regression-017",
+      "text": "Figma $15",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "foreign_currency",
+          "missing_amount",
+          "ambiguous_direction"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-regression-018",
+      "text": "Figma 15 ดอลลาร์",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "foreign_currency",
+          "missing_amount",
+          "ambiguous_direction"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-regression-019",
+      "text": "Figma 15 USD",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "foreign_currency",
+          "missing_amount",
+          "ambiguous_direction"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-regression-020",
+      "text": "Figma 15 EUR",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "foreign_currency",
+          "missing_amount",
+          "ambiguous_direction"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-regression-021",
+      "text": "Figma €15",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "foreign_currency",
+          "missing_amount",
+          "ambiguous_direction"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-regression-022",
+      "text": "Figma ¥15",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "foreign_currency",
+          "missing_amount",
+          "ambiguous_direction"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-regression-023",
+      "text": "Figma 15 JPY",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "foreign_currency",
+          "missing_amount",
+          "ambiguous_direction"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-regression-024",
+      "text": "ค่าส่ง Flash",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "missing_amount"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-regression-025",
+      "text": "ถุงไปรษณีย์",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "missing_amount",
+          "ambiguous_direction"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-regression-026",
+      "text": "สปอนเซอร์",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "freelance",
+        "autoSave": false,
+        "reasons": [
+          "missing_amount"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-regression-027",
+      "text": "ค่าตัดต่อ",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "missing_amount"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "thai-work-cost-1",
+      "text": "ค่าส่ง Flash 100",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash",
+        "categories": [
+          {
+            "id": "food",
+            "name_th": "อาหาร",
+            "name_en": "Food & Dining",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "other",
+            "name_th": "อื่นๆ",
+            "name_en": "Other",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "salary",
+            "name_th": "เงินเดือน",
+            "name_en": "Salary",
+            "type": "income",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "freelance",
+            "name_th": "งานอิสระ",
+            "name_en": "Freelance",
+            "type": "income",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "other-in",
+            "name_th": "อื่นๆ",
+            "name_en": "Other",
+            "type": "income",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "subs",
+            "name_th": "สมาชิก",
+            "name_en": "Subscriptions",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "work",
+            "name_en": "Work Support",
+            "name_th": "ค่าใช้จ่ายทำงาน",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          }
+        ]
+      },
+      "expected": {
+        "amountCents": 10000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "work",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "thai-work-cost-2",
+      "text": "ถุงไปรษณีย์ 100",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash",
+        "categories": [
+          {
+            "id": "food",
+            "name_th": "อาหาร",
+            "name_en": "Food & Dining",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "other",
+            "name_th": "อื่นๆ",
+            "name_en": "Other",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "salary",
+            "name_th": "เงินเดือน",
+            "name_en": "Salary",
+            "type": "income",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "freelance",
+            "name_th": "งานอิสระ",
+            "name_en": "Freelance",
+            "type": "income",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "other-in",
+            "name_th": "อื่นๆ",
+            "name_en": "Other",
+            "type": "income",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "subs",
+            "name_th": "สมาชิก",
+            "name_en": "Subscriptions",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "work",
+            "name_en": "Work Support",
+            "name_th": "ค่าใช้จ่ายทำงาน",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          }
+        ]
+      },
+      "expected": {
+        "amountCents": 10000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "work",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "thai-work-cost-3",
+      "text": "ค่าตัดต่อ 100",
+      "tags": [
+        "thai_regression"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash",
+        "categories": [
+          {
+            "id": "food",
+            "name_th": "อาหาร",
+            "name_en": "Food & Dining",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "other",
+            "name_th": "อื่นๆ",
+            "name_en": "Other",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "salary",
+            "name_th": "เงินเดือน",
+            "name_en": "Salary",
+            "type": "income",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "freelance",
+            "name_th": "งานอิสระ",
+            "name_en": "Freelance",
+            "type": "income",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "other-in",
+            "name_th": "อื่นๆ",
+            "name_en": "Other",
+            "type": "income",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "subs",
+            "name_th": "สมาชิก",
+            "name_en": "Subscriptions",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          },
+          {
+            "id": "work",
+            "name_en": "Work Support",
+            "name_th": "ค่าใช้จ่ายทำงาน",
+            "type": "expense",
+            "icon": null,
+            "is_system": true
+          }
+        ]
+      },
+      "expected": {
+        "amountCents": 10000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "work",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
     }
   ]
 }

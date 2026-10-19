@@ -8,6 +8,7 @@ import type { CaptureSaveInput } from "@/lib/validation/capture";
 
 /** What the Quick Capture preview card shows and lets the user adjust before saving. */
 export interface CaptureDraft {
+  installment?: ParsedCapture["installment"];
   isEmergencyFundDraw?: boolean;
   emergencyFundAccountMissing?: boolean;
   confidenceGate?: CaptureConfidenceResult;
@@ -76,7 +77,7 @@ export function buildCaptureSaveInput(draft: CaptureDraft, clientRequestId: stri
   if (!canSaveDraft(draft)) return null;
   const merchant = (draft.merchant ?? draft.description)?.trim() || null;
   const description =
-    draft.merchant && draft.description && draft.description.trim() !== draft.merchant.trim()
+    draft.description && (/หัก\s*ณ\s*ที่จ่าย|ผ่อน/.test(draft.description) || (draft.merchant && draft.description.trim() !== draft.merchant.trim()))
       ? draft.description.trim()
       : null;
   return {

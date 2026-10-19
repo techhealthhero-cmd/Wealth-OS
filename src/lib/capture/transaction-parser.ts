@@ -1,3 +1,4 @@
+import { normalizeThaiAmounts } from "./thai-numbers";
 /**
  * Deterministic natural-language expense parser for Quick Capture.
  *
@@ -82,6 +83,8 @@ export type CategorySource = "learned" | "keyword" | "ai" | "fallback";
 export type AccountSource = "matched" | "merchant" | "subscription" | "default";
 
 export interface ParsedCapture {
+  /** Existing-debt payment details; never a new financed purchase or loan income. */
+  installment?: { number: number | null; totalMonths: number | null; remainingMonths: number | null };
   smart?: SmartCaptureIntent | null;
   subscription?: SubscriptionIntent | null;
   subscriptionAccountMissing?: boolean;
@@ -128,7 +131,7 @@ export function normalizeText(input: string): string {
     const i = THAI_DIGITS.indexOf(ch);
     out += i >= 0 ? String(i) : ch;
   }
-  return out.replace(/\s+/g, " ").trim();
+  return normalizeThaiAmounts(out.replace(/\s+/g, " ").trim());
 }
 
 /**
@@ -239,14 +242,24 @@ export function extractAmountCandidates(text: string): { cents: number; span: Ma
     if (m[3]) cents *= AMOUNT_MULTIPLIER[m[3].toLowerCase()] ?? 1;
     if (cents <= 0 || cents >= 10 ** 15) continue;
     const hasCurrency = Boolean(m[4]) || m[0].trimStart().startsWith("฿");
-    candidates.push({ cents, span: { start: m.index!, end: m.index! + m[0].length }, hasCurrency });
+    candidates.push({ cents, span: { start: m.index!, end: m.index! + m[0].trimEnd().length }, hasCurrency });
   }
   return candidates;
 }
 
+/** Hide tax rates and existing-payment terms, retaining original offsets. */
+export function maskCaptureParameters(text: string): string {
+  return text.replace(/หัก\s*ณ\s*ที่จ่าย\s*\d+(?:\.\d+)?\s*%|งวดที่\s*\d+(?:\s*จาก\s*\d+)?|\d+\s*เดือน(?![\p{L}\p{M}])|\d+(?:\.\d+)?\s*%/gu,
+    value => " ".repeat(value.length));
+}
+export function hasForeignCurrency(text: string): boolean {
+  // Currency must accompany a number; symbols/Thai substrings in names do not count.
+  return /[$€¥]\s*\d|(?<![\p{L}\p{M}])(?:usd|eur|jpy)\s*\d|\d[\d,.]*\s*(?:[$€¥]|(?:usd|eur|jpy)(?![\p{L}\p{M}])|(?:ดอลลาร์(?:สหรัฐ)?|ยูโร|เยน)(?![\p{L}\p{M}]))/iu.test(text);
+}
+
 /** Legacy selection: last currency-marked candidate, otherwise last number. */
 export function extractAmount(text: string): { cents: number; span: Match } | null {
-  const candidates = extractAmountCandidates(text);
+  const candidates = extractAmountCandidates(maskCaptureParameters(text));
   if (candidates.length === 0) return null;
   // A number written with a currency marker wins; otherwise the LAST number
   // ("ข้าว 2 จาน 120" → 120 is the price, 2 is a quantity).
@@ -332,6 +345,7 @@ export function findUnknownUnit(lower: string): CountedUnit | null {
       }
     }
   }
+  if (UNIT_TRAILERS.includes(word) || /^(?:พรุ่งนี้|มะรืน|วันก่อน|อาทิตย์ก่อน|สัปดาห์ก่อน|เดือนก่อน)/.test(word)) return null;
   if (!word || word.length > 12 || MONEY_WORDS.some((w) => word.startsWith(w))) return null;
   const after = lower.slice(m.index + m[0].length).trimStart();
   if (/^\d/.test(after)) return null;
@@ -585,10 +599,15 @@ function withoutSellerPhrases(lower: string): string {
   return out;
 }
 
-function hasExplicitIncomeMarker(lower: string): boolean {
+function hasGotIncomeMarker(text: string): boolean {
+  // ได้ also means “can”: ซื้อได้ / จ่ายได้ are outgoing, not earnings.
+  return !/ซื้อ|จ่าย|ผ่อน|ช้อป|จอง/.test(text) && (/^ได้(?:\s|$)/.test(text) || /(?<!ไม่)ได้\s*\d/.test(text));
+}
+
+export function hasExplicitIncomeMarker(lower: string): boolean {
   const text = withoutSellerPhrases(lower);
   return (
-    text.startsWith("+") ||
+    text.startsWith("+") || hasGotIncomeMarker(text) ||
     INCOME_MARKERS.some((m) => findKeyword(text, m) !== null) ||
     isIncomingTransfer(text) ||
     MONEY_IN_RE.test(text)
@@ -644,7 +663,7 @@ function isIncomingTransfer(lower: string): boolean {
 const MONEY_IN_RE = /(?:^|\s)(?:เข้า|ฝากเข้า|เข้าบัญชี|ฝากเงิน)(?=\s|\d|$)|เงินมา(?!ก)/;
 
 function detectType(lower: string): "expense" | "income" {
-  if (lower.startsWith("+")) return "income";
+  if (hasGotIncomeMarker(lower) || lower.startsWith("+")) return "income";
   const text = withoutSellerPhrases(lower);
   if (INCOME_MARKERS.some((m) => findKeyword(text, m))) return "income";
   if (isIncomingTransfer(text) || MONEY_IN_RE.test(text)) return "income";
@@ -742,7 +761,7 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
 
   const amountHit = counted ? null : extractAmount(working);
   if (amountHit) working = removeSpan(working, amountHit.span);
-  const amountCents = smart ? smart.amountCents : counted
+  const amountCents = hasForeignCurrency(text) ? null : smart ? smart.amountCents : counted
     ? perUnitCents !== null
       ? Math.round(counted.count * perUnitCents)
       : null
@@ -750,19 +769,35 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
 
   const namedAccountSpan = accountHit ? matchAccount(dated, ctx.accounts)?.span : null;
   const subscriptionText = namedAccountSpan ? removeSpan(dated, namedAccountSpan) : dated;
-  const subscription = parseSubscriptionIntent(subscriptionText);
+  const subscription = detectedType === "income" ? null : parseSubscriptionIntent(subscriptionText);
   const subscriptionMerchant = subscription?.serviceName ?? merchantHit?.name ?? null;
   const subscriptionDefaults = !!subscription && shouldUseSubscriptionDefaults(subscriptionText, subscriptionMerchant, ctx);
   const merchant = subscriptionDefaults ? subscriptionMerchant : merchantHit?.name ?? null;
-  const description = subscriptionDefaults ? merchant : counted
+  let description = subscriptionDefaults ? merchant : counted
     ? `${counted.count} ${counted.unit?.unit_label ?? counted.word}`
     : (cleanDescription(working) ?? merchant);
+  const installment = /ผ่อน/.test(text) && !smart ? (() => {
+    const numbered = /งวดที่\s*(\d+)(?:\s*จาก\s*(\d+))?/.exec(text);
+    const months = /(\d+)\s*เดือน/.exec(text);
+    const number = numbered ? Number(numbered[1]) : null;
+    const totalMonths = numbered?.[2] ? Number(numbered[2]) : months ? Number(months[1]) : null;
+    return { number, totalMonths, remainingMonths: number !== null && totalMonths !== null && number <= totalMonths ? totalMonths - number : null };
+  })() : undefined;
+  if (installment?.remainingMonths !== null && installment?.remainingMonths !== undefined) description = `${description ?? ""} · เหลือ ${installment.remainingMonths} งวดหลังงวดนี้`;
+  const withholding = /หัก\s*ณ\s*ที่จ่าย\s*(\d+(?:\.\d+)?)\s*%/.exec(text);
+  if (withholding && detectedType === "income" && amountCents !== null) {
+    const rate = Number(withholding[1]);
+    if (rate >= 0 && rate <= 100) {
+      const tax = Math.round(amountCents * rate / 100);
+      description = `${cleanDescription(working.replace(withholding[0], "")) ?? ""} · ยอดก่อนหัก ${amountCents / 100} บาท หัก ณ ที่จ่าย ${rate}% = ${tax / 100} บาท สุทธิ ${(amountCents - tax) / 100} บาท`;
+    }
+  }
   // Learning decides the TYPE too: once the user has filed "แม่ให้" under an
   // income category, the same words read as income next time even without
   // an explicit marker. Explicit markers ("+", "รายรับ") still win. A unit
   // carries its own type; an unpriced "ได้ N <unit>" is something received.
   const type = smart ? (smart.kind === "loan" ? "income" : "expense") : subscription ? "expense" : counted
-    ? (counted.unit?.type ?? "income")
+    ? (counted.unit?.type ?? detectedType)
     : learnedTypeOverride(lower, text, merchant, detectedType, ctx);
   const unitCategory = counted?.unit?.category_id
     ? ctx.categories.find((c) => c.id === counted.unit!.category_id && (c.type === type || c.type === "both"))
@@ -800,6 +835,7 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
 
   return {
     ...(smart ? { smart } : {}),
+    ...(installment ? { installment } : {}),
     subscription,
     subscriptionAccountMissing,
     isEmergencyFundDraw,

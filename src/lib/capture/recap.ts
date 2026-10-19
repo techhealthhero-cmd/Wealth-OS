@@ -21,6 +21,7 @@ import { parseCancelIntent } from "./subscription-intent";
 import { KNOWN_MERCHANTS } from "./keywords";
 import {
   AMOUNT_PATTERN,
+  maskCaptureParameters,
   countedUnitEnd,
   extractCaptureDate,
   findKeyword,
@@ -156,7 +157,7 @@ export function splitRecap(input: string, unitWords: string[] = []): string[] {
   // normalizeText collapses newlines — keep them as item separators first.
   const text = normalizeText(input.replace(/\r?\n+/g, " ; "));
   if (!text) return [];
-  const masked = maskNonAmounts(maskPurchasePlanNumbers(text));
+  const masked = maskNonAmounts(maskPurchasePlanNumbers(maskCaptureParameters(text)));
 
   // Hard separators (newline, ;, a comma that isn't a thousands separator).
   const cuts = new Set<number>(purchasePlanParameterEnds(text));
@@ -186,6 +187,15 @@ export function splitRecap(input: string, unitWords: string[] = []): string[] {
   for (const [pieceIndex, piece] of raw.entries()) {
     let cleaned = stripLeading(piece.replace(/^[\s,;]+|[\s,;]+$/g, ""), [...PREAMBLES, ...LEADING_CONNECTORS]);
     if (!cleaned) continue;
+    // Tax/old-debt terms qualify the preceding amount even before another item.
+    if (items.length) {
+      const parameters = /^(?:(?:หัก\s*ณ\s*ที่จ่าย\s*\d+(?:\.\d+)?\s*%|งวดที่\s*\d+(?:\s*จาก\s*\d+)?|\d+\s*เดือน(?![\p{L}\p{M}])|\d+(?:\.\d+)?\s*%)\s*)+/u.exec(cleaned);
+      if (parameters) {
+        items[items.length - 1] += ` ${parameters[0].trim()}`;
+        cleaned = stripLeading(cleaned.slice(parameters[0].length), LEADING_CONNECTORS);
+        if (!cleaned) continue;
+      }
+    }
     // "ข้าว 40 จ่ายเงินสด แล้วก็กาแฟ 60": the payment words after an amount
     // describe THAT item — move them back before parsing this one.
     const lead = items.length > 0 ? PAYMENT_LEADS.find((p) => cleaned.toLowerCase().startsWith(p)) : undefined;
