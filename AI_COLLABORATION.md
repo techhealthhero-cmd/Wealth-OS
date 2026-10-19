@@ -140,6 +140,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
 | CAPTURE-EMERGENCY | Emergency source intent and food classification | Codex | DONE — all requested checks passed on Node 22 | Parser + AI preservation, read-only linked account wiring, regression tests; no UI/DB changes | PR to staging |
+| RESUME-PILL-NAV | Mobile resume pill safe-area clearance | Codex | DONE | Host class/comment + focused rendering regression; inspect nav geometry, run typecheck/lint/related Vitest | PR to staging (screenshots 390px ± 34px safe area) |
 | SLIP-PARSE-MATCH | Portable Thai e-slip parser and matcher | Codex | VERIFY — typecheck/lint and 113 files / 1302 tests passed | src/lib/slip + synthetic tests; implement, validate, PR and merge into staging after checks | Codex → staging reviewers; report /workspace/reports/slip-parse-match-pr.md |
 | PDF-IMPORT-REVIEW | Full PR #6 diff vs origin/staging; parser/security fixes and required checks | Codex | DONE — no blocking findings remain; typecheck/lint/108 files·1167 tests passed | Non-UI PDF engine/extraction + regression tests; Claude UI untouched | Grok/Claude review unstaged fixes; no commit/push |
 | STAGING-SEC-E2E | Staging DB hardening and live-test target guard | Codex | READY FOR HANDOFF — local checks passed | Migration 0046, shared guard, demo/live specs; validate typecheck/lint/full Vitest, PR into staging, merge after all checks pass | Supervisor applies DB separately; report /workspace/reports/staging-sec-e2e-pr.md |
@@ -193,6 +194,14 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → owner: RESUME-PILL-NAV
+
+- Completed: resume pill uses pages' existing `7rem + env(safe-area-inset-bottom)` clearance; desktop `md:bottom-6` retained. Replaced stale floating QuickAdd FAB comment with current nav-center mic reference.
+- Geometry at default sizing: item 20px icon + 2px gap + 16.5px label + 12px padding = 50.5px; nav padding adds 12px = 62.5px; wrapper adds 16px + safe area = 78.5px + inset. Raised mic reaches 93.5px + inset; 112px + inset offset leaves 18.5px gap.
+- Files: `src/components/shared/minimizable-form-context.tsx`, `tests/minimizable-form-context.test.ts`, this collaboration board. Two server-rendered regressions cover minimized and minimizing states.
+- Validation: initial `npx tsc --noEmit -p .` lacked generated LayoutProps; `npx next typegen` then `npx tsc --noEmit -p .` passed. ESLint on both changed code/test files passed. Default Vitest config loader hit read-only node_modules/.vite-temp; rerun `npx vitest run tests/minimizable-form-context.test.ts tests/nav-notch-path.test.ts --configLoader runner` passed (2 files, 11 tests). `git diff --check` passed.
+- Next: PR to staging with 390px before/after screenshots (simulated 34px iPhone safe-area). No migrations, auth/RLS or financial changes.
 
 ### 2026-10-19 — Codex → staging reviewers (SLIP-PARSE-MATCH)
 
