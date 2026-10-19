@@ -21,12 +21,11 @@ export default function manifest(): MetadataRoute.Manifest {
     // The journal desk colour, so Android's launch splash flows straight
     // into the closed journal instead of flashing a different colour.
     background_color: "#ecdfc6",
-    // Matches the app's actual brand green (--primary, #1F4D3E) and the
-    // root layout's own viewport themeColor — the previous #2a78d6 (blue)
-    // was a leftover from an earlier design direction the app moved away
-    // from; an installed PWA's OS status bar/task-switcher chrome would
-    // have shown a jarring blue that doesn't match the app at all.
-    theme_color: "#1F4D3E",
+    // Same as the root layout's viewport themeColor: the cream notebook page
+    // (--background #f7efdf), so the installed app's status bar/title strip
+    // reads as part of the page instead of a separate green or grey band.
+    // (Previously #1F4D3E here vs #f7f8f6 in the layout — they disagreed.)
+    theme_color: "#f7efdf",
     lang: "th",
     icons: [
       { src: "/icon-192", sizes: "192x192", type: "image/png" },

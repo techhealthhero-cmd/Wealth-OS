@@ -18,11 +18,16 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
     <I18nProvider locale={locale} dict={dict}>
       <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-12">
         <div className="w-full max-w-sm space-y-6">
+          {/* The transparent closed-journal cut-out, same as the landing page,
+              onboarding and the iOS launch image, so launch -> sign-in reads
+              as one scene. (preview.webp is an opaque painted tile with a
+              coral background and rough white corners; clipped by
+              rounded-2xl it looked pasted on top of the cream page.) */}
           <Artwork
-            src="/artwork/brand/preview.webp"
+            src="/artwork/brand/planner-cutout.webp"
             square
             priority
-            className="mx-auto w-20 rotate-2 rounded-2xl shadow-card"
+            className="mx-auto w-28 drop-shadow-[0_8px_12px_rgba(30,18,6,0.22)]"
           />
           <div className="flex items-center justify-center gap-2 text-lg font-semibold text-primary">
             <BrandMark size={24} />
