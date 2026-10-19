@@ -1023,3 +1023,16 @@
 html[data-page-turning] .skeleton-shimmer {
   animation-play-state: paused;
 }
+
+/* The caret indicates focus on the full-page writing field. */
+.voice-paper-area,
+.voice-paper-field {
+  -webkit-tap-highlight-color: transparent;
+}
+.voice-paper-field,
+.voice-paper-field:focus,
+.voice-paper-field:focus-visible {
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+}
