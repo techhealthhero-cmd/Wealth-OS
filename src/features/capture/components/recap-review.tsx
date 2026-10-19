@@ -15,6 +15,9 @@ import { recapTotals } from "@/lib/capture/recap";
 import { CategoryPicker } from "@/features/transactions/components/category-picker";
 import { AccountPicker } from "@/features/transactions/components/account-picker";
 
+import { SubscriptionFields } from "./subscription-fields";
+import { SubscriptionCancelCard } from "./subscription-cancel-card";
+
 export interface RecapRow {
   id: string;
   sourceText: string;
@@ -101,6 +104,7 @@ export function RecapReview({
       <ul className="divide-y rounded-xl border">
         {rows.map((row) => {
           const d = row.draft;
+          if (d.cancelIntent) return <li key={row.id}><SubscriptionCancelCard serviceQuery={d.cancelIntent.serviceQuery} onCancelled={() => onRemove(row.id)} /></li>;
           const category = categories.find((c) => c.id === d.categoryId) ?? null;
           const guessed = d.categorySource === "fallback" && !d.categoryConfirmedByUser;
           const open = openId === row.id;
@@ -138,6 +142,7 @@ export function RecapReview({
                 <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} aria-hidden="true" />
               </button>
 
+              <SubscriptionFields draft={d} accounts={accounts} onChange={(patch) => onChange(row.id, patch)} />
               {open ? (
                 <RecapRowEditor
                   row={row}
@@ -258,7 +263,7 @@ function RecapRowEditor({
           name={`__recap_account_${row.id}`}
           accounts={accounts.filter((a) => !a.is_archived)}
           value={d.accountId ?? undefined}
-          onValueChange={(id) => onChange({ accountId: id ?? null })}
+          onValueChange={(id) => onChange({ accountId: id ?? null, subscriptionAccountMissing: !id && d.subscriptionAccountMissing })}
         />
         <span className="flex h-9 items-center gap-1 rounded-full border bg-background px-3 text-xs">
           <span aria-hidden="true">📅</span>

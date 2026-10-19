@@ -16,6 +16,8 @@ import { AccountPicker } from "@/features/transactions/components/account-picker
 import type { PossibleDuplicate } from "@/features/capture/actions";
 import { ConfidenceBadge } from "./confidence-badge";
 
+import { SubscriptionFields } from "./subscription-fields";
+
 type OpenPanel = "category" | "account" | null;
 
 interface TransactionPreviewProps {
@@ -116,6 +118,7 @@ export function TransactionPreview({
       </div>
 
       {notice}
+      <SubscriptionFields draft={draft} accounts={accounts} onChange={onChange} />
 
       {/* Amount — visually dominant; directly editable. */}
       <div>
@@ -190,7 +193,7 @@ export function TransactionPreview({
           accounts={accounts.filter((a) => !a.is_archived)}
           value={draft.accountId ?? undefined}
           onValueChange={(id) => {
-            onChange({ accountId: id ?? null });
+            onChange({ accountId: id ?? null, subscriptionAccountMissing: !id && draft.subscriptionAccountMissing });
             setOpenPanel(null);
           }}
         />

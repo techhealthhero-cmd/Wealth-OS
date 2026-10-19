@@ -32,6 +32,10 @@ import { parseRecap } from "@/lib/capture/recap";
 import { detectTransferIntent, type AccountSlot, type TransferIntent } from "@/lib/capture/transfer";
 import { buildCaptureSaveInput, canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
 
+import { parseCancelIntent } from "@/lib/capture/subscription-intent";
+import { SubscriptionFields } from "./subscription-fields";
+import { SubscriptionCancelCard } from "./subscription-cancel-card";
+
 interface VoiceNotebookProps {
   open: boolean;
   onClose: () => void;
@@ -114,6 +118,7 @@ export function VoiceNotebook({
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
   }, [transcript, open]);
+  const [recurringChoices, setRecurringChoices] = useState<Record<string, boolean>>({});
   const [emergencyFundAccountId, setEmergencyFundAccountId] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<CaptureMerchantPreference[]>([]);
   const [saving, setSaving] = useState(false);
@@ -157,6 +162,7 @@ export function VoiceNotebook({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
     setPicks({});
+    setRecurringChoices({});
     setPicker(null);
     setLowDismissed([]);
     closeRef.current?.focus();
@@ -232,6 +238,9 @@ export function VoiceNotebook({
     return parseRecap(parseText, ctx).map((item, i) => ({
       id: `${i}:${item.sourceText}`,
       draft: {
+        subscription: item.subscription,
+        subscriptionAccountMissing: item.subscriptionAccountMissing,
+        cancelIntent: item.cancelIntent,
         type: item.type,
         amountCents: item.amountCents,
         categoryId: item.categoryId,
@@ -266,9 +275,9 @@ export function VoiceNotebook({
   const needsShopAnswer = (row: Row) =>
     !row.transfer && row.suggestedAccountId !== null && !picks[row.id]?.pay && row.draft.amountCents !== null;
   const unresolved = rows.filter(
-    (r) => (r.transfer && r.draft.amountCents !== null && !transferReady(r)) || needsShopAnswer(r) || (!r.transfer && r.unknownUnit)
+    (r) => (r.transfer && r.draft.amountCents !== null && !transferReady(r)) || needsShopAnswer(r) || (r.draft.subscriptionAccountMissing && !picks[r.id]?.pay) || (!r.transfer && r.unknownUnit)
   ).length;
-  const saveable = rows.filter((r) => (r.transfer ? r.draft.amountCents !== null && transferReady(r) : canSaveDraft(r.draft)));
+  const saveable = rows.filter((r) => (r.transfer ? r.draft.amountCents !== null && transferReady(r) : canSaveDraft({ ...r.draft, subscriptionAccountMissing: r.draft.subscriptionAccountMissing && !picks[r.id]?.pay })));
 
   // Wallets and cash can't go below zero in real life: project each one's
   // balance after these items. Skipped while privacy mode hides balances.
@@ -281,7 +290,7 @@ export function VoiceNotebook({
     };
     for (const row of rows) {
       const cents = row.draft.amountCents;
-      if (cents === null) continue;
+      if (cents === null || (row.draft.subscriptionAccountMissing && !picks[row.id]?.pay)) continue;
       if (row.transfer) {
         add(picks[row.id]?.from ?? (row.transfer.from.status === "matched" ? row.transfer.from.accountId : null), 0, -cents);
         add(picks[row.id]?.to ?? (row.transfer.to.status === "matched" ? row.transfer.to.accountId : null), 0, cents);
@@ -416,7 +425,7 @@ export function VoiceNotebook({
 
   /** Same rules as Quick Capture's recap confirm: one idempotency key per item, blind "Other" guesses go to the Daily Inbox. */
   async function saveAll() {
-    if (saving || saveable.length === 0) return;
+    if (saving || saveable.length === 0 || unresolved > 0 || parseCancelIntent(transcript)) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       setError(t("capture.offline"));
       return;
@@ -457,12 +466,13 @@ export function VoiceNotebook({
       const reviewed = row.draft.categorySource !== "fallback" && row.draft.categoryId !== null;
       // The pay-from account the user confirmed for this shop, if they changed it.
       const payload = buildCaptureSaveInput(
-        { ...row.draft, accountId: sideAccount(row, "pay"), categoryConfirmedByUser: reviewed },
+        { ...row.draft, accountId: sideAccount(row, "pay"), subscriptionAccountMissing: row.draft.subscriptionAccountMissing && !picks[row.id]?.pay, addRecurring: recurringChoices[row.id] !== false, categoryConfirmedByUser: reviewed },
         requestId
       );
       try {
         const result = payload ? await saveCapturedTransaction(payload) : null;
         if (result?.success) {
+          if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
           saved += 1;
           lastAmount = payload!.amountCents;
           if (result.transactionId) savedIds.push(result.transactionId);
@@ -570,11 +580,13 @@ export function VoiceNotebook({
         {rows.length > 0 ? (
           <ul className="mt-6 flex flex-col gap-3">
             {rows.map((row, i) => {
+              if (row.draft.cancelIntent) return <li key={row.id}><SubscriptionCancelCard serviceQuery={row.draft.cancelIntent.serviceQuery}
+                onCancelled={() => { onTranscriptChange(""); onClose(); }} /></li>;
               const d = row.draft;
               const tr = row.transfer;
               const details = tr
                 ? null
-                : [categoryName(d.categoryId), accountName(sideAccount(row, "pay")), dayLabel(d.date)].filter(Boolean).join(" · ");
+                : [categoryName(d.categoryId), d.subscriptionAccountMissing && !picks[row.id]?.pay ? null : accountName(sideAccount(row, "pay")), dayLabel(d.date)].filter(Boolean).join(" · ");
               const askShop = needsShopAnswer(row);
               const needsPick = (tr !== null && !transferReady(row)) || askShop || (!tr && row.unknownUnit !== null);
               const shop = d.merchant ?? "";
@@ -628,6 +640,11 @@ export function VoiceNotebook({
                       <span className="text-sm text-amber-700 dark:text-amber-400">{t("capture.voice.noAmount")}</span>
                     )}
                   </div>
+                  <SubscriptionFields draft={{ ...d, subscriptionAccountMissing: d.subscriptionAccountMissing && !picks[row.id]?.pay, addRecurring: recurringChoices[row.id] !== false }} accounts={accounts}
+                    onChange={(patch) => {
+                      if (patch.accountId) pick(row.id, "pay", patch.accountId);
+                      if (patch.addRecurring !== undefined) setRecurringChoices((prev) => ({ ...prev, [row.id]: patch.addRecurring! }));
+                    }} />
                   {details ? <p className="mt-1 text-sm text-muted-foreground">{details}</p> : null}
                   {!tr && row.unit ? (
                     <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">

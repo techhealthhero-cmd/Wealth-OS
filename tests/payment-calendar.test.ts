@@ -232,3 +232,18 @@ describe("nextPayments / firstUnpaidDate", () => {
     expect(firstUnpaidDate(source({ nextDueDate: "2026-10-19", endDate: "2026-10-31", paid: [{ date: "2026-10-19", amountCents: 1 }] }))).toBeNull();
   });
 });
+
+describe("captured subscription schedules", () => {
+  it("starts on NEXT due day and removes future occurrences after cancellation", () => {
+    const captured = source({ label: "Grok Bot", amountCents: 107900, nextDueDate: "2026-11-19" });
+    expect(buildMonthPayments([captured], "2026-10")).toEqual([]);
+    expect(buildMonthPayments([captured], "2026-11")).toMatchObject([{ date: "2026-11-19", amountCents: 107900, paid: false }]);
+    expect(buildMonthPayments([{ ...captured, active: false, endDate: "2026-10-19" }], "2026-11")).toEqual([]);
+    expect(buildMonthPayments([{ ...captured, endDate: "2026-11-18" }], "2026-11")).toEqual([]);
+  });
+  it("projects yearly capture on its next anniversary", () => {
+    const captured = source({ label: "iCloud", frequency: "yearly", nextDueDate: "2027-10-19" });
+    expect(buildMonthPayments([captured], "2026-10")).toEqual([]);
+    expect(buildMonthPayments([captured], "2027-10")).toMatchObject([{ date: "2027-10-19" }]);
+  });
+});

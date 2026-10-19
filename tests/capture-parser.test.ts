@@ -302,3 +302,113 @@ describe("emergency-fund source intent", () => {
     expect(parseCaptureText(`${food} 120`, CTX).categoryId).toBe("cat-food");
   });
 });
+
+describe("subscription capture", () => {
+  const subAccount = { id: "acc-sub", name: "บัญชีซับ", purpose: null, account_type: "bank" as const, institution: null, is_archived: false };
+  const billCtx: ParseContext = { ...CTX, categories: [...CTX.categories, SYS("cat-housing", "ที่อยู่อาศัย", "Housing", "expense", "house")] };
+  it.each([
+    ["ค่าเช่าห้องเดือนละ 5000", "cat-housing", 500000],
+    ["ค่าโทรศัพท์รายเดือน 599", "cat-utilities", 59900],
+    ["ค่าเน็ตเดือนละ 650", "cat-utilities", 65000],
+    ["ค่าเน็ตต่อเดือน 650", "cat-utilities", 65000],
+    ["ผ่อนรถเดือนละ 8000", "cat-transport", 800000],
+  ])("keeps the category and normal account for cadence-only bill %s", (text, categoryId, amountCents) => {
+    for (const accounts of [CTX.accounts, [...CTX.accounts, subAccount]]) {
+      const ctx = { ...billCtx, accounts };
+      const parsed = parseCaptureText(text, ctx);
+      expect(parsed).toMatchObject({
+        subscription: { frequency: "monthly" }, categoryId, categorySource: "keyword", amountCents,
+        accountId: "acc-kbank", accountSource: "default", subscriptionAccountMissing: false,
+      });
+      expect(suggestCategory(text, null, "expense", ctx)).toEqual({ categoryId, source: "keyword" });
+    }
+  });
+  it("uses normal named, merchant-preferred and suggested accounts for cadence-only bills", () => {
+    const ctx = { ...billCtx, accounts: [...CTX.accounts, subAccount] };
+    expect(parseCaptureText("ค่าโทรศัพท์รายเดือน 599 cash", ctx)).toMatchObject({ categoryId: "cat-utilities", accountId: "acc-cash", accountSource: "matched", subscriptionAccountMissing: false });
+    expect(parseCaptureText("ค่าเน็ต AIS เดือนละ 650", { ...ctx, merchantAccounts: [{ merchant_normalized: "ais", account_id: "acc-cash" }] }))
+      .toMatchObject({ categoryId: "cat-utilities", accountId: "acc-cash", accountSource: "merchant", subscriptionAccountMissing: false });
+    expect(parseCaptureText("ค่าเน็ต AIS เดือนละ 650", { ...ctx, accounts: [...ctx.accounts, { ...subAccount, id: "ais", name: "AIS" }] }))
+      .toMatchObject({ categoryId: "cat-utilities", accountId: "acc-kbank", accountSource: "default", suggestedAccountId: "ais", subscriptionAccountMissing: false });
+  });
+  it.each(["บริการใหม่เดือนละ 500", "บริการใหม่รายปี 500"])("uses subscription defaults when cadence has no keyword category: %s", (text) => {
+    expect(parseCaptureText(text, CTX)).toMatchObject({ categoryId: "cat-subs", subscriptionAccountMissing: true });
+    expect(parseCaptureText(text, { ...CTX, accounts: [...CTX.accounts, subAccount] })).toMatchObject({ categoryId: "cat-subs", accountId: "acc-sub", accountSource: "subscription" });
+  });
+  it.each(["สมัคร", "สมัครสมาชิก", "ต่ออายุ", "ต่อสมาชิก", "ซับ", "sub", "subscribe", "subscription"])("%s overrides a generic keyword category", (signup) => {
+    expect(parseCaptureText(`${signup} ค่าโทรศัพท์ 599`, { ...CTX, accounts: [...CTX.accounts, subAccount] }))
+      .toMatchObject({ categoryId: "cat-subs", accountId: "acc-sub", accountSource: "subscription", subscriptionAccountMissing: false });
+  });
+  it.each(["Netflix", "Spotify", "YouTube Premium", "Disney+", "iCloud", "Google One", "ChatGPT", "Grok", "Duolingo", "Canva", "Adobe", "Apple Music", "LINE MAN Plus"])("known service %s overrides generic keywords without signup/cadence", (service) => {
+    const text = `ค่าโทรศัพท์ ${service} 599`;
+    const ctx = { ...CTX, accounts: [...CTX.accounts, subAccount] };
+    expect(parseCaptureText(text, ctx)).toMatchObject({ categoryId: "cat-subs", accountId: "acc-sub", accountSource: "subscription", subscriptionAccountMissing: false });
+    expect(suggestCategory(text, service, "expense", ctx)).toEqual({ categoryId: "cat-subs", source: "keyword" });
+  });
+  it.each(["Suburb Savings", "Subway", "Substantial", "MySubscriptions"])("ignores Latin substrings in account name and purpose: %s", (name) => {
+    for (const account of [{ ...subAccount, name }, { ...subAccount, name: "Savings", purpose: name }]) {
+      expect(parseCaptureText("สมัคร Netflix 419", { ...CTX, accounts: [...CTX.accounts, account] }))
+        .toMatchObject({ accountId: "acc-kbank", accountSource: "default", subscriptionAccountMissing: true });
+    }
+  });
+  it.each(["sub", "subs", "Subscription", "Subscriptions", "Monthly SUB fund", "บัญชีซับ", "เงินสมาชิก", "บริการรายเดือน"])("recognizes subscription account names and purposes: %s", (name) => {
+    for (const account of [{ ...subAccount, name }, { ...subAccount, name: "Savings", purpose: name }]) {
+      expect(parseCaptureText("สมัคร Netflix 419", { ...CTX, accounts: [...CTX.accounts, account] }))
+        .toMatchObject({ accountId: "acc-sub", accountSource: "subscription", subscriptionAccountMissing: false });
+    }
+  });
+  it.each([
+    ["ยกเลิกตั๋วเครื่องบิน ได้เงินคืน 2000", 200000],
+    ["ยกเลิกตั๋ว คืนเงิน 1500", 150000],
+  ])("keeps refund amount and normal routing: %s", (text, amountCents) => {
+    const parsed = parseCaptureText(text, { ...CTX, accounts: [...CTX.accounts, subAccount] });
+    expect(parsed.cancelIntent).toBeFalsy();
+    expect(parsed.subscription).toBeFalsy();
+    expect(parsed.subscriptionAccountMissing).toBe(false);
+    expect(parsed).toMatchObject({ amountCents, accountId: "acc-kbank", accountSource: "default" });
+  });
+  it.each([
+    ["ฉันเพิ่งสมัครกรอก Grok Bot ไปจ่ายเดือนละ 1079 บาท", "Grok Bot", 107900, "monthly"],
+    ["สมัคร Grok Bot 1079 บาทต่อเดือน", "Grok Bot", 107900, "monthly"],
+    ["sub Netflix 419", "Netflix", 41900, "monthly"],
+    ["subscribe YouTube Premium 179 รายเดือน", "YouTube Premium", 17900, "monthly"],
+    ["ต่ออายุ iCloud ปีละ 1,190", "iCloud", 119000, "yearly"],
+    ["subscription Spotify annual 199", "Spotify", 19900, "yearly"],
+    ["สมัครสมาชิก Duolingo รายปี 1190", "Duolingo", 119000, "yearly"],
+  ])("%s", (text, serviceName, amountCents, frequency) => {
+    expect(parseCaptureText(text, { ...CTX, accounts: [...CTX.accounts, subAccount] })).toMatchObject({
+      subscription: { serviceName, frequency }, merchant: serviceName, amountCents,
+      categoryId: "cat-subs", categorySource: "keyword", accountId: "acc-sub", accountSource: "subscription", subscriptionAccountMissing: false,
+    });
+  });
+  it("recognizes purpose and ignores archived accounts", () => {
+    const accounts = [...CTX.accounts, { ...subAccount, is_archived: true }, { ...subAccount, id: "purpose", name: "Bills", purpose: "Subscription" }];
+    expect(parseCaptureText("sub Netflix 419", { ...CTX, accounts }).accountId).toBe("purpose");
+  });
+  it("asks for an account when no subscription account exists", () => {
+    expect(parseCaptureText("sub Netflix 419", CTX)).toMatchObject({ subscriptionAccountMissing: true, accountId: "acc-kbank", accountSource: "default" });
+  });
+  it("named accounts beat merchant settings which beat the subscription account", () => {
+    const ctx = { ...CTX, accounts: [...CTX.accounts, subAccount], merchantAccounts: [{ merchant_normalized: "netflix", account_id: "acc-kbank" }] };
+    expect(parseCaptureText("sub Netflix 419 cash", ctx)).toMatchObject({ accountId: "acc-cash", accountSource: "matched", merchant: "Netflix", subscriptionAccountMissing: false });
+    expect(parseCaptureText("sub Netflix 419", ctx)).toMatchObject({ accountId: "acc-kbank", accountSource: "merchant", subscriptionAccountMissing: false });
+  });
+  it("paying an ordinary expense from a subscription account does not change its intent/category", () => {
+    expect(parseCaptureText("ค่าข้าว 50 บัญชีซับ", { ...CTX, accounts: [...CTX.accounts, subAccount] }))
+      .toMatchObject({ subscription: null, amountCents: 5000, categoryId: "cat-food", accountId: "acc-sub", accountSource: "matched" });
+    expect(parseCaptureText("sub Netflix 419 จ่ายจาก cash", CTX)).toMatchObject({ merchant: "Netflix", subscription: { serviceName: "Netflix" }, accountId: "acc-cash" });
+  });
+  it("learned service categories still win", () => {
+    expect(parseCaptureText("สมัคร Grok Bot 1079 บาทต่อเดือน", { ...CTX, merchantPreferences: [{ merchant_normalized: "grok bot", category_id: "cat-shopping" }] }))
+      .toMatchObject({ categoryId: "cat-shopping", categorySource: "learned" });
+  });
+  it("recognizes Thai categories and falls back to existing Utilities", () => {
+    const thaiOnly = CTX.categories.map((c) => c.id === "cat-subs" ? { ...c, name_en: "Custom", name_th: "บริการรายเดือน" } : c);
+    expect(parseCaptureText("sub Netflix 419", { ...CTX, categories: thaiOnly }).categoryId).toBe("cat-subs");
+    expect(parseCaptureText("sub Netflix 419", { ...CTX, categories: CTX.categories.filter((c) => c.id !== "cat-subs") })).toMatchObject({ categoryId: "cat-utilities", categorySource: "keyword" });
+  });
+  it.each(["ค่าข้าว 50", "สมัครเรียน 500", "สมัครงาน 100", "subway 200", "ค่ายกเลิกตั๋ว 200"])("does not mark %s as subscription", (text) => {
+    expect(parseCaptureText(text, CTX).subscription).toBeFalsy();
+    expect(parseCaptureText(text, CTX).amountCents).not.toBeNull();
+  });
+});

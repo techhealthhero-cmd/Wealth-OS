@@ -1,6 +1,9 @@
+import { createRecurringTransaction } from "@/features/recurring/actions";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  findCancelCandidates,
+  cancelRecurringFromCapture,
   checkCaptureDuplicate,
   confirmInboxTransaction,
   dismissRecurringSuggestion,
@@ -19,6 +22,7 @@ let db: Record<string, Row[]>;
 let currentUser: { id: string } | null;
 let migrated: boolean;
 let nextId: number;
+let failingRecurring: "select" | "insert" | null = null;
 
 const NEW_COLUMNS = ["review_status", "ai_confidence", "reference"];
 
@@ -83,6 +87,7 @@ class Query {
   }
 
   private run(): { data: Row[] | null; error: { code: string; message: string } | null } {
+    if (this.table === "recurring_transactions" && this.op === failingRecurring) return { data: null, error: { code: "XX000", message: "synthetic failure" } };
     if (!migrated && this.table === "merchant_category_preferences") {
       return { data: null, error: { code: "42P01", message: "relation does not exist" } };
     }
@@ -93,6 +98,7 @@ class Query {
     }
     if (this.op === "insert") {
       const p = this.payload!;
+      if (p.id && this.rows().some((r) => r.id === p.id)) return { data: null, error: { code: "23505", message: "duplicate primary key" } };
       if (this.table === "transactions" && p.client_request_id) {
         if (this.rows().some((r) => r.user_id === p.user_id && r.client_request_id === p.client_request_id)) {
           return { data: null, error: { code: "23505", message: "duplicate key" } };
@@ -167,6 +173,7 @@ beforeEach(() => {
   currentUser = { id: "user-1" };
   migrated = true;
   nextId = 1;
+  failingRecurring = null;
 });
 
 describe("saveCapturedTransaction", () => {
@@ -333,5 +340,123 @@ describe("checkCaptureDuplicate", () => {
     expect(await checkCaptureDuplicate({ amountCents: 24900, date: "2026-09-29", merchant: "Starbucks" })).toBeNull();
     expect(await checkCaptureDuplicate({ amountCents: 24900, date: "2026-10-05", merchant: "KFC" })).toBeNull();
     expect(await checkCaptureDuplicate({ amountCents: 9900, date: "2026-09-29", merchant: "KFC" })).toBeNull();
+  });
+});
+
+
+describe("explicit recurring capture", () => {
+  const input = { ...BASE, merchant: "Grok Bot", amountCents: 107900, date: "2026-10-19", recurring: { name: "Grok Bot", frequency: "monthly" as const } };
+  it("saves today's payment then schedules NEXT month on the same day", async () => {
+    const res = await saveCapturedTransaction({ ...input, clientRequestId: key() });
+    expect(res).toMatchObject({ success: true, recurringCreated: true, recurringSuggestion: null });
+    expect(db.transactions).toHaveLength(1);
+    expect(db.recurring_transactions).toEqual([expect.objectContaining({ user_id: "user-1", type: "expense", amount: 1079, account_id: ACCOUNT, category_id: FOOD, merchant: "Grok Bot", description: null, frequency: "monthly", start_date: "2026-10-19", next_due_date: "2026-11-19", is_active: true })]);
+  });
+  it.each([["2026-01-31", "monthly", "2026-02-28"], ["2024-02-29", "yearly", "2025-02-28"]] as const)("clamps %s %s to %s", async (date, frequency, nextDue) => {
+    await saveCapturedTransaction({ ...input, date, recurring: { name: "Grok Bot", frequency }, clientRequestId: key() });
+    expect(db.recurring_transactions[0]).toMatchObject({ start_date: date, next_due_date: nextDue });
+  });
+  it("deduplicates active merchant case-insensitively and retries without a second payment", async () => {
+    db.recurring_transactions = [{ id: SUBS, user_id: "user-1", merchant: "gRoK bOt", is_active: true }];
+    const requestId = key();
+    const first = await saveCapturedTransaction({ ...input, clientRequestId: requestId });
+    const retry = await saveCapturedTransaction({ ...input, clientRequestId: requestId });
+    expect(first).toMatchObject({ success: true, recurringCreated: false, recurringAlreadyExists: true, recurringSuggestion: null });
+    expect(retry).toMatchObject({ success: true, recurringCreated: false, recurringAlreadyExists: true });
+    expect(db.transactions).toHaveLength(1);
+    expect(db.recurring_transactions).toHaveLength(1);
+  });
+  it("guards simultaneous new captures using the recurring primary key", async () => {
+    const results = await Promise.all([saveCapturedTransaction({ ...input, clientRequestId: key() }), saveCapturedTransaction({ ...input, clientRequestId: key() })]);
+    expect(results.every((r) => r.success)).toBe(true);
+    expect(db.transactions).toHaveLength(2);
+    expect(db.recurring_transactions).toHaveLength(1);
+  });
+  it.each(["select", "insert"] as const)("a recurring %s failure preserves the payment and reports failure", async (operation) => {
+    failingRecurring = operation;
+    const requestId = key();
+    expect(await saveCapturedTransaction({ ...input, clientRequestId: requestId })).toMatchObject({ success: true, recurringCreated: false, recurringError: expect.any(String) });
+    expect(db.transactions).toHaveLength(1);
+    failingRecurring = null;
+    expect(await saveCapturedTransaction({ ...input, clientRequestId: requestId })).toMatchObject({ success: true, recurringCreated: true });
+    expect(db.transactions).toHaveLength(1);
+    expect(db.recurring_transactions).toHaveLength(1);
+  });
+  it("a retry cannot resurrect a cancelled subscription; a new confirmed signup can", async () => {
+    const requestId = key();
+    await saveCapturedTransaction({ ...input, clientRequestId: requestId });
+    const id = db.recurring_transactions[0].id as string;
+    await cancelRecurringFromCapture(id);
+    expect((await saveCapturedTransaction({ ...input, clientRequestId: requestId })).success).toBe(true);
+    expect(db.recurring_transactions[0].is_active).toBe(false);
+    expect(await saveCapturedTransaction({ ...input, date: "2026-11-05", clientRequestId: key() })).toMatchObject({ success: true, recurringCreated: true });
+    expect(db.recurring_transactions).toHaveLength(1);
+    expect(db.recurring_transactions[0]).toMatchObject({ is_active: true, start_date: "2026-11-05", next_due_date: "2026-12-05", end_date: null });
+    expect(db.transactions).toHaveLength(2);
+  });
+  it("retry recovery uses the saved payment's date and amount", async () => {
+    const requestId = key();
+    failingRecurring = "insert";
+    await saveCapturedTransaction({ ...input, clientRequestId: requestId });
+    failingRecurring = null;
+    await saveCapturedTransaction({ ...input, amountCents: 1, date: "2099-01-01", clientRequestId: requestId });
+    expect(db.recurring_transactions[0]).toMatchObject({ amount: 1079, start_date: "2026-10-19", next_due_date: "2026-11-19" });
+  });
+  it("manual recurring creation shares validation but still starts due on the start date", async () => {
+    const form = new FormData();
+    Object.entries({ type: "expense", amount: "1079.00", account_id: ACCOUNT, category_id: FOOD, merchant: "Grok Bot", frequency: "monthly", start_date: "2026-10-19", is_active: "true" }).forEach(([key, value]) => form.set(key, value));
+    expect(await createRecurringTransaction(undefined, form)).toEqual({ success: true });
+    expect(db.recurring_transactions[0]).toMatchObject({ amount: 1079, start_date: "2026-10-19", next_due_date: "2026-10-19" });
+    form.set("amount", "0");
+    expect((await createRecurringTransaction(undefined, form)).error).toBeTruthy();
+    expect(db.recurring_transactions).toHaveLength(1);
+  });
+  it("does not create recurring for opt-out, invalid recurring or another user", async () => {
+    const plain = { ...input, recurring: undefined };
+    await saveCapturedTransaction({ ...plain, clientRequestId: key() });
+    expect(db.recurring_transactions ?? []).toHaveLength(0);
+    expect((await saveCapturedTransaction({ ...input, type: "income", clientRequestId: key() })).error).toBeTruthy();
+    expect((await saveCapturedTransaction({ ...input, recurring: { frequency: "monthly", name: "" }, clientRequestId: key() })).error).toBeTruthy();
+    currentUser = null;
+    expect((await saveCapturedTransaction({ ...input, clientRequestId: key() })).error).toBeTruthy();
+    expect(db.recurring_transactions ?? []).toHaveLength(0);
+  });
+});
+
+describe("capture cancellation actions", () => {
+  beforeEach(() => {
+    db.recurring_transactions = [
+      { id: SUBS, user_id: "user-1", merchant: "Grok Bot", description: null, amount: "1079.00", frequency: "monthly", is_active: true, start_date: "2020-01-01", end_date: null },
+      { id: FOOD, user_id: "user-2", merchant: "Grok Pro", is_active: true, start_date: "2020-01-01" },
+      { id: ACCOUNT, user_id: "user-1", merchant: "Grok Old", is_active: false, start_date: "2020-01-01" },
+      { id: "ended", user_id: "user-1", merchant: "Grok Ended", is_active: true, start_date: "2020-01-01", end_date: "2020-02-01" },
+    ];
+    db.transactions = [{ id: "payment", user_id: "user-1", amount: "1079.00" }];
+  });
+  it("searches only this user's active, unended items", async () => {
+    expect(await findCancelCandidates("grok")).toMatchObject({ match: { status: "single", item: { id: SUBS } } });
+    expect(await findCancelCandidates("missing")).toMatchObject({ match: { status: "none" } });
+  });
+  it("deactivates the schedule and ends today without touching payment history", async () => {
+    const { todayInTimeZone } = await import("@/lib/date");
+    expect(await cancelRecurringFromCapture(SUBS)).toEqual({ success: true });
+    expect(db.recurring_transactions[0]).toMatchObject({ is_active: false, end_date: todayInTimeZone("Asia/Bangkok") });
+    expect(db.transactions).toEqual([{ id: "payment", user_id: "user-1", amount: "1079.00" }]);
+    expect(await findCancelCandidates("grok")).toMatchObject({ match: { status: "none" } });
+    expect(await cancelRecurringFromCapture(SUBS)).toEqual({ success: true });
+  });
+  it("a future start date is the earliest allowed end date", async () => {
+    db.recurring_transactions[0].start_date = "2099-01-31";
+    await cancelRecurringFromCapture(SUBS);
+    expect(db.recurring_transactions[0]).toMatchObject({ is_active: false, end_date: "2099-01-31" });
+  });
+  it("rejects cross-user, invalid id and unauthenticated calls", async () => {
+    expect((await cancelRecurringFromCapture(FOOD)).error).toBeTruthy();
+    expect((await cancelRecurringFromCapture("not-a-uuid")).error).toBeTruthy();
+    expect(db.recurring_transactions[1].is_active).toBe(true);
+    currentUser = null;
+    expect((await cancelRecurringFromCapture(SUBS)).error).toBeTruthy();
+    expect((await findCancelCandidates("Grok")).error).toBeTruthy();
+    expect(db.recurring_transactions[0].is_active).toBe(true);
   });
 });

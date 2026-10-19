@@ -12,6 +12,8 @@ import { getLocale } from "@/i18n/server";
 import { toLocalDateString } from "@/lib/date";
 import { deterministicUuid } from "@/lib/uuid";
 
+import { insertRecurringTransaction } from "./insert";
+
 const PG_UNIQUE_VIOLATION = "23505";
 
 export interface ActionResult {
@@ -44,23 +46,14 @@ async function getRequestDictionary() {
 
 export async function createRecurringTransaction(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const dict = await getRequestDictionary();
-  const parsed = buildRecurringTransactionSchema(dict).safeParse(parseRecurringFormData(formData));
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? dict.common.invalidInput };
-  }
-
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: dict.common.pleaseLogin };
 
-  const { error } = await supabase.from("recurring_transactions").insert({
-    ...parsed.data,
-    user_id: user.id,
-    next_due_date: parsed.data.start_date,
-  });
-  if (error) return { error: friendlyDbError(error, "createRecurringTransaction", dict.recurring.saveFailed) };
+  const result = await insertRecurringTransaction(supabase, user.id, parseRecurringFormData(formData), dict);
+  if (result.error) return { error: result.error };
 
   revalidatePath("/money/recurring");
   revalidatePath("/dashboard");
@@ -133,6 +126,10 @@ export async function confirmRecurringTransaction(id: string): Promise<ActionRes
     .eq("user_id", user.id)
     .maybeSingle();
   if (fetchError || !recurring) return { error: friendlyDbError(fetchError ?? { message: "not found" }, "confirmRecurringTransaction", dict.recurring.confirmFailed) };
+  // A stale confirmation button must not post a payment after voice/text cancellation.
+  if (!recurring.is_active || hasEnded(recurring.end_date ? new Date(`${recurring.end_date}T00:00:00`) : null)) {
+    return { error: dict.recurring.notYetDue };
+  }
   if (!isDue(new Date(recurring.next_due_date))) return { error: dict.recurring.notYetDue };
 
   // Idempotency key for THIS specific due occurrence — deterministic
