@@ -9,6 +9,7 @@ import { bookNeighbour } from "@/components/layout/journal-book";
 import { NotebookOpening } from "@/components/notebook/notebook-opening";
 import type { CoverPreferences } from "@/lib/notebook-covers/config";
 import { LaunchStillScene } from "./launch-still";
+import { useCoverSwipe } from "./use-cover-swipe";
 
 type CoverState = "open" | "closing" | "closed" | "opening";
 
@@ -17,7 +18,7 @@ type CoverState = "open" | "closing" | "closed" | "opening";
  * right-to-left and the page turns over to Money (then on through the whole
  * book); swipe left-to-right and — there being no page before Home — the
  * front cover swings shut. The closed journal stays on the desk (no balance
- * left on screen) until it's tapped, then opens again with the quick opening.
+ * left on screen). Taps replay the quick opening; swipes turn the cover directly.
  */
 export function HomeBook({
   prefs,
@@ -30,6 +31,8 @@ export function HomeBook({
 }) {
   const { t } = useTranslation();
   const [cover, setCover] = useState<CoverState>("open");
+
+  const swipe = useCoverSwipe(() => setCover("open"), () => setCover("opening"));
 
   // The closed book is a full-screen moment: no scrolling the page behind it.
   useEffect(() => {
@@ -59,10 +62,11 @@ export function HomeBook({
       {cover === "closed" && typeof document !== "undefined"
         ? createPortal(
             <>
-              <LaunchStillScene prefs={prefs} />
+              <LaunchStillScene prefs={prefs} coverFaceRef={swipe.coverFaceRef} />
               <button
                 type="button"
-                onClick={() => setCover("opening")}
+                {...swipe.handlers}
+                style={{ touchAction: "none" }}
                 aria-label={t("notebookCover.tapToOpen")}
                 className="fixed inset-0 z-[201] flex flex-col items-center justify-end pb-[calc(env(safe-area-inset-bottom)+4.5rem)] text-center focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-ring/40"
               >

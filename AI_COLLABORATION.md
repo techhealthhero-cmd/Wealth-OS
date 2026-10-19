@@ -143,6 +143,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| COVER-SWIPE-OPEN | Closed cover pointer swipe | Codex | DONE | Pointer capture + rAF face rotation, release/flick/spring, tap/keyboard, reduced motion and locale copy. Targeted 27 tests; full 143 files / 1996 tests, typecheck and lint pass on Node 22. | Owner device review |
 | SMART-CAPTURE-BLOCKING-REVIEW | Strict money/security/retry review | Codex | DONE | Reviewed diff; fixed partial retry principal/down-payment recovery and invalid-rate save routing; 140 files / 1963 tests, typecheck and full lint pass | Owner local review; no DB/commit/push |
 | SMART-CAPTURE-COLUMNS | 0048 columns, loan transfers, principal repayment, rate override | Codex | DONE — local review | Dedicated columns + legacy fallback/recovery; deterministic loan ledger transfers; owned recurring links; principal balance updates and paid summing; shared rate UI. Node 22: 140 files / 1960 tests, typecheck, changed TS/TSX lint pass. | Owner review; no commit/push/DB |
 | NLP-PHASE1 | Confidence gate + synthetic corpus + evaluation (logic only) | Codex | READY FOR HANDOFF — required checks pass | Pure gate, additive draft adapter, 320 synthetic labels + measured per-slice baseline; no UI/save/schema/formula changes | Supervisor review/commit; changes uncommitted |
@@ -485,3 +486,11 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Invalid effective smart drafts remain on the server-validated smart route rather than falling through to ordinary expense/income posting.
 - Added three regressions. Final Node 22 checks: requested full Vitest 140 files / 1963 tests passed; npm run -s typecheck passed; npm run -s lint passed; git diff --check passed.
 - No commits, pushes, database access, migrations or disabled tests. Next: owner review local fixes. Optional future DB ownership trigger remains defense in depth; browser/device interaction was not exercised.
+
+### 2026-10-19 — Codex → owner (COVER-SWIPE-OPEN)
+
+- Added `cover-swipe.ts` pure math and five tests in `tests/cover-swipe.test.ts`; `use-cover-swipe.ts` handles primary pointer capture, recent 100ms velocity, maximum tap movement, rAF transforms, release/cancel/lost capture and animation cleanup. Overlay isolates pointer/touch events and suppresses clicks after drags.
+- HomeBook supplies an optional face ref to LaunchStillScene; default fallback/splash markup and original wrapper pose/perspective remain unchanged. Successful swipes finish rotation in 220ms then set open directly, avoiding replay of a closed cover. Taps/keyboard retain the existing quick opening. Failed swipes spring back in 380ms; reduced motion skips follow/release animation.
+- Thai/English tapToOpen copy updated; closedHint retained. No RTL setup exists, so component test omitted; Node math tests cover clamping, thresholds, flick direction/distance and diagonal/vertical taps.
+- Validation: targeted notebook/gesture 3 files / 27 tests passed; Node 22 full `npx vitest run --configLoader runner` 143 files / 1996 tests passed; `npm run typecheck`, `npm run lint`, diff check passed. Initial login shell reset PATH to Node 20 and failed existing PDF built-ins test; checks rerun with supplied Node 22 PATH (`login: false`), no tests changed/skipped.
+- No commits, pushes, remote changes, secrets or dependencies. Physical iPhone/390px gesture/visual verification remains for owner review.
