@@ -548,6 +548,17 @@ export interface Database {
           include_in_net_worth: boolean;
           linked_account_id: string | null;
           notes: string | null;
+          // 0048 (staging only so far): optional because pre-0048 databases (prod) omit them.
+          category_group?: string | null;
+          subcategory?: string | null;
+          purchase_price?: string | null;
+          purchase_date?: string | null;
+          valuation_mode?: "declining" | "compound" | "market" | "fixed" | null;
+          depreciation_rate?: string | null;
+          value_floor_pct?: string | null;
+          market_value?: string | null;
+          market_value_updated_at?: string | null;
+          tags?: string[] | null;
           last_updated_at: string;
           created_at: string;
           updated_at: string;
@@ -570,6 +581,10 @@ export interface Database {
           include_in_net_worth: boolean;
           linked_account_id: string | null;
           notes: string | null;
+          // 0048: interest_rate stays ANNUAL percent; period records the user's input convention.
+          term_months?: number | null;
+          interest_rate_period?: "month" | "year" | null;
+          start_date?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1156,6 +1171,8 @@ export interface Database {
           end_date: string | null;
           next_due_date: string;
           is_active: boolean;
+          // 0048: optional link to the liability this schedule pays down.
+          liability_id?: string | null;
           created_at: string;
           updated_at: string;
         };
