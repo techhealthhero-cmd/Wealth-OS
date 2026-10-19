@@ -41,11 +41,11 @@ export default async function HelpPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-28">
       <div className="space-y-3 text-center">
-        <Artwork src="/artwork/brand/journey.webp" wide priority className="mx-auto w-full max-w-md rounded-2xl shadow-card" />
+        <Artwork src="/artwork/brand/journey.webp" wide priority className="mx-auto w-full max-w-md" />
         <h1 className="font-heading text-2xl font-bold text-balance">{help.title}</h1>
         <p className="text-sm text-muted-foreground">{help.subtitle}</p>
         <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <Artwork src="/artwork/brand/announcement.webp" square className="size-9 rotate-3 rounded-lg" />
+          <Artwork src="/artwork/brand/announcement.webp" square className="size-9" />
           <span className="text-balance">{help.lastUpdated}</span>
         </p>
 

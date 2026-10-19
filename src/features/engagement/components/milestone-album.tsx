@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * The seven milestone stickers (2026-10-15, art from
- * public/artwork/milestones/). A reached one is in full colour with a ring
- * and a tick; one still ahead is a faded, greyed sticker — state never rests
+ * public/artwork/milestones/). A reached one is in full colour with a tick;
+ * one still ahead is a faded, greyed drawing — state never rests
  * on colour alone. Quiet by design: no modal, no confetti, no countdown.
  */
 export function MilestoneAlbum({ milestones }: { milestones: Record<MilestoneKey, boolean> }) {
@@ -43,8 +43,8 @@ export function MilestoneAlbum({ milestones }: { milestones: Record<MilestoneKey
                     decoding="async"
                     draggable={false}
                     className={cn(
-                      "size-16 select-none rounded-[22%] transition-[filter,opacity]",
-                      done ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "opacity-40 grayscale"
+                      "size-16 select-none transition-[filter,opacity]",
+                      done ? "drop-shadow-[0_4px_6px_rgba(30,18,6,0.12)]" : "opacity-40 grayscale"
                     )}
                   />
                   {done ? (

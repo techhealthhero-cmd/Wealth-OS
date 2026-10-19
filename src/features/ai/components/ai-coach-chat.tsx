@@ -612,7 +612,7 @@ export function AICoachChat({
         ) : (
           <Card className="rounded-2xl">
             <CardContent className="flex flex-col items-center gap-3 pt-8 pb-8 text-center">
-              <Artwork src="/artwork/empty/ai-conversation.webp" className="w-44 -rotate-2 drop-shadow-sm sm:w-52" />
+              <Artwork src="/artwork/empty/ai-conversation.webp" className="w-44 drop-shadow-[0_4px_6px_rgba(30,18,6,0.12)] sm:w-52" />
               <p className="font-medium">{t("aiCoach.emptyTitle")}</p>
               <p className="max-w-sm text-sm text-muted-foreground">{t("aiCoach.emptyState")}</p>
               <div className="mt-2 flex flex-wrap justify-center gap-2">

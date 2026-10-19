@@ -29,8 +29,8 @@ export function EmptyState({ title, description, action, ...visual }: EmptyState
     // first step of a task (UX_GUIDELINES.md #10), not a blank box.
     <div className="journal-note journal-tape mt-3 flex w-full min-w-0 max-w-full flex-col items-center justify-center gap-3 rounded-md px-4 py-14 text-center">
       {"art" in visual && visual.art ? (
-        // Slight tilt, like a photo taped into the note.
-        <Artwork src={visual.art} className="w-44 -rotate-2 drop-shadow-sm sm:w-52" />
+        // Transparent cut-out drawn straight onto the note (no tilt or frame).
+        <Artwork src={visual.art} className="w-44 drop-shadow-[0_4px_6px_rgba(30,18,6,0.12)] sm:w-52" />
       ) : "illustration" in visual && visual.illustration ? (
         <IllustrationFrame size={180}>{visual.illustration}</IllustrationFrame>
       ) : (
