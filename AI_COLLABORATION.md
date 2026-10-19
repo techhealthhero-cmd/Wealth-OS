@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- SAFE-TO-SPEND-APPROVED — Owner: Codex; READY FOR HANDOFF to supervisor; user approved on 2026-10-19 at 21:14 Asia/Bangkok (PR #31). Approval-only update in the five requested files; no calculation changes. Focused tests 34/34, typecheck, ESLint (Markdown ignored), full suite 139 files / 1928 tests and diff check passed. Changes uncommitted; supervisor handles commit/push/PR.
+
 อัปเดตตารางนี้ทุกครั้งที่รับหรือส่งต่องาน เก็บเฉพาะงานที่กำลังทำและงานถัดไปใกล้ที่สุด
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |

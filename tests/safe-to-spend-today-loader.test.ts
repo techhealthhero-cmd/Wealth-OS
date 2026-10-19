@@ -58,7 +58,7 @@ it("pages scoped YTD income and uses the jar balance", async () => {
   ctx.supabase.from.mockReturnValue(query);
   vi.mocked(getTaxJarSettings).mockResolvedValue({ success: true, configured: true, settings });
   vi.mocked(getTaxJarSummary).mockResolvedValue({ success: true, balanceCents: 1000, entries: [] });
-  expect(await getSafeToSpendToday("2026-10-20")).toMatchObject({ totalCents: 7000, assumptionsStatus: "pending_user_approval", breakdown: { taxJarShortfallCents: 5000 } });
+  expect(await getSafeToSpendToday("2026-10-20")).toMatchObject({ totalCents: 7000, assumptionsStatus: "approved", breakdown: { taxJarShortfallCents: 5000 } });
   expect(query.range.mock.calls).toEqual([[0, 499], [500, 999]]);
   expect(query.eq).toHaveBeenCalledWith("user_id", "user");
   expect(query.eq).toHaveBeenCalledWith("type", "income");
