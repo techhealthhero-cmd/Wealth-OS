@@ -184,3 +184,11 @@ export const easeInOutCubic = (t: number) => {
   const x = Math.min(Math.max(t, 0), 1);
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 };
+
+/** All faces share main's visible origin, including Home and cross-section turns.
+ * Rules scroll with main: at sheet y=0 their origin is main.top - sheet.top.
+ */
+export function sheetGeometry(main: { top: number; left: number; width: number }, viewportHeight: number) {
+  const top = Math.max(main.top, 0);
+  return { top, left: main.left, width: main.width, height: viewportHeight - top, backgroundOffsetY: main.top - top };
+}
