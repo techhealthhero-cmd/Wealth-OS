@@ -34,7 +34,7 @@ import { buildCaptureSaveInput, canSaveDraft, smartCaptureNeedsAnswer, type Capt
 
 import { parseCancelIntent } from "@/lib/capture/subscription-intent";
 import { SmartCaptureFields } from "./smart-capture-fields";
-import { focusPaperEnd, isEmptyPaperTapTarget } from "./voice-notebook-paper-tap";
+import { focusPaperEnd, isEmptyPaperTapTarget, isPaperTap, type PaperTouchPoint } from "./voice-notebook-paper-tap";
 import { SubscriptionFields } from "./subscription-fields";
 import { saveCaptureDraft } from "../save-capture-draft";
 import { SubscriptionCancelCard } from "./subscription-cancel-card";
@@ -111,16 +111,9 @@ export function VoiceNotebook({
 }: VoiceNotebookProps) {
   const { t, locale } = useTranslation();
   const keyboardInset = useKeyboardInset(open);
-  // The handwriting IS a text box: tapping a word puts the caret right
-  // there and opens the keyboard (a real tap on the field is what lets
-  // iOS show it), so corrections happen on the paper itself.
+  // The stable, visible textarea is the native iOS keyboard target.
+  const paperAreaRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLTextAreaElement>(null);
-  useLayoutEffect(() => {
-    const el = paperRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [transcript, open]);
   const [smartChoices, setSmartChoices] = useState<Record<string, Partial<CaptureDraft>>>({});
   const [recurringChoices, setRecurringChoices] = useState<Record<string, boolean>>({});
   const [emergencyFundAccountId, setEmergencyFundAccountId] = useState<string | null>(null);
@@ -209,6 +202,44 @@ export function VoiceNotebook({
     };
   }, [open, onClose]);
 
+  useEffect(() => {
+    const area = paperAreaRef.current;
+    if (!area || !open) return;
+    let start: PaperTouchPoint | null = null;
+    const reset = () => { start = null; };
+    const begin = (event: TouchEvent) => {
+      start = event.touches.length === 1 ? {
+        identifier: event.touches[0].identifier,
+        clientX: event.touches[0].clientX,
+        clientY: event.touches[0].clientY,
+      } : null;
+    };
+    const move = (event: TouchEvent) => {
+      if (!isPaperTap(start, event.touches)) reset();
+    };
+    const end = (event: TouchEvent) => {
+      const tap = isPaperTap(start, event.changedTouches) && event.touches.length === 0;
+      reset();
+      if (!tap || !event.cancelable || !isEmptyPaperTapTarget(event.target as Node, area)) return;
+      // Root cause (#34/#42): the short textarea left blank div hit areas;
+      // delegated div clicks are unreliable on iOS, and compat mousedown can
+      // undo early focus. Focus within touchend, then suppress that mouse event.
+      // Native textarea touches stay native; no start/move event is cancelled.
+      focusPaperEnd(paperRef.current);
+      event.preventDefault();
+    };
+    area.addEventListener("touchstart", begin, { passive: true });
+    area.addEventListener("touchmove", move, { passive: true });
+    area.addEventListener("touchend", end, { passive: false });
+    area.addEventListener("touchcancel", reset);
+    return () => {
+      area.removeEventListener("touchstart", begin);
+      area.removeEventListener("touchmove", move);
+      area.removeEventListener("touchend", end);
+      area.removeEventListener("touchcancel", reset);
+    };
+  }, [open, isClient]);
+
   const today = toLocalDateString(new Date());
   const ctx: ParseContext = useMemo(
     () => ({
@@ -266,6 +297,17 @@ export function VoiceNotebook({
       unknownUnit: item.unknownUnit ?? null,
     }));
   }, [parseText, ctx, aliasedAccounts, smartChoices]);
+  // Auto-grow to the text. Measure without flex-grow: on an empty page the
+  // field is stretched over the paper, and locking that stretched height in
+  // would push the cards far below the text once rows appear.
+  useLayoutEffect(() => {
+    const el = paperRef.current;
+    if (!el) return;
+    el.style.flexGrow = "0";
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+    el.style.flexGrow = "";
+  }, [transcript, open, rows.length]);
   /** A transfer side's account: the user's tap wins, then a match from the words; null = still to pick. */
   const sideAccount = (row: Row, side: Side): string | null => {
     if (side === "pay") return picks[row.id]?.pay ?? row.draft.accountId;
@@ -566,17 +608,15 @@ export function VoiceNotebook({
       </header>
 
       <div
-        data-testid="voice-paper"
-        className="relative min-h-0 flex-1 cursor-text touch-manipulation overflow-y-auto pt-8 pr-5 pb-4 pl-16"
-        // iOS only opens the keyboard for a focus() made inside the tap's own
-        // click. Focusing on pointerdown (PR #34) is undone by the tap's
-        // mousedown on this non-focusable paper, which moves focus off the
-        // textarea again — so tapping the blank page did nothing on iPhone.
-        // No preventDefault: the tap must stay a normal native click.
+        ref={paperAreaRef}
+        className="voice-paper-area flex min-h-0 flex-1 flex-col"
         onClick={(event) => {
-          if (!isEmptyPaperTapTarget(event.target as Node, event.currentTarget)) return;
-          focusPaperEnd(paperRef.current);
+          if (isEmptyPaperTapTarget(event.target as Node, event.currentTarget)) focusPaperEnd(paperRef.current);
         }}
+      >
+      <div
+        data-testid="voice-paper"
+        className="relative flex min-h-0 flex-1 flex-col cursor-text touch-manipulation overflow-y-auto pt-8 pr-5 pb-4 pl-16"
       >
         <textarea
           ref={paperRef}
@@ -591,15 +631,16 @@ export function VoiceNotebook({
           aria-label={t("capture.voice.paperLabel")}
           className={cn(
             handFont.className,
-            "block min-h-20 w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[clamp(1.6rem,7.5vw,2.1rem)] leading-snug break-words",
+            "voice-paper-field block min-h-20 w-full shrink-0 resize-none overflow-hidden border-0 bg-transparent p-0 text-[clamp(1.6rem,7.5vw,2.1rem)] leading-snug break-words",
             "text-[#1f3d6b] caret-[#1f3d6b] placeholder:text-muted-foreground/70 focus:outline-none dark:text-[#9db8e6] dark:caret-[#9db8e6]",
-            // A faint highlighter band shows the line is being edited.
-            "rounded-sm focus:bg-[var(--journal-highlight)]/25"
+            // Empty page: the field fills the paper so a tap lands on it natively.
+            // With cards it keeps its height so cards stay right under the text.
+            rows.length === 0 && "grow"
           )}
         />
 
         {rows.length > 0 ? (
-          <ul className="mt-6 flex flex-col gap-3">
+          <ul className="mt-6 flex shrink-0 flex-col gap-3">
             {rows.map((row, i) => {
               if (row.draft.cancelIntent) return <li key={row.id}><SubscriptionCancelCard serviceQuery={row.draft.cancelIntent.serviceQuery}
                 onCancelled={() => { onTranscriptChange(""); onClose(); }} /></li>;
@@ -904,7 +945,7 @@ export function VoiceNotebook({
           </ul>
         ) : null}
 
-        <div className="mt-5 space-y-2 text-sm">
+        <div className="pointer-events-none mt-5 shrink-0 space-y-2 text-sm">
           {accounts.length === 0 ? <p className="text-amber-700 dark:text-amber-400">{t("capture.voice.noAccount")}</p> : null}
           {micMessage ? <p className="text-destructive">{micMessage}</p> : null}
           {error ? <p className="text-destructive">{error}</p> : null}
@@ -922,7 +963,7 @@ export function VoiceNotebook({
         </div>
       </div>
 
-      <div className="relative flex flex-col items-center gap-5 px-5 pt-2 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] before:pointer-events-none before:absolute before:inset-x-0 before:-top-10 before:h-10 before:bg-gradient-to-t before:from-background before:to-transparent">
+      <div className="relative flex shrink-0 flex-col items-center gap-5 px-5 pt-2 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] before:pointer-events-none before:absolute before:inset-x-0 before:-top-10 before:h-10 before:bg-gradient-to-t before:from-background before:to-transparent">
         {/* While typing (keyboard up) the big mic steps aside for the text. */}
         <div className={cn("relative size-36 items-center justify-center", keyboardInset ? "hidden" : "flex")}>
           {listening ? (
@@ -978,6 +1019,8 @@ export function VoiceNotebook({
                 : t("capture.voice.saveOne")}
           </button>
         </div>
+      </div>
+
       </div>
 
       {picker ? (

@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- VOICE-PAPER-TAP2 — Owner: Codex; READY FOR HANDOFF. Native growing textarea + synchronous non-passive touchend fallback and transparent focus styling complete. Node 22 typecheck/lint pass; full Vitest 148 files / 2141 tests pass. Local harness remains unstaged; server/browser sandbox EPERM blocks visual run. Supervisor handles real iPhone acceptance/push/PR.
+
 - CAPTURE-SAVE-VISIBLE — Owner: Codex; READY FOR HANDOFF. Supervisor follow-up complete: restored original 92dvh cap; reveal scrolls down only; four pure tests updated. Node 22 typecheck/lint PASS; full Vitest 149 files / 2134 tests PASS. Supervisor verified review-first/Save visibility at 390×664 + 34px safe area. No git operations; supervisor owns commit.
 
 - THAI-CAPTURE-FIXES — Owner: Codex; READY FOR HANDOFF. Capture-only fixes and 30 corpus additions complete; full Node 22 suite 148 files / 2113 tests, NLP criticalFailures=[] and autoSavePrecision=1, tsc and ESLint pass. Original 320-case baseline and labels preserved. No UI/schema/auth/formula changes or commits. Owner: review local diff.
@@ -558,6 +560,15 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Rent duration and percentage cases retain real prices; standalone percentages remain unpriced. WHT gross/tax/net and installment descriptions persist correctly; no additional blocking description findings.
 - Installed Node 22: full Vitest 148 files / 2130 tests PASS; NLP eval 350 cases criticalFailures=[] and autoSavePrecision=1; next typegen + tsc --noEmit PASS; eslint src tests PASS; diff check PASS.
 - No commits, pushes, dependency, UI, DB or schema changes. Next: owner review combined staged + unstaged diff.
+
+### 2026-10-20 — Codex → supervisor (VOICE-PAPER-TAP2)
+
+- Code diagnosis: short textarea left most empty paper as div hit areas; #42 relied on delegated click, and bottom mic surround had no paper handler. iOS div click delivery/compat mousedown makes that approach unreliable; explicit focus:bg highlight caused the yellow field. Git/code inspected because gh API unavailable.
+- Stable textarea now grows into spare paper height while retaining content auto-height (empty page only; with cards it keeps text height); native taps on text keep the tapped caret position, blank-paper taps put the caret at the end. Wrapper covers paper + bottom area, excluding header and picker. Passive start/move track single touch, reject excursions >10px; non-passive touchend focuses synchronously and cancels compat mouse only for empty targets. Controls/cards retain behavior. CSS clears field background/outline/shadow in all focus states and paper tap flash.
+- Node 22: npm run typecheck PASS; npm run lint PASS; npx vitest run PASS (148 files / 2141 tests); git diff --check PASS. Self-review against origin/staging: mic onFocus stop, inset hiding, type button, picker/cards, save and dark colors retained; no persistence/formula/auth production changes.
+- Local only, never stage: src/app/dev-harness/voice-paper/page.tsx and harness.tsx; .harness/verify.mjs; src/lib/supabase/middleware.ts exact-route bypass. Harness intercepts server actions before mount to avoid Supabase, supports ?rows=1, nine tap points, mic/header exclusions, synthetic vertical swipe guard, Thai typing/style assertions and screenshots/results. Native swipe and real iOS keyboard still require physical device review.
+
+- Supervisor (2026-10-20): removed textarea onClick that forced the caret to the end; grow only on an empty page; auto-height measures with flex-grow off (stretched height was being locked in and pushed cards down). WebKit iPhone 13 touch harness: 11/11 paper points focus, mic/header excluded, focused field transparent/no outline. Committed + PR by supervisor.
 
 ### 2026-10-20 — Codex → supervisor (CAPTURE-SAVE-VISIBLE)
 
