@@ -317,7 +317,38 @@
     "languageEnglish": "English",
     "timezoneLabel": "เขตเวลา",
     "saved": "บันทึกแล้ว",
-    "saveChanges": "บันทึกการเปลี่ยนแปลง"
+    "saveChanges": "บันทึกการเปลี่ยนแปลง",
+    "currencies": {
+      "THB": "บาทไทย",
+      "USD": "ดอลลาร์สหรัฐ",
+      "EUR": "ยูโร",
+      "JPY": "เยนญี่ปุ่น",
+      "GBP": "ปอนด์อังกฤษ",
+      "SGD": "ดอลลาร์สิงคโปร์",
+      "CNY": "หยวนจีน",
+      "HKD": "ดอลลาร์ฮ่องกง",
+      "KRW": "วอนเกาหลีใต้",
+      "AUD": "ดอลลาร์ออสเตรเลีย",
+      "MYR": "ริงกิตมาเลเซีย",
+      "LAK": "กีบลาว",
+      "VND": "ดองเวียดนาม"
+    },
+    "timezones": {
+      "Asia_Bangkok": "กรุงเทพฯ (UTC+7)",
+      "Asia_Singapore": "สิงคโปร์ (UTC+8)",
+      "Asia_Tokyo": "โตเกียว (UTC+9)",
+      "Asia_Hong_Kong": "ฮ่องกง (UTC+8)",
+      "Asia_Shanghai": "เซี่ยงไฮ้ (UTC+8)",
+      "Asia_Seoul": "โซล (UTC+9)",
+      "Asia_Kolkata": "อินเดีย (UTC+5:30)",
+      "Asia_Dubai": "ดูไบ (UTC+4)",
+      "Europe_London": "ลอนดอน (UTC+0/+1)",
+      "Europe_Paris": "ปารีส (UTC+1/+2)",
+      "America_New_York": "นิวยอร์ก (UTC-5/-4)",
+      "America_Los_Angeles": "ลอสแอนเจลิส (UTC-8/-7)",
+      "Australia_Sydney": "ซิดนีย์ (UTC+10/+11)",
+      "UTC": "UTC (UTC+0)"
+    }
   },
   "dashboard": {
     "title": "ภาพรวมการเงิน",
