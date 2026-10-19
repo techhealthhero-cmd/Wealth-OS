@@ -86,6 +86,23 @@ export function getIncomeExpenseTrend() {
   });
 }
 
+/** Home only needs existence, not monthly totals, comparisons or previews. */
+export async function hasAnyDashboardData(today = todayInTimeZone()): Promise<boolean> {
+  const accounts = await getDisplayAccounts();
+  if (accounts.length > 0) return true;
+
+  const { from, to } = calendarMonth(today);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("id")
+    .gte("transaction_date", from)
+    .lte("transaction_date", to)
+    .limit(1);
+  if (error) throwDbError(error, "dashboard.hasAnyDashboardData", "Failed to check dashboard data");
+  return (data?.length ?? 0) > 0;
+}
+
 export function getDashboardData(today = todayInTimeZone()) {
   return withPerfLog("getDashboardData", async () => {
   const { from, to } = calendarMonth(today);

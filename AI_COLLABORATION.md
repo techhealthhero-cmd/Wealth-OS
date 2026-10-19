@@ -139,6 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| HOME-TRIM-CARDS | Remove unused Home cards (cushion, next-action, savings-rate insight, month summary, goals, mission/level, more-insights expander); keep greeting/NW/quick actions/upcoming tiles/up-next/income-by-source; trim unused Home fetching; update tests | Grok Bot (Codex impl) | IN PR → staging | Home render-only trim + `hasAnyDashboardData`; component files kept; tests in `tests/home-trim-dashboard.test.ts` | Merge after CI green; 390px shot under /workspace/home-trim/shots/ |
 | TAB-STRIP-STILL | Keep section strips outside content turns | Codex | DONE — Node 22 lint/typecheck/1461 tests passed | Curl geometry/snapshot alignment, horizontal strip helper + tests; preserve prior fixes, no git/harness/deps | Implement, run Node 22 lint/tsc/full Vitest, owner device review |
 | CURL-CONTENT-READY | iOS turn landing and raster cost | Codex | DONE — Node 22 lint/typecheck/1456 tests passed | Shared curl lifecycle, CSS, section marker, Node tests; preserve gesture fix; no git/harness/deps | Implement bounded readiness, validate lint/tsc/full Vitest, owner device review |
 | TOUCH-CURL-RECOVERY | Detached touch target and settling sheet cleanup | Codex | DONE — lint/typecheck/122 files · 1451 tests passed | SwipeTabPages, motion helper, Node regression tests, this board; harness unchanged; no git commands | Owner device review |
@@ -202,6 +203,12 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### HOME-TRIM-CARDS (2026-10-19 Asia/Bangkok)
+- Removed Home-only cards: HomeCushion, NextBestAction/InsightCards, MonthlyDonutCard, GoalProgressCard, EngagementSummaryCard, DashboardDetailsToggle (+ children).
+- Kept greeting, NetWorthHero, HomeQuickActions, DailyInboxSection, HomeUpcomingTiles, UpNextPayments, IncomeThisMonth.
+- Replaced getDashboardData on Home with hasAnyDashboardData (accounts OR 1-row month tx probe).
+- Component files left intact for other surfaces.
 
 ### 2026-10-19 — Codex → local owner (CAPTURE-SUB-REFINEMENTS)
 
