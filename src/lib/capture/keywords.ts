@@ -39,7 +39,7 @@ export const KNOWN_SUBSCRIPTION_SERVICES = [
 ];
 
 export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Other">, string[]> = {
-  "Food & Dining": [
+  "Food & Dining": ["ผัก",
     "เบอร์เกอร์", "เบอเกอร์", "burger", "แฮมเบอร์เกอร์", "hamburger", "แซนวิช", "แซนด์วิช", "sandwich",
     "สเต็ก", "steak", "ซูชิ", "sushi", "ราเมง", "ramen", "ข้าวผัด", "ไก่ทอด", "เฟรนช์ฟราย", "fries",
     "โดนัท", "donut", "เค้ก", "cake", "ไอศครีม", "สลัด", "salad", "pasta", "พาสต้า", "สปาเก็ตตี้",
@@ -92,14 +92,14 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
   Gift: ["ของขวัญ", "ซื้อของขวัญ", "อั่งเปา", "แต๊ะเอีย", "ใส่ซอง", "ซองงาน", "gift", "present"],
   // Spending that supports the user's work (migration 0043).
   "Work Support": [
-    "อุปกรณ์ทำงาน", "ของใช้ทำงาน", "เครื่องเขียน", "ถ่ายเอกสาร", "ปริ้นงาน", "ค่าปริ้น", "หมึกปริ้น",
+    "ค่าส่ง Flash", "ถุงไปรษณีย์", "ค่าตัดต่อ", "อุปกรณ์ทำงาน", "ของใช้ทำงาน", "เครื่องเขียน", "ถ่ายเอกสาร", "ปริ้นงาน", "ค่าปริ้น", "หมึกปริ้น",
     "ค่าโดเมน", "ค่าโฮสติ้ง", "co-working", "coworking", "โคเวิร์กกิ้ง", "hosting", "domain", "stationery",
   ],
 };
 
 export const INCOME_CATEGORY_KEYWORDS: Record<Exclude<IncomeCategoryKey, "Other">, string[]> = {
   Salary: ["เงินเดือน", "salary", "payroll"],
-  Freelance: ["ฟรีแลนซ์", "freelance", "ค่าจ้าง", "ค่าคอม", "คอมมิชชัน", "คอมมิชชั่น", "commission"],
+  Freelance: ["สปอนเซอร์", "ฟรีแลนซ์", "freelance", "ค่าจ้าง", "ค่าคอม", "คอมมิชชัน", "คอมมิชชั่น", "commission"],
   Business: ["ขายของ", "ยอดขาย", "ขาย", "sales"],
   Bonus: ["โบนัส", "bonus"],
   Interest: ["ดอกเบี้ย", "interest", "ปันผล", "dividend"],
@@ -112,7 +112,7 @@ export const INCOME_CATEGORY_KEYWORDS: Record<Exclude<IncomeCategoryKey, "Other"
 
 /** Words that mark a capture as INCOME rather than an expense. */
 export const INCOME_MARKERS = [
-  "รายรับ", "ได้เงิน", "ได้รับเงิน", "ได้รับ", "income", "received",
+  "รายได้", "สปอนเซอร์", "รายรับ", "ได้เงิน", "ได้รับเงิน", "ได้รับ", "income", "received",
   // Someone GAVE me money ("แม่ให้ 2000"); the reverse order ("ให้แม่") is a Family expense.
   "แม่ให้", "พ่อให้", "ยายให้", "ตาให้", "ปู่ให้", "ย่าให้", "พี่ให้", "น้องให้", "แฟนให้", "เพื่อนให้", "ลูกให้",
   "ให้มา", "โอนมาให้", "เงินเข้า", "เงินเดือนออก", "ขายได้", "ได้ทิป",

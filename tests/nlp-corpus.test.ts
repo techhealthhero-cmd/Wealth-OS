@@ -13,7 +13,8 @@ it("evaluates the synthetic development corpus without unsafe automatic captures
 
 
 it("preserves the measured baseline overall and in every slice", () => {
-  const report = evaluateCorpus(fixture as CaptureCorpus);
+  // Keep every original baseline expectation on its original cohort as new regressions are added.
+  const report = evaluateCorpus({ ...fixture, items: fixture.items.filter(item => !item.tags.includes("thai_regression")) } as CaptureCorpus);
   function assertBaseline(actual: typeof report.slices[string], expected: typeof report.slices[string]) {
     expect(actual.count).toBe(expected.count);
     for (const key of ["exactMatch", "autoSaveCoverage", "uncertaintyRecall", "eligibilityAccuracy", "reasonRecall", "questionAccuracy", "autoSavePrecision"] as const) {
@@ -35,3 +36,13 @@ it("keeps independent labels, unique cases and at least 25 cases per priority sl
     expect(fixture.items.filter(item => item.tags.includes(tag))).toHaveLength(30);
   }
 });
+
+ it("matches every added Thai regression label", () => {
+  const report = evaluateCorpus({ ...fixture, items: fixture.items.filter(item => item.tags.includes("thai_regression")) } as CaptureCorpus);
+  for (const row of report.rows) {
+    expect.soft(row.exact, row.id + JSON.stringify(row.actual)).toBe(true);
+    expect.soft(row.autoSave, row.id).toBe(row.expectedAutoSave);
+    expect.soft(row.reasonsCorrect, row.id + JSON.stringify(row.reasons)).toBe(true);
+    expect.soft(row.questionCorrect, row.id + JSON.stringify(row.question)).toBe(true);
+  }
+ });

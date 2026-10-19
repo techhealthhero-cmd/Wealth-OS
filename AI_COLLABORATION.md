@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- THAI-CAPTURE-FIXES — Owner: Codex; READY FOR HANDOFF. Capture-only fixes and 30 corpus additions complete; full Node 22 suite 148 files / 2113 tests, NLP criticalFailures=[] and autoSavePrecision=1, tsc and ESLint pass. Original 320-case baseline and labels preserved. No UI/schema/auth/formula changes or commits. Owner: review local diff.
+
 - COVER-BACKFACE — Owner: Codex + Grok Bot; PR to staging. Added swipe-only ruled page, two-sided cover, angle shading and rAF release tween; static launch branch preserved. Vitest 9/9, tsc (after next typegen), focused ESLint and diff check pass. No commit/push/env changes. Next: owner iPhone review.
 - INVOICE-UI — Owner: Codex; READY FOR HANDOFF — second WebKit fixes complete: shared ThaiDateField in form/payment with max=today retained; explicit z-60 backdrop/z-61 popup above z-30 bottom nav, mobile safe-area bottom sheet and centered sm+ dialog; success status is sr-only aria-live while toast and visible selectable clipboard fallback remain. Node 22: requested full Vitest 147 files / 2070 tests, tsc, eslint src tests and diff check pass. No commit/push or edits to dev-harness, middleware or .env.local. Next: owner repeat 390px WebKit visual/picker review.
 
@@ -146,6 +148,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| THAI-CAPTURE-REVIEW | Review staged Thai parser regressions | Codex | DONE | Four blocking classes fixed; Node 22 full Vitest 148 files / 2130 tests, eval safety, tsc and eslint pass | Owner local review; unstaged fixes, no commit |
 | COVER-SWIPE-OPEN | Closed cover pointer swipe | Codex | DONE | Pointer capture + rAF face rotation, release/flick/spring, tap/keyboard, reduced motion and locale copy. Targeted 27 tests; full 143 files / 1996 tests, typecheck and lint pass on Node 22. | Owner device review |
 | SMART-CAPTURE-BLOCKING-REVIEW | Strict money/security/retry review | Codex | DONE | Reviewed diff; fixed partial retry principal/down-payment recovery and invalid-rate save routing; 140 files / 1963 tests, typecheck and full lint pass | Owner local review; no DB/commit/push |
 | SMART-CAPTURE-COLUMNS | 0048 columns, loan transfers, principal repayment, rate override | Codex | DONE — local review | Dedicated columns + legacy fallback/recovery; deterministic loan ledger transfers; owned recurring links; principal balance updates and paid summing; shared rate UI. Node 22: 140 files / 1960 tests, typecheck, changed TS/TSX lint pass. | Owner review; no commit/push/DB |
@@ -537,3 +540,19 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Detail success feedback remains a toast plus an sr-only polite live region. Clipboard-failure fallback keeps its visible, read-only selectable textarea.
 - Added shared-date and visible-fallback regressions plus a detail live-region assertion. Node 22.23.3: npx vitest run --configLoader runner PASS (147 files / 2070 tests); npx tsc --noEmit PASS; npx eslint src tests PASS; git diff --check PASS.
 - No commit/push or changes to src/app/dev-harness/, src/lib/supabase/middleware.ts or .env.local. Existing uncommitted work preserved. No new browser/device run; next: owner repeat 390px WebKit dialog layering, safe-area and native-picker acceptance.
+
+### 2026-10-20 — Codex → owner (THAI-CAPTURE-FIXES)
+
+- Added bounded Thai cardinal normalization; protected trailing date words from counted units. Recap masks tax/term/rate numbers and attaches these qualifiers to their original item, including before a following expense. Amount spans exclude masked trailing whitespace so installment notes survive saving.
+- WHT example stays one gross income row (15000); existing description carries 3%, 450 tax, 14550 net and retains ณ. Existing installment payments remain saveable expenses with number/total/remaining metadata and persisted description; no guessed principal, new asset or duplicate liability. Existing smart purchases, splitInstallment formulas and loan ledger + linked-liability + create_transfer persistence remain unchanged.
+- Income cues take precedence over subscription proposals. Foreign currency leaves the THB amount empty and adds a prioritized gentle Thai confirmation question to the existing confidence gate. Work Support/Freelance category keywords reuse existing category names/ids.
+- Added 36 focused cases and 30 manually labelled corpus examples (350 total). Original baseline fixture/labels unchanged; baseline assertions evaluate their original 320-case cohort, while all new labels get exact field/eligibility/reason/question assertions and the full corpus retains safety checks.
+- Validation with installed Node 22.23.3: full Vitest 148 files / 2113 tests passed; scripts/nlp-eval.mjs passed, criticalFailures=[] and autoSavePrecision=1; tsc --noEmit passed after next typegen regenerated existing missing LayoutProps; eslint src tests and diff check passed. npx -y node@22 could not resolve registry.npmjs.org (EAI_AGAIN), so invoked its already installed Node 22 binary directly for Vitest/eval; also ran requested npx tsc/eslint successfully with Node 22 on PATH.
+- No commits, external APIs, UI, schema, Supabase/auth/RLS or money-formula edits. No required schema follow-up. Optional future UI work can expose installment metadata for choosing an existing liability; this parser never guesses a liability link. Next: owner review local diff.
+
+### 2026-10-20 — Codex → owner (THAI-CAPTURE-REVIEW)
+
+- Reviewed staged diff against origin/staging. Fixed phantom Thai cardinal amounts in normal words/labels, ability ได้ misclassifying expenses (including unknown-unit type fallback), foreign-currency name substring false positives, and เดือนละ masking a real price. Added 17 regressions; preserved existing staged work and left review fixes unstaged.
+- Rent duration and percentage cases retain real prices; standalone percentages remain unpriced. WHT gross/tax/net and installment descriptions persist correctly; no additional blocking description findings.
+- Installed Node 22: full Vitest 148 files / 2130 tests PASS; NLP eval 350 cases criticalFailures=[] and autoSavePrecision=1; next typegen + tsc --noEmit PASS; eslint src tests PASS; diff check PASS.
+- No commits, pushes, dependency, UI, DB or schema changes. Next: owner review combined staged + unstaged diff.
