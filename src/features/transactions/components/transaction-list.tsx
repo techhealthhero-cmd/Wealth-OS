@@ -26,7 +26,7 @@ import { ExportReportButton } from "@/features/reports/components/export-report-
 
 /**
  * Money › Transactions (2026-10-11, mockup "B + D"; reordered 2026-10-19):
- * the wall calendar → this month at a glance → "ทั้งหมด | รอตรวจ" tabs →
+ * this month at a glance → the wall calendar → "ทั้งหมด | รอตรวจ" tabs →
  * the list → exports (or, on the pending tab, no calendar: this month at a
  * glance → tabs → only the pending review list). A day picked on the calendar is just the existing
  * from/to filter set to that one date, so the list, search and paging all
@@ -97,7 +97,18 @@ export async function TransactionList({
 
   return (
     <div className="space-y-4">
-      {/* The wall calendar comes first, right under the page's tabs (2026-10-19). */}
+      {/* This month at a glance comes first, right under the page's tabs (2026-10-19). */}
+      <MonthSummary
+        title={monthTitle}
+        // The calendar right below names the month; the pending tab has no calendar,
+        // so the summary names its own month there.
+        showTitle={tab === "pending"}
+        incomeCents={calculateIncome(monthTransactions)}
+        expenseCents={calculateExpenses(monthTransactions)}
+        budget={budget ? { percentUsed: budget.overall.percentUsed, remainingCents: budget.overall.remainingCents } : null}
+        labels={{ income: m.income, expense: m.expense, left: m.left, budgetUsed: m.budgetUsed, budgetLeft: m.budgetLeft, budgetOver: m.budgetOver }}
+      />
+
       {tab !== "pending" && (
         <WallCalendar
           grid={calendar}
@@ -106,17 +117,6 @@ export async function TransactionList({
           selectedDate={selectedDate}
         />
       )}
-
-      <MonthSummary
-        title={monthTitle}
-        // The calendar above names the month; the pending tab has no calendar,
-        // so the summary names its own month there.
-        showTitle={tab === "pending"}
-        incomeCents={calculateIncome(monthTransactions)}
-        expenseCents={calculateExpenses(monthTransactions)}
-        budget={budget ? { percentUsed: budget.overall.percentUsed, remainingCents: budget.overall.remainingCents } : null}
-        labels={{ income: m.income, expense: m.expense, left: m.left, budgetUsed: m.budgetUsed, budgetLeft: m.budgetLeft, budgetOver: m.budgetOver }}
-      />
 
       <ListTabs active={tab} pendingCount={pendingItems.length} />
 
