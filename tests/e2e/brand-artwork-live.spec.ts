@@ -39,7 +39,7 @@ test("Landing, onboarding-adjacent auth screens and link preview show the brand 
 
   for (const path of ["/login", "/signup"]) {
     await page.goto(path);
-    await expectArtworkLoaded(page.locator('img[src*="preview.webp"]'));
+    await expectArtworkLoaded(page.locator('img[src*="planner-cutout.webp"]'));
     await expectNoHorizontalOverflow(page);
     await page.screenshot({ path: testInfo.outputPath(`${path.slice(1)}.png`), fullPage: true });
   }

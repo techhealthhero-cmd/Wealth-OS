@@ -79,7 +79,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#f7f8f6",
+  // The notebook page colour (--background). The previous #f7f8f6
+  // grey-white made the status-bar strip a different layer from the cream page.
+  themeColor: "#f7efdf",
   // Required for `env(safe-area-inset-*)` to resolve to a real value on
   // notched iPhones (BottomNav's pb-[env(safe-area-inset-bottom)]) —
   // without "cover", Safari never lets the page extend under the safe
