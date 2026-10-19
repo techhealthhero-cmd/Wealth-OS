@@ -203,10 +203,15 @@ function stripEmergencySource(text: string): { text: string; detected: boolean }
   return { text: detected ? text.replace(chatter, " ").trim() : cleaned, detected };
 }
 
+/** Active accounts whose own name/purpose explicitly identifies an emergency fund. */
+export function emergencyAccountCandidates(ctx: ParseContext): string[] {
+  return ctx.accounts.filter(a => !a.is_archived && stripEmergencySource(`${a.name} ${a.purpose ?? ""}`).detected).map(a => a.id);
+}
+
 function emergencyAccount(ctx: ParseContext): string | null {
   const active = ctx.accounts.filter((a) => !a.is_archived);
   return active.find((a) => a.id === ctx.emergencyFundAccountId)?.id
-    ?? active.find((a) => stripEmergencySource(`${a.name} ${a.purpose ?? ""}`).detected)?.id
+    ?? emergencyAccountCandidates(ctx)[0]
     ?? null;
 }
 
@@ -223,8 +228,8 @@ const AMOUNT_MULTIPLIER: Record<string, number> = { k: 1_000, พัน: 1_000, 
 /** The amount pattern, shared with the multi-item recap splitter (global flag — use with matchAll). */
 export const AMOUNT_PATTERN = AMOUNT_RE;
 
-/** Extracts the amount in satang plus the span it occupied, or null. */
-export function extractAmount(text: string): { cents: number; span: Match } | null {
+/** All valid positive monetary candidates, preserving spans and currency evidence. */
+export function extractAmountCandidates(text: string): { cents: number; span: Match; hasCurrency: boolean }[] {
   const candidates: { cents: number; span: Match; hasCurrency: boolean }[] = [];
   for (const m of text.matchAll(AMOUNT_RE)) {
     const whole = Number(m[1].replace(/,/g, ""));
@@ -236,6 +241,12 @@ export function extractAmount(text: string): { cents: number; span: Match } | nu
     const hasCurrency = Boolean(m[4]) || m[0].trimStart().startsWith("฿");
     candidates.push({ cents, span: { start: m.index!, end: m.index! + m[0].length }, hasCurrency });
   }
+  return candidates;
+}
+
+/** Legacy selection: last currency-marked candidate, otherwise last number. */
+export function extractAmount(text: string): { cents: number; span: Match } | null {
+  const candidates = extractAmountCandidates(text);
   if (candidates.length === 0) return null;
   // A number written with a currency marker wins; otherwise the LAST number
   // ("ข้าว 2 จาน 120" → 120 is the price, 2 is a quantity).

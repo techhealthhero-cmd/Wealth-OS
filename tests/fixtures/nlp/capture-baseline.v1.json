@@ -1,0 +1,434 @@
+{
+  "count": 320,
+  "perFieldAccuracy": {
+    "amountCents": 0.90625,
+    "direction": 0.91875,
+    "date": 0.890625,
+    "accountId": 0.765625,
+    "categoryId": 0.8913043478260869
+  },
+  "exactMatch": 0.41875,
+  "autoSavePrecision": 1,
+  "autoSaveCoverage": 0.3875,
+  "clarificationRate": 0.6125,
+  "uncertaintyRecall": 1,
+  "eligibilityAccuracy": 0.98125,
+  "reasonRecall": 1,
+  "questionAccuracy": 0.98125,
+  "slices": {
+    "ambiguous": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 0.3333333333333333,
+        "date": 1,
+        "accountId": 0.6666666666666666,
+        "categoryId": 1
+      },
+      "exactMatch": 0.3333333333333333,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 0.16666666666666666,
+      "clarificationRate": 0.8333333333333334,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "duplicate_uncertain": {
+      "count": 5,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "emergency_resolved": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 1,
+      "clarificationRate": 0,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "established_default": {
+      "count": 5,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 1,
+      "clarificationRate": 0,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "everyday": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 1,
+      "clarificationRate": 0,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "income": {
+      "count": 24,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 0.75,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 0.75,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 0.75,
+      "clarificationRate": 0.25,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 0.75,
+      "reasonRecall": 1,
+      "questionAccuracy": 0.75
+    },
+    "income_refunds": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 0.8,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 0.8,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 0.8,
+      "clarificationRate": 0.2,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 0.8,
+      "reasonRecall": 1,
+      "questionAccuracy": 0.8
+    },
+    "missing_amount": {
+      "count": 5,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "mixed_language": {
+      "count": 20,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 1,
+      "clarificationRate": 0,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "priority_amount_conflict": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 0,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 0,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "priority_default_guess": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 0,
+        "categoryId": 1
+      },
+      "exactMatch": 0,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "priority_emergency_unresolved": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 0,
+        "categoryId": 1
+      },
+      "exactMatch": 0,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "priority_invalid_date": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 0,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 0,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "priority_subscription_false_positive": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 0
+      },
+      "exactMatch": 0,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "refund": {
+      "count": 6,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": null
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 1,
+      "clarificationRate": 0,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "relative_date": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 1,
+      "clarificationRate": 0,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "slang_typos": {
+      "count": 5,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 1,
+      "clarificationRate": 0,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "subscription_account_unresolved": {
+      "count": 5,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 0,
+        "categoryId": 1
+      },
+      "exactMatch": 0,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "subscription_explicit": {
+      "count": 30,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 1,
+      "clarificationRate": 0,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "terse": {
+      "count": 10,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 0,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": null
+      },
+      "exactMatch": 0,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "thai_digits": {
+      "count": 10,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 1,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 1,
+      "autoSavePrecision": 1,
+      "autoSaveCoverage": 1,
+      "clarificationRate": 0,
+      "uncertaintyRecall": null,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "transfer": {
+      "count": 10,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 0,
+        "date": 1,
+        "accountId": 0,
+        "categoryId": null
+      },
+      "exactMatch": 0,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    },
+    "unresolved_date": {
+      "count": 5,
+      "perFieldAccuracy": {
+        "amountCents": 1,
+        "direction": 1,
+        "date": 0,
+        "accountId": 1,
+        "categoryId": 1
+      },
+      "exactMatch": 0,
+      "autoSavePrecision": null,
+      "autoSaveCoverage": 0,
+      "clarificationRate": 1,
+      "uncertaintyRecall": 1,
+      "eligibilityAccuracy": 1,
+      "reasonRecall": 1,
+      "questionAccuracy": 1
+    }
+  }
+}
