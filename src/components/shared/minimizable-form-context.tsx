@@ -141,11 +141,11 @@ export function MinimizableFormHost() {
           onClick={restore}
           // Measured by MinimizableFormShell as the Black Hole's target.
           data-minimized-pill=""
-          // Mirrors QuickAdd's floating FAB (quick-add.tsx: "fixed bottom-20
-          // right-4 z-40 ... md:bottom-6") on the opposite side, so the two
-          // floating actions never collide.
+          // Match pages' 7rem + safe-area clearance above BottomNav,
+          // including its raised center mic (QuickAdd's nav-center trigger).
+          // Desktop has no bottom nav and keeps the smaller offset.
           className={cn(
-            "fixed bottom-20 left-4 z-40 flex max-w-[calc(100%-5rem)] items-center gap-2 rounded-full bg-primary py-2.5 pr-4 pl-3 text-primary-foreground shadow-lg transition-opacity active:opacity-90 md:bottom-6",
+            "fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] left-4 z-40 flex max-w-[calc(100%-5rem)] items-center gap-2 rounded-full bg-primary py-2.5 pr-4 pl-3 text-primary-foreground shadow-lg transition-opacity active:opacity-90 md:bottom-6",
             // While the form is being pulled in, sit above it (z-60) and
             // swell as it swallows — the same Black Hole the "+" does.
             minimizing && "pointer-events-none z-[60] animate-[black-hole-gulp_var(--motion-companion-close)_ease-in-out_forwards]"
