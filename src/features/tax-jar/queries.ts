@@ -14,7 +14,7 @@ export async function getTaxJarSettings() {
   const { data, error } = await supabase.from("tax_jar_settings").select("*").eq("user_id", user.id).maybeSingle();
   if (error) return { error: invoiceDbError(error, dict) };
   const row = data as Database["public"]["Tables"]["tax_jar_settings"]["Row"] | null;
-  return { success: true as const, settings: row ? {
+  return { success: true as const, configured: row !== null, settings: row ? {
     ratePct: Number(row.rate_pct), mode: row.mode, accountId: row.account_id,
     expense408RatePct: Number(row.expense_408_rate_pct), extraDeductionsCents: parseMoneyToCents(row.extra_deductions_amount),
   } : { ...DEFAULT_TAX_JAR_SETTINGS } };
