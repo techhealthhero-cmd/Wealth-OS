@@ -71,7 +71,8 @@ export type PdfImportErrorCode =
   | "csv_too_large";
 
 export class PdfImportError extends Error {
-  constructor(public readonly code: PdfImportErrorCode, message: string) {
+  /** Short, non-sensitive diagnostic (e.g. "worker:WorkerError"); never file text or passwords. */
+  constructor(public readonly code: PdfImportErrorCode, message: string, public readonly detail?: string) {
     super(message);
     this.name = "PdfImportError";
   }

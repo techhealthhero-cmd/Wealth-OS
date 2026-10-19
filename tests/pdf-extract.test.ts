@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mock = vi.hoisted(() => ({ getDocument: vi.fn(), worker: { workerSrc: "" } }));
-vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({ getDocument: mock.getDocument, GlobalWorkerOptions: mock.worker, PasswordResponses: { INCORRECT_PASSWORD: 2 } }));
-import { extractPdfLines, PDF_IMPORT_MAX_BYTES } from "../src/features/statement-import/pdf-extract";
+const mock = vi.hoisted(() => ({ getDocument: vi.fn(), worker: { workerSrc: "" }, createWorker: vi.fn((params: { port: unknown }) => ({ port: params.port, destroy: vi.fn() })) }));
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({ getDocument: mock.getDocument, GlobalWorkerOptions: mock.worker, PasswordResponses: { INCORRECT_PASSWORD: 2 }, PDFWorker: { create: mock.createWorker } }));
+vi.mock("pdfjs-dist/legacy/build/pdf.worker.min.mjs", () => ({ WorkerMessageHandler: { setup: () => {} } }));
+import { extractPdfLines, PDF_IMPORT_MAX_BYTES, PDF_WORKER_READY_MS } from "../src/features/statement-import/pdf-extract";
 
 beforeEach(() => { vi.clearAllMocks(); });
 
@@ -16,8 +17,9 @@ describe("browser PDF boundary", () => {
     expect(result[0].text).toBe("Synthetic");
     expect(mock.getDocument).toHaveBeenCalledWith(expect.objectContaining({ data: expect.any(Uint8Array), password: "synthetic-password", verbosity: 0, useWorkerFetch: false, enableXfa: false }));
     expect(mock.getDocument.mock.calls[0][0]).not.toHaveProperty("url");
-    expect(mock.worker.workerSrc).toContain("pdfjs-dist/legacy/build/pdf.worker.min.mjs");
-    expect(mock.worker.workerSrc).not.toMatch(/cdn|unpkg|jsdelivr/);
+    // No worker in this environment: the bundled main-thread reader is used, never a fetched workerSrc.
+    expect(mock.worker.workerSrc).toBe("");
+    expect((globalThis as { pdfjsWorker?: unknown }).pdfjsWorker).toBeTruthy();
     expect(cleanup).toHaveBeenCalledOnce();
     expect(destroy).toHaveBeenCalledOnce();
     expect([...mock.getDocument.mock.calls[0][0].data]).toEqual(Array(19).fill(0));
@@ -84,16 +86,13 @@ it("maps file read failures to safe errors", async () => {
   await expect(extractPdfLines(file, "secret")).rejects.toMatchObject({ code: "invalid_pdf", message: expect.not.stringContaining("sensitive") });
 });
 
-it.each([
-  ["missing built-in (old iOS Safari)", new TypeError("Promise.try is not a function")],
-  ["worker bootstrap", new Error("Setting up fake worker failed")],
-])("reports %s as reader unavailable and logs only the error name", async (_label, failure) => {
+it("reports missing built-ins as reader unavailable with a short code, logging only the error name", async () => {
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   try {
-    mock.getDocument.mockReturnValue({ promise: Promise.reject(failure), destroy: vi.fn().mockResolvedValue(undefined) });
-    await expect(extractPdfLines(new File(["test"], "test.pdf"), "secret")).rejects.toMatchObject({ code: "pdf_reader_unavailable" });
-    expect(warn).toHaveBeenCalledWith(`[pdf-import] read failed: ${failure.name}`);
-    expect(JSON.stringify(warn.mock.calls)).not.toContain(failure.message);
+    mock.getDocument.mockReturnValue({ promise: Promise.reject(new TypeError("Promise.try is not a function")), destroy: vi.fn().mockResolvedValue(undefined) });
+    await expect(extractPdfLines(new File(["test"], "test.pdf"), "secret")).rejects.toMatchObject({ code: "pdf_reader_unavailable", detail: "worker:ReferenceError,main:TypeError" });
+    expect(warn).toHaveBeenCalledWith("[pdf-import] main: TypeError");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("Promise.try");
   } finally { warn.mockRestore(); }
 });
 
@@ -102,7 +101,68 @@ it("logs the PasswordException name without the password", async () => {
   try {
     mock.getDocument.mockReturnValue({ promise: Promise.reject(Object.assign(new Error("x"), { name: "PasswordException", code: 1 })), destroy: vi.fn().mockResolvedValue(undefined) });
     await expect(extractPdfLines(new File(["test"], "test.pdf"), "hunter2-synthetic")).rejects.toMatchObject({ code: "password_required" });
-    expect(warn).toHaveBeenCalledWith("[pdf-import] read failed: PasswordException");
+    expect(warn).toHaveBeenCalledWith("[pdf-import] main: PasswordException");
     expect(JSON.stringify(warn.mock.calls)).not.toContain("hunter2-synthetic");
   } finally { warn.mockRestore(); }
+});
+
+describe("dedicated worker with main-thread fallback", () => {
+  type Behaviour = "ready" | "error" | "silent";
+  let behaviour: Behaviour = "ready";
+  const instances: FakeWorker[] = [];
+  class FakeWorker extends EventTarget {
+    terminate = vi.fn();
+    constructor(public url: URL, public options?: WorkerOptions) {
+      super();
+      instances.push(this);
+      queueMicrotask(() => {
+        if (behaviour === "ready") this.dispatchEvent(Object.assign(new Event("message"), { data: { sourceName: "worker", targetName: "main", action: "ready" } }));
+        if (behaviour === "error") this.dispatchEvent(new Event("error"));
+      });
+    }
+  }
+  const ok = () => ({ promise: Promise.resolve({ numPages: 1, getPage: async () => ({ getTextContent: async () => ({ items: [{ str: "Row", transform: [1, 0, 0, 1, 0, 0], width: 1, height: 1 }] }), cleanup: () => {} }) }), destroy: vi.fn().mockResolvedValue(undefined) });
+  beforeEach(() => { instances.length = 0; behaviour = "ready"; vi.stubGlobal("Worker", FakeWorker); vi.spyOn(console, "warn").mockImplementation(() => {}); });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it("uses a bundled same-origin worker and terminates it afterwards", async () => {
+    mock.getDocument.mockReturnValue(ok());
+    await expect(extractPdfLines(new File(["x"], "x.pdf"), "")).resolves.toHaveLength(1);
+    expect(instances).toHaveLength(1);
+    expect(mock.createWorker).toHaveBeenCalledWith({ port: instances[0] });
+    expect(mock.getDocument.mock.calls[0][0].worker).toMatchObject({ port: instances[0] });
+    expect(String(instances[0].url)).not.toMatch(/cdn|unpkg|jsdelivr/);
+    expect(instances[0].terminate).toHaveBeenCalled();
+  });
+
+  it("falls back to the main thread when the worker fails to start", async () => {
+    behaviour = "error";
+    mock.getDocument.mockReturnValue(ok());
+    await expect(extractPdfLines(new File(["x"], "x.pdf"), "")).resolves.toHaveLength(1);
+    expect(mock.getDocument).toHaveBeenCalledOnce();
+    expect(mock.getDocument.mock.calls[0][0]).not.toHaveProperty("worker");
+    expect(console.warn).toHaveBeenCalledWith("[pdf-import] worker: WorkerError");
+  });
+
+  it("falls back to the main thread when the worker never reports ready", async () => {
+    vi.useFakeTimers();
+    try {
+      behaviour = "silent";
+      mock.getDocument.mockReturnValue(ok());
+      const result = extractPdfLines(new File(["x"], "x.pdf"), "");
+      await vi.advanceTimersByTimeAsync(PDF_WORKER_READY_MS);
+      await expect(result).resolves.toHaveLength(1);
+      expect(console.warn).toHaveBeenCalledWith("[pdf-import] worker: WorkerTimeout");
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("falls back when the worker hits a reader error, but not for password results", async () => {
+    mock.getDocument.mockReturnValueOnce({ promise: Promise.reject(new TypeError("boom")), destroy: vi.fn().mockResolvedValue(undefined) }).mockReturnValueOnce(ok());
+    await expect(extractPdfLines(new File(["x"], "x.pdf"), "pw")).resolves.toHaveLength(1);
+    expect(mock.getDocument.mock.calls[1][0].password).toBe("pw");
+    mock.getDocument.mockReset();
+    mock.getDocument.mockReturnValue({ promise: Promise.reject(Object.assign(new Error("x"), { name: "PasswordException", code: 2 })), destroy: vi.fn().mockResolvedValue(undefined) });
+    await expect(extractPdfLines(new File(["x"], "x.pdf"), "bad")).rejects.toMatchObject({ code: "password_incorrect" });
+    expect(mock.getDocument).toHaveBeenCalledOnce();
+  });
 });
