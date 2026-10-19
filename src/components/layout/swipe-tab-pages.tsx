@@ -3,6 +3,8 @@
 import { useEffect, useImperativeHandle, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
 import { useRouter } from "next/navigation";
 
+import { finishPageAnimations, waitForNoSkeleton } from "@/lib/motion/page-arrival";
+import { listenToTouchGesture } from "@/lib/motion/touch-gesture";
 import { prefersReducedMotion } from "@/lib/motion/black-hole";
 import {
   backDragCornerPosition,
@@ -28,6 +30,10 @@ const BOTTOM_NAV_CLEARANCE_PX = 96;
 const HOLD_AT = 0.08;
 // If the new page never arrives (navigation failed), stop waiting for it.
 const MAX_WAIT_MS = 5000;
+// 2026-10-19: arrival fires when the route's loading.tsx skeleton renders; give the
+// real content this long to replace it before the turn lands, so it never
+// pops in right after the paper is gone.
+const CONTENT_WAIT_MS = 900;
 
 // How many tabs on each side of the active one are prefetched in full.
 const PREFETCH_RADIUS = 2;
@@ -83,7 +89,7 @@ interface Curl {
   /**
    * Forward drags: what lies beneath the curling page until the next page
    * renders — that page's snapshot, or plain paper (never the half-hidden
-   * live page, whose title + tab strip would show through).
+   * live content showing through the fold).
    */
   underLayer: HTMLDivElement | null;
 }
@@ -101,6 +107,9 @@ interface Flight {
    */
   preview: Curl | null;
   arrived: boolean;
+  contentDeadline?: number;
+  cancelContentWait?: () => void;
+  live?: HTMLElement;
   stop: () => void;
   waitTimer: number;
   /**
@@ -195,13 +204,11 @@ function placedClone(node: HTMLElement, left: number, top: number): HTMLElement 
 }
 
 /**
- * Snapshots the screen into a curlable sheet. The whole page turns from
- * just under the app header (2026-10-14, mockup "Page Turn Height" option
- * A, after option B — turning the header too — didn't look right): a
- * section's title + tab strip turn with the content, so every page — Home
- * or a tabbed section — turns from the same edge. The header and the bottom
- * nav stay put. Outside the app shell (no `main`), it falls back to just
- * `el`'s visible part.
+ * Snapshots content into a curlable sheet starting at the swipe wrapper.
+ * 2026-10-19: supersedes the 2026-10-14 whole-main turn decision. Section
+ * titles and tab strips stay live above the sheet; only content turns.
+ * Home has no strip and keeps its existing content edge. The main clone
+ * retains its screen position inside the clipped sheet.
  */
 function makeCurl(
   el: HTMLElement,
@@ -211,8 +218,15 @@ function makeCurl(
 ): Curl | null {
   const main = el.closest("main");
   const rect = (main ?? el).getBoundingClientRect();
-  // `main` starts right under the header; once the header has scrolled away, at the screen top.
-  const top = Math.max(rect.top, 0);
+  const wrapperRect = el.getBoundingClientRect();
+  const top = Math.max(wrapperRect.top, rect.top, 0);
+  // Saved snapshots are relative to main; paper rules share that origin.
+  const mainOffsetY = rect.top - top;
+  function snapshotClone(snapshot: HTMLElement): HTMLElement {
+    const clone = snapshot.cloneNode(true) as HTMLElement;
+    clone.style.top = `${mainOffsetY}px`;
+    return clone;
+  }
   // The sheet runs to the bottom of the screen (not just the end of the
   // content) so a curling flap is never cut off by a straight edge mid-page;
   // below the content it's just more ruled paper, matching the page.
@@ -244,15 +258,16 @@ function makeCurl(
   });
 
   const frontWrap = box({ width: `${2 * l}px`, height: `${l}px`, overflow: "hidden", willChange: "transform" });
-  const frontInner = box({ width: `${w}px`, height: `${h}px`, background: "var(--background)", willChange: "transform" });
+  const frontInner = box({ width: `${w}px`, height: `${h}px`, background: "var(--background)", overflow: "hidden", contain: "paint", willChange: "transform" });
   // "page-curl-sheet" freezes the copy: cards that fade in on mount would
   // otherwise replay that fade from transparent in the snapshot.
   frontInner.classList.add("journal-page", "page-curl-sheet");
+  frontInner.style.backgroundPositionY = `${mainOffsetY}px`;
   // `face`: by default this page as it is now; a saved snapshot of another
   // page (the previous one, while dragging back); or "blank" when we have
   // none — then only its back ever shows, so its face needs no content.
   if (face === undefined) frontInner.append(placedClone(main ?? el, rect.left, top));
-  else if (face !== "blank") frontInner.append(face.cloneNode(true));
+  else if (face !== "blank") frontInner.append(snapshotClone(face));
   frontWrap.append(frontInner);
 
   // The flap: the paper's back (plain ruled paper, a shade warmer), with a
@@ -266,6 +281,7 @@ function makeCurl(
     willChange: "transform",
   });
   flapInner.classList.add("journal-page");
+  flapInner.style.backgroundPositionY = `${mainOffsetY}px`;
   const flapShade = box({
     top: "auto",
     bottom: "0",
@@ -280,9 +296,10 @@ function makeCurl(
 
   let underLayer: HTMLDivElement | null = null;
   if (beneath !== undefined) {
-    underLayer = box({ width: `${w}px`, height: `${h}px`, background: "var(--background)" });
+    underLayer = box({ width: `${w}px`, height: `${h}px`, background: "var(--background)", overflow: "hidden", contain: "paint" });
     underLayer.classList.add("journal-page", "page-curl-sheet");
-    if (beneath !== "blank") underLayer.append(beneath.cloneNode(true));
+    underLayer.style.backgroundPositionY = `${mainOffsetY}px`;
+    if (beneath !== "blank") underLayer.append(snapshotClone(beneath));
     root.append(underLayer);
   }
   root.append(cast, frontWrap, flapWrap, dim);
@@ -414,10 +431,14 @@ export function SwipeTabPages({
     const flight = flightRef.current;
     if (!flight) return;
     flight.stop();
+    flight.cancelContentWait?.();
     window.clearTimeout(flight.waitTimer);
+    delete document.documentElement.dataset.pageTurning;
+    if (flight.arrived && flight.live?.isConnected) finishPageAnimations(flight.live);
     flight.curl?.root.remove();
     flight.under?.root.remove();
     flight.preview?.root.remove();
+    if (flight.live) flight.live.style.opacity = "";
     flightRef.current = null;
     showLive();
   }
@@ -488,6 +509,7 @@ export function SwipeTabPages({
       preview?.root.remove();
       return;
     }
+    document.documentElement.dataset.pageTurning = "";
     // The sheet stands in for the live page until the new one renders.
     el.style.opacity = "0";
     if (dir === 1) turnForward(curl, crossing);
@@ -496,52 +518,73 @@ export function SwipeTabPages({
 
   useImperativeHandle(handleRef, () => ({ beginFlip: (dir) => start(dir, null) }));
 
-  // The new page has rendered.
+  // Route arrival can be a loading fallback; keep the paper until content is ready.
   useLayoutEffect(() => {
     const flight = flightRef.current;
     const el = wrapperRef.current;
     if (!flight || !el || flight.arrived) return;
-    flight.arrived = true;
-    window.clearTimeout(flight.waitTimer);
-
-    if (flight.dir === 1) {
-      // The next page is ready underneath — the turn carries on by itself
-      // (runCurl's hold releases once `arrived` is true). The live page now
-      // takes over from the snapshot that stood in for it.
-      el.style.opacity = "";
-      flight.curl?.underLayer?.remove();
-      return;
-    }
-
-    // Back: snapshot the previous page and curl it in from the spine.
-    el.style.opacity = "";
-    const incoming = makeCurl(el, true);
-    if (!incoming) {
-      endFlight();
-      return;
-    }
+    flight.cancelContentWait?.();
+    flight.live = el;
+    document.documentElement.dataset.pageTurning = "";
     el.style.opacity = "0";
-    const turned = turnedCornerPosition(incoming.c, incoming.w, incoming.h);
-    // A drag already lifted this page partway in: carry on from that pose
-    // (the plain back it showed is now this real sheet's back), for the
-    // rest of the turn's time — no jump back to the spine.
-    const from = flight.preview ? flight.preview.p : turned;
-    const remaining = Math.min(Math.max((incoming.c.x - from.x) / (incoming.c.x - turned.x), 0.4), 1);
-    if (flight.preview) incoming.root.style.zIndex = "21";
-    applyCurl(incoming, from);
-    flight.preview?.root.remove();
-    flight.preview = null;
-    flight.curl = incoming;
-    const under = flight.under;
-    flight.stop = runCurl(incoming, from, incoming.c, TURN_MS * remaining, {
-      // The current page falls into the incoming page's shadow as it's covered.
-      onFrame: (eased) => {
-        if (under) under.dim.style.opacity = String(0.28 * eased);
-      },
-      onDone: () => {
-        if (flightRef.current === flight) endFlight();
-      },
-    });
+    flight.contentDeadline ??= performance.now() + CONTENT_WAIT_MS;
+    const land = () => {
+      if (flightRef.current !== flight || !el.isConnected) return;
+      flight.arrived = true;
+      // Landed: the page is here, so the "never arrived" guard must not cut
+      // the rest of the turn short.
+      window.clearTimeout(flight.waitTimer);
+
+      if (flight.dir === 1) {
+        // The next page is ready underneath — the turn carries on by itself
+        // (runCurl's hold releases once `arrived` is true). The live page now
+        // takes over from the snapshot that stood in for it.
+        el.style.opacity = "";
+        flight.curl?.underLayer?.remove();
+        return;
+      }
+
+      // Back: snapshot the previous page and curl it in from the spine.
+      el.style.opacity = "";
+      const incoming = makeCurl(el, true);
+      if (!incoming) {
+        endFlight();
+        return;
+      }
+      el.style.opacity = "0";
+      const turned = turnedCornerPosition(incoming.c, incoming.w, incoming.h);
+      // A drag already lifted this page partway in: carry on from that pose
+      // (the plain back it showed is now this real sheet's back), for the
+      // rest of the turn's time — no jump back to the spine.
+      const from = flight.preview ? flight.preview.p : turned;
+      const remaining = Math.min(Math.max((incoming.c.x - from.x) / (incoming.c.x - turned.x), 0.4), 1);
+      if (flight.preview) incoming.root.style.zIndex = "21";
+      applyCurl(incoming, from);
+      flight.preview?.root.remove();
+      flight.preview = null;
+      flight.curl = incoming;
+      const under = flight.under;
+      flight.stop = runCurl(incoming, from, incoming.c, TURN_MS * remaining, {
+        // The current page falls into the incoming page's shadow as it's covered.
+        onFrame: (eased) => {
+          if (under) under.dim.style.opacity = String(0.28 * eased);
+        },
+        onDone: () => {
+          if (flightRef.current === flight) endFlight();
+        },
+      });
+    };
+    flight.cancelContentWait = waitForNoSkeleton(
+      el, land, Math.max(0, flight.contentDeadline - performance.now())
+    );
+    return () => {
+      if (flight.live === el) {
+        flight.cancelContentWait?.();
+        flight.cancelContentWait = undefined;
+        flight.live = undefined;
+        delete document.documentElement.dataset.pageTurning;
+      }
+    };
     // Runs only when the page actually changes; everything else is read via refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
@@ -575,6 +618,7 @@ export function SwipeTabPages({
   useEffect(
     () => () => {
       if (!flightRef.current?.crossing) endFlight();
+      if (!flightRef.current) delete document.documentElement.dataset.pageTurning;
       dropDragCurl();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -593,6 +637,7 @@ export function SwipeTabPages({
     let dx = 0;
     let dy = 0;
     let stopSettle: (() => void) | null = null;
+    let disposeGesture: (() => void) | null = null;
 
     /** The page a swipe leads to: the next/previous tab, else the neighbouring section's facing page. */
     function targetHref(delta: number): string | null {
@@ -611,9 +656,9 @@ export function SwipeTabPages({
 
     /**
      * Live feedback, all on paper sheets laid over the page — the live page
-     * itself never slides (2026-10-15: leaning just the cards under a fixed
-     * title + tab strip, then snapping them back as the turn began, read as
-     * a jerk). Forward curls this page's corner under the finger; back lifts
+     * itself never slides. The title + tab strip stay above the content
+     * sheet throughout preview and flight. Forward curls this page's corner
+     * under the finger; back lifts
      * the previous page's back in from the spine; a dead end does nothing.
      */
     function follow() {
@@ -665,44 +710,72 @@ export function SwipeTabPages({
     }
 
     /** Swipe released short of committing: the corner falls back flat (or the previous page drops back past the spine). */
+    // 2026-10-19: cancellation owns removal too, after the drag refs are cleared.
     function settle() {
+      stopSettle?.();
       const back = backPreviewRef.current;
       backPreviewRef.current = null;
       if (back) {
-        stopSettle?.();
-        stopSettle = runCurl(back, back.p, backDragCornerPosition(back.c, 0, 0, back.w, back.h), SETTLE_MS, {
+        const stop = runCurl(back, back.p, backDragCornerPosition(back.c, 0, 0, back.w, back.h), SETTLE_MS, {
           onDone: () => {
             stopSettle = null;
             back.root.remove();
           },
         });
+        stopSettle = () => {
+          stop();
+          back.root.remove();
+          stopSettle = null;
+        };
         return;
       }
       const curl = dragCurlRef.current;
       dragCurlRef.current = null;
       if (curl) {
-        stopSettle = runCurl(curl, curl.p, curl.c, SETTLE_MS, {
+        const stop = runCurl(curl, curl.p, curl.c, SETTLE_MS, {
           onDone: () => {
             stopSettle = null;
             curl.root.remove();
             if (!flightRef.current) boundary.style.opacity = "";
           },
         });
+        stopSettle = () => {
+          stop();
+          curl.root.remove();
+          stopSettle = null;
+          if (!flightRef.current) boundary.style.opacity = "";
+        };
       }
     }
 
+    // 2026-10-19: recover interrupted drags/settles without disturbing a real turn.
+    function dropGesture() {
+      disposeGesture?.();
+      disposeGesture = null;
+      startX = null;
+      stopSettle?.();
+      dropDragCurl();
+      if (!flightRef.current) boundary.style.opacity = "";
+    }
+
     function onStart(e: TouchEvent) {
+      if (startX === null) dropGesture();
       if (e.touches.length > 1 || activeIndexRef.current < 0) {
-        startX = null;
+        dropGesture();
         return;
       }
       // A new swipe while a page is still turning: land the turn now so
       // fast consecutive swipes are never dropped.
-      if (flightRef.current?.arrived) endFlight();
+      // (Also while the new page is only waiting for its content to replace
+      // its loading skeleton — it has rendered; don't swallow the swipe.)
+      if (flightRef.current?.arrived || flightRef.current?.live) endFlight();
       else if (flightRef.current) {
         startX = null;
         return;
       }
+      disposeGesture?.();
+      if (!e.target) return;
+      disposeGesture = listenToTouchGesture<TouchEvent>(e.target, onMove, onEnd);
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       axis = null;
@@ -730,6 +803,8 @@ export function SwipeTabPages({
     }
 
     function onEnd() {
+      disposeGesture?.();
+      disposeGesture = null;
       if (startX === null || blocked || axis !== "horizontal") {
         startX = null;
         return;
@@ -749,16 +824,21 @@ export function SwipeTabPages({
       settle();
     }
 
+    function onPageHide() {
+      dropGesture();
+    }
+    function onVisibilityChange() {
+      if (document.hidden) dropGesture();
+    }
+
     el.addEventListener("touchstart", onStart, { passive: true });
-    el.addEventListener("touchmove", onMove, { passive: false });
-    el.addEventListener("touchend", onEnd, { passive: true });
-    el.addEventListener("touchcancel", onEnd, { passive: true });
+    window.addEventListener("pagehide", onPageHide);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
-      stopSettle?.();
+      dropGesture();
       el.removeEventListener("touchstart", onStart);
-      el.removeEventListener("touchmove", onMove);
-      el.removeEventListener("touchend", onEnd);
-      el.removeEventListener("touchcancel", onEnd);
+      window.removeEventListener("pagehide", onPageHide);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
