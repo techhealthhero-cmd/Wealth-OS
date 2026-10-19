@@ -3,7 +3,8 @@
  * nav's center mic, see quick-add.tsx variant "nav-center") without
  * mounting a second copy of its forms/sheets. Home's quick actions use it:
  * "income" opens the existing income form, "capture" opens Quick Capture
- * (type, talk, or scan a slip/receipt).
+ * for typing/voice; "scan" opens the slip camera/file input, then the
+ * Quick Capture parse-result flow.
  *
  * The listener lives in BottomNav, which the (app) layout always renders
  * (on desktop it is only hidden with CSS, still mounted). The event is
@@ -12,7 +13,7 @@
  */
 export const QUICK_ADD_REQUEST_EVENT = "wealthos:quick-add-request";
 
-export type QuickAddRequestTarget = "income" | "capture";
+export type QuickAddRequestTarget = "income" | "capture" | "scan";
 
 /** Returns true when the shell's Quick Add picked the request up. */
 export function requestQuickAdd(target: QuickAddRequestTarget): boolean {
@@ -21,5 +22,5 @@ export function requestQuickAdd(target: QuickAddRequestTarget): boolean {
 }
 
 export function isQuickAddRequestTarget(value: unknown): value is QuickAddRequestTarget {
-  return value === "income" || value === "capture";
+  return value === "income" || value === "capture" || value === "scan";
 }

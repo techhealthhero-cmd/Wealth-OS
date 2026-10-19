@@ -139,6 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| HOME-SCAN-SLIP | Home quick action "สแกนสลิป" opens slip scan (file input) directly, not Quick Capture sheet | Grok Bot (Codex impl) | IN PR → staging | Home scan → synchronously clicked mounted picker → existing QuickCaptureSheet image handler; no layout/parser changes. Focused tests/lint/typecheck passed | Merge after CI green |
 | INVOICE-TAXJAR-ACTIONS | Invoice and tax jar server data/actions | Codex | DONE — 75 new tests; lint/typecheck/full Vitest passed | Authenticated actions/loaders, types, Zod validation, TH/EN errors; no UI/migrations/formula edits. API + save consistency limits in src/features/invoices/README.md | Owner commit; UI agent integration |
 | CAPTURE-EMERGENCY | Emergency source intent and food classification | Codex | DONE — all requested checks passed on Node 22 | Parser + AI preservation, read-only linked account wiring, regression tests; no UI/DB changes | PR to staging |
 | RESUME-PILL-NAV | Mobile resume pill safe-area clearance | Codex | DONE | Host class/comment + focused rendering regression; inspect nav geometry, run typecheck/lint/related Vitest | PR to staging (screenshots 390px ± 34px safe area) |
@@ -196,6 +197,13 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → owner (HOME-SCAN-SLIP)
+
+- Home scanSlip requests `scan`; shell keeps its camera/file input mounted and clicks synchronously in the request handler for iOS user activation. Canceling leaves the sheet closed; choosing a file opens Quick Capture and consumes it once via existing handleImage/scanReceipt.
+- Scope: quick-add-request, home-quick-actions (behavior/comment only), quick-add, QuickCaptureSheet optional initial image props, and request unit tests. Capture/income/voice paths retained; no layout/CSS, parser, actions, subscriptions, or DB changes.
+- Validation: required request suite passed (14 tests); request + existing receipt/draft suites passed (32 tests); ESLint on all touched code/tests and git diff --check passed; next typegen + tsc --noEmit passed. Initial bare tsc required generated LayoutProps, resolved by next typegen. No physical iOS Safari validation performed.
+- Status: Grok Bot committing from writable shell after Codex sandbox blocked `.git/index.lock`; opening PR to staging and merging only if checks pass.
 
 ### 2026-10-19 — Codex → owner / invoice-tax-jar UI agent (INVOICE-TAXJAR-ACTIONS)
 
