@@ -1,7 +1,7 @@
 import { daysBetween, daysInMonth, dedupeOccurrences, firstUnpaidDate, projectDueDates, type PaymentOccurrence, type PaymentSource } from "./payment-calendar";
 import { calendarDateSchema } from "@/lib/validation/invoices-tax-jar";
 
-export const SAFE_TO_SPEND_TODAY_FORMULA_STATUS = "pending_user_approval" as const;
+export const SAFE_TO_SPEND_TODAY_FORMULA_STATUS = "approved" as const;
 
 export interface SafeToSpendTodayInput {
   today: string;
@@ -19,7 +19,7 @@ function cents(value: number): number {
 }
 
 /**
- * Formula pending user approval. Pure integer-satang calculation with explicit
+ * Formula approved by the user on 2026-10-19. Pure integer-satang calculation with explicit
  * local calendar dates. Unpaid invoices (receivables) are deliberately excluded:
  * they are not received cash and are not an input.
  */

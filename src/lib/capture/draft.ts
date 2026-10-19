@@ -1,3 +1,5 @@
+import { evaluateCaptureConfidence, type ConfidenceContext, type CaptureConfidenceResult } from "./confidence";
+import type { ParsedCapture } from "./transaction-parser";
 import { resolveSmartCapture, type SmartCaptureIntent, type RatePeriod } from "./purchase-intent";
 import type { CaptureConfidence } from "@/types/database";
 import type { SubscriptionIntent } from "./subscription-intent";
@@ -6,6 +8,9 @@ import type { CaptureSaveInput } from "@/lib/validation/capture";
 
 /** What the Quick Capture preview card shows and lets the user adjust before saving. */
 export interface CaptureDraft {
+  isEmergencyFundDraw?: boolean;
+  emergencyFundAccountMissing?: boolean;
+  confidenceGate?: CaptureConfidenceResult;
   smart?: SmartCaptureIntent | null;
   smartAssetAccepted?: boolean;
   smartRatePeriod?: RatePeriod;
@@ -90,4 +95,9 @@ export function buildCaptureSaveInput(draft: CaptureDraft, clientRequestId: stri
     reference: draft.reference ?? null,
     categoryConfirmedByUser: draft.categoryConfirmedByUser,
   };
+}
+
+/** Additive adapter for future capture callers; existing save eligibility is unchanged. */
+export function createConfidenceDraft(parsed: ParsedCapture, context: ConfidenceContext, source: CaptureDraft["source"] = "quick_text"): CaptureDraft {
+  return { ...parsed, source, categoryConfirmedByUser: false, confidenceGate: evaluateCaptureConfidence(parsed, context) };
 }

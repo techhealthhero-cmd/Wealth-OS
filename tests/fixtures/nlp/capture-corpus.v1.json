@@ -1,0 +1,6865 @@
+{
+  "version": 1,
+  "provenance": "Synthetic template families manually labelled by sentence semantics; no user data. Development baseline, not a held-out benchmark.",
+  "context": {
+    "today": "2026-10-19",
+    "accounts": [
+      {
+        "id": "cash",
+        "name": "เงินสด",
+        "account_type": "cash",
+        "institution": null,
+        "is_archived": false
+      },
+      {
+        "id": "bank",
+        "name": "KBank",
+        "account_type": "bank",
+        "institution": "Kasikorn",
+        "is_archived": false
+      },
+      {
+        "id": "emergency",
+        "name": "กองทุนฉุกเฉิน",
+        "account_type": "bank",
+        "institution": null,
+        "is_archived": false
+      }
+    ],
+    "categories": [
+      {
+        "id": "food",
+        "name_th": "อาหาร",
+        "name_en": "Food & Dining",
+        "type": "expense",
+        "icon": null,
+        "is_system": true
+      },
+      {
+        "id": "other",
+        "name_th": "อื่นๆ",
+        "name_en": "Other",
+        "type": "expense",
+        "icon": null,
+        "is_system": true
+      },
+      {
+        "id": "salary",
+        "name_th": "เงินเดือน",
+        "name_en": "Salary",
+        "type": "income",
+        "icon": null,
+        "is_system": true
+      },
+      {
+        "id": "freelance",
+        "name_th": "งานอิสระ",
+        "name_en": "Freelance",
+        "type": "income",
+        "icon": null,
+        "is_system": true
+      },
+      {
+        "id": "other-in",
+        "name_th": "อื่นๆ",
+        "name_en": "Other",
+        "type": "income",
+        "icon": null,
+        "is_system": true
+      },
+      {
+        "id": "subs",
+        "name_th": "สมาชิก",
+        "name_en": "Subscriptions",
+        "type": "expense",
+        "icon": null,
+        "is_system": true
+      }
+    ],
+    "merchantPreferences": [],
+    "emergencyFundAccountId": "emergency"
+  },
+  "items": [
+    {
+      "id": "priority_emergency_unresolved-001",
+      "text": "ใช้เงินฉุกเฉินจ่ายข้าว 35 บาท",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 3500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-001",
+      "text": "จ่ายข้าว 35 บาท",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 3500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-001",
+      "text": "31 ก.พ. จ่ายข้าว 35 บาท cash",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 3500,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-001",
+      "text": "จ่ายข้าว 35 บาท หรือ 55 บาท cash",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-001",
+      "text": "ดู YouTube 35 บาท cash",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 3500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-001",
+      "text": "จ่ายข้าว ๓๕ บาท cash",
+      "tags": [
+        "everyday",
+        "thai_digits",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 3500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-001",
+      "text": "เงินเดือนเข้า 350 บาท KBank",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 35000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "salary"
+      }
+    },
+    {
+      "id": "emergency_resolved-001",
+      "text": "ใช้เงินฉุกเฉินจ่ายข้าว 35 บาท",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 3500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-001",
+      "text": "สมัคร YouTube รายเดือน 35 บาท cash",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 3500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-001",
+      "text": "35 cash",
+      "tags": [
+        "ambiguous",
+        "terse"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 3500,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-002",
+      "text": "ใช้เงินฉุกเฉินจ่ายกาแฟ 42 บาท ครับ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 4200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-002",
+      "text": "จ่ายกาแฟ 42 บาท ครับ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-002",
+      "text": "30 กุมภาพันธ์ จ่ายกาแฟ 42 บาท cash ครับ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4200,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-002",
+      "text": "จ่ายกาแฟ 42 บาท หรือ 62 บาท cash ครับ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-002",
+      "text": "จ่ายค่า Netflix 42 บาท cash ครับ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-002",
+      "text": "เมื่อวาน จ่ายกาแฟ 42 บาท cash ครับ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4200,
+        "direction": "expense",
+        "date": "2026-10-18",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-002",
+      "text": "รายรับงาน freelance 420 บาท KBank ครับ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 42000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-002",
+      "text": "ใช้เงินฉุกเฉินจ่ายกาแฟ 42 บาท ครับ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-002",
+      "text": "สมัคร Netflix รายเดือน 42 บาท cash ครับ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-002",
+      "text": "42 cash ครับ",
+      "tags": [
+        "ambiguous",
+        "terse"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4200,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-003",
+      "text": "ใช้เงินฉุกเฉินจ่ายน้ำ 49 บาท ค่ะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 4900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-003",
+      "text": "จ่ายน้ำ 49 บาท ค่ะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-003",
+      "text": "31 เม.ย. จ่ายน้ำ 49 บาท cash ค่ะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4900,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-003",
+      "text": "จ่ายน้ำ 49 บาท หรือ 69 บาท cash ค่ะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-003",
+      "text": "ซื้อครั้งเดียวจาก Spotify 49 บาท cash ค่ะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-003",
+      "text": "เมื่อวานซืน จ่ายน้ำ 49 บาท cash ค่ะ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4900,
+        "direction": "expense",
+        "date": "2026-10-17",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-003",
+      "text": "รับเงินงานออกแบบ 490 บาท KBank ค่ะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 49000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-003",
+      "text": "ใช้เงินฉุกเฉินจ่ายน้ำ 49 บาท ค่ะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-003",
+      "text": "สมัคร Spotify รายเดือน 49 บาท cash ค่ะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-003",
+      "text": "49 cash ค่ะ",
+      "tags": [
+        "ambiguous",
+        "terse"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 4900,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-004",
+      "text": "ใช้เงินฉุกเฉินจ่ายขนม 56 บาท นะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 5600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-004",
+      "text": "จ่ายขนม 56 บาท นะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 5600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-004",
+      "text": "31 มิถุนายน จ่ายขนม 56 บาท cash นะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 5600,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-004",
+      "text": "จ่ายขนม 56 บาท หรือ 76 บาท cash นะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-004",
+      "text": "ไม่ได้สมัครแต่จ่ายค่า iCloud 56 บาท cash นะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 5600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-004",
+      "text": "วันที่ 8 ตุลา จ่ายขนม ๕๖ บาท cash นะ",
+      "tags": [
+        "everyday",
+        "thai_digits",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 5600,
+        "direction": "expense",
+        "date": "2026-10-08",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-004",
+      "text": "ได้เงินจากงานอิสระ 560 บาท KBank นะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 56000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-004",
+      "text": "ใช้เงินฉุกเฉินจ่ายขนม 56 บาท นะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 5600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-004",
+      "text": "สมัคร iCloud รายเดือน 56 บาท cash นะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 5600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-004",
+      "text": "56 cash นะ",
+      "tags": [
+        "ambiguous",
+        "terse"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 5600,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-005",
+      "text": "ใช้เงินฉุกเฉินจ่ายเบอร์เกอร์ 63 บาท วันนี้",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 6300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-005",
+      "text": "จ่ายเบอร์เกอร์ 63 บาท วันนี้",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 6300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-005",
+      "text": "วันที่ 32 ตุลาคม จ่ายเบอร์เกอร์ 63 บาท cash วันนี้",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 6300,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-005",
+      "text": "จ่ายเบอร์เกอร์ 63 บาท หรือ 83 บาท cash วันนี้",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-005",
+      "text": "เคยสมัคร ตอนนี้จ่ายค่า Disney+ 63 บาท cash วันนี้",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 6300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-005",
+      "text": "วันนี้ จ่ายเบอร์เกอร์ 63 บาท cash วันนี้",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 6300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-005",
+      "text": "รับเงินคืนค่าสินค้า 630 บาท KBank วันนี้",
+      "tags": [
+        "income_refunds",
+        "refund"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 63000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-005",
+      "text": "ใช้เงินฉุกเฉินจ่ายเบอร์เกอร์ 63 บาท วันนี้",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 6300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-005",
+      "text": "สมัคร Disney+ รายเดือน 63 บาท cash วันนี้",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 6300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-005",
+      "text": "63 cash วันนี้",
+      "tags": [
+        "ambiguous",
+        "terse"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 6300,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-006",
+      "text": "ใช้เงินฉุกเฉินจ่ายอาหาร 70 บาท",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-006",
+      "text": "จ่ายอาหาร 70 บาท",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-006",
+      "text": "31 ก.พ. จ่ายอาหาร 70 บาท cash",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-006",
+      "text": "จ่ายอาหาร 70 บาท หรือ 90 บาท cash",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-006",
+      "text": "ดู YouTube 70 บาท cash",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-006",
+      "text": "จ่ายอาหาร 70 บาท cash",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-006",
+      "text": "เงินเดือนเข้า 700 บาท KBank",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 70000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "salary"
+      }
+    },
+    {
+      "id": "emergency_resolved-006",
+      "text": "ใช้เงินฉุกเฉินจ่ายอาหาร 70 บาท",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-006",
+      "text": "สมัคร YouTube รายเดือน 70 บาท cash",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-006",
+      "text": "70 cash",
+      "tags": [
+        "ambiguous",
+        "terse"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7000,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-007",
+      "text": "ใช้เงินฉุกเฉินจ่ายข้าว 77 บาท ครับ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 7700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-007",
+      "text": "จ่ายข้าว 77 บาท ครับ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-007",
+      "text": "30 กุมภาพันธ์ จ่ายข้าว 77 บาท cash ครับ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7700,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-007",
+      "text": "จ่ายข้าว 77 บาท หรือ 97 บาท cash ครับ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-007",
+      "text": "จ่ายค่า Netflix 77 บาท cash ครับ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-007",
+      "text": "เมื่อวาน จ่ายข้าว ๗๗ บาท cash ครับ",
+      "tags": [
+        "everyday",
+        "thai_digits",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7700,
+        "direction": "expense",
+        "date": "2026-10-18",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-007",
+      "text": "รายรับงาน freelance 770 บาท KBank ครับ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 77000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-007",
+      "text": "ใช้เงินฉุกเฉินจ่ายข้าว 77 บาท ครับ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-007",
+      "text": "สมัคร Netflix รายเดือน 77 บาท cash ครับ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-007",
+      "text": "77 cash ครับ",
+      "tags": [
+        "ambiguous",
+        "terse"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7700,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-008",
+      "text": "ใช้เงินฉุกเฉินจ่ายกาแฟ 84 บาท ค่ะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 8400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-008",
+      "text": "จ่ายกาแฟ 84 บาท ค่ะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 8400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-008",
+      "text": "31 เม.ย. จ่ายกาแฟ 84 บาท cash ค่ะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 8400,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-008",
+      "text": "จ่ายกาแฟ 84 บาท หรือ 104 บาท cash ค่ะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-008",
+      "text": "ซื้อครั้งเดียวจาก Spotify 84 บาท cash ค่ะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 8400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-008",
+      "text": "เมื่อวานซืน จ่ายกาแฟ 84 บาท cash ค่ะ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 8400,
+        "direction": "expense",
+        "date": "2026-10-17",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-008",
+      "text": "รับเงินงานออกแบบ 840 บาท KBank ค่ะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 84000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-008",
+      "text": "ใช้เงินฉุกเฉินจ่ายกาแฟ 84 บาท ค่ะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 8400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-008",
+      "text": "สมัคร Spotify รายเดือน 84 บาท cash ค่ะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 8400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-008",
+      "text": "84 cash ค่ะ",
+      "tags": [
+        "ambiguous",
+        "terse"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 8400,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-009",
+      "text": "ใช้เงินฉุกเฉินจ่ายน้ำ 91 บาท นะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 9100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-009",
+      "text": "จ่ายน้ำ 91 บาท นะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-009",
+      "text": "31 มิถุนายน จ่ายน้ำ 91 บาท cash นะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9100,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-009",
+      "text": "จ่ายน้ำ 91 บาท หรือ 111 บาท cash นะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-009",
+      "text": "ไม่ได้สมัครแต่จ่ายค่า iCloud 91 บาท cash นะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-009",
+      "text": "วันที่ 8 ตุลา จ่ายน้ำ 91 บาท cash นะ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9100,
+        "direction": "expense",
+        "date": "2026-10-08",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-009",
+      "text": "ได้เงินจากงานอิสระ 910 บาท KBank นะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 91000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-009",
+      "text": "ใช้เงินฉุกเฉินจ่ายน้ำ 91 บาท นะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-009",
+      "text": "สมัคร iCloud รายเดือน 91 บาท cash นะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-009",
+      "text": "91 cash นะ",
+      "tags": [
+        "ambiguous",
+        "terse"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9100,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-010",
+      "text": "ใช้เงินฉุกเฉินจ่ายขนม 98 บาท วันนี้",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 9800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-010",
+      "text": "จ่ายขนม 98 บาท วันนี้",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-010",
+      "text": "วันที่ 32 ตุลาคม จ่ายขนม 98 บาท cash วันนี้",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9800,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-010",
+      "text": "จ่ายขนม 98 บาท หรือ 118 บาท cash วันนี้",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-010",
+      "text": "เคยสมัคร ตอนนี้จ่ายค่า Disney+ 98 บาท cash วันนี้",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-010",
+      "text": "วันนี้ จ่ายขนม ๙๘ บาท cash วันนี้",
+      "tags": [
+        "everyday",
+        "thai_digits",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-010",
+      "text": "รับเงินคืนค่าสินค้า 980 บาท KBank วันนี้",
+      "tags": [
+        "income_refunds",
+        "refund"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 98000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-010",
+      "text": "ใช้เงินฉุกเฉินจ่ายขนม 98 บาท วันนี้",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-010",
+      "text": "สมัคร Disney+ รายเดือน 98 บาท cash วันนี้",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-010",
+      "text": "98 cash วันนี้",
+      "tags": [
+        "ambiguous",
+        "terse"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9800,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-011",
+      "text": "ใช้เงินฉุกเฉินจ่ายเบอร์เกอร์ 105 บาท",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 10500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-011",
+      "text": "จ่ายเบอร์เกอร์ 105 บาท",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 10500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-011",
+      "text": "31 ก.พ. จ่ายเบอร์เกอร์ 105 บาท cash",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 10500,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-011",
+      "text": "จ่ายเบอร์เกอร์ 105 บาท หรือ 125 บาท cash",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-011",
+      "text": "ดู YouTube 105 บาท cash",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 10500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-011",
+      "text": "จ่ายเบอร์เกอร์ 105 บาท cash",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 10500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-011",
+      "text": "เงินเดือนเข้า 1050 บาท KBank",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 105000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "salary"
+      }
+    },
+    {
+      "id": "emergency_resolved-011",
+      "text": "ใช้เงินฉุกเฉินจ่ายเบอร์เกอร์ 105 บาท",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 10500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-011",
+      "text": "สมัคร YouTube รายเดือน 105 บาท cash",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 10500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-011",
+      "text": "โอนระหว่างบัญชี 105 บาท KBank",
+      "tags": [
+        "ambiguous",
+        "transfer"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 10500,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-012",
+      "text": "ใช้เงินฉุกเฉินจ่ายอาหาร 112 บาท ครับ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 11200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-012",
+      "text": "จ่ายอาหาร 112 บาท ครับ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-012",
+      "text": "30 กุมภาพันธ์ จ่ายอาหาร 112 บาท cash ครับ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11200,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-012",
+      "text": "จ่ายอาหาร 112 บาท หรือ 132 บาท cash ครับ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-012",
+      "text": "จ่ายค่า Netflix 112 บาท cash ครับ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-012",
+      "text": "เมื่อวาน จ่ายอาหาร 112 บาท cash ครับ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11200,
+        "direction": "expense",
+        "date": "2026-10-18",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-012",
+      "text": "รายรับงาน freelance 1120 บาท KBank ครับ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 112000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-012",
+      "text": "ใช้เงินฉุกเฉินจ่ายอาหาร 112 บาท ครับ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-012",
+      "text": "สมัคร Netflix รายเดือน 112 บาท cash ครับ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-012",
+      "text": "โอนระหว่างบัญชี 112 บาท KBank ครับ",
+      "tags": [
+        "ambiguous",
+        "transfer"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11200,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-013",
+      "text": "ใช้เงินฉุกเฉินจ่ายข้าว 119 บาท ค่ะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 11900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-013",
+      "text": "จ่ายข้าว 119 บาท ค่ะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-013",
+      "text": "31 เม.ย. จ่ายข้าว 119 บาท cash ค่ะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11900,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-013",
+      "text": "จ่ายข้าว 119 บาท หรือ 139 บาท cash ค่ะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-013",
+      "text": "ซื้อครั้งเดียวจาก Spotify 119 บาท cash ค่ะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-013",
+      "text": "เมื่อวานซืน จ่ายข้าว ๑๑๙ บาท cash ค่ะ",
+      "tags": [
+        "everyday",
+        "thai_digits",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11900,
+        "direction": "expense",
+        "date": "2026-10-17",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-013",
+      "text": "รับเงินงานออกแบบ 1190 บาท KBank ค่ะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 119000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-013",
+      "text": "ใช้เงินฉุกเฉินจ่ายข้าว 119 บาท ค่ะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-013",
+      "text": "สมัคร Spotify รายเดือน 119 บาท cash ค่ะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-013",
+      "text": "โอนระหว่างบัญชี 119 บาท KBank ค่ะ",
+      "tags": [
+        "ambiguous",
+        "transfer"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 11900,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-014",
+      "text": "ใช้เงินฉุกเฉินจ่ายกาแฟ 126 บาท นะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 12600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-014",
+      "text": "จ่ายกาแฟ 126 บาท นะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 12600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-014",
+      "text": "31 มิถุนายน จ่ายกาแฟ 126 บาท cash นะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 12600,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-014",
+      "text": "จ่ายกาแฟ 126 บาท หรือ 146 บาท cash นะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-014",
+      "text": "ไม่ได้สมัครแต่จ่ายค่า iCloud 126 บาท cash นะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 12600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-014",
+      "text": "วันที่ 8 ตุลา จ่ายกาแฟ 126 บาท cash นะ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 12600,
+        "direction": "expense",
+        "date": "2026-10-08",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-014",
+      "text": "ได้เงินจากงานอิสระ 1260 บาท KBank นะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 126000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-014",
+      "text": "ใช้เงินฉุกเฉินจ่ายกาแฟ 126 บาท นะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 12600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-014",
+      "text": "สมัคร iCloud รายเดือน 126 บาท cash นะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 12600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-014",
+      "text": "โอนระหว่างบัญชี 126 บาท KBank นะ",
+      "tags": [
+        "ambiguous",
+        "transfer"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 12600,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-015",
+      "text": "ใช้เงินฉุกเฉินจ่ายน้ำ 133 บาท วันนี้",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 13300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-015",
+      "text": "จ่ายน้ำ 133 บาท วันนี้",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 13300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-015",
+      "text": "วันที่ 32 ตุลาคม จ่ายน้ำ 133 บาท cash วันนี้",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 13300,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-015",
+      "text": "จ่ายน้ำ 133 บาท หรือ 153 บาท cash วันนี้",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-015",
+      "text": "เคยสมัคร ตอนนี้จ่ายค่า Disney+ 133 บาท cash วันนี้",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 13300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-015",
+      "text": "วันนี้ จ่ายน้ำ 133 บาท cash วันนี้",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 13300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-015",
+      "text": "รับเงินคืนค่าสินค้า 1330 บาท KBank วันนี้",
+      "tags": [
+        "income_refunds",
+        "refund"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 133000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-015",
+      "text": "ใช้เงินฉุกเฉินจ่ายน้ำ 133 บาท วันนี้",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 13300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-015",
+      "text": "สมัคร Disney+ รายเดือน 133 บาท cash วันนี้",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 13300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-015",
+      "text": "โอนระหว่างบัญชี 133 บาท KBank วันนี้",
+      "tags": [
+        "ambiguous",
+        "transfer"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 13300,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-016",
+      "text": "ใช้เงินฉุกเฉินจ่ายขนม 140 บาท",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 14000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-016",
+      "text": "จ่ายขนม 140 บาท",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-016",
+      "text": "31 ก.พ. จ่ายขนม 140 บาท cash",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14000,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-016",
+      "text": "จ่ายขนม 140 บาท หรือ 160 บาท cash",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-016",
+      "text": "ดู YouTube 140 บาท cash",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-016",
+      "text": "จ่ายขนม ๑๔๐ บาท cash",
+      "tags": [
+        "everyday",
+        "thai_digits",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-016",
+      "text": "เงินเดือนเข้า 1400 บาท KBank",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 140000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "salary"
+      }
+    },
+    {
+      "id": "emergency_resolved-016",
+      "text": "ใช้เงินฉุกเฉินจ่ายขนม 140 บาท",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-016",
+      "text": "สมัคร YouTube รายเดือน 140 บาท cash",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-016",
+      "text": "โอนระหว่างบัญชี 140 บาท KBank",
+      "tags": [
+        "ambiguous",
+        "transfer"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14000,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-017",
+      "text": "ใช้เงินฉุกเฉินจ่ายเบอร์เกอร์ 147 บาท ครับ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 14700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-017",
+      "text": "จ่ายเบอร์เกอร์ 147 บาท ครับ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-017",
+      "text": "30 กุมภาพันธ์ จ่ายเบอร์เกอร์ 147 บาท cash ครับ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14700,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-017",
+      "text": "จ่ายเบอร์เกอร์ 147 บาท หรือ 167 บาท cash ครับ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-017",
+      "text": "จ่ายค่า Netflix 147 บาท cash ครับ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-017",
+      "text": "เมื่อวาน จ่ายเบอร์เกอร์ 147 บาท cash ครับ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14700,
+        "direction": "expense",
+        "date": "2026-10-18",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-017",
+      "text": "รายรับงาน freelance 1470 บาท KBank ครับ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 147000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-017",
+      "text": "ใช้เงินฉุกเฉินจ่ายเบอร์เกอร์ 147 บาท ครับ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-017",
+      "text": "สมัคร Netflix รายเดือน 147 บาท cash ครับ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-017",
+      "text": "โอนระหว่างบัญชี 147 บาท KBank ครับ",
+      "tags": [
+        "ambiguous",
+        "transfer"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 14700,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-018",
+      "text": "ใช้เงินฉุกเฉินจ่ายอาหาร 154 บาท ค่ะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 15400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-018",
+      "text": "จ่ายอาหาร 154 บาท ค่ะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 15400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-018",
+      "text": "31 เม.ย. จ่ายอาหาร 154 บาท cash ค่ะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 15400,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-018",
+      "text": "จ่ายอาหาร 154 บาท หรือ 174 บาท cash ค่ะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-018",
+      "text": "ซื้อครั้งเดียวจาก Spotify 154 บาท cash ค่ะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 15400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-018",
+      "text": "เมื่อวานซืน จ่ายอาหาร 154 บาท cash ค่ะ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 15400,
+        "direction": "expense",
+        "date": "2026-10-17",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-018",
+      "text": "รับเงินงานออกแบบ 1540 บาท KBank ค่ะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 154000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-018",
+      "text": "ใช้เงินฉุกเฉินจ่ายอาหาร 154 บาท ค่ะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 15400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-018",
+      "text": "สมัคร Spotify รายเดือน 154 บาท cash ค่ะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 15400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-018",
+      "text": "โอนระหว่างบัญชี 154 บาท KBank ค่ะ",
+      "tags": [
+        "ambiguous",
+        "transfer"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 15400,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-019",
+      "text": "ใช้เงินฉุกเฉินจ่ายข้าว 161 บาท นะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 16100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-019",
+      "text": "จ่ายข้าว 161 บาท นะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-019",
+      "text": "31 มิถุนายน จ่ายข้าว 161 บาท cash นะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16100,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-019",
+      "text": "จ่ายข้าว 161 บาท หรือ 181 บาท cash นะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-019",
+      "text": "ไม่ได้สมัครแต่จ่ายค่า iCloud 161 บาท cash นะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-019",
+      "text": "วันที่ 8 ตุลา จ่ายข้าว ๑๖๑ บาท cash นะ",
+      "tags": [
+        "everyday",
+        "thai_digits",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16100,
+        "direction": "expense",
+        "date": "2026-10-08",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-019",
+      "text": "ได้เงินจากงานอิสระ 1610 บาท KBank นะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 161000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-019",
+      "text": "ใช้เงินฉุกเฉินจ่ายข้าว 161 บาท นะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-019",
+      "text": "สมัคร iCloud รายเดือน 161 บาท cash นะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-019",
+      "text": "โอนระหว่างบัญชี 161 บาท KBank นะ",
+      "tags": [
+        "ambiguous",
+        "transfer"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16100,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-020",
+      "text": "ใช้เงินฉุกเฉินจ่ายกาแฟ 168 บาท วันนี้",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 16800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-020",
+      "text": "จ่ายกาแฟ 168 บาท วันนี้",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-020",
+      "text": "วันที่ 32 ตุลาคม จ่ายกาแฟ 168 บาท cash วันนี้",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16800,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-020",
+      "text": "จ่ายกาแฟ 168 บาท หรือ 188 บาท cash วันนี้",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-020",
+      "text": "เคยสมัคร ตอนนี้จ่ายค่า Disney+ 168 บาท cash วันนี้",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-020",
+      "text": "วันนี้ จ่ายกาแฟ 168 บาท cash วันนี้",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-020",
+      "text": "รับเงินคืนค่าสินค้า 1680 บาท KBank วันนี้",
+      "tags": [
+        "income_refunds",
+        "refund"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 168000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-020",
+      "text": "ใช้เงินฉุกเฉินจ่ายกาแฟ 168 บาท วันนี้",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-020",
+      "text": "สมัคร Disney+ รายเดือน 168 บาท cash วันนี้",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-020",
+      "text": "โอนระหว่างบัญชี 168 บาท KBank วันนี้",
+      "tags": [
+        "ambiguous",
+        "transfer"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 16800,
+        "direction": null,
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "ambiguous_direction"
+        ],
+        "questionField": "direction"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-021",
+      "text": "ใช้เงินฉุกเฉินจ่ายน้ำ 175 บาท",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 17500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-021",
+      "text": "จ่ายน้ำ 175 บาท",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 17500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-021",
+      "text": "31 ก.พ. จ่ายน้ำ 175 บาท cash",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 17500,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-021",
+      "text": "จ่ายน้ำ 175 บาท หรือ 195 บาท cash",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-021",
+      "text": "ดู YouTube 175 บาท cash",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 17500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-021",
+      "text": "จ่ายน้ำ 175 บาท cash",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 17500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-021",
+      "text": "เงินเดือนเข้า 1750 บาท KBank",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 175000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "salary"
+      }
+    },
+    {
+      "id": "emergency_resolved-021",
+      "text": "ใช้เงินฉุกเฉินจ่ายน้ำ 175 บาท",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 17500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-021",
+      "text": "สมัคร YouTube รายเดือน 175 บาท cash",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 17500,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-021",
+      "text": "จ่ายน้ำ cash",
+      "tags": [
+        "ambiguous",
+        "missing_amount"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "missing_amount"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-022",
+      "text": "ใช้เงินฉุกเฉินจ่ายขนม 182 บาท ครับ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 18200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-022",
+      "text": "จ่ายขนม 182 บาท ครับ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-022",
+      "text": "30 กุมภาพันธ์ จ่ายขนม 182 บาท cash ครับ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18200,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-022",
+      "text": "จ่ายขนม 182 บาท หรือ 202 บาท cash ครับ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-022",
+      "text": "จ่ายค่า Netflix 182 บาท cash ครับ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-022",
+      "text": "เมื่อวาน จ่ายขนม ๑๘๒ บาท cash ครับ",
+      "tags": [
+        "everyday",
+        "thai_digits",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18200,
+        "direction": "expense",
+        "date": "2026-10-18",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-022",
+      "text": "รายรับงาน freelance 1820 บาท KBank ครับ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 182000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-022",
+      "text": "ใช้เงินฉุกเฉินจ่ายขนม 182 บาท ครับ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-022",
+      "text": "สมัคร Netflix รายเดือน 182 บาท cash ครับ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-022",
+      "text": "จ่ายขนม cash ครับ",
+      "tags": [
+        "ambiguous",
+        "missing_amount"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "missing_amount"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-023",
+      "text": "ใช้เงินฉุกเฉินจ่ายเบอร์เกอร์ 189 บาท ค่ะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 18900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-023",
+      "text": "จ่ายเบอร์เกอร์ 189 บาท ค่ะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-023",
+      "text": "31 เม.ย. จ่ายเบอร์เกอร์ 189 บาท cash ค่ะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18900,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-023",
+      "text": "จ่ายเบอร์เกอร์ 189 บาท หรือ 209 บาท cash ค่ะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-023",
+      "text": "ซื้อครั้งเดียวจาก Spotify 189 บาท cash ค่ะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-023",
+      "text": "เมื่อวานซืน จ่ายเบอร์เกอร์ 189 บาท cash ค่ะ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18900,
+        "direction": "expense",
+        "date": "2026-10-17",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-023",
+      "text": "รับเงินงานออกแบบ 1890 บาท KBank ค่ะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 189000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-023",
+      "text": "ใช้เงินฉุกเฉินจ่ายเบอร์เกอร์ 189 บาท ค่ะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-023",
+      "text": "สมัคร Spotify รายเดือน 189 บาท cash ค่ะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 18900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-023",
+      "text": "จ่ายเบอร์เกอร์ cash ค่ะ",
+      "tags": [
+        "ambiguous",
+        "missing_amount"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "missing_amount"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-024",
+      "text": "ใช้เงินฉุกเฉินจ่ายอาหาร 196 บาท นะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 19600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-024",
+      "text": "จ่ายอาหาร 196 บาท นะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 19600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-024",
+      "text": "31 มิถุนายน จ่ายอาหาร 196 บาท cash นะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 19600,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-024",
+      "text": "จ่ายอาหาร 196 บาท หรือ 216 บาท cash นะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-024",
+      "text": "ไม่ได้สมัครแต่จ่ายค่า iCloud 196 บาท cash นะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 19600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-024",
+      "text": "วันที่ 8 ตุลา จ่ายอาหาร 196 บาท cash นะ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 19600,
+        "direction": "expense",
+        "date": "2026-10-08",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-024",
+      "text": "ได้เงินจากงานอิสระ 1960 บาท KBank นะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 196000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-024",
+      "text": "ใช้เงินฉุกเฉินจ่ายอาหาร 196 บาท นะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 19600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-024",
+      "text": "สมัคร iCloud รายเดือน 196 บาท cash นะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 19600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-024",
+      "text": "จ่ายอาหาร cash นะ",
+      "tags": [
+        "ambiguous",
+        "missing_amount"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "missing_amount"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-025",
+      "text": "ใช้เงินฉุกเฉินจ่ายข้าว 203 บาท วันนี้",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 20300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-025",
+      "text": "จ่ายข้าว 203 บาท วันนี้",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 20300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-025",
+      "text": "วันที่ 32 ตุลาคม จ่ายข้าว 203 บาท cash วันนี้",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 20300,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-025",
+      "text": "จ่ายข้าว 203 บาท หรือ 223 บาท cash วันนี้",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-025",
+      "text": "เคยสมัคร ตอนนี้จ่ายค่า Disney+ 203 บาท cash วันนี้",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 20300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-025",
+      "text": "วันนี้ จ่ายข้าว ๒๐๓ บาท cash วันนี้",
+      "tags": [
+        "everyday",
+        "thai_digits",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 20300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-025",
+      "text": "รับเงินคืนค่าสินค้า 2030 บาท KBank วันนี้",
+      "tags": [
+        "income_refunds",
+        "refund"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 203000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-025",
+      "text": "ใช้เงินฉุกเฉินจ่ายข้าว 203 บาท วันนี้",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 20300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-025",
+      "text": "สมัคร Disney+ รายเดือน 203 บาท cash วันนี้",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 20300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-025",
+      "text": "จ่ายข้าว cash วันนี้",
+      "tags": [
+        "ambiguous",
+        "missing_amount"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "missing_amount"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-026",
+      "text": "ใช้เงินฉุกเฉินจ่ายกาแฟ 210 บาท",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 21000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-026",
+      "text": "จ่ายกาแฟ 210 บาท",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-026",
+      "text": "31 ก.พ. จ่ายกาแฟ 210 บาท cash",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21000,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-026",
+      "text": "จ่ายกาแฟ 210 บาท หรือ 230 บาท cash",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-026",
+      "text": "ดู YouTube 210 บาท cash",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-026",
+      "text": "จ่ายกาแฟ 210 บาท cash",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-026",
+      "text": "เงินเดือนเข้า 2100 บาท KBank",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 210000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "salary"
+      }
+    },
+    {
+      "id": "emergency_resolved-026",
+      "text": "ใช้เงินฉุกเฉินจ่ายกาแฟ 210 บาท",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-026",
+      "text": "สมัคร YouTube รายเดือน 210 บาท cash",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-026",
+      "text": "จ่ายกาแฟ 210 บาท",
+      "tags": [
+        "ambiguous",
+        "established_default"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 21000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-027",
+      "text": "ใช้เงินฉุกเฉินจ่ายน้ำ 217 บาท ครับ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 21700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-027",
+      "text": "จ่ายน้ำ 217 บาท ครับ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-027",
+      "text": "30 กุมภาพันธ์ จ่ายน้ำ 217 บาท cash ครับ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21700,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-027",
+      "text": "จ่ายน้ำ 217 บาท หรือ 237 บาท cash ครับ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-027",
+      "text": "จ่ายค่า Netflix 217 บาท cash ครับ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-027",
+      "text": "เมื่อวาน จ่ายน้ำ 217 บาท cash ครับ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21700,
+        "direction": "expense",
+        "date": "2026-10-18",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-027",
+      "text": "รายรับงาน freelance 2170 บาท KBank ครับ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 217000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-027",
+      "text": "ใช้เงินฉุกเฉินจ่ายน้ำ 217 บาท ครับ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-027",
+      "text": "สมัคร Netflix รายเดือน 217 บาท cash ครับ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 21700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-027",
+      "text": "จ่ายน้ำ 217 บาท ครับ",
+      "tags": [
+        "ambiguous",
+        "established_default"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 21700,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-028",
+      "text": "ใช้เงินฉุกเฉินจ่ายขนม 224 บาท ค่ะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 22400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-028",
+      "text": "จ่ายขนม 224 บาท ค่ะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 22400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-028",
+      "text": "31 เม.ย. จ่ายขนม 224 บาท cash ค่ะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 22400,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-028",
+      "text": "จ่ายขนม 224 บาท หรือ 244 บาท cash ค่ะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-028",
+      "text": "ซื้อครั้งเดียวจาก Spotify 224 บาท cash ค่ะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 22400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-028",
+      "text": "เมื่อวานซืน จ่ายขนม ๒๒๔ บาท cash ค่ะ",
+      "tags": [
+        "everyday",
+        "thai_digits",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 22400,
+        "direction": "expense",
+        "date": "2026-10-17",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-028",
+      "text": "รับเงินงานออกแบบ 2240 บาท KBank ค่ะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 224000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-028",
+      "text": "ใช้เงินฉุกเฉินจ่ายขนม 224 บาท ค่ะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 22400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-028",
+      "text": "สมัคร Spotify รายเดือน 224 บาท cash ค่ะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 22400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-028",
+      "text": "จ่ายขนม 224 บาท ค่ะ",
+      "tags": [
+        "ambiguous",
+        "established_default"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 22400,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-029",
+      "text": "ใช้เงินฉุกเฉินจ่ายเบอร์เกอร์ 231 บาท นะ",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 23100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-029",
+      "text": "จ่ายเบอร์เกอร์ 231 บาท นะ",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-029",
+      "text": "31 มิถุนายน จ่ายเบอร์เกอร์ 231 บาท cash นะ",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23100,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-029",
+      "text": "จ่ายเบอร์เกอร์ 231 บาท หรือ 251 บาท cash นะ",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-029",
+      "text": "ไม่ได้สมัครแต่จ่ายค่า iCloud 231 บาท cash นะ",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-029",
+      "text": "วันที่ 8 ตุลา จ่ายเบอร์เกอร์ 231 บาท cash นะ",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23100,
+        "direction": "expense",
+        "date": "2026-10-08",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-029",
+      "text": "ได้เงินจากงานอิสระ 2310 บาท KBank นะ",
+      "tags": [
+        "income_refunds",
+        "income"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 231000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-029",
+      "text": "ใช้เงินฉุกเฉินจ่ายเบอร์เกอร์ 231 บาท นะ",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-029",
+      "text": "สมัคร iCloud รายเดือน 231 บาท cash นะ",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-029",
+      "text": "จ่ายเบอร์เกอร์ 231 บาท นะ",
+      "tags": [
+        "ambiguous",
+        "established_default"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 23100,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_emergency_unresolved-030",
+      "text": "ใช้เงินฉุกเฉินจ่ายอาหาร 238 บาท วันนี้",
+      "tags": [
+        "priority_emergency_unresolved"
+      ],
+      "context": {
+        "accounts": [
+          {
+            "id": "cash",
+            "name": "เงินสด",
+            "account_type": "cash",
+            "institution": null,
+            "is_archived": false
+          },
+          {
+            "id": "bank",
+            "name": "KBank",
+            "account_type": "bank",
+            "institution": "Kasikorn",
+            "is_archived": false
+          }
+        ],
+        "emergencyFundAccountId": null
+      },
+      "expected": {
+        "amountCents": 23800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "emergency_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_default_guess-030",
+      "text": "จ่ายอาหาร 238 บาท วันนี้",
+      "tags": [
+        "priority_default_guess"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_invalid_date-030",
+      "text": "วันที่ 32 ตุลาคม จ่ายอาหาร 238 บาท cash วันนี้",
+      "tags": [
+        "priority_invalid_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23800,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "invalid_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_amount_conflict-030",
+      "text": "จ่ายอาหาร 238 บาท หรือ 258 บาท cash วันนี้",
+      "tags": [
+        "priority_amount_conflict"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": null,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "conflicting_amounts"
+        ],
+        "questionField": "amount",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "priority_subscription_false_positive-030",
+      "text": "เคยสมัคร ตอนนี้จ่ายค่า Disney+ 238 บาท cash วันนี้",
+      "tags": [
+        "priority_subscription_false_positive"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "subscription_false_positive_risk"
+        ],
+        "questionField": "subscription",
+        "categoryId": "other"
+      }
+    },
+    {
+      "id": "everyday-030",
+      "text": "วันนี้ จ่ายอาหาร 238 บาท cash วันนี้",
+      "tags": [
+        "everyday",
+        "mixed_language",
+        "relative_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "income_refunds-030",
+      "text": "รับเงินคืนค่าสินค้า 2380 บาท KBank วันนี้",
+      "tags": [
+        "income_refunds",
+        "refund"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 238000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "bank",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "emergency_resolved-030",
+      "text": "ใช้เงินฉุกเฉินจ่ายอาหาร 238 บาท วันนี้",
+      "tags": [
+        "emergency_resolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "emergency",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_explicit-030",
+      "text": "สมัคร Disney+ รายเดือน 238 บาท cash วันนี้",
+      "tags": [
+        "subscription_explicit"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 23800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "ambiguous-030",
+      "text": "จ่ายอาหาร 238 บาท วันนี้",
+      "tags": [
+        "ambiguous",
+        "established_default"
+      ],
+      "context": {
+        "defaultAccountEstablishedByUser": true,
+        "defaultAccountId": "cash"
+      },
+      "expected": {
+        "amountCents": 23800,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_account_unresolved-001",
+      "text": "สมัคร Netflix รายเดือน 70 บาท",
+      "tags": [
+        "subscription_account_unresolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "subscription_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "unresolved_date-001",
+      "text": "วันก่อนจ่ายข้าว 70 บาท cash",
+      "tags": [
+        "unresolved_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "unresolved_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "duplicate_uncertain-001",
+      "text": "จ่ายข้าว 70 บาท cash",
+      "tags": [
+        "duplicate_uncertain"
+      ],
+      "context": {
+        "duplicateUncertain": true
+      },
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "duplicate_uncertain"
+        ],
+        "questionField": "duplicate",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "slang_typos-001",
+      "text": "จ่ายค่าข้าวว 70 บาท cash จ้า",
+      "tags": [
+        "slang_typos"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 7000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_account_unresolved-002",
+      "text": "สมัคร Netflix รายเดือน 83 บาท",
+      "tags": [
+        "subscription_account_unresolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 8300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "subscription_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "unresolved_date-002",
+      "text": "วันก่อนจ่ายข้าว 83 บาท cash",
+      "tags": [
+        "unresolved_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 8300,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "unresolved_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "duplicate_uncertain-002",
+      "text": "จ่ายข้าว 83 บาท cash",
+      "tags": [
+        "duplicate_uncertain"
+      ],
+      "context": {
+        "duplicateUncertain": true
+      },
+      "expected": {
+        "amountCents": 8300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "duplicate_uncertain"
+        ],
+        "questionField": "duplicate",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "slang_typos-002",
+      "text": "จ่ายค่าข้าวว 83 บาท cash แง",
+      "tags": [
+        "slang_typos"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 8300,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_account_unresolved-003",
+      "text": "สมัคร Netflix รายเดือน 96 บาท",
+      "tags": [
+        "subscription_account_unresolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "subscription_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "unresolved_date-003",
+      "text": "วันก่อนจ่ายข้าว 96 บาท cash",
+      "tags": [
+        "unresolved_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9600,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "unresolved_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "duplicate_uncertain-003",
+      "text": "จ่ายข้าว 96 บาท cash",
+      "tags": [
+        "duplicate_uncertain"
+      ],
+      "context": {
+        "duplicateUncertain": true
+      },
+      "expected": {
+        "amountCents": 9600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "duplicate_uncertain"
+        ],
+        "questionField": "duplicate",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "slang_typos-003",
+      "text": "จ่ายค่าข้าวว 96 บาท cash อ่ะ",
+      "tags": [
+        "slang_typos"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 9600,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_account_unresolved-004",
+      "text": "สมัคร Netflix รายเดือน 109 บาท",
+      "tags": [
+        "subscription_account_unresolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 10900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "subscription_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "unresolved_date-004",
+      "text": "วันก่อนจ่ายข้าว 109 บาท cash",
+      "tags": [
+        "unresolved_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 10900,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "unresolved_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "duplicate_uncertain-004",
+      "text": "จ่ายข้าว 109 บาท cash",
+      "tags": [
+        "duplicate_uncertain"
+      ],
+      "context": {
+        "duplicateUncertain": true
+      },
+      "expected": {
+        "amountCents": 10900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "duplicate_uncertain"
+        ],
+        "questionField": "duplicate",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "slang_typos-004",
+      "text": "จ่ายค่าข้าวว 109 บาท cash ค้าบ",
+      "tags": [
+        "slang_typos"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 10900,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "subscription_account_unresolved-005",
+      "text": "สมัคร Netflix รายเดือน 122 บาท",
+      "tags": [
+        "subscription_account_unresolved"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 12200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": null,
+        "autoSave": false,
+        "reasons": [
+          "subscription_account_unresolved"
+        ],
+        "questionField": "account",
+        "categoryId": "subs"
+      }
+    },
+    {
+      "id": "unresolved_date-005",
+      "text": "วันก่อนจ่ายข้าว 122 บาท cash",
+      "tags": [
+        "unresolved_date"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 12200,
+        "direction": "expense",
+        "date": null,
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "unresolved_date"
+        ],
+        "questionField": "date",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "duplicate_uncertain-005",
+      "text": "จ่ายข้าว 122 บาท cash",
+      "tags": [
+        "duplicate_uncertain"
+      ],
+      "context": {
+        "duplicateUncertain": true
+      },
+      "expected": {
+        "amountCents": 12200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": false,
+        "reasons": [
+          "duplicate_uncertain"
+        ],
+        "questionField": "duplicate",
+        "categoryId": "food"
+      }
+    },
+    {
+      "id": "slang_typos-005",
+      "text": "จ่ายค่าข้าวว 122 บาท cash จร้า",
+      "tags": [
+        "slang_typos"
+      ],
+      "context": {},
+      "expected": {
+        "amountCents": 12200,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null,
+        "categoryId": "food"
+      }
+    }
+  ]
+}

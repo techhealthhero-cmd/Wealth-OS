@@ -135,12 +135,15 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- SAFE-TO-SPEND-APPROVED — Owner: Codex; READY FOR HANDOFF to supervisor; user approved on 2026-10-19 at 21:14 Asia/Bangkok (PR #31). Approval-only update in the five requested files; no calculation changes. Focused tests 34/34, typecheck, ESLint (Markdown ignored), full suite 139 files / 1928 tests and diff check passed. Changes uncommitted; supervisor handles commit/push/PR.
+
 อัปเดตตารางนี้ทุกครั้งที่รับหรือส่งต่องาน เก็บเฉพาะงานที่กำลังทำและงานถัดไปใกล้ที่สุด
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
 | SMART-CAPTURE-BLOCKING-REVIEW | Strict money/security/retry review | Codex | DONE | Reviewed diff; fixed partial retry principal/down-payment recovery and invalid-rate save routing; 140 files / 1963 tests, typecheck and full lint pass | Owner local review; no DB/commit/push |
 | SMART-CAPTURE-COLUMNS | 0048 columns, loan transfers, principal repayment, rate override | Codex | DONE — local review | Dedicated columns + legacy fallback/recovery; deterministic loan ledger transfers; owned recurring links; principal balance updates and paid summing; shared rate UI. Node 22: 140 files / 1960 tests, typecheck, changed TS/TSX lint pass. | Owner review; no commit/push/DB |
+| NLP-PHASE1 | Confidence gate + synthetic corpus + evaluation (logic only) | Codex | READY FOR HANDOFF — required checks pass | Pure gate, additive draft adapter, 320 synthetic labels + measured per-slice baseline; no UI/save/schema/formula changes | Supervisor review/commit; changes uncommitted |
 | SMART-ASSETS-LOANS | Smart capture assets/installments/loans and asset valuation | Codex | IN PR → staging | New pure taxonomy/valuation/purchase modules, authenticated save action, minimal capture fields, tests, proposal SQL only. Checkpoints: pure logic → persistence → UI → full validation. Shared parser/UI edits surgical; no network/DB/commit/push. | Claude designs confirm screens later; proposal 0048 needs user approval |
 | VOICE-PAPER-TAP | Focus mounted textarea from empty paper pointer gesture | Grok Bot (Codex impl) | IN PR → staging | voice-notebook.tsx, adjacent pure target helper, focused Vitest; synchronous pointer focus on empty paper | Merge after CI green; owner iPhone Safari keyboard review |
 | PAGE-TURN-SNAPSHOT | Turn-start cost + one continuous sheet | Grok Bot (Codex impl) | IN PR → staging | Viewport-only clone (`src/lib/motion/viewport-clone.ts`), single clone reused for history, sheet covers whole visible main incl. title + tab strip (`sheetGeometry`); harness 4× CPU longtask median ~144ms → ~79ms | Owner device check of turn feel |
@@ -210,6 +213,15 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → supervisor (NLP-PHASE1)
+
+- Completed first slice in `/tmp/wos-nlp1`, branch `codex/nlp-phase1-confidence-gate`: field evidence/reasons + deterministic single question, additive emergency/gate draft adapter, exported amount/emergency candidates preserving legacy parser outputs, pure evaluator, 320 synthetic labelled cases (30 per priority slice), baseline regression assertions and `npm run nlp:eval`.
+- Required checks under the requested Node 22 PATH: typecheck PASS; changed-code ESLint PASS (zero warnings); full `npx vitest run --configLoader runner` PASS (141 files / 1956 tests); `npm run nlp:eval` PASS; diff check PASS. No tests skipped/disabled and no dependencies added.
+- Baseline: precision 100% (124/124), coverage 38.75%, clarification 61.25%, uncertainty recall 100% (190/190), zero critical failures; raw exact match 41.875%. Category labels cover 276 cases; raw category accuracy 89.1304%. Six income misreads and 30 service-name category false positives remain explicit legacy limitations; the gate blocks unsafe automation. Detailed metrics/limits in `src/lib/capture/CONFIDENCE.md` and baseline fixture.
+- UI constructors, automatic/manual/server save behavior, AI orchestration, financial formulas and schema remain untouched. Follow-ups: completion + undo UI wiring, local-only capture orchestration, device outbox/storage, speech, independent corpus growth. Any schema/migration/server storage work is NEEDS USER APPROVAL.
+- Changes remain uncommitted; no push or PR. Next action: supervisor review the diff and the documented caller integration contract before committing this slice to staging.
+
 
 ### 2026-10-19 — Codex → supervisor (SAFE-TO-SPEND-TODAY)
 

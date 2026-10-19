@@ -13,7 +13,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "check:env": "node scripts/check-env.mjs"
+    "check:env": "node scripts/check-env.mjs",
+    "nlp:eval": "node scripts/nlp-eval.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
