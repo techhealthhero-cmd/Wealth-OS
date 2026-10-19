@@ -245,7 +245,7 @@ export function StatementImportFlow({
           setIsPdf(true);
           const { extractPdfLines, PDF_IMPORT_MAX_BYTES } = await import("../pdf-extract").catch((loadError: unknown) => {
             console.warn(`[pdf-import] reader chunk failed: ${loadError instanceof Error ? loadError.name : typeof loadError}`);
-            throw new PdfImportError("pdf_reader_unavailable", "Couldn't load the PDF reader.");
+            throw new PdfImportError("pdf_reader_unavailable", "Couldn't load the PDF reader.", `chunk:${loadError instanceof Error ? loadError.name : typeof loadError}`);
           });
           if (file.size > PDF_IMPORT_MAX_BYTES) throw new PdfImportError("pdf_too_large", "ไฟล์ PDF ต้องไม่เกิน 5 MB / PDF must be 5 MB or smaller.");
           const controller = new AbortController();
@@ -282,7 +282,14 @@ export function StatementImportFlow({
         setStep("mapping");
         router.replace(`/money/import?batch=${response.batchId}`, { scroll: false });
       } catch (error) {
-        setError(error instanceof PdfImportError ? (PDF_ERROR_COPY[error.code]?.[th ? "th" : "en"] ?? error.message) : copy.unknownError);
+        if (error instanceof PdfImportError) {
+          const message = PDF_ERROR_COPY[error.code]?.[th ? "th" : "en"] ?? error.message;
+          // Short diagnostic code so a screenshot shows which step failed (never file text or passwords).
+          const showCode = error.detail && (error.code === "pdf_reader_unavailable" || error.code === "invalid_pdf");
+          setError(showCode ? `${message} (${th ? "รหัส" : "code"}: ${error.detail})` : message);
+        } else {
+          setError(copy.unknownError);
+        }
         if (error instanceof PdfImportError && error.code.startsWith("password_")) {
           setPasswordNeeded(true);
           setPasswordFocusRequest((count) => count + 1);
