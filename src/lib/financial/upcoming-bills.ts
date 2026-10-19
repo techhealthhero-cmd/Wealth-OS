@@ -4,6 +4,8 @@
  * without a database.
  */
 
+import type { RecurringTransaction } from "@/types/database";
+import { parseMoneyToCents } from "./money";
 import { isOverdue } from "./recurring";
 
 export interface BillItem {
@@ -74,4 +76,12 @@ export function categorizeUpcomingBills(items: BillItem[], now: Date = new Date(
   const totalDueCents = [...overdue, ...next7Days].reduce((sum, item) => sum + item.amountCents, 0);
 
   return { overdue, next7Days, next30Days, totalDueCents };
+}
+
+
+/** A cancelled/ended schedule must never contribute another upcoming obligation. */
+export function recurringBillItems(items: Pick<RecurringTransaction, "id" | "merchant" | "description" | "amount" | "type" | "is_active" | "end_date" | "next_due_date">[], today: string): BillItem[] {
+  return items.filter((r) => r.is_active && r.type !== "income" && (!r.end_date || (r.end_date >= today && r.next_due_date <= r.end_date)))
+    .map((r) => ({ id: r.id, source: "recurring", label: r.merchant || r.description || r.type,
+      amountCents: parseMoneyToCents(r.amount), dueDate: r.next_due_date, type: r.type }));
 }

@@ -1,5 +1,9 @@
 "use server";
 
+import { z } from "zod";
+import { insertRecurringTransaction } from "@/features/recurring/insert";
+import { matchRecurringForCancel, type CancelMatch } from "@/lib/capture/subscription-intent";
+import type { RecurringTransaction } from "@/types/database";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
@@ -185,6 +189,9 @@ export interface CaptureSaveResult {
   success?: boolean;
   error?: string;
   transactionId?: string;
+  recurringCreated?: boolean;
+  recurringAlreadyExists?: boolean;
+  recurringError?: string;
   recurringSuggestion?: RecurringSuggestion | null;
 }
 
@@ -237,21 +244,36 @@ export async function saveCapturedTransaction(input: CaptureSaveInput): Promise<
   // Migration 0021 is applied on every database this app runs against
   // (verified 2026-09-30), so the old pre-0021 retry shape was removed.
 
-  if (error && error.code === PG_UNIQUE_VIOLATION) {
-    // Same capture already saved (a retried tap) — look it up, succeed quietly.
-    const { data: existing } = await supabase
-      .from("transactions")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("client_request_id", d.clientRequestId)
-      .maybeSingle();
-    revalidateMoney();
-    return { success: true, transactionId: existing?.id };
+  let savedPayment = base;
+  let transactionId = data?.id as string | undefined;
+  if (error?.code === PG_UNIQUE_VIOLATION) {
+    const { data: existing } = await supabase.from("transactions").select("id, type, amount, account_id, category_id, merchant, description, transaction_date")
+      .eq("user_id", user.id).eq("client_request_id", d.clientRequestId).maybeSingle();
+    transactionId = existing?.id;
+    if (!transactionId) return { error: dict.capture.saveFailed };
+    savedPayment = { ...base, ...existing };
+  } else if (error || !data) {
+    return { error: error ? friendlyDbError(error, "saveCapturedTransaction", dict.capture.saveFailed) : dict.capture.saveFailed };
   }
-  if (error || !data) {
-    return {
-      error: error ? friendlyDbError(error, "saveCapturedTransaction", dict.capture.saveFailed) : dict.capture.saveFailed,
-    };
+
+  // The payment is already durable. A schedule failure must never turn it into a failed payment.
+  let recurringResult: Pick<CaptureSaveResult, "recurringCreated" | "recurringAlreadyExists" | "recurringError"> = {};
+  if (d.recurring) {
+    try {
+      const result = await insertRecurringTransaction(supabase, user.id, {
+        type: "expense", amount: savedPayment.amount, account_id: savedPayment.account_id,
+        category_id: savedPayment.category_id, merchant: d.recurring.name, description: savedPayment.description,
+        frequency: d.recurring.frequency, start_date: savedPayment.transaction_date, end_date: null, is_active: true,
+      }, dict, { paymentAlreadyPosted: true, deduplicateMerchant: true, resumeInactive: error?.code !== PG_UNIQUE_VIOLATION });
+      recurringResult = { recurringCreated: result.created, recurringAlreadyExists: result.alreadyExists, recurringError: result.error };
+    } catch {
+      recurringResult = { recurringCreated: false, recurringError: dict.recurring.saveFailed };
+    }
+    revalidatePath("/money/recurring");
+  }
+  if (error?.code === PG_UNIQUE_VIOLATION) {
+    revalidateMoney();
+    return { success: true, transactionId, ...recurringResult };
   }
 
   // Learn only from categories that weren't a blind fallback, or that the
@@ -261,10 +283,10 @@ export async function saveCapturedTransaction(input: CaptureSaveInput): Promise<
   }
 
   const recurringSuggestion =
-    d.type === "expense" ? await findRecurringSuggestion(user.id, d.merchant || d.description) : null;
+    !d.recurring && d.type === "expense" ? await findRecurringSuggestion(user.id, d.merchant || d.description) : null;
 
   revalidateMoney();
-  return { success: true, transactionId: data.id, recurringSuggestion };
+  return { success: true, transactionId, recurringSuggestion, ...recurringResult };
 }
 
 // ---------------------------------------------------------------------------
@@ -601,4 +623,43 @@ export async function assistRecapCategories(items: RecapAIItem[]): Promise<Recap
     captureError(err, { route: "capture.assistRecapCategories", operation: "ai_recap_categories" });
     return { status: "failed" };
   }
+}
+
+
+export type CancelCandidate = Pick<RecurringTransaction, "id" | "merchant" | "description" | "amount" | "frequency" | "is_active">;
+export type CancelCandidatesResult = { match?: CancelMatch<CancelCandidate>; error?: string };
+
+/** Normal user client + explicit ownership filter; never searches another user's schedules. */
+export async function findCancelCandidates(serviceQuery: string): Promise<CancelCandidatesResult> {
+  const { dict, timezone } = await getRequestContext();
+  const query = z.string().trim().max(120).safeParse(serviceQuery);
+  if (!query.success) return { error: dict.common.invalidInput };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+  const { data, error } = await supabase.from("recurring_transactions")
+    .select("id, merchant, description, amount, frequency, is_active, end_date")
+    .eq("user_id", user.id).eq("is_active", true);
+  if (error) return { error: dict.capture.subscription.cancelFailed };
+  const today = todayInTimeZone(timezone);
+  return { match: matchRecurringForCancel(query.data, (data ?? []).filter((r) => !r.end_date || r.end_date >= today) as CancelCandidate[]) };
+}
+
+export async function cancelRecurringFromCapture(recurringId: string): Promise<{ success?: boolean; error?: string }> {
+  const { dict, timezone } = await getRequestContext();
+  if (!z.string().uuid().safeParse(recurringId).success) return { error: dict.common.invalidInput };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+  const { data, error } = await supabase.from("recurring_transactions").select("start_date")
+    .eq("user_id", user.id).eq("id", recurringId).maybeSingle();
+  if (error || !data) return { error: dict.capture.subscription.cancelFailed };
+  const today = todayInTimeZone(timezone);
+  const { error: updateError } = await supabase.from("recurring_transactions")
+    .update({ is_active: false, end_date: today < data.start_date ? data.start_date : today })
+    .eq("user_id", user.id).eq("id", recurringId);
+  if (updateError) return { error: dict.capture.subscription.cancelFailed };
+  revalidatePath("/money/recurring");
+  revalidatePath("/dashboard");
+  return { success: true };
 }

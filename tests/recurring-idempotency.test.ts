@@ -123,6 +123,7 @@ describe("confirmRecurringTransaction — transfer type", () => {
         frequency: "monthly",
         next_due_date: todayISO(),
         end_date: null,
+        is_active: true,
         description: "Rent",
       },
     ];
@@ -167,6 +168,7 @@ describe("confirmRecurringTransaction — expense type", () => {
         frequency: "monthly",
         next_due_date: todayISO(),
         end_date: null,
+        is_active: true,
         merchant: "Netflix",
         description: null,
       },
@@ -177,6 +179,13 @@ describe("confirmRecurringTransaction — expense type", () => {
     const result = await confirmRecurringTransaction("recur-2");
     expect(result.success).toBe(true);
     expect(transactions).toHaveLength(1);
+  });
+
+  it.each([{ is_active: false }, { end_date: "2020-01-01" }])("a cancelled/ended schedule rejects stale confirmation: %s", async (patch) => {
+    Object.assign(recurringRows[0], patch);
+    const result = await confirmRecurringTransaction("recur-2");
+    expect(result.error).toBeTruthy();
+    expect(transactions).toHaveLength(0);
   });
 
   it("rapid double-confirm creates exactly one transaction and reports success both times", async () => {

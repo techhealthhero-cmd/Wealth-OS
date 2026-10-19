@@ -1,3 +1,4 @@
+import { parseCancelIntent } from "./subscription-intent";
 /**
  * Daily money recap — one long spoken/typed sentence → many transactions.
  *
@@ -226,7 +227,7 @@ export function splitRecap(input: string, unitWords: string[] = []): string[] {
  */
 export function parseRecap(input: string, ctx: ParseContext): RecapItem[] {
   let carried: string | null = null;
-  return splitRecap(input, (ctx.units ?? []).map((u) => u.unit_normalized)).map((segment, i) => {
+  return (parseCancelIntent(input) ? [input] : splitRecap(input, (ctx.units ?? []).map((u) => u.unit_normalized))).map((segment, i) => {
     const parsed = parseCaptureText(segment, ctx);
     const named = extractCaptureDate(normalizeText(segment).toLowerCase(), ctx.today).named;
     if (named) carried = parsed.date;

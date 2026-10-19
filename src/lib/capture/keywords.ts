@@ -31,6 +31,13 @@ export type ExpenseCategoryKey =
 
 export type IncomeCategoryKey = "Salary" | "Freelance" | "Business" | "Bonus" | "Interest" | "Cashback/Refund" | "Gift" | "Other";
 
+/** Services that imply a subscription even without signup/cadence wording. */
+export const KNOWN_SUBSCRIPTION_SERVICES = [
+  "netflix", "spotify", "youtube premium", "youtube", "disney+", "disney", "icloud", "google one",
+  "chatgpt", "grok", "duolingo", "canva", "adobe", "apple music", "line man plus", "lineman plus",
+  "claude", "prime video", "hbo", "viu",
+];
+
 export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Other">, string[]> = {
   "Food & Dining": [
     "เบอร์เกอร์", "เบอเกอร์", "burger", "แฮมเบอร์เกอร์", "hamburger", "แซนวิช", "แซนด์วิช", "sandwich",
@@ -50,7 +57,7 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
   ],
   Transport: [
     "แท็กซี่", "รถไฟฟ้า", "ล้างรถ", "น้ำมัน", "เติมน้ำมัน", "มอไซค์", "วินมอไซค์", "มอไซต์", "วินมอไซต์", "มอเตอร์ไซค์", "วินมอเตอร์ไซค์", "ทางด่วน", "จอดรถ", "รถเมล์", "ค่ารถ",
-    "เดินทาง", "ตั๋ว", "grab", "bolt", "taxi", "bts", "mrt", "ptt", "shell", "bangchak", "esso", "caltex",
+    "เดินทาง", "ตั๋ว", "ผ่อนรถ", "grab", "bolt", "taxi", "bts", "mrt", "ptt", "shell", "bangchak", "esso", "caltex",
     "parking", "bus", "fuel", "gas", "easy pass", "m-flow", "airasia", "nok air", "thai airways",
   ],
   Housing: ["ค่าเช่า", "ค่าห้อง", "ค่าหอ", "ค่าส่วนกลาง", "rent", "condo"],
@@ -77,8 +84,7 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
     "water bill",
   ],
   Subscriptions: [
-    "netflix", "spotify", "youtube premium", "youtube", "disney", "disney+", "icloud", "apple music",
-    "chatgpt", "claude", "prime video", "hbo", "viu", "canva", "adobe", "subscription",
+    ...KNOWN_SUBSCRIPTION_SERVICES, "subscription",
   ],
   Insurance: ["ประกัน", "เบี้ยประกัน", "insurance"],
   Family: ["ให้แม่", "ให้พ่อ", "ค่าขนมลูก", "family"],

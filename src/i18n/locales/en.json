@@ -71,6 +71,25 @@
     "importStatement": "Import CSV"
   },
   "capture": {
+    "subscription": {
+      "retry": "Try again",
+      "label": "Subscription",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "addRecurring": "Add as a recurring transaction",
+      "chooseAccount": "Pay from which account?",
+      "recurringFailed": "Payment saved, but the recurring schedule could not be added. Add it from Recurring transactions.",
+      "cancelTitle": "Cancel {name} ({amount}/{frequency})?",
+      "cancelConfirm": "Confirm cancellation",
+      "cancelPick": "Choose the recurring item to cancel",
+      "cancelNone": "No recurring item found for {query}",
+      "cancelHint": "Check the service name or view recurring transactions",
+      "cancelEmpty": "Enter the service name to cancel",
+      "cancelLoading": "Finding recurring transactions…",
+      "cancelFailed": "Could not cancel this recurring item. Please try again.",
+      "cancelled": "Recurring transaction cancelled",
+      "viewRecurring": "View recurring transactions"
+    },
     "units": {"needsPrice":"Answer the price per unit first, then save","question":"How much per {word}?","hint":"Answer once and the app remembers: next time “ได้ {count} {word}” is priced for you (change it on your profile).","per":"per {word}","category":"Category","remember":"Remember this price","remembered":"Remembered: {price} per {word}","math":"{count} {word} × {price}","notReady":"Units can't be saved yet — this feature is still being switched on","saveFailed":"Couldn't save the unit. Please try again.","settingsTitle":"Income units","settingsHint":"For work paid per unit, e.g. ฿200 per drink: say “ได้ 10 ดื่ม” and the app records ฿2,000 of income.","empty":"No units yet — add one here, or say “ได้ 10 ดื่ม” and the app will ask the price.","each":"{price} each","remove":"Remove unit {word}","wordLabel":"Unit word","wordPlaceholder":"e.g. ดื่ม","priceLabel":"Price per unit (baht)","add":"Add unit"},
     "voice": {
       "title": "Voice note",

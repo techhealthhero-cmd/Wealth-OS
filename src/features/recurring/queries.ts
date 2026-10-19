@@ -5,7 +5,7 @@ import { throwDbError } from "@/lib/db-error";
 import { createClient } from "@/lib/supabase/server";
 import { getLiabilities } from "@/features/liabilities/queries";
 import { isDue, hasEnded } from "@/lib/financial/recurring";
-import { categorizeUpcomingBills, type BillItem } from "@/lib/financial/upcoming-bills";
+import { categorizeUpcomingBills, recurringBillItems, type BillItem } from "@/lib/financial/upcoming-bills";
 import { parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import { deterministicUuid } from "@/lib/uuid";
@@ -38,19 +38,7 @@ export type { CategorizedBills as UpcomingBillsSummary } from "@/lib/financial/u
  */
 export async function getUpcomingBills() {
   const [recurring, liabilities] = await Promise.all([getActiveRecurringTransactions(), getLiabilities()]);
-  const items: BillItem[] = [];
-
-  for (const r of recurring) {
-    if (r.type === "income") continue; // "bills" means obligations, not incoming money
-    items.push({
-      id: r.id,
-      source: "recurring",
-      label: r.merchant || r.description || r.type,
-      amountCents: parseMoneyToCents(r.amount),
-      dueDate: r.next_due_date,
-      type: r.type,
-    });
-  }
+  const items: BillItem[] = recurringBillItems(recurring, toLocalDateString(new Date()));
 
   for (const l of liabilities) {
     if (!l.due_date || !l.minimum_payment) continue;

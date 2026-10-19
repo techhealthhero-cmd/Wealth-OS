@@ -139,6 +139,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| CAPTURE-SUB-REFINEMENTS | Recurring bill categories, cancellation refund guard, subscription account boundaries | Codex | DONE — typegen/typecheck, all changed TS/TSX ESLint, full Vitest 123 files / 1590 tests pass | keywords.ts, subscription-intent.ts, transaction-parser.ts, two capture tests and this board; existing uncommitted work preserved; no commit/push or schema/RLS/migrations | Local owner review |
+| CAPTURE-SUBSCRIPTIONS | Subscription capture + recurring confirm + cancellation | Codex | DONE — typegen/typecheck, changed TS lint and full Vitest 123 files / 1507 tests passed | Capture parser/actions/UI, recurring shared insert and cancellation guards, upcoming bills, locales, seven test files and status docs; no migrations/schema/RLS/production/commit/push | Local review by owner |
 | CAPTURE-EMERGENCY | Emergency source intent and food classification | Codex | DONE — all requested checks passed on Node 22 | Parser + AI preservation, read-only linked account wiring, regression tests; no UI/DB changes | PR to staging |
 | RESUME-PILL-NAV | Mobile resume pill safe-area clearance | Codex | DONE | Host class/comment + focused rendering regression; inspect nav geometry, run typecheck/lint/related Vitest | PR to staging (screenshots 390px ± 34px safe area) |
 | SLIP-PARSE-MATCH | Portable Thai e-slip parser and matcher | Codex | VERIFY — typecheck/lint and 113 files / 1302 tests passed | src/lib/slip + synthetic tests; implement, validate, PR and merge into staging after checks | Codex → staging reviewers; report /workspace/reports/slip-parse-match-pr.md |
@@ -195,6 +197,24 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-19 — Codex → local owner (CAPTURE-SUB-REFINEMENTS)
+
+- Cadence-only bills retain recurring metadata, generic keyword categories and normal account/merchant suggestions. Signup or a known subscription service still selects subscription defaults; learned category preferences remain first. Cadence with no available keyword category retains subscription defaults.
+- Shared service list in keywords.ts covers the requested brands; added ผ่อนรถ to Transport. Cancellation commands with an amount require subscription wording or a known service; เลิกสมัคร always cancels. Subscription accounts use Latin word boundaries while retaining Thai substring matches.
+- Files: src/lib/capture/{keywords,subscription-intent,transaction-parser}.ts, tests/capture-{parser,subscription-intent}.test.ts and this board. Added 83 regression cases, including refund amounts, all requested services/signup markers and account name/purpose boundaries.
+- Validation on installed Node 22.23.3: focused tests 200/200 pass; npx next typegen && npx tsc --noEmit PASS; ESLint across all 25 changed/new TS/TSX files PASS; full npx vitest run --configLoader runner PASS (123 files / 1590 tests); git diff --check PASS.
+- Existing uncommitted subscription work preserved. No database calls, migrations/schema/RLS changes, commits or pushes. Next: local owner review.
+
+### 2026-10-19 — Codex → local owner (CAPTURE-SUBSCRIPTIONS)
+
+- Completed both subscription capture and voice/text cancellation in this copy. Pure rules extract service/cadence, use the existing สมาชิก/Subscription category, preserve learned categories and named/merchant accounts, then prefer active subscription-purpose accounts. Unresolved subscription accounts require a choice; unchosen defaults do not contribute voice low-balance warnings. Tuition/job applications without an explicit cadence remain ordinary expenses.
+- Shared server-only recurring insert helper reuses buildRecurringTransactionSchema for manual and capture creation. Capture payments remain saved if scheduling fails; the result/toast reports that failure. Next due date advances from the paid date using calculateNextDueDate. User-scoped ILIKE dedupe plus deterministic capture schedule PK handles repeated/concurrent capture confirms. A retry does not resurrect a cancelled schedule; a newly confirmed signup can reuse its inactive capture schedule. Retry recovery uses persisted payment fields.
+- Cancellation uses active user-scoped matching, explicit single/multiple confirmation cards, and existing is_active/end_date columns only. End dates clamp to start_date for future schedules. Past payments stay intact; stale recurring confirmation is rejected after cancellation. Upcoming bills now also excludes due dates beyond end_date. Existing payment calendar projects the next monthly/yearly dates and omits inactive/ended future items.
+- Files: capture parser/draft/AI/recap/schema/actions + all preview entry points and two shared subscription components; recurring insert/actions/queries; upcoming-bills; th/en locales; seven unit/render test files; PROJECT_STATUS.md and this board.
+- Final checks on installed Node 22.23.3: npx next typegen && npx tsc --noEmit PASS; npx eslint on every changed/new TS/TSX file PASS; npx vitest run --configLoader runner PASS (123 files, 1507 tests); git diff --check PASS. Browser/device QA was not run. No real database calls, migrations, schema/RLS edits, commits or pushes. Nothing requires a migration.
+- Next: local owner reviews the patch; no publication performed.
+
 
 ### 2026-10-19 — Codex → owner: RESUME-PILL-NAV
 

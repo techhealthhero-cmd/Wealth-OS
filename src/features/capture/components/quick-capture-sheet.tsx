@@ -53,6 +53,8 @@ import {
   type RecurringSuggestion,
 } from "@/features/capture/actions";
 import { prepareReceiptImage } from "@/features/capture/lib/image";
+import { parseCancelIntent } from "@/lib/capture/subscription-intent";
+import { SubscriptionCancelCard } from "./subscription-cancel-card";
 import { TransactionPreview } from "./transaction-preview";
 import { HoldToTalkButton } from "./hold-to-talk-button";
 import { RecapReview, type RecapRow } from "./recap-review";
@@ -277,6 +279,9 @@ export function QuickCaptureSheet({
       if (recapRemoved.has(id)) return [];
       const aiCategory = recapAI[id];
       const base: CaptureDraft = {
+        subscription: item.subscription,
+        subscriptionAccountMissing: item.subscriptionAccountMissing,
+        cancelIntent: item.cancelIntent,
         type: item.type,
         amountCents: item.amountCents,
         categoryId: aiCategory ?? item.categoryId,
@@ -403,6 +408,9 @@ export function QuickCaptureSheet({
     if (!localParsed) return null;
     const parsed = aiReading ? mergeAIParse(textKey, localParsed, aiReading, ctx) : localParsed;
     return {
+      subscription: parsed.subscription,
+      subscriptionAccountMissing: parsed.subscriptionAccountMissing,
+      cancelIntent: parsed.cancelIntent,
       type: parsed.type,
       amountCents: parsed.amountCents,
       categoryId: parsed.categoryId,
@@ -565,7 +573,7 @@ export function QuickCaptureSheet({
 
   async function save(options: { skipDuplicateCheck?: boolean } = {}) {
     const draft = activeDraft;
-    if (!draft || saving) return;
+    if (!draft || saving || draft.cancelIntent || (receipt.status === "idle" && parseCancelIntent(text))) return;
     if (transferIntent && draft.amountCents !== null) {
       const fromId = transferSide("from");
       const toId = transferSide("to");
@@ -659,6 +667,7 @@ export function QuickCaptureSheet({
             }
           : undefined,
       });
+      if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
       if (result.recurringSuggestion) showRecurringPrompt(result.recurringSuggestion, draft);
 
       setClientRequestId(crypto.randomUUID());
@@ -701,6 +710,7 @@ export function QuickCaptureSheet({
       try {
         const result = payload ? await saveCapturedTransaction(payload) : null;
         if (result?.success) {
+          if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
           savedRowIds.push(row.id);
           if (result.transactionId) savedTransactionIds.push(result.transactionId);
           delete recapRequestIdsRef.current[row.id];
@@ -1012,7 +1022,10 @@ export function QuickCaptureSheet({
               />
             ) : null}
 
-            {activeDraft && transferIntent && receipt.status !== "scanning" && !recapMode ? (
+            {activeDraft?.cancelIntent ? (
+              <SubscriptionCancelCard key={activeDraft.cancelIntent.serviceQuery} serviceQuery={activeDraft.cancelIntent.serviceQuery}
+                onCancelled={() => { resetAll(); onOpenChange(false); }} />
+            ) : activeDraft && transferIntent && receipt.status !== "scanning" && !recapMode ? (
               <TransferPreview
                 intent={transferIntent}
                 accounts={accounts}

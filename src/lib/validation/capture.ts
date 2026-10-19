@@ -6,6 +6,7 @@ import { z } from "zod";
  * a NUMERIC-safe decimal string only at the insert.
  */
 export const captureSaveSchema = z.object({
+  recurring: z.object({ frequency: z.enum(["monthly", "yearly"]), name: z.string().trim().min(1).max(120) }).optional(),
   clientRequestId: z.string().uuid(),
   type: z.enum(["expense", "income"]),
   amountCents: z.number().int().positive().lt(10 ** 15),
@@ -19,7 +20,7 @@ export const captureSaveSchema = z.object({
   reference: z.string().trim().max(80).nullable().optional(),
   /** true when the user explicitly picked/changed the category in the preview. */
   categoryConfirmedByUser: z.boolean().default(false),
-});
+}).refine((d) => !d.recurring || d.type === "expense", { message: "Recurring captures must be expenses", path: ["recurring"] });
 
 export type CaptureSaveInput = z.input<typeof captureSaveSchema>;
 
