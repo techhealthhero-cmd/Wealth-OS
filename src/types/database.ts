@@ -173,7 +173,7 @@ export type NotificationType =
   | "ai_checkin"
   | "priority_alert";
 
-export type TransactionSource = "manual" | "seed" | "import" | "recurring" | "quick_text" | "voice" | "receipt";
+export type TransactionSource = "manual" | "seed" | "import" | "recurring" | "quick_text" | "voice" | "receipt" | "invoice";
 /** Daily Inbox state (migration 0021). */
 export type TransactionReviewStatus = "confirmed" | "needs_review";
 export type CaptureConfidence = "high" | "medium" | "low";
@@ -221,6 +221,80 @@ export type ForecastScenarioType = "base" | "conservative" | "optimistic" | "cus
 export interface Database {
   public: {
     Tables: {
+      invoices: {
+        Row: {
+          category_id: string | null;
+          client_is_company: boolean;
+          client_name: string;
+          created_at: string;
+          currency_code: string;
+          due_date: string;
+          earn_project_id: string | null;
+          id: string;
+          income_transaction_id: string | null;
+          invoice_number: string;
+          issue_date: string;
+          net_amount: number;
+          notes: string | null;
+          paid_at: string | null;
+          receive_account_id: string | null;
+          sent_at: string | null;
+          status: "draft" | "sent" | "paid" | "void";
+          subtotal_amount: number;
+          updated_at: string;
+          user_id: string;
+          withholding_amount: number;
+          withholding_rate_pct: number;
+        };
+        Insert: Partial<Database["public"]["Tables"]["invoices"]["Row"]> & { user_id: string; invoice_number: string; client_name: string; due_date: string };
+        Update: Partial<Database["public"]["Tables"]["invoices"]["Row"]>;
+      };
+      invoice_items: {
+        Row: {
+          created_at: string;
+          description: string;
+          id: string;
+          invoice_id: string;
+          line_total: number;
+          position: number;
+          quantity: number;
+          unit_price: number;
+          user_id: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["invoice_items"]["Row"]> & { user_id: string; invoice_id: string; description: string; quantity: number; unit_price: number; line_total: number };
+        Update: Partial<Database["public"]["Tables"]["invoice_items"]["Row"]>;
+      };
+      tax_jar_settings: {
+        Row: {
+          account_id: string | null;
+          created_at: string;
+          expense_408_rate_pct: number;
+          extra_deductions_amount: number;
+          mode: "ask" | "auto";
+          rate_pct: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["tax_jar_settings"]["Row"]> & { user_id: string };
+        Update: Partial<Database["public"]["Tables"]["tax_jar_settings"]["Row"]>;
+      };
+      tax_jar_entries: {
+        Row: {
+          amount: number;
+          created_at: string;
+          entry_date: string;
+          id: string;
+          income_type: "40_2" | "40_8" | null;
+          kind: "set_aside" | "withdraw" | "adjust";
+          note: string | null;
+          rate_pct: number | null;
+          source_transaction_id: string | null;
+          tax_year: number;
+          user_id: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["tax_jar_entries"]["Row"]> & { user_id: string; tax_year: number; kind: "set_aside" | "withdraw" | "adjust"; amount: number };
+        Update: Partial<Database["public"]["Tables"]["tax_jar_entries"]["Row"]>;
+      };
       profiles: {
         Row: {
           id: string;
@@ -1308,6 +1382,10 @@ export interface Database {
       };
     };
     Functions: {
+      mark_invoice_paid: {
+        Args: { p_invoice_id: string; p_paid_date: string | null; p_account_id: string | null; p_allow_draft?: boolean };
+        Returns: string;
+      };
       get_account_privacy_state: {
         Args: { p_unlock_token?: string | null };
         Returns: {

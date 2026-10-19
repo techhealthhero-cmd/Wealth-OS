@@ -73,6 +73,9 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
   const speech = useSpeechInput(locale, (text) => {
     if (voiceActiveRef.current && !typedRef.current) setVoiceText(text);
   });
+  const scanInputRef = useRef<HTMLInputElement>(null);
+  const [captureInitialImage, setCaptureInitialImage] = useState<File | null>(null);
+  const consumeCaptureInitialImage = useCallback(() => setCaptureInitialImage(null), []);
   const [captureInitialText, setCaptureInitialText] = useState<string | null>(null);
   const [carryOverAmount, setCarryOverAmount] = useState<string | undefined>(undefined);
   const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch>(null);
@@ -194,7 +197,11 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
   const openFromRequestRef = useRef<(target: QuickAddRequestTarget) => void>(() => {});
   useEffect(() => {
     openFromRequestRef.current = (target) => {
-      if (target === "capture") {
+      if (target === "scan") {
+        // Stay in the Home tap’s synchronous call stack for iOS Safari.
+        scanInputRef.current?.click();
+        void loadQuickCaptureSheet();
+      } else if (target === "capture") {
         void loadQuickCaptureSheet();
         openCapture();
       } else {
@@ -250,6 +257,22 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
 
   return (
     <>
+      {variant === "nav-center" ? (
+        <input
+          ref={scanInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (!file) return;
+            setCaptureInitialImage(file);
+            openCapture();
+          }}
+        />
+      ) : null}
       {variant === "row" ? (
         // 2026-10-11: one short row of pills (was three tall tiles) so the
         // pending-review box below stays in the first screen.
@@ -381,6 +404,8 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
           onIncome={() => openDialog("income")}
           onTransfer={() => openDialog("transfer")}
           initialText={captureInitialText}
+          initialImageFile={captureInitialImage}
+          onInitialImageConsumed={consumeCaptureInitialImage}
         />
       ) : null}
       {variant === "nav-center" && voiceMounted ? (

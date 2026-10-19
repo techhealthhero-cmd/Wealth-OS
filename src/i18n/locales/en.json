@@ -3483,5 +3483,15 @@
     "emptyHint": "Add rent, app subscriptions or monthly bills to see what's due and when.",
     "emptyCta": "Add recurring item",
     "emptyAria": "No recurring payments yet — go to recurring items"
+  },
+  "invoices": {
+    "failed": "Could not save invoice or tax jar data. Please try again.",
+    "migrationPending": "Invoices and tax jar require migration 0047.",
+    "duplicateNumber": "This invoice number is already in use.",
+    "notEditable": "Only draft or sent invoices can be edited.",
+    "notFound": "Invoice not found.",
+    "void": "This invoice has been voided.",
+    "notSent": "Send this invoice first or confirm receiving a draft.",
+    "accountNotFound": "Choose an account you own."
   }
 }
