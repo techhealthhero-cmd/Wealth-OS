@@ -155,10 +155,12 @@ All four currently pass cleanly against this codebase.
 ## How to deploy
 
 1. Push this repository to your Git provider.
-2. Deploy to Vercel (or any Next.js-compatible host). `vercel.json` pins
-   server functions to `icn1` (Seoul), next to the production Supabase
+2. Deploy to Vercel (or any Next.js-compatible host). Production keeps
+   server functions on `icn1` (Seoul), next to the production Supabase
    project (`ap-northeast-2`) — every page render makes several database
    round trips, so keep the two in the same region if either ever moves.
+   The staging branch runs `sin1` (Singapore) with the Singapore staging DB;
+   production stays on `icn1` until its DB moves. Functions and DB must move together.
 3. Set the environment variables from `.env.example` in the host's project
    settings — `SUPABASE_SERVICE_ROLE_KEY`, `AI_*`, and `STRIPE_*` as
    server-only secrets, the `NEXT_PUBLIC_*` ones as build-and-runtime

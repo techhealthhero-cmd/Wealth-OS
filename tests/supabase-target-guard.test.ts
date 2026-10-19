@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { assertStagingSupabase } from "../scripts/lib/assert-staging-supabase.mjs";
 
 const staging = "eovyvlesdgygjqrrvpas.supabase.co";
+const singaporeStaging = "cqmgogmnfsamywocdinr.supabase.co";
 const production = "lvxuruzspchhcwebrbzy.supabase.co";
 
 describe("live Supabase target guard", () => {
-  it("allows the existing staging URL", () => {
-    expect(() => assertStagingSupabase(`https://${staging}`)).not.toThrow();
+  it.each([staging, singaporeStaging])("allows staging host %s", (host) => {
+    expect(() => assertStagingSupabase(`https://${host}`)).not.toThrow();
   });
 
   it.each([
@@ -14,6 +15,8 @@ describe("live Supabase target guard", () => {
     `https://${production}/?allow=staging`,
     `https://${production}/eovyvlesdgygjqrrvpas`,
     `https://${staging}.${production}`, `https://${staging}.example.com`,
+    `https://${singaporeStaging}.example.com`,
+    `https://cqmgogmnfsamywocdinr.${production}`,
     `https://${staging}@${production}`, `https://secret@${staging}`,
     `http://${staging}`, `https://${staging}:1234`,
     "https://other.supabase.co", "http://localhost:54321", "secret-invalid-url", "",
