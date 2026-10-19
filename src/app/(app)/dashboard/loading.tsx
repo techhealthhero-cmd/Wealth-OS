@@ -12,20 +12,29 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
  */
 export default function DashboardLoading() {
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5 pb-[calc(7rem+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
-      <Skeleton className="h-8 w-44" />
+    <div className="mx-auto w-full max-w-6xl space-y-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
+      <Skeleton className="h-8 w-44 md:block hidden" />
 
       {/* Net Worth hero */}
-      <Skeleton className="h-40 w-full rounded-xl" />
+      <Skeleton className="h-[120px] w-full rounded-[20px]" />
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full rounded-xl" />
+      {/* Quick actions */}
+      <div className="grid grid-cols-4 gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="mx-auto size-12 rounded-2xl" />
         ))}
       </div>
 
-      <Skeleton className="h-48 w-full rounded-xl" />
-      <Skeleton className="h-40 w-full rounded-xl" />
+      {/* Money expected / tax jar tiles */}
+      <div className="grid grid-cols-2 gap-3">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <Skeleton key={i} className="h-40 w-full rounded-[20px]" />
+        ))}
+      </div>
+
+      {/* Income by source */}
+      <Skeleton className="h-72 w-full rounded-[20px]" />
+      <Skeleton className="h-32 w-full rounded-[20px]" />
       <Skeleton className="h-32 w-full rounded-xl" />
 
       {/* Summary cards */}

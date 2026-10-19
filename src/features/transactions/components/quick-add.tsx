@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { toast } from "sonner";
 import { ArrowLeftRight, CircleMinus, CirclePlus, Plus, TrendingDown, TrendingUp } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
@@ -19,6 +20,11 @@ import { getQuickAddOptions } from "@/features/transactions/actions";
 import { asTrigger } from "@/lib/as-trigger";
 import { useTranslation } from "@/i18n/client";
 import { useSpeechInput } from "@/lib/speech/use-speech-input";
+import {
+  QUICK_ADD_REQUEST_EVENT,
+  isQuickAddRequestTarget,
+  type QuickAddRequestTarget,
+} from "@/features/transactions/lib/quick-add-request";
 
 type QuickAddDialog = "expense" | "income" | "transfer" | null;
 
@@ -150,6 +156,63 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
     setManualPrefill(null);
     setActiveDialog(dialog);
   }
+
+  // Requests from other pages (Home's quick actions, quick-add-request.ts).
+  // Only the shell's single nav-center instance listens, so one request
+  // never opens two copies of a form.
+  //
+  // "income" waits for fresh accounts/categories (and the form chunk)
+  // before opening: TransactionForm captures its options once, when it
+  // opens, so opening first could leave it with no accounts and a disabled
+  // save. This matches the mic → Quick Capture → income path, where the
+  // options were already refreshed when the sheet opened. If the refresh
+  // fails, the last known options are used when there are any; otherwise
+  // the user sees an error instead of a dead form.
+  const incomeRequestPendingRef = useRef(false);
+  const liveOptionsRef = useRef(liveOptions);
+  useEffect(() => {
+    liveOptionsRef.current = liveOptions;
+  }, [liveOptions]);
+  async function openIncomeFromRequest() {
+    if (incomeRequestPendingRef.current) return;
+    incomeRequestPendingRef.current = true;
+    try {
+      const [, options] = await Promise.all([loadTransactionForm(), getQuickAddOptions().catch(() => null)]);
+      if (options) {
+        setLiveOptions(options);
+      } else if (liveOptionsRef.current.accounts.length === 0) {
+        toast.error(t("common.somethingWentWrong"));
+        return;
+      }
+      openDialog("income");
+    } catch {
+      toast.error(t("common.somethingWentWrong"));
+    } finally {
+      incomeRequestPendingRef.current = false;
+    }
+  }
+  const openFromRequestRef = useRef<(target: QuickAddRequestTarget) => void>(() => {});
+  useEffect(() => {
+    openFromRequestRef.current = (target) => {
+      if (target === "capture") {
+        void loadQuickCaptureSheet();
+        openCapture();
+      } else {
+        void openIncomeFromRequest();
+      }
+    };
+  });
+  useEffect(() => {
+    if (variant !== "nav-center") return;
+    const onRequest = (event: Event) => {
+      const target = (event as CustomEvent<unknown>).detail;
+      if (!isQuickAddRequestTarget(target)) return;
+      event.preventDefault(); // tells requestQuickAdd() it was handled
+      openFromRequestRef.current(target);
+    };
+    window.addEventListener(QUICK_ADD_REQUEST_EVENT, onRequest);
+    return () => window.removeEventListener(QUICK_ADD_REQUEST_EVENT, onRequest);
+  }, [variant]);
 
   // Lets someone who opened "add expense"/"add income"/"transfer" change
   // their mind to a different one of the three without retyping the

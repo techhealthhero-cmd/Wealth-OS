@@ -12,6 +12,10 @@ interface NetWorthMiniChartPoint {
 interface NetWorthMiniChartProps {
   data: NetWorthMiniChartPoint[];
   tone: "highlight" | "default";
+  /** Height of the plot box; defaults to the hero's h-16. */
+  heightClassName?: string;
+  /** The profile's currency for the scrub tooltip (formatMoney's default otherwise). */
+  currencyCode?: string;
 }
 
 // Must match the LineChart's left/right margin below â€” the point scale
@@ -51,7 +55,7 @@ export function scrubIndexFromClientX(
  * Tooltip purely through `active` + `defaultIndex`. `touch-action: pan-y`
  * keeps vertical page scrolling working when the drag starts on the chart.
  */
-export function NetWorthMiniChart({ data, tone }: NetWorthMiniChartProps) {
+export function NetWorthMiniChart({ data, tone, heightClassName = "h-16", currencyCode }: NetWorthMiniChartProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const gradientId = useId().replace(/:/g, "");
@@ -111,7 +115,7 @@ export function NetWorthMiniChart({ data, tone }: NetWorthMiniChartProps) {
   }
 
   return (
-    <div className="relative h-16">
+    <div className={`relative ${heightClassName}`}>
       <svg aria-hidden="true" className="size-full overflow-visible" viewBox="0 0 100 64" preserveAspectRatio="none">
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -142,7 +146,7 @@ export function NetWorthMiniChart({ data, tone }: NetWorthMiniChartProps) {
           style={{ left: `${activeCoordinate.x}%` }}
         >
           <p className="text-muted-foreground">{activePoint.date}</p>
-          <p className="font-medium whitespace-nowrap text-popover-foreground">{formatMoney(activePoint.netWorth)}</p>
+          <p className="font-medium whitespace-nowrap text-popover-foreground">{formatMoney(activePoint.netWorth, currencyCode)}</p>
         </div>
       ) : null}
       <div

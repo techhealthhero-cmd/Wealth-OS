@@ -12,6 +12,9 @@ import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { IncomeThisMonth } from "@/features/dashboard/components/income-this-month";
 import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
 import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboard-details-toggle";
+import { HomeQuickActions } from "@/features/dashboard/components/home-quick-actions";
+import { HomeUpcomingTiles } from "@/features/dashboard/components/home-tiles";
+import { HomeCushion } from "@/features/dashboard/components/home-cushion";
 import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
 import { MonthlyDonutCard } from "@/features/dashboard/components/summary-visuals";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
@@ -67,7 +70,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5 pb-[calc(7rem+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
+    <div className="mx-auto w-full max-w-6xl space-y-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
       <div className="hidden min-w-0 md:block">
         {/* UX guidelines #6 (Home hierarchy): greeting/context leads the
             page, ahead of the section title — a personal "hello" reads
@@ -108,26 +111,22 @@ export default async function DashboardPage() {
           soon as they're ready instead of all waiting on each other —
           real progressive loading, not just a CSS effect on already-
           resolved content. */}
-      {/* 2026-10 freelancer redesign ("A — income streams first"): this
-          month's received income by source leads Home; Net Worth follows as
-          a compact row that links to /money/net-worth (full chart and
-          assets/liabilities). Each streams in its own Suspense boundary and
-          catches its own load errors. */}
+      {/* 2026-10 freelancer redesign ("C — freelancer dashboard", owner-
+          chosen): dark-green Net Worth hero with a sparkline of the real
+          snapshots (links to /money/net-worth) → quick actions → money
+          expected / tax jar (not built yet: honest "coming soon" tiles) →
+          this month's income by source → cash cushion / left to spend.
+          Each data section streams in its own Suspense boundary and catches
+          its own load errors. */}
       <div className="motion-reveal motion-reveal-1">
-        <Suspense fallback={<Skeleton className="h-72 w-full rounded-[20px]" />}>
-          <IncomeThisMonth />
-        </Suspense>
-      </div>
-
-      <div className="motion-reveal motion-reveal-2">
-        <Suspense fallback={<Skeleton className="h-20 w-full rounded-[20px]" />}>
+        <Suspense fallback={<Skeleton className="h-[120px] w-full rounded-[20px]" />}>
           <NetWorthHero variant="compact" />
         </Suspense>
       </div>
 
-      {/* 2026-10-11: the income/expense/transfer tiles left Home — they live
-          on Money › Transactions, and the center mic records from any page.
-          Home is for the overview. */}
+      <div className="motion-reveal motion-reveal-2">
+        <HomeQuickActions labels={dict.homeDash} />
+      </div>
 
       {/* One-line "N items need review" nudge — the Daily Inbox itself
           lives on Money › Transactions (2026-10-11). Renders nothing when
@@ -138,6 +137,28 @@ export default async function DashboardPage() {
       </Suspense>
 
       <div className="motion-reveal motion-reveal-3">
+        <HomeUpcomingTiles labels={dict.homeDash} />
+      </div>
+
+      <div className="motion-reveal motion-reveal-3">
+        <Suspense fallback={<Skeleton className="h-72 w-full rounded-[20px]" />}>
+          <IncomeThisMonth />
+        </Suspense>
+      </div>
+
+      <div className="motion-reveal motion-reveal-4">
+        <Suspense fallback={<Skeleton className="h-32 w-full rounded-[20px]" />}>
+          <HomeCushion />
+        </Suspense>
+      </div>
+
+      {FEATURES.ai ? (
+        <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
+          <DashboardRecommendations hasTransactionHistory={data.recentTransactions.length > 0} />
+        </Suspense>
+      ) : null}
+
+      <div className="motion-reveal motion-reveal-5">
         <MonthlyDonutCard
           incomeCents={data.incomeCents}
           expensesCents={data.expensesCents}
@@ -180,13 +201,7 @@ export default async function DashboardPage() {
         </MonthlyDonutCard>
       </div>
 
-      {FEATURES.ai ? (
-        <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
-          <DashboardRecommendations hasTransactionHistory={data.recentTransactions.length > 0} />
-        </Suspense>
-      ) : null}
-
-      <div className="motion-reveal motion-reveal-5 space-y-3">
+      <div className="motion-reveal motion-reveal-6 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">{dict.dashboard2.topGoal}</h2>
           <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/plan/goals" />}>
@@ -199,13 +214,13 @@ export default async function DashboardPage() {
         </Suspense>
       </div>
 
-      <div className="motion-reveal motion-reveal-6">
+      <div className="motion-reveal motion-reveal-7">
         <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
           <EngagementSummaryCard />
         </Suspense>
       </div>
 
-      <div className="motion-reveal motion-reveal-7">
+      <div className="motion-reveal motion-reveal-8">
         <DashboardDetailsToggle label={dict.dashboard.moreInsights}>
           <Suspense fallback={<Skeleton className="h-[240px] w-full rounded-xl" />}>
             <IncomeExpenseTrendSection locale={locale} currencyCode={currencyCode} />
@@ -289,7 +304,7 @@ async function DashboardRecommendations({ hasTransactionHistory }: { hasTransact
   const [priority, topInsight] = await Promise.all([getFinancialPriority(), getTopInsight()]);
 
   return (
-    <div className="motion-reveal motion-reveal-4 space-y-3">
+    <div className="motion-reveal motion-reveal-5 space-y-3">
       <NextBestActionCard priority={priority} hasTransactionHistory={hasTransactionHistory} />
       {topInsight ? <InsightCards insights={[topInsight]} /> : null}
     </div>

@@ -37,25 +37,29 @@ export function SplitMoneyAmount({
   // The reduced-motion hook reports false on the server/hydration pass and
   // only flips afterwards, so derive the shown value instead of trusting
   // useState's initializer — otherwise reduced motion would stick at 0.
-  const [display, setDisplay] = useState(0);
-  const startedRef = useRef(false);
+  // Animation progress (0..1), not a stored value: an interrupted run (e.g.
+  // React StrictMode's dev double-effect) simply restarts instead of sticking
+  // at 0. The count-up plays once per mount: a `cents` change during it
+  // retargets the remaining frames to the new value (no restart), and a
+  // change after it shows the new value immediately.
+  const [progress, setProgress] = useState(0);
+  const doneRef = useRef(false);
 
   useEffect(() => {
-    if (reducedMotion || startedRef.current) return;
-    startedRef.current = true;
+    if (reducedMotion || doneRef.current) return;
     const start = performance.now();
     let frame: number;
     function tick(now: number) {
-      const progress = Math.min(1, (now - start) / durationMs);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(progress < 1 ? cents * eased : cents);
-      if (progress < 1) frame = requestAnimationFrame(tick);
+      const next = Math.min(1, (now - start) / durationMs);
+      setProgress(next);
+      if (next < 1) frame = requestAnimationFrame(tick);
+      else doneRef.current = true;
     }
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [cents, durationMs, reducedMotion]);
+  }, [durationMs, reducedMotion]);
 
-  const shown = reducedMotion ? cents : display;
+  const shown = reducedMotion || progress >= 1 ? cents : cents * (1 - Math.pow(1 - progress, 3));
   const { main, decimal } = splitFormattedMoney(formatMoney(Math.round(shown), currencyCode));
 
   return (

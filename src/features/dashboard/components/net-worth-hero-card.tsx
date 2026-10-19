@@ -25,6 +25,7 @@ export interface NetWorthHeroCardProps {
   chartData: { date: string; netWorth: number }[];
   /** One short month label per month covered by the chart, oldest first. */
   monthLabels: { label: string; isCurrent: boolean }[];
+  currencyCode?: string;
 }
 
 /**
@@ -41,13 +42,14 @@ export function NetWorthHeroCard({
   hasHistory,
   chartData,
   monthLabels,
+  currencyCode,
 }: NetWorthHeroCardProps) {
   const isNegative = netWorthCents < 0;
   const isUp = change.changeCents > 0;
   const pillText =
     change.changeCents === 0
       ? labels.noChange
-      : `${isUp ? "+" : ""}${formatMoney(change.changeCents)}${
+      : `${isUp ? "+" : ""}${formatMoney(change.changeCents, currencyCode)}${
           change.changePercent !== null ? ` · ${isUp ? "+" : ""}${change.changePercent.toFixed(1)}%` : ""
         }`;
 
@@ -93,6 +95,7 @@ export function NetWorthHeroCard({
             </div>
             <SplitMoneyAmount
               cents={netWorthCents}
+              currencyCode={currencyCode}
               className={cn(
                 "block break-all text-[clamp(2rem,10vw,3.25rem)] font-bold leading-none tracking-tight tabular-nums",
                 isNegative ? "text-rose-200" : "text-primary-foreground"
@@ -104,7 +107,7 @@ export function NetWorthHeroCard({
 
           {chartData.length >= 2 ? (
             <div className="space-y-1.5">
-              <NetWorthMiniChart data={chartData} tone="highlight" />
+              <NetWorthMiniChart data={chartData} tone="highlight" currencyCode={currencyCode} />
               {monthLabels.length >= 2 ? (
                 <ol aria-hidden="true" className="flex justify-between text-[11px] text-primary-foreground/60">
                   {monthLabels.map((month, index) => (
