@@ -17,7 +17,7 @@ export function isEmptyPaperTapTarget(target: PaperTapNode | null, root: PaperTa
     if (
       excludedTags.has(node.nodeName.toUpperCase()) ||
       (node.getAttribute?.("contenteditable") != null && node.getAttribute?.("contenteditable") !== "false") ||
-      (role != null && ["button", "link", "textbox", "combobox", "dialog"].includes(role))
+      (role != null && ["button", "link", "textbox", "combobox", "dialog", "checkbox", "radio", "switch", "slider", "spinbutton", "menuitem", "tab", "listbox"].includes(role))
     ) excluded = true;
     if (node === root) return !excluded;
   }
@@ -33,7 +33,7 @@ interface PaperField {
 
 /**
  * Puts the caret at the end of the paper. Must run synchronously inside the
- * tap's click handler (never in a timeout, rAF or after a state update):
+ * tap's touchend/click handler (never in a timeout, rAF or after a state update):
  * iOS Safari only raises the keyboard for a focus() made during the gesture.
  */
 export function focusPaperEnd(el: PaperField | null): boolean {
@@ -42,4 +42,14 @@ export function focusPaperEnd(el: PaperField | null): boolean {
   const end = el.value.length;
   el.setSelectionRange(end, end);
   return true;
+}
+
+export interface PaperTouchPoint { identifier: number; clientX: number; clientY: number }
+
+/** Reject multi-touch and any excursion over 10px, even if the finger returns. */
+export function isPaperTap(start: PaperTouchPoint | null, touches: ArrayLike<PaperTouchPoint>): boolean {
+  if (!start || touches.length !== 1) return false;
+  const end = touches[0];
+  return start.identifier === end.identifier &&
+    Math.hypot(end.clientX - start.clientX, end.clientY - start.clientY) <= 10;
 }

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { focusPaperEnd, isEmptyPaperTapTarget } from "../src/features/capture/components/voice-notebook-paper-tap";
+import { focusPaperEnd, isEmptyPaperTapTarget, isPaperTap } from "../src/features/capture/components/voice-notebook-paper-tap";
 
 // Small DOM-shaped trees exercise the pure ancestor policy in Vitest's Node environment.
 class TapNode {
@@ -37,6 +37,10 @@ describe("isEmptyPaperTapTarget", () => {
     expect(isEmptyPaperTapTarget(null, root)).toBe(false);
   });
 
+  it.each(["button", "link", "textbox", "combobox", "dialog", "checkbox", "switch", "slider", "menuitem", "tab"])("excludes role=%s descendants", (role) => {
+    expect(isEmptyPaperTapTarget(new TapNode("SPAN", new TapNode("DIV", root, { role })), root)).toBe(false);
+  });
+
   it("excludes editable content and custom controls", () => {
     expect(isEmptyPaperTapTarget(new TapNode("DIV", root, { contenteditable: "" }), root)).toBe(false);
     expect(isEmptyPaperTapTarget(new TapNode("DIV", root, { role: "button" }), root)).toBe(false);
@@ -61,22 +65,28 @@ describe("focusPaperEnd", () => {
   });
 });
 
-// iOS Safari regression (PR #34 focused on pointerdown; the tap's own
-// mousedown on the blank paper then blurred the textarea, so the keyboard
-// never opened). Keep the focus in the click, synchronously, everywhere.
-describe("voice notebook paper focus wiring", () => {
-  const source = readFileSync(resolve(__dirname, "../src/features/capture/components/voice-notebook.tsx"), "utf8");
-  const paper = source.slice(source.indexOf('data-testid="voice-paper"'), source.indexOf("<textarea"))
-    .replace(/^\s*\/\/.*$/gm, ""); // the code only, not its explanation
-
-  it("focuses the blank paper from onClick, not pointerdown, with no preventDefault", () => {
-    expect(paper).toContain("onClick={(event) =>");
-    expect(paper).toContain("focusPaperEnd(paperRef.current)");
-    expect(paper).not.toMatch(/onPointerDown|onTouchStart|onMouseDown/);
-    expect(paper).not.toMatch(/preventDefault|setTimeout|requestAnimationFrame/);
+describe("paper touch movement", () => {
+  const start = { identifier: 1, clientX: 30, clientY: 40 };
+  it("accepts a stationary tap and the 10px boundary", () => {
+    expect(isPaperTap(start, [start])).toBe(true);
+    expect(isPaperTap(start, [{ ...start, clientY: 50 }])).toBe(true);
   });
+  it("rejects scrolling, diagonal drags, cancelled starts and multiple fingers", () => {
+    expect(isPaperTap(start, [{ ...start, clientY: 51 }])).toBe(false);
+    expect(isPaperTap(start, [{ ...start, clientX: 38, clientY: 48 }])).toBe(false);
+    expect(isPaperTap(null, [start])).toBe(false);
+    expect(isPaperTap(start, [start, start])).toBe(false);
+    expect(isPaperTap(start, [])).toBe(false);
+    expect(isPaperTap(start, [{ ...start, identifier: 2 }])).toBe(false);
+  });
+});
 
-  it("the พิมพ์เอง button focuses inside its own click", () => {
-    expect(source).toMatch(/onClick=\{\(\) => focusPaperEnd\(paperRef\.current\)\}/);
+describe("voice notebook gesture wiring", () => {
+  const source = readFileSync(resolve(__dirname, "../src/features/capture/components/voice-notebook.tsx"), "utf8");
+  it("uses a cancellable native touchend and preserves desktop fallback", () => {
+    expect(source).toContain('area.addEventListener("touchend", end, { passive: false })');
+    expect(source).toContain("event.preventDefault()");
+    expect(source).toContain('area.addEventListener("touchmove", move, { passive: true })');
+    expect(source).toContain('onClick={() => focusPaperEnd(paperRef.current)}');
   });
 });

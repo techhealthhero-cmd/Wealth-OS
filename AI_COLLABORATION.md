@@ -135,6 +135,10 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- VOICE-PAPER-TAP2 — Owner: Codex; READY FOR HANDOFF. Native growing textarea + synchronous non-passive touchend fallback and transparent focus styling complete. Node 22 typecheck/lint pass; full Vitest 148 files / 2141 tests pass. Local harness remains unstaged; server/browser sandbox EPERM blocks visual run. Supervisor handles real iPhone acceptance/push/PR.
+
+- CAPTURE-SAVE-VISIBLE — Owner: Codex; READY FOR HANDOFF. Supervisor follow-up complete: restored original 92dvh cap; reveal scrolls down only; four pure tests updated. Node 22 typecheck/lint PASS; full Vitest 149 files / 2134 tests PASS. Supervisor verified review-first/Save visibility at 390×664 + 34px safe area. No git operations; supervisor owns commit.
+
 - THAI-CAPTURE-FIXES — Owner: Codex; READY FOR HANDOFF. Capture-only fixes and 30 corpus additions complete; full Node 22 suite 148 files / 2113 tests, NLP criticalFailures=[] and autoSavePrecision=1, tsc and ESLint pass. Original 320-case baseline and labels preserved. No UI/schema/auth/formula changes or commits. Owner: review local diff.
 
 - COVER-BACKFACE — Owner: Codex + Grok Bot; PR to staging. Added swipe-only ruled page, two-sided cover, angle shading and rAF release tween; static launch branch preserved. Vitest 9/9, tsc (after next typegen), focused ESLint and diff check pass. No commit/push/env changes. Next: owner iPhone review.
@@ -570,3 +574,20 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Self-review against origin/staging: create/edit/send/void and RPC payload/persistence unchanged; tax suggestions retained; list tabs/totals and reminder tone/ending/edited text/LINE/fallback behavior unchanged. Native date/dialog accessibility, 390px classes, safe-area and loading skeletons retained. No browser/iPhone/authenticated end-to-end latency measurement performed.
 - Commit blocker: attempted `git add` and the requested `git commit`; both failed with `Unable to create .git/index.lock: Read-only file system`. Changes remain unstaged, no commit was created. No push/PR. Supervisor must stage these scoped files and commit with `fix(invoices): fast mark-paid, faster remind page + scoped copy toast, preselect receiving account, timezone-safe dates` in a writable Git environment.
 - Resume Packet: implementation and all required checks are complete; supervisor commit is blocked only by read-only Git metadata. Remaining bug diagnosis is 7b only. First next step: obtain one affected invoice's original issue-date input, stored issue_date, creation timestamp and profile timezone from the owner to distinguish stale/deployed UI or an already incorrect stored date. No DB changes are authorized for that follow-up.
+
+### 2026-10-20 — Codex → supervisor (VOICE-PAPER-TAP2)
+
+- Code diagnosis: short textarea left most empty paper as div hit areas; #42 relied on delegated click, and bottom mic surround had no paper handler. iOS div click delivery/compat mousedown makes that approach unreliable; explicit focus:bg highlight caused the yellow field. Git/code inspected because gh API unavailable.
+- Stable textarea now grows into spare paper height while retaining content auto-height (empty page only; with cards it keeps text height); native taps on text keep the tapped caret position, blank-paper taps put the caret at the end. Wrapper covers paper + bottom area, excluding header and picker. Passive start/move track single touch, reject excursions >10px; non-passive touchend focuses synchronously and cancels compat mouse only for empty targets. Controls/cards retain behavior. CSS clears field background/outline/shadow in all focus states and paper tap flash.
+- Node 22: npm run typecheck PASS; npm run lint PASS; npx vitest run PASS (148 files / 2141 tests); git diff --check PASS. Self-review against origin/staging: mic onFocus stop, inset hiding, type button, picker/cards, save and dark colors retained; no persistence/formula/auth production changes.
+- Local only, never stage: src/app/dev-harness/voice-paper/page.tsx and harness.tsx; .harness/verify.mjs; src/lib/supabase/middleware.ts exact-route bypass. Harness intercepts server actions before mount to avoid Supabase, supports ?rows=1, nine tap points, mic/header exclusions, synthetic vertical swipe guard, Thai typing/style assertions and screenshots/results. Native swipe and real iOS keyboard still require physical device review.
+
+- Supervisor (2026-10-20): removed textarea onClick that forced the caret to the end; grow only on an empty page; auto-height measures with flex-grow off (stretched height was being locked in and pushed cards down). WebKit iPhone 13 touch harness: 11/11 paper points focus, mic/header excluded, focused field transparent/no outline. Committed + PR by supervisor.
+
+### 2026-10-20 — Codex → supervisor (CAPTURE-SAVE-VISIBLE)
+
+- Review-first placement and held-mic geometry retained. Follow-up restores the original max-h-[92dvh] cap when keyboard is closed; keyboardInset and listening/holdLayout branches unchanged.
+- Reveal helper uses only action/viewport bottoms and clamps delta to zero; effect scrolls only for delta > 0, preserving user scrolling on focusout. Four small pure tests cover fitting, clipped, scrolled-past and boundary cases.
+- Supplied Node 22 PATH: npm run typecheck PASS; npm run lint PASS; npx vitest run PASS (149 files / 2134 tests).
+- Supervisor reported WebKit iPhone 390×664 + 34px safe-area verification: all three review-first cases have Save fully visible at scrollTop 0 (bottoms 457/499/540; limit 630). No new browser run for this follow-up.
+- No git operations or metadata changes. Four scoped files remain for supervisor review and commit; supervisor owns push/PR.
