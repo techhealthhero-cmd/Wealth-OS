@@ -51,6 +51,7 @@ import {
   type PossibleDuplicate,
   type RecurringSuggestion,
 } from "@/features/capture/actions";
+import { reviewScrollDelta } from "@/features/capture/lib/review-visibility";
 import { prepareReceiptImage } from "@/features/capture/lib/image";
 import { parseCancelIntent } from "@/lib/capture/subscription-intent";
 import { saveCaptureDraft } from "../save-capture-draft";
@@ -172,6 +173,9 @@ export function QuickCaptureSheet({
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const micPressedAtRef = useRef(0);
+  const prefixRef = useRef<HTMLDivElement>(null);
+  const reviewRef = useRef<HTMLDivElement>(null);
+  const [holdLayout, setHoldLayout] = useState<{ prefixHeight: number; sheetHeight: number } | null>(null);
   // Hybrid parsing: validated AI readings keyed by normalized sentence. A key
   // is claimed before its request starts, so re-renders, retyping the same
   // text or a failed call never trigger a second request for it.
@@ -373,7 +377,7 @@ export function QuickCaptureSheet({
     el.style.height = `${Math.min(el.scrollHeight, TEXT_MAX_HEIGHT)}px`;
   }, []);
   useLayoutEffect(() => {
-    fitText();
+    if (!speech.listening) fitText();
     const el = textRef.current;
     if (el && speech.listening) el.scrollTop = el.scrollHeight;
   }, [text, open, fitText, speech.listening]);
@@ -434,6 +438,38 @@ export function QuickCaptureSheet({
   }, [localParsed, aiReading, textKey, ctx, textSource, overrides, captureDate]);
 
   const activeDraft = receipt.status !== "idle" ? receiptDraft : textDraft;
+  // Boolean presence keeps the order stable as the draft changes while typing.
+  const hasReview = recapMode || Boolean(activeDraft) || receipt.status !== "idle";
+  const reviewFirst = !speech.listening && hasReview;
+  const reviewReady = receipt.status !== "scanning" && (recapMode || Boolean(activeDraft));
+  useEffect(() => {
+    if (!open || !reviewFirst || !reviewReady) return;
+    let timer: number;
+    const reveal = () => {
+      // Let keyboardInset's scroll-to-top effect own text entry on iOS.
+      // Also avoid interrupting edits inside a review card.
+      if (keyboardInset > 0 || sheetElRef.current?.contains(document.activeElement) &&
+          document.activeElement?.matches("input, textarea, select")) return;
+      const scroll = scrollRef.current;
+      const actions = reviewRef.current?.querySelectorAll("button");
+      const action = actions?.[actions.length - 1];
+      if (!scroll || !action) return;
+      const viewport = scroll.getBoundingClientRect();
+      const rect = action.getBoundingClientRect();
+      const delta = reviewScrollDelta(viewport.bottom, rect.bottom);
+      if (delta > 0) scroll.scrollTo({
+        top: scroll.scrollTop + delta,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      });
+    };
+    // Wait for the sheet/keyboard's height transition, once per appearance.
+    const schedule = () => { window.clearTimeout(timer); timer = window.setTimeout(reveal, 240); };
+    schedule();
+    const sheet = sheetElRef.current;
+    sheet?.addEventListener("focusout", schedule);
+    return () => { window.clearTimeout(timer); sheet?.removeEventListener("focusout", schedule); };
+  }, [open, reviewFirst, reviewReady, keyboardInset, scrollRef]);
+
   const currentTransferPicks = transferPicks.key === textKey ? transferPicks : { key: textKey };
   const transferSide = (side: "from" | "to"): string | null => {
     const picked = currentTransferPicks[side];
@@ -799,6 +835,120 @@ export function QuickCaptureSheet({
 
   const receiptHeading = receipt.status === "done" && receipt.extraction?.isPaymentDocument ? t("capture.detected") : t("capture.preview");
 
+  const review = (recapMode || activeDraft || receipt.status !== "idle" || error) ? (
+    <div ref={reviewRef} className="space-y-3">
+      {receipt.status !== "idle" ? (
+        <div className="flex items-center gap-3 rounded-2xl border bg-muted/40 p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- transient local object URL, never uploaded as-is or stored */}
+          <img src={receipt.previewUrl} alt="" className="size-14 shrink-0 rounded-xl object-cover" />
+          <div className="min-w-0 flex-1 text-sm">
+            {receipt.status === "scanning" ? (
+              <p className="flex min-w-0 items-center gap-2">
+                <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
+                {/* Live status: each step the slip reader actually does. */}
+                <LiveStatus lines={tList("capture.scanningSteps", "capture.scanning")} />
+              </p>
+            ) : (
+              <>
+                {receipt.message ? <p className="font-medium text-amber-800 dark:text-amber-300">{receipt.message}</p> : null}
+                {receipt.message ? <p className="text-xs text-muted-foreground">{t("capture.partialReadHint")}</p> : null}
+                {receipt.mock ? <p className="text-xs text-muted-foreground">{t("capture.mockLabel")}</p> : null}
+              </>
+            )}
+          </div>
+          <button
+            type="button"
+            aria-label={t("common.close")}
+            onClick={clearReceipt}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+          >
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
+
+      {recapMode ? (
+        <RecapReview
+          rows={recapRows}
+          accounts={accounts}
+          categories={categories}
+          onChange={(id, patch) => setRecapOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }))}
+          onRemove={(id) => setRecapRemoved((prev) => new Set([...prev, id]))}
+          onConfirm={() => void confirmRecap()}
+          saving={saving}
+          progress={recapProgress}
+          aiPending={recapAIPendingKey !== null}
+        />
+      ) : null}
+
+      {activeDraft?.cancelIntent ? (
+        <SubscriptionCancelCard key={activeDraft.cancelIntent.serviceQuery} serviceQuery={activeDraft.cancelIntent.serviceQuery}
+          onCancelled={() => { resetAll(); onOpenChange(false); }} />
+      ) : activeDraft && transferIntent && receipt.status !== "scanning" && !recapMode ? (
+        <TransferPreview
+          intent={transferIntent}
+          accounts={accounts}
+          amountCents={activeDraft.amountCents}
+          date={activeDraft.date}
+          fromId={transferSide("from")}
+          toId={transferSide("to")}
+          saving={saving}
+          onAmountChange={(amountCents) => patchDraft({ amountCents })}
+          onPick={(side, accountId, rememberWord) => {
+            setTransferPicks((previous) => ({
+              ...(previous.key === textKey ? previous : { key: textKey }),
+              [side]: accountId,
+            }));
+            if (!rememberWord) return;
+            void saveAccountAlias(accountId, rememberWord, "learned").then((result) => {
+              if (result.alias) {
+                setAliases((previous) => [...previous.filter((alias) => alias.alias_normalized !== result.alias!.alias_normalized), result.alias!]);
+                const accountName = accounts.find((account) => account.id === accountId)?.name ?? "";
+                toast(t("capture.voice.remembered").replace("{heard}", rememberWord).replace("{name}", accountName));
+              } else if (result.error) toast.error(result.error);
+            });
+          }}
+          onSave={() => void save()}
+        />
+      ) : activeDraft && receipt.status !== "scanning" && !recapMode ? (
+        <TransactionPreview
+          draft={activeDraft}
+          accounts={accounts}
+          categories={categories}
+          heading={receipt.status !== "idle" ? receiptHeading : t("capture.preview")}
+          onChange={patchDraft}
+          onSave={() => void save()}
+          onSaveAnyway={() => {
+            setDuplicate(null);
+            void save({ skipDuplicateCheck: true });
+          }}
+          onEdit={openManual}
+          saving={saving}
+          saveLabel={receipt.status !== "idle" ? t("capture.correct") : t("capture.save")}
+          duplicate={duplicate}
+          notice={
+            receipt.status !== "idle" ? undefined : aiPendingKey === textKey ? (
+              <p className="flex min-w-0 items-center gap-1.5 text-xs">
+                <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
+                <LiveStatus lines={tList("capture.aiAssistingSteps", "capture.aiAssisting")} />
+              </p>
+            ) : aiReading ? (
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                {t("capture.aiAssisted")}
+              </p>
+            ) : undefined
+          }
+        />
+      ) : null}
+
+      {error ? (
+        <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  ) : null;
+
   return (
     <>
     <Sheet
@@ -829,7 +979,9 @@ export function QuickCaptureSheet({
                 maxHeight: `calc(100dvh - ${keyboardInset}px - 1rem)`,
                 paddingBottom: 12,
               }
-            : undefined
+            : speech.listening && holdLayout
+              ? { height: holdLayout.sheetHeight, maxHeight: holdLayout.sheetHeight }
+              : undefined
         }
       >
         {/* Grab handle: the visual cue that the sheet can be pulled down to close. */}
@@ -841,86 +993,97 @@ export function QuickCaptureSheet({
 
         <div ref={scrollRef} className="edge-fade-y min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="space-y-3 px-4">
-            {/* Type — the primary path. Enter saves when the preview is ready. */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                void save();
-              }}
-              className="relative"
-            >
-              <label htmlFor="quick-capture-input" className="sr-only">
-                {t("capture.inputLabel")}
-              </label>
-              <textarea
-                id="quick-capture-input"
-                ref={attachText}
-                rows={1}
-                value={text}
-                onChange={(e) => {
-                  setText(e.target.value);
-                  setTextSource("quick_text");
-                  setOverrides({});
-                  setTransferPicks({ key: "" });
-                  setError(null);
-                  if (receipt.status !== "idle") clearReceipt();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
-                  e.preventDefault();
-                  // One item: Enter saves. A recap: Enter just closes the keyboard to review the list.
-                  if (recapMode) e.currentTarget.blur();
-                  else void save();
-                }}
-                placeholder={speech.listening ? t("capture.listening") : t("capture.recap.placeholder")}
-                autoComplete="off"
-                enterKeyHint="done"
-                className="block min-h-13 w-full resize-none overflow-y-auto overscroll-contain rounded-2xl border bg-background px-4 py-3 pr-11 text-base leading-relaxed outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
-              />
-              {text ? (
-                <button
-                  type="button"
-                  aria-label={t("common.clear")}
-                  onClick={() => {
-                    setText("");
-                    setOverrides({});
-                    textRef.current?.focus();
-                  }}
-                  className="absolute top-3 right-3 flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
-                >
-                  <X className="size-4" aria-hidden="true" />
-                </button>
-              ) : null}
-            </form>
-
-            <CaptureDatePicker value={captureDate} today={ctx.today} onChange={(d) => setPickedDate(d === ctx.today ? null : d)} />
-
-            {/* Examples fold away smoothly once typing starts (no one-frame jump). */}
             <div
-              aria-hidden={Boolean(text) || receipt.status !== "idle"}
-              inert={Boolean(text) || receipt.status !== "idle" || speech.listening}
-              className={cn(
-                "grid transition-[grid-template-rows,opacity,margin] duration-200 ease-out motion-reduce:transition-none",
-                !text && receipt.status === "idle" ? "grid-rows-[1fr] opacity-100" : "-mt-3 grid-rows-[0fr] opacity-0"
-              )}
+              ref={prefixRef}
+              className="space-y-3"
+              // Keep everything above the held mic at its press-time height,
+              // including when an earlier review moves below it for a new take.
+              style={speech.listening && holdLayout ? { height: holdLayout.prefixHeight, overflow: "hidden" } : undefined}
             >
-              <div className="flex min-h-0 flex-wrap gap-1.5 overflow-hidden">
-                {(["example1", "example2", "recap.example"] as const).map((key) => (
+              {/* Type — the primary path. Enter saves when the preview is ready. */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void save();
+                }}
+                className="relative"
+              >
+                <label htmlFor="quick-capture-input" className="sr-only">
+                  {t("capture.inputLabel")}
+                </label>
+                <textarea
+                  id="quick-capture-input"
+                  ref={attachText}
+                  rows={1}
+                  value={text}
+                  onChange={(e) => {
+                    setText(e.target.value);
+                    setTextSource("quick_text");
+                    setOverrides({});
+                    setTransferPicks({ key: "" });
+                    setError(null);
+                    if (receipt.status !== "idle") clearReceipt();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+                    e.preventDefault();
+                    // One item: Enter saves. A recap: Enter just closes the keyboard to review the list.
+                    if (recapMode) e.currentTarget.blur();
+                    else void save();
+                  }}
+                  placeholder={speech.listening ? t("capture.listening") : t("capture.recap.placeholder")}
+                  autoComplete="off"
+                  enterKeyHint="done"
+                  className="block min-h-13 w-full resize-none overflow-y-auto overscroll-contain rounded-2xl border bg-background px-4 py-3 pr-11 text-base leading-relaxed outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
+                />
+                {text ? (
                   <button
-                    key={key}
                     type="button"
+                    aria-label={t("common.clear")}
                     onClick={() => {
-                      // A stray tap left over from pressing the mic is not a choice.
-                      if (speech.listening || Date.now() - micPressedAtRef.current < 800) return;
-                      setText(t(`capture.${key}`));
-                      setTextSource("quick_text");
+                      setText("");
+                      setOverrides({});
+                      textRef.current?.focus();
                     }}
-                    className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+                    className="absolute top-3 right-3 flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
                   >
-                    {t(`capture.${key}`)}
+                    <X className="size-4" aria-hidden="true" />
                   </button>
-                ))}
+                ) : null}
+              </form>
+
+              <CaptureDatePicker value={captureDate} today={ctx.today} onChange={(d) => setPickedDate(d === ctx.today ? null : d)} />
+
+              {reviewFirst ? review : null}
+
+              {/* Examples fold away smoothly once typing starts (no one-frame jump). */}
+              <div
+                aria-hidden={Boolean(text) || receipt.status !== "idle"}
+                inert={Boolean(text) || receipt.status !== "idle" || speech.listening}
+                className={cn(
+                  "grid transition-[grid-template-rows,opacity,margin] duration-200 ease-out motion-reduce:transition-none",
+                  !text && receipt.status === "idle" ? "grid-rows-[1fr] opacity-100" : "-mt-3 grid-rows-[0fr] opacity-0"
+                )}
+              >
+                <div className="flex min-h-0 flex-wrap gap-1.5 overflow-hidden">
+                  {(["example1", "example2", "recap.example"] as const).map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        // A stray tap left over from pressing the mic is not a choice.
+                        if (speech.listening || Date.now() - micPressedAtRef.current < 800) return;
+                        setText(t(`capture.${key}`));
+                        setTextSource("quick_text");
+                      }}
+                      className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      {t(`capture.${key}`)}
+                    </button>
+                  ))}
+                </div>
               </div>
+
             </div>
 
             {/* Capture methods — the mic is the hero: hold, talk through the day, release. */}
@@ -940,6 +1103,10 @@ export function QuickCaptureSheet({
                 disabled={!speech.supported}
                 onStart={() => {
                   micPressedAtRef.current = Date.now();
+                  setHoldLayout({
+                    prefixHeight: prefixRef.current?.getBoundingClientRect().height ?? 0,
+                    sheetHeight: sheetElRef.current?.getBoundingClientRect().height ?? 0,
+                  });
                   setError(null);
                   if (receipt.status !== "idle") clearReceipt();
                   textRef.current?.blur();
@@ -1008,115 +1175,7 @@ export function QuickCaptureSheet({
               {t("capture.uploadImage")}
             </button>
 
-            {receipt.status !== "idle" ? (
-              <div className="flex items-center gap-3 rounded-2xl border bg-muted/40 p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element -- transient local object URL, never uploaded as-is or stored */}
-                <img src={receipt.previewUrl} alt="" className="size-14 shrink-0 rounded-xl object-cover" />
-                <div className="min-w-0 flex-1 text-sm">
-                  {receipt.status === "scanning" ? (
-                    <p className="flex min-w-0 items-center gap-2">
-                      <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
-                      {/* Live status: each step the slip reader actually does. */}
-                      <LiveStatus lines={tList("capture.scanningSteps", "capture.scanning")} />
-                    </p>
-                  ) : (
-                    <>
-                      {receipt.message ? <p className="font-medium text-amber-800 dark:text-amber-300">{receipt.message}</p> : null}
-                      {receipt.message ? <p className="text-xs text-muted-foreground">{t("capture.partialReadHint")}</p> : null}
-                      {receipt.mock ? <p className="text-xs text-muted-foreground">{t("capture.mockLabel")}</p> : null}
-                    </>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  aria-label={t("common.close")}
-                  onClick={clearReceipt}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
-                >
-                  <X className="size-4" aria-hidden="true" />
-                </button>
-              </div>
-            ) : null}
-
-            {recapMode ? (
-              <RecapReview
-                rows={recapRows}
-                accounts={accounts}
-                categories={categories}
-                onChange={(id, patch) => setRecapOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }))}
-                onRemove={(id) => setRecapRemoved((prev) => new Set([...prev, id]))}
-                onConfirm={() => void confirmRecap()}
-                saving={saving}
-                progress={recapProgress}
-                aiPending={recapAIPendingKey !== null}
-              />
-            ) : null}
-
-            {activeDraft?.cancelIntent ? (
-              <SubscriptionCancelCard key={activeDraft.cancelIntent.serviceQuery} serviceQuery={activeDraft.cancelIntent.serviceQuery}
-                onCancelled={() => { resetAll(); onOpenChange(false); }} />
-            ) : activeDraft && transferIntent && receipt.status !== "scanning" && !recapMode ? (
-              <TransferPreview
-                intent={transferIntent}
-                accounts={accounts}
-                amountCents={activeDraft.amountCents}
-                date={activeDraft.date}
-                fromId={transferSide("from")}
-                toId={transferSide("to")}
-                saving={saving}
-                onAmountChange={(amountCents) => patchDraft({ amountCents })}
-                onPick={(side, accountId, rememberWord) => {
-                  setTransferPicks((previous) => ({
-                    ...(previous.key === textKey ? previous : { key: textKey }),
-                    [side]: accountId,
-                  }));
-                  if (!rememberWord) return;
-                  void saveAccountAlias(accountId, rememberWord, "learned").then((result) => {
-                    if (result.alias) {
-                      setAliases((previous) => [...previous.filter((alias) => alias.alias_normalized !== result.alias!.alias_normalized), result.alias!]);
-                      const accountName = accounts.find((account) => account.id === accountId)?.name ?? "";
-                      toast(t("capture.voice.remembered").replace("{heard}", rememberWord).replace("{name}", accountName));
-                    } else if (result.error) toast.error(result.error);
-                  });
-                }}
-                onSave={() => void save()}
-              />
-            ) : activeDraft && receipt.status !== "scanning" && !recapMode ? (
-              <TransactionPreview
-                draft={activeDraft}
-                accounts={accounts}
-                categories={categories}
-                heading={receipt.status !== "idle" ? receiptHeading : t("capture.preview")}
-                onChange={patchDraft}
-                onSave={() => void save()}
-                onSaveAnyway={() => {
-                  setDuplicate(null);
-                  void save({ skipDuplicateCheck: true });
-                }}
-                onEdit={openManual}
-                saving={saving}
-                saveLabel={receipt.status !== "idle" ? t("capture.correct") : t("capture.save")}
-                duplicate={duplicate}
-                notice={
-                  receipt.status !== "idle" ? undefined : aiPendingKey === textKey ? (
-                    <p className="flex min-w-0 items-center gap-1.5 text-xs">
-                      <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
-                      <LiveStatus lines={tList("capture.aiAssistingSteps", "capture.aiAssisting")} />
-                    </p>
-                  ) : aiReading ? (
-                    <p className="text-xs text-muted-foreground" aria-live="polite">
-                      {t("capture.aiAssisted")}
-                    </p>
-                  ) : undefined
-                }
-              />
-            ) : null}
-
-            {error ? (
-              <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
-              </p>
-            ) : null}
+            {!reviewFirst ? review : null}
 
             {accounts.length === 0 ? (
               <Button variant="outline" className="w-full" nativeButton={false} render={<Link href="/money/accounts" />}>
