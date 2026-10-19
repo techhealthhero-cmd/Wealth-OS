@@ -1,4 +1,4 @@
--- PROPOSAL — NOT APPLIED — needs user approval; rename into supabase/migrations with the next free number when approved
+-- 0048 asset taxonomy + valuation metadata. Approved by user 2026-10-19 21:22 (Asia/Bangkok); applied to STAGING (eovyvlesdgygjqrrvpas) only.
 -- Additive, nullable metadata only. No RLS, policy, grant, auth or data changes.
 alter table public.assets
   add column category_group text check (category_group in ('cash_deposits', 'market_investments', 'insurance_savings', 'precious_metals', 'digital_assets', 'real_estate', 'land_vehicles', 'special_vehicles', 'heavy_machinery', 'livestock_pets', 'tools_materials', 'creator_equipment', 'musical_instruments', 'it_electronics', 'home_appliances', 'luxury_fashion', 'watches', 'jewelry', 'collectibles', 'amulets', 'art_antiques', 'hobbies_sports', 'firearms', 'business_inventory', 'receivables_claims', 'custom')),
