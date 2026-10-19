@@ -143,7 +143,8 @@ export async function NetWorthHero({ variant = "hero" }: { variant?: "hero" | "c
         }}
         netWorthCents={breakdown.netWorthCents}
         sinceFirst={sinceFirst}
-        sparkline={chartData.map((point) => point.netWorth)}
+        chartData={chartData}
+        monthLabels={monthLabels}
         currencyCode={currencyCode}
       />
     );
@@ -165,6 +166,7 @@ export async function NetWorthHero({ variant = "hero" }: { variant?: "hero" | "c
       hasHistory={hasHistory}
       chartData={chartData}
       monthLabels={monthLabels}
+      currencyCode={currencyCode}
     />
   );
 }
