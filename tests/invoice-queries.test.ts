@@ -55,7 +55,7 @@ class Query {
 }
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({
+  getAuthUser: async () => user, createClient: async () => ({
     auth: { getUser: async () => ({ data: { user } }) },
     from: (table: string) => new Query(table),
   }),
@@ -152,6 +152,12 @@ describe("invoice reads", () => {
     for (const table of ["invoices", "invoice_items", "accounts"])
       expect(calls).toContainEqual({ table, column: "user_id", value: "me" });
   });
+  it("reminders read only the owned header, even when item/account services fail", async () => {
+    failures = ["invoice_items", "accounts"].map(table => ({ table, code: "XX000", message: "failure" }));
+    const result = await getInvoice(ID, today, true);
+    expect(result.invoice).toMatchObject({ id: ID, clientName: "Studio Mango", netReceivableCents: 1940000 });
+    expect(calls.every(call => call.table === "invoices")).toBe(true);
+  });
   it("missing or another user's invoice is null, without reading its items", async () => {
     expect(await getInvoice("33333333-3333-4333-8333-333333333333", today)).toEqual({ success: true, invoice: null });
     expect(calls.some((c) => c.table === "invoice_items")).toBe(false);
@@ -199,10 +205,15 @@ describe("invoice reads", () => {
     expect(result.context?.today).toBe(today);
     expect(calls).toContainEqual({ table: "accounts", column: "is_archived", value: false });
   });
-  it("falls back from missing/archived recent account to first bank/cash; none stays null", async () => {
+  it("falls back from missing/archived recent account to only account; none stays null", async () => {
     db.invoices[0].receive_account_id = "archived";
     expect((await getInvoiceFormContext(today)).context?.defaultReceiveAccountId).toBe(ACCOUNT);
     db.accounts = [];
+    expect((await getInvoiceFormContext(today)).context?.defaultReceiveAccountId).toBeNull();
+  });
+  it("does not invent a default among multiple accounts with no valid recent choice", async () => {
+    db.invoices[0].receive_account_id = null;
+    db.accounts.push({ ...db.accounts[0], id: "second", name: "Cash", account_type: "cash" });
     expect((await getInvoiceFormContext(today)).context?.defaultReceiveAccountId).toBeNull();
   });
   it("paginates active receiving accounts without leaking other owners", async () => {

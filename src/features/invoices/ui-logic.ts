@@ -34,6 +34,16 @@ export interface InvoiceView extends InvoiceListEntry {
   earnProjectId?: string | null;
 }
 export type ReceiveAccount = { id: string; name: string; account_type: string };
+/** Resolve only known choices; never guess among multiple accounts without a default. */
+export function resolveReceiveAccount(
+  accounts: readonly ReceiveAccount[],
+  preferredId?: string | null,
+  defaultId?: string | null,
+): ReceiveAccount | null {
+  return accounts.find(a => a.id === preferredId)
+    ?? accounts.find(a => a.id === defaultId)
+    ?? (accounts.length === 1 ? accounts[0] : null);
+}
 export interface ClientHistoryRow {
   clientName: string;
   clientIsCompany: boolean;

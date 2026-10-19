@@ -231,6 +231,28 @@ describe("invoice screen static contracts", () => {
     pathname = "/money/accounts";
     expect(renderChrome("accounts")).toContain("money-tabs");
   });
+  it("form and detail both preselect an only account without a supplied default", () => {
+    const unassigned = { ...invoice, receiveAccountId: null, receiveAccountName: null };
+    const html = renderToStaticMarkup(createElement(InvoiceFormScreen, {
+      copy, context: { ...context, defaultReceiveAccountId: null },
+      invoice: unassigned, onSave: action, onMarkSent: action,
+    }));
+    expect(html).toContain(`value="${accounts[0].id}" selected=""`);
+    const detail = renderToStaticMarkup(createElement(InvoiceDetailScreen, {
+      copy, today, invoice: unassigned, accounts, onPaid: paid, onVoid: action, onMarkSent: action,
+    }));
+    expect(detail).toContain(accounts[0].name);
+  });
+  it("unavailable editable accounts stay unselected; paid history retains its account name", () => {
+    const props = { copy, today, accounts: [], onPaid: paid, onVoid: action, onMarkSent: action };
+    const editable = renderToStaticMarkup(createElement(InvoiceDetailScreen, { ...props, invoice }));
+    expect(editable).not.toContain(invoice.receiveAccountName!);
+    expect(editable).toContain(copy.chooseAccount);
+    const history = renderToStaticMarkup(createElement(InvoiceDetailScreen, {
+      ...props, invoice: { ...invoice, status: "paid", displayStatus: "paid", paidAt: today },
+    }));
+    expect(history).toContain(invoice.receiveAccountName!);
+  });
   it("routes guard data with privacy and await promised route parameters", () => {
     const route = readFileSync("src/features/invoices/route-screen.tsx", "utf8");
     expect(route.indexOf('await getPrivacyGate("activity")')).toBeLessThan(route.indexOf("await listInvoices(today)"));

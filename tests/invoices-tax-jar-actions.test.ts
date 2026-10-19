@@ -72,7 +72,7 @@ class Query {
   then(resolve: (r: ReturnType<Query["run"]>) => unknown) { return Promise.resolve(this.run()).then(resolve); }
 }
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
+vi.mock("@/lib/supabase/server", () => ({ getAuthUser: async () => user, createClient: async () => ({
   auth: { getUser: async () => ({ data: { user } }) },
   from: (table: string) => new Query(table),
   rpc: async (name: string, args: Row) => { rpcCalls.push({ name, ...args }); return { data: rpcError ? null : SOURCE, error: rpcError }; },

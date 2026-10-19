@@ -7,6 +7,7 @@ import { parseMoneyToCents } from "@/lib/financial/money";
 import {
   calendarDaysBetween,
   defaultDueDate,
+  resolveReceiveAccount,
   filterClientSuggestions,
   interpolate,
   invoiceMoney,
@@ -56,7 +57,9 @@ export function InvoiceFormScreen({
   const [dueAutomatic, setDueAutomatic] = useState(!invoice);
   const [number, setNumber] = useState(invoice?.invoiceNumber ?? context.suggestedNumber);
   const [editNumber, setEditNumber] = useState(false);
-  const [account, setAccount] = useState(invoice?.receiveAccountId ?? context.defaultReceiveAccountId ?? "");
+  const [account, setAccount] = useState(
+    resolveReceiveAccount(context.accounts, invoice?.receiveAccountId, context.defaultReceiveAccountId)?.id ?? "",
+  );
   const [notes, setNotes] = useState(invoice?.notes ?? "");
   const [items, setItems] = useState(() =>
     (invoice?.items ?? [{ description: "", quantity: 1, unitPriceCents: 0 }]).map((item, index) => ({

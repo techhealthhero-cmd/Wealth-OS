@@ -1,5 +1,5 @@
 "use client";
-import { toast } from "sonner";
+import { useInvoiceCopyToast } from "./use-invoice-copy-toast";
 import { useState, useSyncExternalStore } from "react";
 import {
   buildLineShareUrl,
@@ -51,6 +51,7 @@ export function InvoiceReminderScreen({
   copy,
   locale = "th",
 }: InvoiceReminderScreenProps) {
+  const copyToast = useInvoiceCopyToast();
   const storedEnding = useSyncExternalStore(subscribeEnding, readEnding, () => "ค่ะ" as const);
   const [endingOverride, setEnding] = useState<ReminderEnding | undefined>(initialEnding);
   const ending = endingOverride ?? storedEnding;
@@ -63,7 +64,7 @@ export function InvoiceReminderScreen({
   async function copyText() {
     if (await copyInvoiceText(text)) {
       setMessage(copy.copied);
-      toast.success(copy.copied);
+      copyToast.show(copy.copied);
       setFallback(false);
     } else setFallback(true);
   }
