@@ -139,6 +139,9 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| TAB-STRIP-STILL | Keep section strips outside content turns | Codex | DONE — Node 22 lint/typecheck/1461 tests passed | Curl geometry/snapshot alignment, horizontal strip helper + tests; preserve prior fixes, no git/harness/deps | Implement, run Node 22 lint/tsc/full Vitest, owner device review |
+| CURL-CONTENT-READY | iOS turn landing and raster cost | Codex | DONE — Node 22 lint/typecheck/1456 tests passed | Shared curl lifecycle, CSS, section marker, Node tests; preserve gesture fix; no git/harness/deps | Implement bounded readiness, validate lint/tsc/full Vitest, owner device review |
+| TOUCH-CURL-RECOVERY | Detached touch target and settling sheet cleanup | Codex | DONE — lint/typecheck/122 files · 1451 tests passed | SwipeTabPages, motion helper, Node regression tests, this board; harness unchanged; no git commands | Owner device review |
 | CAPTURE-SUB-REFINEMENTS | Recurring bill categories, cancellation refund guard, subscription account boundaries | Codex | DONE — typegen/typecheck, all changed TS/TSX ESLint, full Vitest 123 files / 1590 tests pass | keywords.ts, subscription-intent.ts, transaction-parser.ts, two capture tests and this board; existing uncommitted work preserved; no commit/push or schema/RLS/migrations | Local owner review |
 | CAPTURE-SUBSCRIPTIONS | Subscription capture + recurring confirm + cancellation | Codex | DONE — typegen/typecheck, changed TS lint and full Vitest 123 files / 1507 tests passed | Capture parser/actions/UI, recurring shared insert and cancellation guards, upcoming bills, locales, seven test files and status docs; no migrations/schema/RLS/production/commit/push | Local review by owner |
 | HOME-SCAN-SLIP | Home quick action "สแกนสลิป" opens slip scan (file input) directly, not Quick Capture sheet | Grok Bot (Codex impl) | IN PR → staging | Home scan → synchronously clicked mounted picker → existing QuickCaptureSheet image handler; no layout/parser changes. Focused tests/lint/typecheck passed | Merge after CI green |
@@ -387,3 +390,28 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 การส่งต่องานที่ดีต้องทำให้อีกฝ่ายเริ่มต่อได้โดยไม่เดา: รู้ว่าเป้าหมายคืออะไร อะไรเสร็จ
 อะไรยังไม่เสร็จ ไฟล์ใดเกี่ยวข้อง ตรวจอะไรแล้ว และการตัดสินใจใดห้ามเปลี่ยนโดยเงียบ ๆ
+
+### 2026-10-19 — Codex → owner (TOUCH-CURL-RECOVERY)
+
+- SwipeTabPages now listens on the original touch target for each gesture via a DOM-agnostic helper; wrapper only listens for touchstart. End/cancel and unmount dispose target listeners, including detached targets.
+- New starts recover stale drag/back-preview sheets; pagehide/hidden visibility and effect cleanup remove drag/settling sheets and restore live opacity when no flight runs. Settle cancellation owns its sheet after drag refs are cleared. Existing flight/navigation/snapshot paths retained.
+- Added four Node EventTarget regression cases in tests/touch-gesture.test.ts for target binding, detached end/cancel, listener removal/disposal and repeat gestures.
+- Validation under existing /home/box/.local/node22/bin runtime: npm run lint PASS; npx tsc --noEmit PASS; npx vitest run PASS (122 files, 1451 tests). Initial default Node 20 run failed the unrelated PDF legacy test (Promise.withResolvers); reran with the repo-required Node 22 without test changes/skips.
+- No git commands, commits, pushes, dependencies or harness edits. No device/CDP rerun; next acceptance step is owner iPhone check.
+
+### 2026-10-19 — Codex → owner (CURL-CONTENT-READY)
+
+- Added a 900ms bounded skeleton observer before forward release/back snapshot; flight identity, wrapper ownership, unmount cleanup and the existing 5s maximum guard cover interrupted/cross-section turns. Existing gesture helper and settle cleanup retained.
+- Sheet faces/underlays clip and contain paint to viewport; snapshot backdrop filters disabled. Active turns pause live skeleton shimmer; landing finishes running finite CSS animations. Section markers use right-origin scale transforms with reduced-motion transitions disabled.
+- Added five Node tests for ready content, final skeleton removal, timeout, cancellation and finite CSS animation finishing. Clone reuse intentionally deferred: drag-created sheet ownership/coordinates make it more than a straightforward safe change.
+- Node 22 validation: typecheck PASS; Vitest PASS (123 files / 1456 tests). Lint PASS. Default login shell initially selected Node 20 and failed existing PDF built-ins coverage; all requested checks rerun explicitly with Node 22, no tests skipped/disabled.
+- No git commands, dependency changes or edits to protected harness/proxy paths. Device Safari review remains the acceptance step.
+
+### 2026-10-19 — Codex → owner (TAB-STRIP-STILL)
+
+- Supersedes the 2026-10-14 title + strip turn decision: sheet top is max(wrapper top, main top, 0), with viewport-bottom height and existing corner/nav clearance math. Main clones retain screen alignment; saved faces/underlays and ruled-paper backgrounds use main-top minus sheet-top.
+- SegmentedTabs now transitions only color/background-color/box-shadow. A layout effect reveals clipped active tabs by setting only the nav scrollLeft; the positioned nav supplies the offsetLeft coordinate origin. Static active padding and reduced-motion behavior retained.
+- Verified Money/Plan/Earn layouts → section tabs → SegmentedTabs have no pathname keys; layouts unchanged. Earlier gesture, settle cleanup, readiness cap, clipping, shimmer pause, animation finishing, marker transform and onStart live-flight recovery retained.
+- Files: src/components/layout/swipe-tab-pages.tsx, segmented-tabs.tsx, new tab-strip-scroll.ts; tests/tab-strip-scroll.test.ts; this board.
+- Node 22.23.3: npm run lint PASS; npx tsc --noEmit PASS; npx vitest run PASS (124 files / 1461 tests). Five helper cases cover visible/edge tabs, clipped left/right, padding limits and non-overflow bounds. No tests skipped/disabled.
+- No git commands, dependencies or protected harness/proxy edits. Next: owner device visual review of Money/Plan/Earn turns, cross-section turns and close-book.

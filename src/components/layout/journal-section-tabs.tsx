@@ -41,8 +41,8 @@ export function JournalSectionTabs() {
             <span
               key={item.key}
               className={cn(
-                "ml-auto block h-11 rounded-l-md shadow-[inset_1px_0_0_rgba(255,255,255,0.35),-1px_1px_2px_rgba(92,70,38,0.18)] transition-[width,opacity] duration-(--motion-normal) ease-(--ease-standard)",
-                active ? "w-3 opacity-100" : "w-1.5 opacity-75"
+                "ml-auto block h-11 w-3 origin-right rounded-l-md shadow-[inset_1px_0_0_rgba(255,255,255,0.35),-1px_1px_2px_rgba(92,70,38,0.18)] transition-[transform,opacity] motion-reduce:transition-none duration-(--motion-normal) ease-(--ease-standard)",
+                active ? "scale-x-100 opacity-100" : "scale-x-50 opacity-75"
               )}
               style={{ backgroundColor: TAB_COLOR[item.key] }}
             />

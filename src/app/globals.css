@@ -996,11 +996,14 @@
 
 /* A page-turn snapshot (SwipeTabPages) shows the page exactly as it was:
    cloned cards must not replay their mount fade-in from transparent. */
+.page-curl-sheet,
 .page-curl-sheet *,
 .page-curl-sheet *::before,
 .page-curl-sheet *::after {
   animation: none !important;
   transition: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Closing the journal (swipe back on Home): the opening, played backwards.
@@ -1015,4 +1018,8 @@
    explicit preview still renders, and simply ends at once). */
 @media (prefers-reduced-motion: reduce) {
   .nb-open[data-launch="true"] { display: none; }
+}
+
+html[data-page-turning] .skeleton-shimmer {
+  animation-play-state: paused;
 }

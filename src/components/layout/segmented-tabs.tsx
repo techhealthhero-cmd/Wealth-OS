@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SwipeTabPages, prefetchFull, type SwipeTabPagesHandle } from "./swipe-tab-pages";
+import { tabStripScrollTarget } from "./tab-strip-scroll";
 import { bookNeighbour } from "./journal-book";
 
 export interface SegmentedTabItem {
@@ -18,21 +19,8 @@ export interface SegmentedTabItem {
 }
 
 /**
- * Shared segmented-control tab bar — MoneyTabs/PlanTabs/EarnTabs were three
- * copy-pasted, near-identical implementations (a plain color-swap on the
- * active pill, no shared component) that had started to drift (EarnTabs
- * was missing the duration/easing tokens the other two had). Requested:
- * make it feel more "modern, premium, Apple" — the concrete gap versus a
- * real iOS segmented control was the missing sliding indicator (switching
- * tabs here just swapped a background color instantly; Apple's own
- * control animates the selected pill sliding to its new position).
- *
- * The pill's position/width are measured from the actual active tab's DOM
- * node (a ref per tab, not the container's raw children index — the
- * indicator itself is also a child, which would throw off any index-based
- * lookup) and animated via `transform: translateX()` + `width`, matching
- * this app's existing "animate transform/opacity, not layout properties"
- * convention (see globals.css's motion-system comment).
+ * Shared section tab strip, kept live outside the content page turn.
+ * Colour and shadow transitions never animate tab layout.
  *
  * Visual style: notebook divider tabs (2026-10-15) — went pill → underline
  * → icon card → glossy sliding green tile → this, each on request; the
@@ -57,6 +45,7 @@ export function SegmentedTabs({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const navRef = useRef<HTMLElement>(null);
   const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
 
   const activeIndex = tabs.findIndex((tab) => (tab.isActive ? tab.isActive(pathname) : pathname.startsWith(tab.href)));
@@ -65,8 +54,12 @@ export function SegmentedTabs({
   const hrefs = useMemo(() => hrefKey.split("|"), [hrefKey]);
 
   // With 7–8 Money tabs the row overflows on mobile: keep the open one in view.
-  useEffect(() => {
-    tabRefs.current[activeIndex]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    const tab = tabRefs.current[activeIndex];
+    if (!nav || !tab) return;
+    const target = tabStripScrollTarget(tab.offsetLeft, tab.offsetWidth, nav.scrollLeft, nav.clientWidth, nav.scrollWidth);
+    if (target !== null) nav.scrollLeft = target;
   }, [activeIndex]);
 
   return (
@@ -74,9 +67,9 @@ export function SegmentedTabs({
       {/* Divider tabs (2026-10-15, mockup option A): paper tabs standing on
           the page's top edge, like a notebook's section dividers. The open
           one is the page itself — same paper, no seam — while the others
-          sit behind it in the darker page-edge colour. They are drawn on the
-          page, so they turn with it. */}
-      <nav className="overflow-x-auto pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          sit behind it in the darker page-edge colour. They stay live above the
+          content sheet and never turn with it. */}
+      <nav ref={navRef} className="relative overflow-x-auto pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div
           className={cn(
             "flex min-w-max items-end gap-0.5 border-b border-[color-mix(in_oklab,var(--journal-edge),var(--foreground)_22%)] px-1",
@@ -107,7 +100,7 @@ export function SegmentedTabs({
                 className={cn(
                   stretch && "flex-1 justify-center",
                   "relative -mb-px flex shrink-0 touch-manipulation select-none items-baseline gap-1 whitespace-nowrap rounded-t-xl border border-b-0 border-[color-mix(in_oklab,var(--journal-edge),var(--foreground)_22%)] px-3.5 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  "transition-[padding,color,background-color,box-shadow] duration-(--motion-normal) ease-(--ease-standard) motion-reduce:transition-none",
+                  "transition-[color,background-color,box-shadow] duration-(--motion-normal) ease-(--ease-standard) motion-reduce:transition-none",
                   active
                     ? // The page itself: its paper colour covers the strip's bottom edge, so tab and page are one sheet.
                       "z-10 bg-background pb-2 pt-2.5 font-bold text-foreground"
