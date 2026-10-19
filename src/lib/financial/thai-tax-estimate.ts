@@ -1,11 +1,11 @@
 /** ESTIMATE ONLY. Pure implementation of the proposed rules, not a tax filing calculation. */
-/** Personal allowance in satang — pending user approval. */
+/** Personal allowance in satang. Approved by user 2026-10-19. */
 export const PERSONAL_ALLOWANCE = 60000_00;
-/** Section 40(2) expense deduction — pending user approval. */
+/** Section 40(2) expense deduction. Approved by user 2026-10-19. */
 export const EXPENSE_40_2 = { ratePct: 50, capCents: 100000_00 } as const;
-/** Configurable Section 40(8) default expense percentage — pending user approval. */
+/** Configurable Section 40(8) default expense percentage. Approved by user 2026-10-19. */
 export const EXPENSE_40_8_DEFAULT_RATE_PCT = 60;
-/** Marginal brackets in satang — pending user approval. */
+/** Marginal brackets in satang. Approved by user 2026-10-19. */
 export const TAX_BRACKETS = [
   { upperBoundCents: 150000_00, ratePct: 0 },
   { upperBoundCents: 300000_00, ratePct: 5 },
@@ -16,11 +16,11 @@ export const TAX_BRACKETS = [
   { upperBoundCents: 5000000_00, ratePct: 30 },
   { upperBoundCents: Infinity, ratePct: 35 },
 ] as const;
-/** Minimum-tax gross income threshold in satang — pending user approval. */
+/** Minimum-tax gross income threshold in satang. Approved by user 2026-10-19. */
 export const MINIMUM_TAX_INCOME_THRESHOLD_CENTS = 120000_00;
-/** Minimum-tax percentage — pending user approval. */
+/** Minimum-tax percentage. Approved by user 2026-10-19. */
 export const MINIMUM_TAX_RATE_PCT = 0.5;
-/** Minimum tax at or below this amount is ignored — pending user approval. */
+/** Minimum tax at or below this amount is ignored. Approved by user 2026-10-19. */
 export const MINIMUM_TAX_EXEMPTION_CENTS = 5000_00;
 
 function assertAmount(value: number): void {
