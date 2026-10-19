@@ -10,7 +10,8 @@ import { getLocale } from "@/i18n/server";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { IncomeThisMonth } from "@/features/dashboard/components/income-this-month";
 import { HomeQuickActions } from "@/features/dashboard/components/home-quick-actions";
-import { HomeUpcomingTiles } from "@/features/dashboard/components/home-tiles";
+import { HomeExpectedTileCard, HomeTaxTile } from "@/features/dashboard/components/home-tiles";
+import { HomeExpectedTile } from "@/features/dashboard/components/home-expected-tile";
 import { UpNextPayments } from "@/features/dashboard/components/up-next-payments";
 import { DailyInboxSection } from "@/features/capture/components/daily-inbox-section";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -86,7 +87,12 @@ export default async function DashboardPage() {
       </Suspense>
 
       <div className="motion-reveal motion-reveal-3">
-        <HomeUpcomingTiles labels={dict.homeDash} />
+        <div className="grid grid-cols-2 gap-3">
+          <Suspense fallback={<HomeExpectedTileCard labels={dict.homeDash} receivables={null} />}>
+            <HomeExpectedTile today={today} labels={dict.homeDash} currencyCode={profile?.currency_code ?? "THB"} />
+          </Suspense>
+          <HomeTaxTile labels={dict.homeDash} />
+        </div>
       </div>
 
       {/* "Up next" payments — money going out, right after money coming in. */}

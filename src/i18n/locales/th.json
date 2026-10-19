@@ -3419,6 +3419,8 @@
     "expectedTitle": "รอเงินเข้า",
     "expectedEmpty": "ยังไม่มีใบแจ้งหนี้",
     "expectedHint": "เงินที่รอลูกค้าโอนจะแสดงที่นี่",
+    "expectedPending": "{count} ใบ รอโอน",
+    "expectedOverdue": "เลยกำหนด {count} ใบ",
     "taxTitle": "โหลภาษี",
     "taxEmpty": "เริ่มกันภาษีจากรายรับ",
     "taxHint": "กันไว้ทีละนิดทุกครั้งที่เงินเข้า",

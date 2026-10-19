@@ -3419,6 +3419,8 @@
     "expectedTitle": "Money expected",
     "expectedEmpty": "No invoices yet",
     "expectedHint": "Money you're waiting on from clients will show here",
+    "expectedPending": "{count} pending",
+    "expectedOverdue": "{count} overdue",
     "taxTitle": "Tax jar",
     "taxEmpty": "Set aside tax from income",
     "taxHint": "A little from every payment that comes in",
