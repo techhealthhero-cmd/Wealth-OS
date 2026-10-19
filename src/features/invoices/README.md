@@ -68,7 +68,7 @@ Every page is a thin server wrapper; dynamic `params` and `searchParams` are awa
 `MoneyChrome` hides the Money title/tabs on these routes; the app's bottom nav is retained.
 There is no invoice entitlement in the current billing feature registry.
 
-New read-only APIs in `queries.ts`: `listInvoices(today)`, `getInvoice(id, today)`
+New read-only APIs in `queries.ts`: `listInvoices(today)`, `getInvoice(id, today, reminderOnly = false)`
 (`invoice: null` for an owned row not found), `getInvoiceFormContext(today)`.
 Each authenticates and explicitly scopes every read to the session user. History and
 accounts paginate in 500-row batches. Errors, including later-page failures, never
@@ -110,3 +110,34 @@ Approved deviations from the source HTML: only Copy text and LINE on detail;
 no public link, PDF, or remind-me-again box; invoice numbers use Buddhist years.
 The app shell's existing bottom navigation is retained. Editable form controls,
 notes, issue-date input and account/payment dialogs add space beyond the static mockups.
+
+### Invoice QA behavior and verification
+
+Payment confirmation closes immediately and paints a local paid state before awaiting
+`markInvoicePaid`; rejected/thrown actions restore the previous invoice and show the
+localized error toast. The RPC arguments and tax-jar settings-before-commit guard,
+post-commit cash read, suggestion feedback, and cache invalidations remain intact.
+The request-scoped context reuses `getAuthUser` and React `cache`, including the
+settings loader called by payment. No financial writes or formulas were changed.
+
+Reminder reads pass `reminderOnly = true`: only the authenticated, owned header is
+read; returned items are empty and account name is omitted because reminder text
+uses neither. Other consumers must use the default full detail read. Detail/edit
+read the invoice and form context concurrently; form history/accounts also load in
+parallel. Copy toasts use a screen-specific ID, 1200ms duration and route/unmount
+cleanup; the detail reminder link dismisses before navigating.
+
+`resolveReceiveAccount` is shared by form, detail/payment and form-context default
+selection. It chooses a valid invoice account, then a valid supplied default, then
+an only active account. The most recent invoice's valid account remains the form
+context's preference; multiple accounts without that preference stay unselected.
+There is no profile/account default-account field in this schema.
+
+Date audit: `issue_date`, `due_date` and `paid_at` are SQL dates, mapped verbatim.
+Defaults and the list header use `todayInTimeZone(profile.timezone)` (Bangkok fallback);
+the header represents today, not an invoice's creation/issue date. Formatting and
++15-day arithmetic already use explicit UTC as a calendar-date carrier, independent
+of server TZ. The reported next-day shift could not be reproduced from this branch;
+new regressions cover 23:30/00:00 Bangkok, alternate profile zones, date-only rendering
+and year rollover. Investigating an already incorrect stored issue date requires an
+example of the original issue-date input and stored date; no stored dates were altered.

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { toast } from "sonner";
 import { useState, useTransition } from "react";
+import { useInvoiceCopyToast } from "./use-invoice-copy-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { calculateInvoiceTotals } from "@/lib/financial/invoice";
 import type { InvoiceActionResult, markInvoicePaid } from "../actions";
@@ -11,6 +12,7 @@ import {
   formatThaiDate,
   interpolate,
   invoiceMoney,
+  resolveReceiveAccount,
   type InvoiceView,
   type ReceiveAccount,
 } from "../ui-logic";
@@ -34,6 +36,7 @@ export interface InvoiceDetailScreenProps extends ScreenCopyProps {
   today: string;
   accounts: ReceiveAccount[];
   highlightShare?: boolean;
+  defaultReceiveAccountId?: string | null;
   onMarkSent: (id: string) => Promise<InvoiceActionResult>;
   onVoid: (id: string) => Promise<InvoiceActionResult>;
   onPaid: (input: Parameters<typeof markInvoicePaid>[0]) => ReturnType<typeof markInvoicePaid>;
@@ -43,13 +46,22 @@ export function InvoiceDetailScreen({
   today,
   accounts,
   highlightShare,
+  defaultReceiveAccountId,
   copy,
   locale = "th",
   onMarkSent,
   onVoid,
   onPaid,
 }: InvoiceDetailScreenProps) {
-  const [invoice, setInvoice] = useState(initialInvoice);
+  const copyToast = useInvoiceCopyToast();
+  const resolvedAccount = resolveReceiveAccount(accounts, initialInvoice.receiveAccountId, defaultReceiveAccountId);
+  const [invoice, setInvoice] = useState({
+    ...initialInvoice,
+    ...(["draft", "sent"].includes(initialInvoice.status) ? {
+      receiveAccountId: resolvedAccount?.id ?? null,
+      receiveAccountName: resolvedAccount?.name ?? null,
+    } : {}),
+  });
   const [error, setError] = useState<string>();
   const [message, setMessage] = useState<string>();
   const [fallback, setFallback] = useState<string>();
@@ -89,7 +101,8 @@ export function InvoiceDetailScreen({
         if (kind === "copy") {
           if (await copyInvoiceText(text)) {
             setFallback(undefined);
-            notify(sent ? `${copy.copied} · ${copy.sentToast}` : copy.copied);
+            setMessage(copy.copied);
+            copyToast.show(sent ? `${copy.copied} · ${copy.sentToast}` : copy.copied);
           } else {
             setFallback(text);
             if (sent) notify(copy.sentToast);
@@ -109,9 +122,21 @@ export function InvoiceDetailScreen({
     setError(undefined);
     if (dialog === "paid" && (!paidDate || paidDate > today || !accountId))
       return setError(!accountId ? copy.chooseAccount : copy.invalidInput);
+    const paying = dialog === "paid";
+    const previous = invoice;
+    if (paying) {
+      // Urgent updates paint before the action/revalidation round-trip.
+      setDialog(null);
+      setInvoice({ ...invoice, status: "paid", displayStatus: "paid", paidAt: paidDate });
+    }
+    function paymentFailed(text: string) {
+      setInvoice(previous);
+      setError(text);
+      toast.error(text);
+    }
     startTransition(async () => {
       try {
-        if (dialog === "void") {
+        if (!paying) {
           const result = await onVoid(invoice.id);
           if (result.error || !result.success) return setError(result.error ?? copy.failed);
           setInvoice((current) => ({ ...current, status: "void", displayStatus: "void" }));
@@ -122,8 +147,7 @@ export function InvoiceDetailScreen({
             accountId,
             allowDraft: invoice.status === "draft",
           });
-          if (result.error || !result.success) return setError(result.error ?? copy.failed);
-          setInvoice((current) => ({ ...current, status: "paid", displayStatus: "paid", paidAt: paidDate }));
+          if (result.error || !result.success) return paymentFailed(result.error ?? copy.failed);
           notify(
             result.setAsideSuggestion
               ? interpolate(copy.setAside, {
@@ -137,7 +161,8 @@ export function InvoiceDetailScreen({
         }
         setDialog(null);
       } catch {
-        setError(copy.failed);
+        if (paying) paymentFailed(copy.failed);
+        else setError(copy.failed);
       }
     });
   }
@@ -254,6 +279,7 @@ export function InvoiceDetailScreen({
       {invoice.status === "sent" && (
         <Link
           href={`/money/invoices/${invoice.id}/remind`}
+          onNavigate={copyToast.dismiss}
           className={
             invoice.displayStatus === "overdue"
               ? `${outline} border-[#b3402c] text-[#b3402c] dark:text-rose-300`

@@ -5,7 +5,7 @@ import { daysOverdue, summarizeReceivables, displayInvoiceStatus, type Withholdi
 import { parseMoneyToCents } from "@/lib/financial/money";
 
 import { suggestNextInvoiceNumber } from "./number";
-import { groupClientSuggestions, type InvoiceListEntry, type InvoiceView, type ReceiveAccount, type InvoiceFormContext } from "./ui-logic";
+import { groupClientSuggestions, resolveReceiveAccount, type InvoiceListEntry, type InvoiceView, type ReceiveAccount, type InvoiceFormContext } from "./ui-logic";
 
 type Receivable = { id: string; invoice_number: string; client_name: string; due_date: string; net_amount: number; status: "sent" };
 export async function getReceivablesSummary(today: string) {
@@ -55,7 +55,7 @@ export async function listInvoices(today: string) {
   if (!result.rows) return { error: result.error };
   return { success: true as const, invoices: result.rows.map(row => listEntry(row, today)) };
 }
-export async function getInvoice(id: string, today: string) {
+export async function getInvoice(id: string, today: string, reminderOnly = false) {
   const ctx = await invoiceContext();
   if (!ctx.user) return { error: ctx.dict.common.pleaseLogin };
   if (!idSchema.safeParse(id).success || !calendarDateSchema.safeParse(today).success) return { error: ctx.dict.common.invalidInput };
@@ -63,6 +63,9 @@ export async function getInvoice(id: string, today: string) {
   if (header.error) return { error: invoiceDbError(header.error, ctx.dict) };
   if (!header.data) return { success: true as const, invoice: null };
   const row = header.data as InvoiceRow;
+  // Reminder text needs only the owned header, never items or banking details.
+  if (reminderOnly) return { success: true as const, invoice: { ...listEntry(row, today),
+    items: [], receiveAccountId: row.receive_account_id, receiveAccountName: null, notes: row.notes } as InvoiceView };
   const items = await ctx.supabase.from("invoice_items").select("description,quantity,unit_price,position,id").eq("user_id", ctx.user.id).eq("invoice_id", id).order("position").order("id");
   if (items.error) return { error: invoiceDbError(items.error, ctx.dict) };
   let receiveAccountName: string | null = null;
@@ -76,24 +79,31 @@ export async function getInvoice(id: string, today: string) {
     items: (items.data ?? []).map(item => ({ description: item.description, quantity: Number(item.quantity), unitPriceCents: parseMoneyToCents(item.unit_price) })) };
   return { success: true as const, invoice };
 }
-export async function getInvoiceFormContext(today: string) {
-  const ctx = await invoiceContext();
-  if (!ctx.user) return { error: ctx.dict.common.pleaseLogin };
-  if (!calendarDateSchema.safeParse(today).success) return { error: ctx.dict.common.invalidInput };
-  const history = await readInvoiceHistory(ctx, ctx.user.id);
-  if (!history.rows) return { error: history.error };
+async function readReceiveAccounts(ctx: Awaited<ReturnType<typeof invoiceContext>>, userId: string) {
   const accounts: ReceiveAccount[] = [];
   for (let offset = 0; ; offset += 500) {
-    const result = await ctx.supabase.from("accounts").select("id,name,account_type").eq("user_id", ctx.user.id).eq("is_archived", false)
+    const result = await ctx.supabase.from("accounts").select("id,name,account_type").eq("user_id", userId).eq("is_archived", false)
       .order("sort_order").order("created_at").order("id").range(offset, offset + 499);
     if (result.error) return { error: invoiceDbError(result.error, ctx.dict) };
     const page = result.data ?? [];
     accounts.push(...page);
     if (page.length < 500) break;
   }
+  return { accounts };
+}
+export async function getInvoiceFormContext(today: string) {
+  const ctx = await invoiceContext();
+  if (!ctx.user) return { error: ctx.dict.common.pleaseLogin };
+  if (!calendarDateSchema.safeParse(today).success) return { error: ctx.dict.common.invalidInput };
+  const [history, accountResult] = await Promise.all([
+    readInvoiceHistory(ctx, ctx.user.id), readReceiveAccounts(ctx, ctx.user.id),
+  ]);
+  if (!history.rows) return { error: history.error };
+  if (!accountResult.accounts) return { error: accountResult.error };
+  const accounts = accountResult.accounts;
   const recentAccountId = history.rows[0]?.receive_account_id;
   const context: InvoiceFormContext = { today, accounts,
-    defaultReceiveAccountId: accounts.find(a => a.id === recentAccountId)?.id ?? accounts.find(a => ["bank", "cash"].includes(a.account_type))?.id ?? null,
+    defaultReceiveAccountId: resolveReceiveAccount(accounts, recentAccountId)?.id ?? null,
     suggestedNumber: suggestNextInvoiceNumber(history.rows.map(row => row.invoice_number), Number(today.slice(0,4))),
     clients: groupClientSuggestions(history.rows.map(row => ({ clientName: row.client_name, clientIsCompany: row.client_is_company,
       withholdingRatePct: Number(row.withholding_rate_pct) as WithholdingRatePct, netReceivableCents: parseMoneyToCents(row.net_amount),

@@ -2,9 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getPrivacyGate } from "@/features/account-privacy/gate";
 import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 import { todayInTimeZone } from "@/lib/date";
-import { getProfile } from "@/features/profile/queries";
-import { getDictionary } from "@/i18n/dictionaries";
-import { getLocale } from "@/i18n/server";
+import { invoiceContext } from "./server-context";
 import { createInvoice, markInvoicePaid, markInvoiceSent, updateInvoice, voidInvoice } from "./actions";
 import { getInvoice, getInvoiceFormContext, listInvoices } from "./queries";
 import { InvoiceListScreen } from "./components/invoice-list-screen";
@@ -25,10 +23,9 @@ export async function InvoiceRouteScreen({
 }) {
   const privacyGate = await getPrivacyGate("activity");
   if (privacyGate) return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
-  const profile = await getProfile();
-  const locale = await getLocale(profile?.preferred_language);
-  const copy = getDictionary(locale).invoiceUi;
-  const today = todayInTimeZone(profile?.timezone ?? "Asia/Bangkok");
+  const { dict, locale, timezone } = await invoiceContext();
+  const copy = dict.invoiceUi;
+  const today = todayInTimeZone(timezone);
   const shared = { copy, locale };
   if (mode === "list") {
     const result = await listInvoices(today);
@@ -42,17 +39,19 @@ export async function InvoiceRouteScreen({
     );
   }
   if (!id) notFound();
-  const result = await getInvoice(id, today);
+  const [result, form] = await Promise.all([
+    getInvoice(id, today, mode === "remind"),
+    mode === "remind" ? Promise.resolve(null) : getInvoiceFormContext(today),
+  ]);
   if (result.error) return <InvoiceError copy={copy} message={result.error} />;
   const invoice = result.invoice;
   if (!invoice) notFound();
   if (mode === "remind") {
     if (invoice.status !== "sent") redirect(`/money/invoices/${id}`);
-    return <InvoiceReminderScreen {...shared} invoice={invoice} today={today} />;
+    return <InvoiceReminderScreen key={id} {...shared} invoice={invoice} today={today} />;
   }
   if (mode === "edit" && !["draft", "sent"].includes(invoice.status)) redirect(`/money/invoices/${id}`);
-  const form = await getInvoiceFormContext(today);
-  if (!form.context) return <InvoiceError copy={copy} message={form.error ?? copy.failed} />;
+  if (!form?.context) return <InvoiceError copy={copy} message={form?.error ?? copy.failed} />;
   if (mode === "edit")
     return (
       <InvoiceFormScreen
@@ -65,8 +64,10 @@ export async function InvoiceRouteScreen({
     );
   return (
     <InvoiceDetailScreen
+      key={id}
       {...shared}
       invoice={invoice}
+      defaultReceiveAccountId={form.context.defaultReceiveAccountId}
       today={today}
       accounts={form.context.accounts}
       highlightShare={share}
