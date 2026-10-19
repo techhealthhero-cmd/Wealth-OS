@@ -148,3 +148,16 @@ describe("mergeAIParse", () => {
     expect(r).toMatchObject({ type: "income", categoryId: "cat-freelance", accountId: "acc-kbank", amountCents: 1200000 });
   });
 });
+
+it("AI merge preserves emergency resolution and missing-source flags", () => {
+  const text = "ใช้เงินฉุกเฉิน burger 120";
+  for (const emergencyFundAccountId of [null, "acc-scb"]) {
+    const ctx = { ...CTX, emergencyFundAccountId };
+    const local = parseCaptureText(text, ctx);
+    const ai: AIParseFields = { type: "expense", amountCents: 12000, merchant: null,
+      categoryId: "cat-food", payment: "kbank", date: null, description: text, confidence: "high" };
+    expect(mergeAIParse(text, local, ai, ctx)).toMatchObject({ isEmergencyFundDraw: true,
+      emergencyFundAccountMissing: !emergencyFundAccountId, accountId: emergencyFundAccountId ?? "acc-cash",
+      description: "burger" });
+  }
+});

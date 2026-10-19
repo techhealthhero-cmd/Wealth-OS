@@ -201,10 +201,10 @@ const cap = (c: CaptureConfidence, max: CaptureConfidence) => (RANK[c] > RANK[ma
  * result is never more confident than its weakest essential field.
  */
 export function mergeAIParse(text: string, local: ParsedCapture, ai: AIParseFields, ctx: ParseContext): ParsedCapture {
-  const type = ai.type ?? local.type;
+  const type = local.isEmergencyFundDraw ? local.type : ai.type ?? local.type;
   const amountCents = ai.amountCents ?? local.amountCents;
   const merchant = ai.merchant ?? local.merchant;
-  const description = ai.description ?? local.description;
+  const description = local.isEmergencyFundDraw ? local.description : ai.description ?? local.description;
 
   const learned = merchant ? suggestCategory(merchant, merchant, type, ctx) : null;
   const category =
@@ -218,7 +218,7 @@ export function mergeAIParse(text: string, local: ParsedCapture, ai: AIParseFiel
 
   let accountId = local.accountId;
   let accountSource = local.accountSource;
-  if (local.accountSource !== "matched" && ai.payment) {
+  if (!local.isEmergencyFundDraw && local.accountSource !== "matched" && ai.payment) {
     const hit = matchAccount(ai.payment, ctx.accounts);
     if (hit) {
       accountId = hit.accountId;
@@ -236,6 +236,8 @@ export function mergeAIParse(text: string, local: ParsedCapture, ai: AIParseFiel
   else if (!category.categoryId || category.source === "fallback") confidence = cap(confidence, "medium");
 
   return {
+    isEmergencyFundDraw: local.isEmergencyFundDraw,
+    emergencyFundAccountMissing: local.emergencyFundAccountMissing,
     type,
     amountCents,
     categoryId: category.categoryId,

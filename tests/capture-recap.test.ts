@@ -275,3 +275,12 @@ describe("Gift categories (migration 0039)", () => {
     expect(parseCaptureText("อั่งเปาหลาน 500", ctx)).toMatchObject({ type: "expense", categoryId: "cat-gift-out" });
   });
 });
+
+it("voice recap preserves emergency intent on only its own item", () => {
+  const ctx = { ...CTX, emergencyFundAccountId: "acc-kbank" };
+  const rows = parseRecap("ตอนนี้ใช้เงินกระเป๋าสำรองฉุกเฉินอยู่ กินเบอร์เกอร์ 20\nข้าว 80 cash", ctx);
+  expect(rows).toHaveLength(2);
+  expect(rows[0]).toMatchObject({ isEmergencyFundDraw: true, emergencyFundAccountMissing: false,
+    accountId: "acc-kbank", categoryId: "cat-food", description: "เบอร์เกอร์", amountCents: 2000 });
+  expect(rows[1]).toMatchObject({ isEmergencyFundDraw: false, accountId: "acc-cash", amountCents: 8000 });
+});

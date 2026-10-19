@@ -139,6 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| CAPTURE-EMERGENCY | Emergency source intent and food classification | Codex | DONE — all requested checks passed on Node 22 | Parser + AI preservation, read-only linked account wiring, regression tests; no UI/DB changes | PR to staging |
 | RESUME-PILL-NAV | Mobile resume pill safe-area clearance | Codex | DONE | Host class/comment + focused rendering regression; inspect nav geometry, run typecheck/lint/related Vitest | PR to staging (screenshots 390px ± 34px safe area) |
 | SLIP-PARSE-MATCH | Portable Thai e-slip parser and matcher | Codex | VERIFY — typecheck/lint and 113 files / 1302 tests passed | src/lib/slip + synthetic tests; implement, validate, PR and merge into staging after checks | Codex → staging reviewers; report /workspace/reports/slip-parse-match-pr.md |
 | PDF-IMPORT-REVIEW | Full PR #6 diff vs origin/staging; parser/security fixes and required checks | Codex | DONE — no blocking findings remain; typecheck/lint/108 files·1167 tests passed | Non-UI PDF engine/extraction + regression tests; Claude UI untouched | Grok/Claude review unstaged fixes; no commit/push |
@@ -291,6 +292,15 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - รักษาไว้: องค์ประกอบหลัก สี บุคลิกเส้น และพื้นที่ว่างรอบ subject
 - ตรวจให้ครบ: mobile/desktop, light/dark, Thai/English copy และ social-safe area
 - เมื่อติดตั้งเสร็จ: อัปเดต Active Work และส่งภาพหน้าจอจริงกลับให้ Codex ตรวจ
+
+### 2026-10-19 — Codex → local reviewer (CAPTURE-EMERGENCY)
+
+- Fixed emergency source intent in Quick Capture and voice recap: source/chatter stripped before classification and description. Expanded food dictionary. Exact reported sentence now produces Food & Dining / เบอร์เกอร์ / ฿20.
+- Resolution: active linked account first, then active emergency name/purpose; overrides cash/bank and merchant hints. Bare เงินสำรอง intentionally excluded because general reserves are ambiguous. Archived/unknown links ignored.
+- ParsedCapture.isEmergencyFundDraw always present. emergencyFundAccountMissing indicates unresolved expense source while retaining default account; missing still means absent fields and suggestedAccountId remains merchant-specific. No warning UI added. AI merge preserves source fields and cleaned description.
+- Read-only authenticated/RLS lookup wired into Quick Capture, Voice Notebook and AI assist; accounts purpose included in AI query. Recap already spreads parsed fields, requiring no recap implementation change.
+- Checks on installed Node 22: capture 12 files / 234 tests passed; full Vitest 116 files / 1393 tests passed; ESLint changed code/tests passed; next typegen + tsc --noEmit passed; git diff --check passed. Used --configLoader runner because default bundling writes into read-only shared node_modules. Initial Node 20 full run failed an unrelated PDF test (Promise.withResolvers); supported Node 22 resolves it without test changes.
+- No migrations, RLS/auth policy changes, money-formula changes, commits or pushes. Next: PR to staging; warning UI (part b) is Claude's mockup task.
 
 ## Handoff Template
 

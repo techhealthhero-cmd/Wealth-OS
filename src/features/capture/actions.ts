@@ -59,6 +59,16 @@ function revalidateMoney() {
 // merchant → category learning
 // ---------------------------------------------------------------------------
 
+/** Read-only, authenticated lookup; the normal user client also applies RLS. */
+export async function getCaptureEmergencyFundAccountId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase.from("emergency_funds")
+    .select("linked_account_id").eq("user_id", user.id).maybeSingle();
+  return error ? null : data?.linked_account_id ?? null;
+}
+
 /** The user's learned merchant → category mappings (empty before migration 0021). */
 export async function getCapturePreferences(): Promise<CaptureMerchantPreference[]> {
   const supabase = await createClient();
@@ -473,11 +483,11 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
   if (!user) return { status: "invalid" };
 
   const today = todayInTimeZone(timezone);
-  const [categoriesResult, accountsResult, preferencesResult, unitsResult] = await Promise.all([
+  const [categoriesResult, accountsResult, preferencesResult, unitsResult, emergencyResult] = await Promise.all([
     supabase.from("categories").select("id, name_th, name_en, type, icon, is_system"),
     supabase
       .from("accounts")
-      .select("id, name, account_type, institution, is_archived")
+      .select("id, name, account_type, institution, is_archived, purpose")
       .eq("is_archived", false),
     supabase
       .from("merchant_category_preferences")
@@ -486,6 +496,7 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
       .limit(500),
     // Missing before migration 0044 — then simply no units.
     supabase.from("capture_units").select("unit_normalized, unit_label, unit_price, type, category_id").limit(200),
+    supabase.from("emergency_funds").select("linked_account_id").eq("user_id", user.id).maybeSingle(),
   ]);
   if (categoriesResult.error || accountsResult.error || preferencesResult.error) return { status: "failed" };
 
@@ -494,6 +505,7 @@ export async function assistCaptureParse(text: string): Promise<CaptureAssistRes
     today,
     categories,
     accounts: accountsResult.data ?? [],
+    emergencyFundAccountId: emergencyResult.data?.linked_account_id ?? null,
     merchantPreferences: preferencesResult.data ?? [],
     units: unitsResult.error ? [] : toCaptureUnits(unitsResult.data ?? []),
   });
