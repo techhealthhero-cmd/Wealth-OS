@@ -90,6 +90,7 @@
       "highInterest": "This rate exceeds the 15% annual private-loan warning threshold. Consider a lower-interest option.",
       "estimate": "Illustrative estimates; actual values and interest may differ.",
       "partialFailed": "Money saved, but an asset, liability or payment plan could not be added. Please review.",
+      "rateLabel": "Interest rate (%)",
       "rateMissing": "No interest rate provided; illustration uses 0%.",
       "yearAssumed": "Rate period omitted; this installment estimate uses yearly interest.",
       "termAssumed": "Illustrative term used because no payment term was provided."

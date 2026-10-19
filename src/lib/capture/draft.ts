@@ -9,6 +9,7 @@ export interface CaptureDraft {
   smart?: SmartCaptureIntent | null;
   smartAssetAccepted?: boolean;
   smartRatePeriod?: RatePeriod;
+  smartRatePct?: number;
   subscription?: SubscriptionIntent | null;
   subscriptionAccountMissing?: boolean;
   cancelIntent?: { serviceQuery: string } | null;
@@ -31,6 +32,10 @@ export interface CaptureDraft {
 export function effectiveSmartIntent(draft: CaptureDraft): SmartCaptureIntent | null {
   if (!draft.smart) return null;
   const s = { ...draft.smart };
+  if (draft.smartRatePct !== undefined) {
+    if (!Number.isFinite(draft.smartRatePct) || draft.smartRatePct < 0 || draft.smartRatePct > 1200) return null;
+    s.ratePct = draft.smartRatePct; s.rateMissing = false;
+  }
   if (draft.amountCents !== null) {
     if (s.kind === "asset_installment") s.downPaymentCents = draft.amountCents;
     else s.priceCents = draft.amountCents;

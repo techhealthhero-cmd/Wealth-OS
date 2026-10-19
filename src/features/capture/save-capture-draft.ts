@@ -6,8 +6,8 @@ import type { CaptureSaveInput } from "@/lib/validation/capture";
 
 /** One routing point; declining an optional asset keeps the existing expense path. */
 export async function saveCaptureDraft(draft: CaptureDraft, capture: CaptureSaveInput): Promise<SmartCaptureSaveResult> {
-  const smart = effectiveSmartIntent(draft);
+  const smart = effectiveSmartIntent(draft) ?? draft.smart;
   return smart && !(smart.kind === "asset_cash" && draft.smartAssetAccepted === false)
-    ? saveSmartCapture({ capture, smart, assetAccepted: draft.smartAssetAccepted, ratePeriod: draft.smartRatePeriod })
+    ? saveSmartCapture({ capture, smart, assetAccepted: draft.smartAssetAccepted, ratePct: draft.smartRatePct, ratePeriod: draft.smartRatePeriod })
     : saveCapturedTransaction(capture);
 }

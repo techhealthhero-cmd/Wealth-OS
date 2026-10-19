@@ -131,11 +131,18 @@ export async function getPaymentCalendarSources(today: string): Promise<PaymentS
   if (sources.length > 0 && keyed.length > 0) {
     const keyToSource = new Map<string, PaymentSource>();
     for (const date of new Set(keyed.map((t) => t.transaction_date))) {
-      for (const s of sources) keyToSource.set(deterministicUuid(`recurring-confirm:${s.id}:${date}`), s);
+      for (const s of sources) {
+        keyToSource.set(deterministicUuid(`recurring-confirm:${s.id}:${date}`), s);
+        keyToSource.set(deterministicUuid(`recurring-confirm-interest:${s.id}:${date}`), s);
+      }
     }
     for (const t of keyed) {
       const match = t.client_request_id ? keyToSource.get(t.client_request_id) : undefined;
-      if (match) match.paid.push({ date: t.transaction_date, amountCents: parseMoneyToCents(t.amount) });
+      if (match) {
+        const paid = match.paid.find((p) => p.date === t.transaction_date);
+        if (paid) paid.amountCents += parseMoneyToCents(t.amount);
+        else match.paid.push({ date: t.transaction_date, amountCents: parseMoneyToCents(t.amount) });
+      }
     }
   }
 
