@@ -72,6 +72,9 @@ interface QuickCaptureSheetProps {
   onTransfer: () => void;
   /** Words handed over from the voice notebook ("แก้ไข / พิมพ์เอง"), filled in on open. */
   initialText?: string | null;
+  /** Image selected by the shell’s already-mounted slip picker. */
+  initialImageFile?: File | null;
+  onInitialImageConsumed?: () => void;
 }
 
 type ReceiptState =
@@ -106,6 +109,8 @@ export function QuickCaptureSheet({
   onIncome,
   onTransfer,
   initialText = null,
+  initialImageFile = null,
+  onInitialImageConsumed,
 }: QuickCaptureSheetProps) {
   const { t, locale } = useTranslation();
   // A string-array dictionary entry (live-status steps), with a single-line fallback.
@@ -526,6 +531,20 @@ export function QuickCaptureSheet({
       setReceiptDraft(draftFromExtraction(null, typed));
     }
   }
+
+  const appliedInitialImageRef = useRef<File | null>(null);
+  // Check each render so handleImage uses current capture state. The ref also
+  // prevents Strict Mode effect replay from starting a second scan.
+  useEffect(() => {
+    if (!initialImageFile) {
+      appliedInitialImageRef.current = null;
+      return;
+    }
+    if (!open || appliedInitialImageRef.current === initialImageFile) return;
+    appliedInitialImageRef.current = initialImageFile;
+    void handleImage(initialImageFile);
+    onInitialImageConsumed?.();
+  });
 
   // ---------------------------------------------------------------- save
 
