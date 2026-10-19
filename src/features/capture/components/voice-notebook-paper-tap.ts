@@ -23,3 +23,23 @@ export function isEmptyPaperTapTarget(target: PaperTapNode | null, root: PaperTa
   }
   return false;
 }
+
+/** Minimal textarea shape: focus() + caret placement, testable without a DOM. */
+interface PaperField {
+  value: string;
+  focus: (options?: FocusOptions) => void;
+  setSelectionRange: (start: number, end: number) => void;
+}
+
+/**
+ * Puts the caret at the end of the paper. Must run synchronously inside the
+ * tap's click handler (never in a timeout, rAF or after a state update):
+ * iOS Safari only raises the keyboard for a focus() made during the gesture.
+ */
+export function focusPaperEnd(el: PaperField | null): boolean {
+  if (!el) return false;
+  el.focus({ preventScroll: true });
+  const end = el.value.length;
+  el.setSelectionRange(end, end);
+  return true;
+}
