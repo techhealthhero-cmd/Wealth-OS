@@ -140,6 +140,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
 | SMART-ASSETS-LOANS | Smart capture assets/installments/loans and asset valuation | Codex | IN PR → staging | New pure taxonomy/valuation/purchase modules, authenticated save action, minimal capture fields, tests, proposal SQL only. Checkpoints: pure logic → persistence → UI → full validation. Shared parser/UI edits surgical; no network/DB/commit/push. | Claude designs confirm screens later; proposal 0048 needs user approval |
+| VOICE-PAPER-TAP | Focus mounted textarea from empty paper pointer gesture | Grok Bot (Codex impl) | IN PR → staging | voice-notebook.tsx, adjacent pure target helper, focused Vitest; synchronous pointer focus on empty paper | Merge after CI green; owner iPhone Safari keyboard review |
 | PAGE-TURN-SNAPSHOT | Turn-start cost + one continuous sheet | Grok Bot (Codex impl) | IN PR → staging | Viewport-only clone (`src/lib/motion/viewport-clone.ts`), single clone reused for history, sheet covers whole visible main incl. title + tab strip (`sheetGeometry`); harness 4× CPU longtask median ~144ms → ~79ms | Owner device check of turn feel |
 | HOME-RECEIVABLES-TILE | Home รอเงินเข้า tile uses getReceivablesSummary | Grok Bot (Codex impl) | IN PR → staging (#32) | Amount + count + calm overdue line; exact empty state on none/error/loading | Claude may restyle after 22:00 |
 | SAFE-TO-SPEND-TODAY | Add isolated today calculation, server loader, tests and assumptions docs | Codex | READY FOR HANDOFF | Logic only; legacy formulas/Home unchanged; branch codex/safe-to-spend-today; no commit/push; typecheck/lint/131 files · 1731 tests passed | Supervisor review and commit |
@@ -435,3 +436,10 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Files: src/components/layout/swipe-tab-pages.tsx, segmented-tabs.tsx, new tab-strip-scroll.ts; tests/tab-strip-scroll.test.ts; this board.
 - Node 22.23.3: npm run lint PASS; npx tsc --noEmit PASS; npx vitest run PASS (124 files / 1461 tests). Five helper cases cover visible/edge tabs, clipped left/right, padding limits and non-overflow bounds. No tests skipped/disabled.
 - No git commands, dependencies or protected harness/proxy edits. Next: owner device visual review of Money/Plan/Earn turns, cross-section turns and close-book.
+
+### 2026-10-19 — Codex → owner (VOICE-PAPER-TAP)
+
+- Added a primary-pointer handler only on the paper scroll container. It synchronously focuses the mounted textarea and places the caret at the end; native textarea taps, note cards and controls are excluded. Existing onFocus mic-stop behavior remains.
+- Files: voice-notebook.tsx, voice-notebook-paper-tap.ts, tests/voice-notebook-paper-tap.test.ts, this board. Protected capture/parser/curl files untouched; no commit/push.
+- Node 22.23.3: requested Vitest command passed (1 file / 11 tests); changed-file ESLint and diff check passed. Initial tsc needed generated LayoutProps; next typegen followed by tsc --noEmit passed.
+- Next: owner iPhone Safari check for blank-paper keyboard opening, native caret selection and mic start/stop. No physical-device verification in this session.

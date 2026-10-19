@@ -34,6 +34,7 @@ import { buildCaptureSaveInput, canSaveDraft, smartCaptureNeedsAnswer, type Capt
 
 import { parseCancelIntent } from "@/lib/capture/subscription-intent";
 import { SmartCaptureFields } from "./smart-capture-fields";
+import { isEmptyPaperTapTarget } from "./voice-notebook-paper-tap";
 import { SubscriptionFields } from "./subscription-fields";
 import { saveCaptureDraft } from "../save-capture-draft";
 import { SubscriptionCancelCard } from "./subscription-cancel-card";
@@ -564,7 +565,18 @@ export function VoiceNotebook({
         </div>
       </header>
 
-      <div className="relative min-h-0 flex-1 overflow-y-auto pt-8 pr-5 pb-4 pl-16">
+      <div
+        className="relative min-h-0 flex-1 overflow-y-auto pt-8 pr-5 pb-4 pl-16"
+        onPointerDown={(event) => {
+          if (!event.isPrimary || event.button !== 0) return;
+          if (!isEmptyPaperTapTarget(event.target as Node, event.currentTarget)) return;
+          // Stay in the pointer gesture so iOS can open the keyboard.
+          const el = paperRef.current;
+          if (!el) return;
+          el.focus();
+          el.setSelectionRange(el.value.length, el.value.length);
+        }}
+      >
         <textarea
           ref={paperRef}
           value={transcript}
