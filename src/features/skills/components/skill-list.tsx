@@ -15,7 +15,7 @@ export async function SkillList() {
   if (skills.length === 0) {
     return (
       <EmptyState
-        illustration={<Artwork src="/artwork/earn/skill-development.webp" className="w-44 -rotate-2 drop-shadow-sm sm:w-52" />}
+        illustration={<Artwork src="/artwork/earn/skill-development.webp" className="w-44 drop-shadow-[0_4px_6px_rgba(30,18,6,0.12)] sm:w-52" />}
         title={dict.earn.skills.emptyTitle}
         description={dict.earn.skills.emptyState}
         action={<SkillForm />}
