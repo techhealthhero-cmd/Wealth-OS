@@ -34,7 +34,7 @@ import { buildCaptureSaveInput, canSaveDraft, smartCaptureNeedsAnswer, type Capt
 
 import { parseCancelIntent } from "@/lib/capture/subscription-intent";
 import { SmartCaptureFields } from "./smart-capture-fields";
-import { isEmptyPaperTapTarget } from "./voice-notebook-paper-tap";
+import { focusPaperEnd, isEmptyPaperTapTarget } from "./voice-notebook-paper-tap";
 import { SubscriptionFields } from "./subscription-fields";
 import { saveCaptureDraft } from "../save-capture-draft";
 import { SubscriptionCancelCard } from "./subscription-cancel-card";
@@ -566,15 +566,16 @@ export function VoiceNotebook({
       </header>
 
       <div
-        className="relative min-h-0 flex-1 overflow-y-auto pt-8 pr-5 pb-4 pl-16"
-        onPointerDown={(event) => {
-          if (!event.isPrimary || event.button !== 0) return;
+        data-testid="voice-paper"
+        className="relative min-h-0 flex-1 cursor-text touch-manipulation overflow-y-auto pt-8 pr-5 pb-4 pl-16"
+        // iOS only opens the keyboard for a focus() made inside the tap's own
+        // click. Focusing on pointerdown (PR #34) is undone by the tap's
+        // mousedown on this non-focusable paper, which moves focus off the
+        // textarea again — so tapping the blank page did nothing on iPhone.
+        // No preventDefault: the tap must stay a normal native click.
+        onClick={(event) => {
           if (!isEmptyPaperTapTarget(event.target as Node, event.currentTarget)) return;
-          // Stay in the pointer gesture so iOS can open the keyboard.
-          const el = paperRef.current;
-          if (!el) return;
-          el.focus();
-          el.setSelectionRange(el.value.length, el.value.length);
+          focusPaperEnd(paperRef.current);
         }}
       >
         <textarea
@@ -956,13 +957,8 @@ export function VoiceNotebook({
         <div className="flex w-full max-w-md gap-3">
           <button
             type="button"
-            onClick={() => {
-              // Focus inside the tap itself, so iOS opens the keyboard.
-              const el = paperRef.current;
-              if (!el) return;
-              el.focus();
-              el.setSelectionRange(el.value.length, el.value.length);
-            }}
+            // Focus inside the tap's own click, so iOS opens the keyboard.
+            onClick={() => focusPaperEnd(paperRef.current)}
             className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[#cdbf9f] text-base font-semibold transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/20"
           >
             <Keyboard className="size-5" aria-hidden="true" />
