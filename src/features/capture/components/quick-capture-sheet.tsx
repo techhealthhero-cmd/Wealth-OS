@@ -29,7 +29,7 @@ import {
   type CaptureUnit,
   type ParseContext,
 } from "@/lib/capture/transaction-parser";
-import { buildCaptureSaveInput, canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
+import { buildCaptureSaveInput, canSaveDraft, smartCaptureNeedsAnswer, type CaptureDraft } from "@/lib/capture/draft";
 import { mergeAIParse, needsAIAssist, recapItemsNeedingAI, type AIParseFields } from "@/lib/capture/ai-fallback";
 import { isMultiItemRecap, parseRecap } from "@/lib/capture/recap";
 import { applyCaptureDate } from "@/lib/capture/capture-date";
@@ -47,13 +47,13 @@ import {
   dismissRecurringSuggestion,
   getCaptureEmergencyFundAccountId,
   getCapturePreferences,
-  saveCapturedTransaction,
   scanReceipt,
   type PossibleDuplicate,
   type RecurringSuggestion,
 } from "@/features/capture/actions";
 import { prepareReceiptImage } from "@/features/capture/lib/image";
 import { parseCancelIntent } from "@/lib/capture/subscription-intent";
+import { saveCaptureDraft } from "../save-capture-draft";
 import { SubscriptionCancelCard } from "./subscription-cancel-card";
 import { TransactionPreview } from "./transaction-preview";
 import { HoldToTalkButton } from "./hold-to-talk-button";
@@ -284,6 +284,7 @@ export function QuickCaptureSheet({
       if (recapRemoved.has(id)) return [];
       const aiCategory = recapAI[id];
       const base: CaptureDraft = {
+        smart: item.smart,
         subscription: item.subscription,
         subscriptionAccountMissing: item.subscriptionAccountMissing,
         cancelIntent: item.cancelIntent,
@@ -413,6 +414,7 @@ export function QuickCaptureSheet({
     if (!localParsed) return null;
     const parsed = aiReading ? mergeAIParse(textKey, localParsed, aiReading, ctx) : localParsed;
     return {
+      smart: parsed.smart,
       subscription: parsed.subscription,
       subscriptionAccountMissing: parsed.subscriptionAccountMissing,
       cancelIntent: parsed.cancelIntent,
@@ -663,15 +665,20 @@ export function QuickCaptureSheet({
         }
       }
 
-      const result = await saveCapturedTransaction(payload);
+      const result = await saveCaptureDraft(draft, payload);
       if (!result.success) {
         // Keep everything on screen — nothing captured is lost.
         setError(result.error ?? t("capture.saveFailed"));
         return;
       }
+      if (result.incomplete) {
+        // Payment saved, a smart part is missing: same draft + same request id retries only the gap.
+        setError(t("capture.smart.partialFailed"));
+        return;
+      }
 
       const needsReview = !(draft.confidence === "high" || draft.categoryConfirmedByUser);
-      const savedId = result.transactionId;
+      const savedId = draft.smart && draft.smartAssetAccepted !== false ? undefined : result.transactionId;
       cheerCompanion();
       toast.success(`${needsReview ? t("capture.savedNeedsReview") : t("capture.saved")} ${formatMoney(payload.amountCents)}`, {
         icon: <SuccessBadge />,
@@ -709,6 +716,7 @@ export function QuickCaptureSheet({
    */
   async function confirmRecap() {
     if (saving) return;
+    if (recapRows.some((r) => smartCaptureNeedsAnswer(r.draft))) return;
     const rows = recapRows.filter((r) => canSaveDraft(r.draft));
     if (rows.length === 0) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -727,11 +735,14 @@ export function QuickCaptureSheet({
       const reviewed = row.draft.categoryConfirmedByUser || (row.draft.categorySource !== "fallback" && row.draft.categoryId !== null);
       const payload = buildCaptureSaveInput({ ...row.draft, categoryConfirmedByUser: reviewed }, requestId);
       try {
-        const result = payload ? await saveCapturedTransaction(payload) : null;
-        if (result?.success) {
+        const result = payload ? await saveCaptureDraft(row.draft, payload) : null;
+        if (result?.success && result.incomplete) {
+          toast.error(t("capture.smart.partialFailed"));
+          failed += 1; // keep the row + its request id; a retry fills only the missing parts
+        } else if (result?.success) {
           if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
           savedRowIds.push(row.id);
-          if (result.transactionId) savedTransactionIds.push(result.transactionId);
+          if (result.transactionId && (!row.draft.smart || row.draft.smartAssetAccepted === false)) savedTransactionIds.push(result.transactionId);
           delete recapRequestIdsRef.current[row.id];
           if (!reviewed) needsReview += 1;
         } else failed += 1;
@@ -748,7 +759,7 @@ export function QuickCaptureSheet({
       toast.success(t("capture.recap.saved").replace("{n}", String(savedRowIds.length)), {
         icon: <SuccessBadge />,
         description: needsReview > 0 ? t("capture.recap.savedReview").replace("{n}", String(needsReview)) : undefined,
-        action: savedTransactionIds.length
+        action: savedTransactionIds.length && !rows.some((r) => r.draft.smart && r.draft.smartAssetAccepted !== false)
           ? {
               label: t("capture.undo"),
               onClick: async () => {

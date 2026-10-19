@@ -42,7 +42,7 @@ export function needsAIAssist(text: string, parsed: ParsedCapture): boolean {
   if (parsed.amountCents === null || clean.length > AI_ASSIST_MAX_TEXT) return false;
   // A counted unit ("10 ดื่ม" × ฿200) is computed from the user's own price —
   // the AI would only see "10" and could read it back as ฿10.
-  if (parsed.unit || parsed.subscription || parsed.cancelIntent) return false;
+  if (parsed.smart || parsed.unit || parsed.subscription || parsed.cancelIntent) return false;
   const lower = clean.toLowerCase();
   if (UNRESOLVED_TIME_PHRASES.some((p) => lower.includes(p))) return true;
   const leftover = (parsed.description ?? "").trim();
@@ -201,7 +201,7 @@ const cap = (c: CaptureConfidence, max: CaptureConfidence) => (RANK[c] > RANK[ma
  * result is never more confident than its weakest essential field.
  */
 export function mergeAIParse(text: string, local: ParsedCapture, ai: AIParseFields, ctx: ParseContext): ParsedCapture {
-  if (local.subscription || local.cancelIntent) return local;
+  if (local.smart || local.subscription || local.cancelIntent) return local;
   const type = local.isEmergencyFundDraw ? local.type : ai.type ?? local.type;
   const amountCents = ai.amountCents ?? local.amountCents;
   const merchant = ai.merchant ?? local.merchant;

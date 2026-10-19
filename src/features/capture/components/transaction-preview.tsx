@@ -16,6 +16,7 @@ import { AccountPicker } from "@/features/transactions/components/account-picker
 import type { PossibleDuplicate } from "@/features/capture/actions";
 import { ConfidenceBadge } from "./confidence-badge";
 
+import { SmartCaptureFields } from "./smart-capture-fields";
 import { SubscriptionFields } from "./subscription-fields";
 
 type OpenPanel = "category" | "account" | null;
@@ -96,7 +97,7 @@ export function TransactionPreview({
       const value = cleaned.endsWith(".") ? cleaned.slice(0, -1) : cleaned;
       try {
         const parsed = parseMoneyToCents(value);
-        cents = parsed > 0 ? parsed : null;
+        cents = parsed > 0 || (parsed === 0 && draft.smart?.kind === "asset_installment") ? parsed : null;
       } catch {
         cents = null;
       }
@@ -118,6 +119,7 @@ export function TransactionPreview({
       </div>
 
       {notice}
+      <SmartCaptureFields draft={draft} onChange={onChange} />
       <SubscriptionFields draft={draft} accounts={accounts} onChange={onChange} />
 
       {/* Amount — visually dominant; directly editable. */}

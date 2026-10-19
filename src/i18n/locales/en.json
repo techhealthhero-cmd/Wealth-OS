@@ -71,6 +71,29 @@
     "importStatement": "Import CSV"
   },
   "capture": {
+    "smart": {
+      "askAsset": "Keep as an asset?",
+      "yes": "Yes",
+      "no": "No",
+      "asset": "Asset",
+      "liability": "Liability",
+      "confirmPeriod": "Is this rate monthly or yearly? Please confirm.",
+      "ratePeriod": "Interest period",
+      "month": "Per month",
+      "year": "Per year",
+      "monthly": "Monthly payment",
+      "interestOnly": "Monthly interest only",
+      "totalInterest": "Total interest",
+      "totalPaid": "Total installments (excludes down payment)",
+      "firstDue": "First payment",
+      "finalPayment": "Final payment (confirm amount before paying)",
+      "highInterest": "This rate exceeds the 15% annual private-loan warning threshold. Consider a lower-interest option.",
+      "estimate": "Illustrative estimates; actual values and interest may differ.",
+      "partialFailed": "Money saved, but an asset, liability or payment plan could not be added. Please review.",
+      "rateMissing": "No interest rate provided; illustration uses 0%.",
+      "yearAssumed": "Rate period omitted; this installment estimate uses yearly interest.",
+      "termAssumed": "Illustrative term used because no payment term was provided."
+    },
     "subscription": {
       "retry": "Try again",
       "label": "Subscription",

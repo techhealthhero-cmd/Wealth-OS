@@ -139,6 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| SMART-ASSETS-LOANS | Smart capture assets/installments/loans and asset valuation | Codex | IN PR → staging | New pure taxonomy/valuation/purchase modules, authenticated save action, minimal capture fields, tests, proposal SQL only. Checkpoints: pure logic → persistence → UI → full validation. Shared parser/UI edits surgical; no network/DB/commit/push. | Claude designs confirm screens later; proposal 0048 needs user approval |
 | VOICE-PAPER-TAP | Focus mounted textarea from empty paper pointer gesture | Grok Bot (Codex impl) | IN PR → staging | voice-notebook.tsx, adjacent pure target helper, focused Vitest; synchronous pointer focus on empty paper | Merge after CI green; owner iPhone Safari keyboard review |
 | PAGE-TURN-SNAPSHOT | Turn-start cost + one continuous sheet | Grok Bot (Codex impl) | IN PR → staging | Viewport-only clone (`src/lib/motion/viewport-clone.ts`), single clone reused for history, sheet covers whole visible main incl. title + tab strip (`sheetGeometry`); harness 4× CPU longtask median ~144ms → ~79ms | Owner device check of turn feel |
 | HOME-RECEIVABLES-TILE | Home รอเงินเข้า tile uses getReceivablesSummary | Grok Bot (Codex impl) | IN PR → staging (#32) | Amount + count + calm overdue line; exact empty state on none/error/loading | Claude may restyle after 22:00 |
