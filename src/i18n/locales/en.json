@@ -317,7 +317,38 @@
     "languageEnglish": "English",
     "timezoneLabel": "Timezone",
     "saved": "Saved.",
-    "saveChanges": "Save changes"
+    "saveChanges": "Save changes",
+    "currencies": {
+      "THB": "Thai baht",
+      "USD": "US dollar",
+      "EUR": "Euro",
+      "JPY": "Japanese yen",
+      "GBP": "British pound",
+      "SGD": "Singapore dollar",
+      "CNY": "Chinese yuan",
+      "HKD": "Hong Kong dollar",
+      "KRW": "South Korean won",
+      "AUD": "Australian dollar",
+      "MYR": "Malaysian ringgit",
+      "LAK": "Lao kip",
+      "VND": "Vietnamese dong"
+    },
+    "timezones": {
+      "Asia_Bangkok": "Bangkok (UTC+7)",
+      "Asia_Singapore": "Singapore (UTC+8)",
+      "Asia_Tokyo": "Tokyo (UTC+9)",
+      "Asia_Hong_Kong": "Hong Kong (UTC+8)",
+      "Asia_Shanghai": "Shanghai (UTC+8)",
+      "Asia_Seoul": "Seoul (UTC+9)",
+      "Asia_Kolkata": "India (UTC+5:30)",
+      "Asia_Dubai": "Dubai (UTC+4)",
+      "Europe_London": "London (UTC+0/+1)",
+      "Europe_Paris": "Paris (UTC+1/+2)",
+      "America_New_York": "New York (UTC-5/-4)",
+      "America_Los_Angeles": "Los Angeles (UTC-8/-7)",
+      "Australia_Sydney": "Sydney (UTC+10/+11)",
+      "UTC": "UTC (UTC+0)"
+    }
   },
   "dashboard": {
     "title": "Financial overview",

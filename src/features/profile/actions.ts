@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { onboardingSchema, profileSchema } from "@/lib/validation/profile";
+import { createProfileSchema, onboardingSchema } from "@/lib/validation/profile";
 import { LOCALE_COOKIE } from "@/i18n/config";
 import { cookies } from "next/headers";
 import { trackEvent } from "@/lib/analytics";
@@ -17,7 +17,24 @@ export async function updateProfile(
   _prev: ActionResult | undefined,
   formData: FormData
 ): Promise<ActionResult> {
-  const parsed = profileSchema.safeParse({
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You must be signed in." };
+  }
+
+  // A currency/timezone saved before the option lists existed is still
+  // accepted, but only if it equals the user's current stored value.
+  const { data: stored } = await supabase
+    .from("profiles")
+    .select("currency_code, timezone")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const parsed = createProfileSchema(stored ?? {}).safeParse({
     display_name: formData.get("display_name"),
     preferred_language: formData.get("preferred_language"),
     currency_code: formData.get("currency_code"),
@@ -26,15 +43,6 @@ export async function updateProfile(
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "You must be signed in." };
   }
 
   const { error } = await supabase
