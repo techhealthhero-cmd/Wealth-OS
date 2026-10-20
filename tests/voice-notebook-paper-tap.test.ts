@@ -41,6 +41,11 @@ describe("isEmptyPaperTapTarget", () => {
     expect(isEmptyPaperTapTarget(new TapNode("SPAN", new TapNode("DIV", root, { role })), root)).toBe(false);
   });
 
+  it("leaves review-card taps with their own controls", () => {
+    const card = new TapNode("SECTION", root, { "data-paper-ignore": "" });
+    expect(isEmptyPaperTapTarget(new TapNode("P", card), root)).toBe(false);
+  });
+
   it("excludes editable content and custom controls", () => {
     expect(isEmptyPaperTapTarget(new TapNode("DIV", root, { contenteditable: "" }), root)).toBe(false);
     expect(isEmptyPaperTapTarget(new TapNode("DIV", root, { role: "button" }), root)).toBe(false);

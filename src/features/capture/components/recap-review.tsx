@@ -47,6 +47,7 @@ function parseAmount(text: string): number | null {
  */
 export function RecapReview({
   rows,
+  hideSave = false,
   accounts,
   categories,
   onChange,
@@ -57,6 +58,7 @@ export function RecapReview({
   aiPending,
 }: {
   rows: RecapRow[];
+  hideSave?: boolean;
   accounts: Account[];
   categories: Category[];
   onChange: (id: string, patch: Partial<CaptureDraft>) => void;
@@ -170,7 +172,7 @@ export function RecapReview({
         <p className="text-xs text-amber-700 dark:text-amber-400">{t("capture.recap.someMissing").replace("{n}", String(unsaveable))}</p>
       ) : null}
 
-      <Button type="button" className="h-12 w-full rounded-2xl text-base" onClick={onConfirm} disabled={saving || saveable.length === 0 || rows.some((r) => smartCaptureNeedsAnswer(r.draft) || memoryNeedsConfirmation(r.draft))}>
+      {!hideSave && <Button type="button" className="h-12 w-full rounded-2xl text-base" onClick={onConfirm} disabled={saving || saveable.length === 0 || rows.some((r) => smartCaptureNeedsAnswer(r.draft) || memoryNeedsConfirmation(r.draft))}>
         {saving ? (
           <>
             <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden="true" />
@@ -182,7 +184,7 @@ export function RecapReview({
             {t("capture.recap.confirmAll").replace("{n}", String(saveable.length))}
           </>
         )}
-      </Button>
+      </Button>}
     </section>
   );
 }

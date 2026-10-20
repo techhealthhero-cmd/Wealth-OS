@@ -11,7 +11,10 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import { handFont } from "@/components/notebook/hand-font";
-import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { useCaptureDisplay, useCaptureViewport } from "../use-capture-display";
+import { CaptureReviewCard, CaptureSaveButton } from "./capture-review-card";
+import { CaptureLargeTextToggle, CaptureTextSuggestion } from "./capture-display-controls";
+import { applyUnsureAnswer, needsUnsureQuestion, pendingUnsureDraft } from "@/lib/capture/unsure-answer";
 import { SuccessBadge } from "@/components/illustrations";
 import { cheerCompanion } from "@/features/companions/presence";
 import { createTransfer, deleteTransaction } from "@/features/transactions/actions";
@@ -113,7 +116,17 @@ export function VoiceNotebook({
 }: VoiceNotebookProps) {
   const { t, locale } = useTranslation();
   const memory = useMerchantMemory(open);
-  const keyboardInset = useKeyboardInset(open);
+  const display = useCaptureDisplay();
+  const { layout, viewport } = useCaptureViewport(open);
+  const keyboardInset = layout === "b";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const zoomed = useRef(false);
+  const hasRecorded = useRef(false);
+  useEffect(() => {
+    const zoom = (viewport?.scale ?? 1) > 1;
+    if (open && zoom && !zoomed.current) display.effort();
+    zoomed.current = zoom;
+  }, [viewport?.scale, open, display]);
   // The stable, visible textarea is the native iOS keyboard target.
   const paperAreaRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLTextAreaElement>(null);
@@ -162,6 +175,7 @@ export function VoiceNotebook({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
     setPicks({});
+    setMenuOpen(false);
     setRecurringChoices({});
     setPicker(null);
     setLowDismissed([]);
@@ -272,13 +286,16 @@ export function VoiceNotebook({
   );
   // Parsing trails live dictation at low priority, so the writing stays smooth.
   const parseText = useDeferredValue(transcript);
-  const rows: Row[] = useMemo(() => {
+  const parsedRows: Row[] = useMemo(() => {
     if (!parseText.trim()) return [];
     return parseRecap(parseText, ctx).map((item, i) => ({
       id: `${i}:${item.sourceText}`,
       draft: {
         learningBaseline: { categoryId: item.categoryId, type: item.type },
         confidenceGate: evaluateCaptureConfidence(item, { ...ctx, text: item.sourceText }),
+        isEmergencyFundDraw: item.isEmergencyFundDraw,
+        emergencyFundAccountMissing: item.emergencyFundAccountMissing,
+        installment: item.installment,
         smart: item.smart,
         subscription: item.subscription,
         subscriptionAccountMissing: item.subscriptionAccountMissing,
@@ -303,6 +320,11 @@ export function VoiceNotebook({
       unknownUnit: item.unknownUnit ?? null,
     }));
   }, [parseText, ctx, aliasedAccounts, smartChoices]);
+  const rows = parsedRows.map(row => ({ ...row, draft: row.transfer ? row.draft : applyUnsureAnswer(row.draft, display.answer(row.id.slice(row.id.indexOf(":") + 1)), categories) }));
+  const firstRow = rows[0];
+  const firstText = firstRow?.id.slice(firstRow.id.indexOf(":") + 1) ?? "";
+  const unsure = !!firstRow && !firstRow.transfer && !firstRow.unknownUnit && !needsShopAnswerForReview(firstRow) && !display.answer(firstText) && needsUnsureQuestion(firstRow.draft, firstText);
+  function needsShopAnswerForReview(row: Row) { return row.suggestedAccountId !== null && !picks[row.id]?.pay; }
   // Auto-grow to the text. Measure without flex-grow: on an empty page the
   // field is stretched over the paper, and locking that stretched height in
   // would push the cards far below the text once rows appear.
@@ -335,7 +357,7 @@ export function VoiceNotebook({
 
   // Wallets and cash can't go below zero in real life: project each one's
   // balance after these items. Skipped while privacy mode hides balances.
-  const lowBalance = useMemo(() => {
+  const lowBalance = (() => {
     const delta = new Map<string, { spend: number; net: number }>();
     const add = (id: string | null, spend: number, net: number) => {
       if (!id) return;
@@ -363,12 +385,13 @@ export function VoiceNotebook({
       if (Number.isFinite(balanceCents) && balanceCents + d.net < 0) out.set(id, { balanceCents, spendCents: d.spend });
     }
     return out;
-  }, [rows, picks, accounts, lowDismissed]);
+  })();
   /** The warning shows once, on the last purchase paid from that account. */
   const lowWarningRowId = (accountId: string) =>
     [...rows].reverse().find((r) => !r.transfer && r.draft.type === "expense" && sideAccount(r, "pay") === accountId)?.id;
 
   function pick(rowId: string, side: Side, accountId: string, learn: Learn = null) {
+    display.effort();
     setPicks((prev) => ({ ...prev, [rowId]: { ...prev[rowId], [side]: accountId } }));
     setPicker(null);
     if (!learn) return;
@@ -478,7 +501,7 @@ export function VoiceNotebook({
         : null;
 
   /** Same rules as Quick Capture's recap confirm: one idempotency key per item, blind "Other" guesses go to the Daily Inbox. */
-  async function saveAll() {
+  async function saveAll(deferUnsure = false) {
     if (saving || saveable.length === 0 || unresolved > 0 || parseCancelIntent(transcript)) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       setError(t("capture.offline"));
@@ -493,7 +516,10 @@ export function VoiceNotebook({
     let needsReview = 0;
     let failed = 0;
     let lastAmount = 0;
-    for (const row of saveable) {
+    for (const original of saveable) {
+      const sourceText = original.id.slice(original.id.indexOf(":") + 1);
+      const pending = !original.transfer && !display.answer(sourceText) && needsUnsureQuestion(original.draft, sourceText);
+      const row = pending || (deferUnsure && original.id === firstRow?.id) ? { ...original, draft: pendingUnsureDraft(original.draft) } : original;
       const requestId = (requestIdsRef.current[row.id] ??= crypto.randomUUID());
       const fromId = sideAccount(row, "from");
       const toId = sideAccount(row, "to");
@@ -518,7 +544,7 @@ export function VoiceNotebook({
         }
         continue;
       }
-      const reviewed = row.draft.categorySource !== "fallback" && row.draft.categoryId !== null;
+      const reviewed = !pending && !(deferUnsure && row.id === firstRow?.id) && (row.draft.categoryConfirmedByUser || (row.draft.confidence !== "low" && row.draft.categorySource !== "fallback" && row.draft.categoryId !== null));
       // The pay-from account the user confirmed for this shop, if they changed it.
       const payload = buildCaptureSaveInput(
         { ...row.draft, accountId: sideAccount(row, "pay"), subscriptionAccountMissing: row.draft.subscriptionAccountMissing && !picks[row.id]?.pay, addRecurring: recurringChoices[row.id] !== false, categoryConfirmedByUser: reviewed },
@@ -530,7 +556,7 @@ export function VoiceNotebook({
           toast.error(t("capture.smart.partialFailed"));
           failed += 1; // keep its request id; a retry fills only the missing parts
         } else if (result?.success) {
-          if (result.transactionId) undoLearning.set(result.transactionId, await memory.remember(row.id.slice(row.id.indexOf(":") + 1), row.draft, ctx));
+          if (result.transactionId && !pending && !(deferUnsure && row.id === firstRow?.id)) undoLearning.set(result.transactionId, await memory.remember(row.id.slice(row.id.indexOf(":") + 1), row.draft, ctx));
           if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
           saved += 1;
           lastAmount = payload!.amountCents;
@@ -584,14 +610,17 @@ export function VoiceNotebook({
       role="dialog"
       aria-modal="true"
       aria-labelledby="voice-notebook-title"
-      className="journal-page fixed inset-0 z-[60] flex flex-col overflow-hidden bg-background text-foreground animate-in fade-in-0 slide-in-from-bottom-6 duration-300 motion-reduce:animate-none"
+      className="[&_button]:min-h-11 [&_button]:min-w-11 [&_select]:min-h-11 [&_input:not([type=checkbox])]:min-h-11 [&_label:has(input[type=checkbox])]:min-h-11 journal-page fixed inset-0 z-[60] flex flex-col overflow-hidden bg-background text-foreground animate-in fade-in-0 slide-in-from-bottom-6 duration-300 motion-reduce:animate-none"
       // iOS lays the keyboard over the page: lift the buttons above it.
-      style={keyboardInset ? { paddingBottom: keyboardInset } : undefined}
+      data-testid="capture-layout"
+      data-layout={layout}
+      data-large-text={display.largeText}
+      style={keyboardInset && viewport ? { top: viewport.offsetTop, height: viewport.height, bottom: "auto" } : undefined}
     >
       {/* Red margin line of a ruled notebook page. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-12 w-px bg-[rgba(194,65,45,0.35)]" />
 
-      <header className="relative flex items-center justify-between gap-3 pt-[calc(env(safe-area-inset-top)+1rem)] pr-4 pl-16">
+      <header className="relative shrink-0 flex items-center justify-between gap-3 pt-[calc(env(safe-area-inset-top)+1rem)] pr-4 pl-16">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">{headerDate}</p>
           <h2 id="voice-notebook-title" className="text-xl font-semibold">
@@ -601,7 +630,8 @@ export function VoiceNotebook({
         <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
-          onClick={() => onMore(transcript)}
+          onClick={() => setMenuOpen(v => !v)}
+          aria-expanded={menuOpen}
           aria-label={t("capture.voice.more")}
           className="flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground/5 transition-colors hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -619,6 +649,11 @@ export function VoiceNotebook({
         </div>
       </header>
 
+      {menuOpen && <div className="absolute right-4 top-20 z-20 w-72 max-w-[calc(100%-2rem)] space-y-2 rounded-2xl border bg-background p-3 shadow-lg">
+        <CaptureLargeTextToggle enabled={display.largeText} disabled={!display.ready} onChange={display.setLargeText} />
+        <button type="button" className="min-h-11 w-full px-3 text-left" onClick={() => { setMenuOpen(false); onMore(transcript); }}>ตัวเลือกเพิ่มเติม / สแกนสลิป</button>
+        <p className="px-3 text-xs text-muted-foreground">หาได้ที่ ตั้งค่า ด้วย</p>
+      </div>}
       <div
         ref={paperAreaRef}
         className="voice-paper-area flex min-h-0 flex-1 flex-col"
@@ -626,11 +661,24 @@ export function VoiceNotebook({
           if (isEmptyPaperTapTarget(event.target as Node, event.currentTarget)) focusPaperEnd(paperRef.current);
         }}
       >
+      {firstRow && !firstRow.draft.cancelIntent && <div className="relative z-[1] shrink-0 px-5 pt-4">
+        <CaptureReviewCard draft={{ ...firstRow.draft, accountId: sideAccount(firstRow, "pay") }} accounts={accounts} categories={categories} largeText={display.largeText} compact={keyboardInset} unsure={unsure && !keyboardInset} text={firstText} today={today}
+          transfer={firstRow.transfer ? { label: `${accountName(sideAccount(firstRow, "from")) ?? "เลือกบัญชีต้นทาง"} → ${accountName(sideAccount(firstRow, "to")) ?? "เลือกบัญชีปลายทาง"}`, onEdit: () => openPicker(firstRow, sideAccount(firstRow, "from") ? "to" : "from") } : undefined}
+          suggestion={display.suggestion && !keyboardInset && !listening ? <CaptureTextSuggestion amount={firstRow.draft.amountCents !== null ? formatMoney(firstRow.draft.amountCents) : undefined} direction={firstRow.draft.type === "income" ? "ได้รับ" : "จ่ายไป"} onTry={() => display.setLargeText(true)} onDismiss={display.dismissSuggestion} /> : undefined}
+          onEditText={() => focusPaperEnd(paperRef.current)} onExpand={() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); }}
+          onAnswer={answer => { display.effort(); display.remember(firstText, answer); }}
+          onChange={patch => { if (patch.accountId) pick(firstRow.id, "pay", patch.accountId); else display.effort(); setSmartChoices(prev => ({ ...prev, [firstRow.id]: { ...prev[firstRow.id], ...patch } })); }}
+          onSave={() => void saveAll(unsure)} disabled={saving || saveable.length === 0 || unresolved > 0} saving={saving}>
+          {rows.length > 1 ? `บันทึก ${rows.length} รายการ` : "บันทึก"}
+        </CaptureReviewCard>
+      </div>}
+      {!firstRow && display.suggestion && !keyboardInset && !listening && <div className="shrink-0 px-5 pt-4"><CaptureTextSuggestion onTry={() => display.setLargeText(true)} onDismiss={display.dismissSuggestion} /></div>}
       <div
         data-testid="voice-paper"
         className="relative flex min-h-0 flex-1 flex-col cursor-text touch-manipulation overflow-y-auto pt-8 pr-5 pb-4 pl-16"
       >
         <textarea
+          data-capture-paper
           ref={paperRef}
           value={transcript}
           onChange={(e) => onTranscriptChange(e.target.value)}
@@ -643,7 +691,7 @@ export function VoiceNotebook({
           aria-label={t("capture.voice.paperLabel")}
           className={cn(
             handFont.className,
-            "voice-paper-field block min-h-20 w-full shrink-0 resize-none overflow-hidden border-0 bg-transparent p-0 text-[clamp(1.6rem,7.5vw,2.1rem)] leading-snug break-words",
+            "voice-paper-field block min-h-20 w-full shrink-0 resize-none overflow-hidden border-0 bg-transparent p-0 text-[clamp(1.6rem,7.5vw,2.1rem)] leading-8 break-words",
             "text-[#1f3d6b] caret-[#1f3d6b] placeholder:text-muted-foreground/70 focus:outline-none dark:text-[#9db8e6] dark:caret-[#9db8e6]",
             // Empty page: the field fills the paper so a tap lands on it natively.
             // With cards it keeps its height so cards stay right under the text.
@@ -652,8 +700,12 @@ export function VoiceNotebook({
         />
 
         {rows.length > 0 ? (
+          <details open={!display.largeText} className="shrink-0">
+          <summary className={display.largeText ? "min-h-11 cursor-pointer py-3 text-lg font-semibold" : "hidden"}>ตรวจสอบรายละเอียด</summary>
           <ul className="mt-6 flex shrink-0 flex-col gap-3">
             {rows.map((row, i) => {
+              const ordinary = !row.transfer && !row.unknownUnit && !needsShopAnswer(row) && !row.draft.smart && !row.draft.subscription && !memoryNeedsConfirmation(row.draft) && !row.unit && row.accountSource !== "merchant" && !lowBalance.has(sideAccount(row, "pay") ?? "");
+              if (ordinary && rows.length === 1) return null;
               if (row.draft.cancelIntent) return <li key={row.id}><SubscriptionCancelCard serviceQuery={row.draft.cancelIntent.serviceQuery}
                 onCancelled={() => { onTranscriptChange(""); onClose(); }} /></li>;
               const d = row.draft;
@@ -676,7 +728,7 @@ export function VoiceNotebook({
                     onClick={() => openPicker(row, side)}
                     aria-label={side === "from" ? t("capture.voice.changeFrom") : t("capture.voice.changeTo")}
                     className={cn(
-                      "inline-flex min-h-8 items-center rounded-full border px-2.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "inline-flex min-h-11 items-center rounded-full border px-2.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       id
                         ? "border-[#e3d5b8] bg-white/60 text-foreground dark:border-white/15 dark:bg-white/5"
                         : "border-dashed border-amber-600 text-amber-800 dark:border-amber-400 dark:text-amber-300"
@@ -721,11 +773,11 @@ export function VoiceNotebook({
                       if (patch.addRecurring !== undefined) setRecurringChoices((prev) => ({ ...prev, [row.id]: patch.addRecurring! }));
                     }} />
                   {memoryNeedsConfirmation(d) ? (
-                    <button type="button" className="mt-2 text-sm text-primary underline" onClick={() => onMore(transcript)}>
+                    <button type="button" className="mt-2 min-h-11 text-sm text-primary underline" onClick={() => onMore(transcript)}>
                       {t("capture.memoryConflict")}
                     </button>
                   ) : null}
-                  {details ? <p className="mt-1 text-sm text-muted-foreground">{details}</p> : null}
+                  {details && !display.largeText ? <p className="mt-1 text-sm text-muted-foreground">{details}</p> : null}
                   {!tr && row.unit ? (
                     <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">
                       {t("capture.units.math")
@@ -778,7 +830,7 @@ export function VoiceNotebook({
                               const categoryId = e.target.value || null;
                               setUnitAnswers((prev) => ({ ...prev, [word]: { price: prev[word]?.price ?? "", categoryId } }));
                             }}
-                            className="h-9 rounded-lg border border-[#cdbf9f] bg-white px-2 text-sm dark:border-white/20 dark:bg-white/5"
+                            className="h-11 rounded-lg border border-[#cdbf9f] bg-white px-2 text-sm dark:border-white/20 dark:bg-white/5"
                           >
                             {incomeCategories.map((c) => (
                               <option key={c.id} value={c.id}>
@@ -805,7 +857,7 @@ export function VoiceNotebook({
                       <button
                         type="button"
                         onClick={() => openPicker(row, "pay")}
-                        className="min-h-8 font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="min-h-11 font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {t("capture.voice.change")}
                       </button>
@@ -845,7 +897,7 @@ export function VoiceNotebook({
                           {t("capture.voice.otherAccount")}
                         </button>
                       </div>
-                      <label className="mt-2 flex items-start gap-2.5 text-sm">
+                      <label className="mt-2 flex min-h-11 items-start gap-2.5 text-sm">
                         <input
                           type="checkbox"
                           checked={remember}
@@ -960,6 +1012,7 @@ export function VoiceNotebook({
               );
             })}
           </ul>
+          </details>
         ) : null}
 
         <div className="pointer-events-none mt-5 shrink-0 space-y-2 text-sm">
@@ -980,9 +1033,9 @@ export function VoiceNotebook({
         </div>
       </div>
 
-      <div className="relative flex shrink-0 flex-col items-center gap-5 px-5 pt-2 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] before:pointer-events-none before:absolute before:inset-x-0 before:-top-10 before:h-10 before:bg-gradient-to-t before:from-background before:to-transparent">
+      <div className={cn("relative flex shrink-0 flex-col items-center gap-5 px-5 pt-2 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] before:pointer-events-none before:absolute before:inset-x-0 before:-top-10 before:h-10 before:bg-gradient-to-t before:from-background before:to-transparent", unsure && "gap-3 pb-[calc(env(safe-area-inset-bottom)+0.25rem)]", keyboardInset && "hidden")}>
         {/* While typing (keyboard up) the big mic steps aside for the text. */}
-        <div className={cn("relative size-36 items-center justify-center", keyboardInset ? "hidden" : "flex")}>
+        <div className={cn("relative size-28 items-center justify-center", unsure && "size-24", keyboardInset ? "hidden" : "flex")}>
           {listening ? (
             <>
               <span aria-hidden="true" className="absolute inset-0 rounded-full border border-[#c7a15c]/40 bg-[#c7a15c]/10 motion-safe:animate-ping [animation-duration:2s]" />
@@ -991,12 +1044,13 @@ export function VoiceNotebook({
           ) : null}
           <button
             type="button"
-            onClick={listening ? onMicStop : onMicStart}
+            onClick={() => { if (listening) onMicStop(); else { if (transcript.trim() || hasRecorded.current) display.effort(); hasRecorded.current = true; onMicStart(); } }}
             aria-pressed={listening}
             aria-label={listening ? t("capture.voice.micStop") : t("capture.voice.micStart")}
             className={cn(
               "relative flex size-20 items-center justify-center rounded-full text-[var(--journal-leather-deep)] shadow-[0_0_0_3px_var(--journal-leather),0_10px_22px_rgba(20,30,20,0.35)]",
               "transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/40 motion-reduce:transition-none",
+              display.largeText && "size-24",
               listening && "scale-105"
             )}
             style={{ background: "radial-gradient(circle at 35% 28%, #f1d79a, #c9a052 58%, #9c7631)" }}
@@ -1012,7 +1066,7 @@ export function VoiceNotebook({
               : t("capture.voice.needsPick").replace("{n}", String(unresolved))}
           </p>
         ) : null}
-        <div className="flex w-full max-w-md gap-3">
+        <div className={cn("flex w-full max-w-md gap-3", (keyboardInset || display.largeText) && "hidden")}>
           <button
             type="button"
             // Focus inside the tap's own click, so iOS opens the keyboard.
@@ -1022,22 +1076,11 @@ export function VoiceNotebook({
             <Keyboard className="size-5" aria-hidden="true" />
             {t("capture.voice.type")}
           </button>
-          <button
-            type="button"
-            onClick={() => void saveAll()}
-            // A transfer whose account isn't settled is never saved half-done or skipped silently.
-            disabled={saving || saveable.length === 0 || unresolved > 0}
-            className="h-12 flex-1 rounded-2xl bg-primary text-base font-semibold text-primary-foreground transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-          >
-            {saving
-              ? t("capture.voice.saving")
-              : saveable.length > 1
-                ? t("capture.voice.save").replace("{n}", String(saveable.length))
-                : t("capture.voice.saveOne")}
-          </button>
+          {!keyboardInset && <button type="button" className="min-h-12 flex-1 rounded-2xl border border-[#cdbf9f] px-4 font-semibold" onClick={() => { display.effort(); hasRecorded.current = true; onMicStart(); }}>พูดใหม่</button>}
         </div>
       </div>
 
+      {keyboardInset && firstRow && !firstRow.draft.cancelIntent && <div className="relative z-[2] shrink-0 bg-background px-4 py-2"><CaptureSaveButton onSave={() => void saveAll(unsure)} disabled={saving || saveable.length === 0 || unresolved > 0} saving={saving} largeText={display.largeText} pending={unsure} /></div>}
       </div>
 
       {picker ? (

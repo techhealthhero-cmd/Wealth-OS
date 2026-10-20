@@ -31,6 +31,7 @@ function parseAmount(text: string): number | null {
  */
 export function TransferPreview({
   intent,
+  hideSave = false,
   accounts,
   amountCents,
   date,
@@ -42,6 +43,7 @@ export function TransferPreview({
   onSave,
 }: {
   intent: TransferIntent;
+  hideSave?: boolean;
   accounts: Account[];
   amountCents: number | null;
   date: string;
@@ -160,11 +162,11 @@ export function TransferPreview({
         {renderSide("to", intent.to, toId, fromId)}
       </div>
       <p className="text-xs text-muted-foreground">📅 {formatFriendlyDate(date, locale, { today: t("capture.today"), yesterday: t("capture.yesterday") })}</p>
-      <Button type="button" className="h-12 w-full rounded-2xl text-base" onClick={onSave} disabled={saving || !ready}>
+      {!hideSave && <Button type="button" className="h-12 w-full rounded-2xl text-base" onClick={onSave} disabled={saving || !ready}>
         <Check className="mr-1.5 size-5" aria-hidden="true" />
         {saving ? t("common.saving") : t("capture.voice.saveOne")}
         {amountCents ? <span className="ml-1 opacity-80">{formatMoney(amountCents)}</span> : null}
-      </Button>
+      </Button>}
     </section>
   );
 }

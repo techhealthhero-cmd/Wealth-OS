@@ -16,6 +16,7 @@ export function isEmptyPaperTapTarget(target: PaperTapNode | null, root: PaperTa
     const role = node.getAttribute?.("role");
     if (
       excludedTags.has(node.nodeName.toUpperCase()) ||
+      node.getAttribute?.("data-paper-ignore") != null ||
       (node.getAttribute?.("contenteditable") != null && node.getAttribute?.("contenteditable") !== "false") ||
       (role != null && ["button", "link", "textbox", "combobox", "dialog", "checkbox", "radio", "switch", "slider", "spinbutton", "menuitem", "tab", "listbox"].includes(role))
     ) excluded = true;
