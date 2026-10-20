@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Claude Code personal settings
 .claude/settings.local.json
+
+# Provision with node scripts/prepare-slip-assets.mjs before enabling local OCR
+/public/ocr/
