@@ -6,8 +6,9 @@ import { I18nProvider } from "@/i18n/client";
 import { getDictionary } from "@/i18n/dictionaries";
 import { CaptureReviewCard } from "@/features/capture/components/capture-review-card";
 import { CaptureTextSuggestion, CaptureLargeTextToggle } from "@/features/capture/components/capture-display-controls";
-import { applyUnsureAnswer, needsUnsureQuestion, pendingUnsureDraft } from "@/lib/capture/unsure-answer";
+import { applyUnsureAnswer, buildUnsureQuestion, needsUnsureQuestion, pendingUnsureDraft } from "@/lib/capture/unsure-answer";
 import { buildCaptureSaveInput, canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
+import { parseCaptureText } from "@/lib/capture/transaction-parser";
 import { createCaptureDeviceStore } from "@/lib/capture/capture-device-store";
 import type { Account, Category } from "@/types/database";
 const draft: CaptureDraft = { type: "expense", amountCents: 8500, accountId: "cash", categoryId: "food", categorySource: "keyword", merchant: "ข้าวมันไก่กับชาเย็น", description: null, date: "2026-10-20", confidence: "high", source: "voice", categoryConfirmedByUser: false };
@@ -35,8 +36,9 @@ describe("capture review card", () => {
     expect(html).toContain('class="sr-only"');
   });
   it("asks just one question, exactly three choices, and offers pending Save", () => {
-    const html = render(createElement(CaptureReviewCard, { ...props, unsure: true, text: "โอนให้น้องเมย์ 1500" }));
+    const html = render(createElement(CaptureReviewCard, { ...props, unsure: true, draft: { ...draft, amountCents: 150000, description: "โอนให้น้องเมย์" }, text: "โอนให้น้องเมย์ 1500" }));
     expect(html.match(/data-testid="capture-unsure-question"/g)).toHaveLength(1);
+    expect(html).toContain("โอน ฿1,500 ให้น้องเมย์ นี้คืออะไร?");
     for (const label of ["ค่าใช้จ่าย", "ให้ยืม (ทวงคืนได้)", "จ่ายค่าจ้างงาน", "บันทึกไว้ก่อน ถามทีหลัง"]) expect(html).toContain(label);
     expect(html.match(/min-h-\[52px\]/g)).toHaveLength(3);
   });
@@ -97,5 +99,20 @@ describe("display controls", () => {
     expect(render(createElement(CaptureLargeTextToggle, { enabled: true, onChange: vi.fn() }))).toContain('role="switch" aria-checked="true"');
     const html = render(createElement(CaptureTextSuggestion, { onTry: vi.fn(), onDismiss: vi.fn() }));
     for (const word of ["capture-suggestion-card", "ตัวหนังสือเล็กไปไหม?", "ลองเลย", "ไว้ก่อน"]) expect(html).toContain(word);
+  });
+});
+
+describe("unsure question wording", () => {
+  const context = { today: "2026-10-20", accounts: [], categories: [], merchantPreferences: [] };
+  it("formats the parsed amount and recipient", () => {
+    const parsed = parseCaptureText("โอนให้น้องเมย์ 1500", context);
+    expect(buildUnsureQuestion(parsed)).toBe("โอน ฿1,500 ให้น้องเมย์ นี้คืออะไร?");
+  });
+  it("formats amount only when no recipient is parsed", () => {
+    expect(buildUnsureQuestion({ amountCents: 150000, description: null })).toBe("โอน ฿1,500 นี้คืออะไร?");
+    expect(buildUnsureQuestion({ amountCents: 150050, description: "ข้าว" })).toBe("โอน ฿1,500.50 นี้คืออะไร?");
+  });
+  it("uses a generic question when no amount is parsed", () => {
+    expect(buildUnsureQuestion({ amountCents: null, description: "โอนให้น้องเมย์" })).toBe("รายการนี้คืออะไร?");
   });
 });
