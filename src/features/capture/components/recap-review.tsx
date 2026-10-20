@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
 import { formatFriendlyDate, itemEmoji } from "@/lib/transaction-ui";
 import { CategoryIcon } from "@/components/shared/category-icon";
-import { canSaveDraft, smartCaptureNeedsAnswer, type CaptureDraft } from "@/lib/capture/draft";
+import { canSaveDraft, smartCaptureNeedsAnswer, memoryNeedsConfirmation, type CaptureDraft } from "@/lib/capture/draft";
 import { recapTotals } from "@/lib/capture/recap";
 import { CategoryPicker } from "@/features/transactions/components/category-picker";
 import { AccountPicker } from "@/features/transactions/components/account-picker";
@@ -143,6 +143,7 @@ export function RecapReview({
                 <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} aria-hidden="true" />
               </button>
 
+              {memoryNeedsConfirmation(d) ? <p className="px-3 text-xs text-muted-foreground" role="status">{t("capture.memoryConflict")}</p> : null}
               <SmartCaptureFields draft={d} onChange={(patch) => onChange(row.id, patch)} />
               <SubscriptionFields draft={d} accounts={accounts} onChange={(patch) => onChange(row.id, patch)} />
               {open ? (
@@ -169,7 +170,7 @@ export function RecapReview({
         <p className="text-xs text-amber-700 dark:text-amber-400">{t("capture.recap.someMissing").replace("{n}", String(unsaveable))}</p>
       ) : null}
 
-      <Button type="button" className="h-12 w-full rounded-2xl text-base" onClick={onConfirm} disabled={saving || saveable.length === 0 || rows.some((r) => smartCaptureNeedsAnswer(r.draft))}>
+      <Button type="button" className="h-12 w-full rounded-2xl text-base" onClick={onConfirm} disabled={saving || saveable.length === 0 || rows.some((r) => smartCaptureNeedsAnswer(r.draft) || memoryNeedsConfirmation(r.draft))}>
         {saving ? (
           <>
             <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden="true" />

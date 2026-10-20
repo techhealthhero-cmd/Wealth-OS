@@ -30,12 +30,14 @@ import { mergeCaptureUnits, toCaptureUnits } from "@/lib/capture/units";
 import type { AccountSource, CaptureMerchantPreference, ParseContext } from "@/lib/capture/transaction-parser";
 import { parseRecap } from "@/lib/capture/recap";
 import { detectTransferIntent, type AccountSlot, type TransferIntent } from "@/lib/capture/transfer";
-import { buildCaptureSaveInput, canSaveDraft, smartCaptureNeedsAnswer, type CaptureDraft } from "@/lib/capture/draft";
+import { buildCaptureSaveInput, canSaveDraft, smartCaptureNeedsAnswer, memoryNeedsConfirmation, type CaptureDraft } from "@/lib/capture/draft";
 
 import { parseCancelIntent } from "@/lib/capture/subscription-intent";
 import { SmartCaptureFields } from "./smart-capture-fields";
 import { focusPaperEnd, isEmptyPaperTapTarget, isPaperTap, type PaperTouchPoint } from "./voice-notebook-paper-tap";
 import { SubscriptionFields } from "./subscription-fields";
+import { evaluateCaptureConfidence } from "@/lib/capture/confidence";
+import { useMerchantMemory } from "../use-merchant-memory";
 import { saveCaptureDraft } from "../save-capture-draft";
 import { SubscriptionCancelCard } from "./subscription-cancel-card";
 
@@ -110,6 +112,7 @@ export function VoiceNotebook({
   onMore,
 }: VoiceNotebookProps) {
   const { t, locale } = useTranslation();
+  const memory = useMerchantMemory(open);
   const keyboardInset = useKeyboardInset(open);
   // The stable, visible textarea is the native iOS keyboard target.
   const paperAreaRef = useRef<HTMLDivElement>(null);
@@ -247,6 +250,7 @@ export function VoiceNotebook({
       emergencyFundAccountId,
       categories,
       merchantPreferences: preferences,
+      deviceMemory: memory.entries,
       merchantAccounts: shopPrefs.map((p) => ({ merchant_normalized: p.merchant_normalized, account_id: p.account_id })),
       units: mergeCaptureUnits(
         toCaptureUnits(unitRows),
@@ -255,7 +259,7 @@ export function VoiceNotebook({
       ),
       today,
     }),
-    [accounts, emergencyFundAccountId, categories, preferences, shopPrefs, unitRows, incomeUnits, today]
+    [accounts, emergencyFundAccountId, categories, preferences, shopPrefs, unitRows, incomeUnits, today, memory.entries]
   );
   const aliasedAccounts = useMemo(
     () =>
@@ -273,6 +277,8 @@ export function VoiceNotebook({
     return parseRecap(parseText, ctx).map((item, i) => ({
       id: `${i}:${item.sourceText}`,
       draft: {
+        learningBaseline: { categoryId: item.categoryId, type: item.type },
+        confidenceGate: evaluateCaptureConfidence(item, { ...ctx, text: item.sourceText }),
         smart: item.smart,
         subscription: item.subscription,
         subscriptionAccountMissing: item.subscriptionAccountMissing,
@@ -323,7 +329,7 @@ export function VoiceNotebook({
   const needsShopAnswer = (row: Row) =>
     !row.transfer && row.suggestedAccountId !== null && !picks[row.id]?.pay && row.draft.amountCents !== null;
   const unresolved = rows.filter(
-    (r) => (r.transfer && r.draft.amountCents !== null && !transferReady(r)) || needsShopAnswer(r) || (r.draft.subscriptionAccountMissing && !picks[r.id]?.pay) || smartCaptureNeedsAnswer(r.draft) || (!r.transfer && r.unknownUnit)
+    (r) => (r.transfer && r.draft.amountCents !== null && !transferReady(r)) || needsShopAnswer(r) || (r.draft.subscriptionAccountMissing && !picks[r.id]?.pay) || smartCaptureNeedsAnswer(r.draft) || memoryNeedsConfirmation(r.draft) || (!r.transfer && r.unknownUnit)
   ).length;
   const saveable = rows.filter((r) => (r.transfer ? r.draft.amountCents !== null && transferReady(r) : canSaveDraft({ ...r.draft, subscriptionAccountMissing: r.draft.subscriptionAccountMissing && !picks[r.id]?.pay })));
 
@@ -481,6 +487,7 @@ export function VoiceNotebook({
     if (listening) onMicStop();
     setSaving(true);
     setError(null);
+    const undoLearning = new Map<string, () => void>();
     const savedIds: string[] = [];
     let saved = 0;
     let needsReview = 0;
@@ -523,6 +530,7 @@ export function VoiceNotebook({
           toast.error(t("capture.smart.partialFailed"));
           failed += 1; // keep its request id; a retry fills only the missing parts
         } else if (result?.success) {
+          if (result.transactionId) undoLearning.set(result.transactionId, await memory.remember(row.id.slice(row.id.indexOf(":") + 1), row.draft, ctx));
           if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
           saved += 1;
           lastAmount = payload!.amountCents;
@@ -551,6 +559,10 @@ export function VoiceNotebook({
               label: t("capture.undo"),
               onClick: async () => {
                 const results = await Promise.all(savedIds.map((id) => deleteTransaction(id)));
+                // Undo snapshots in reverse save order when rows share a key.
+                for (let i = results.length - 1; i >= 0; i--) {
+                  if (results[i].success) undoLearning.get(savedIds[i])?.();
+                }
                 if (results.every((r) => r.success)) toast(t("capture.undone"));
                 else toast.error(t("capture.saveFailed"));
               },
@@ -708,6 +720,11 @@ export function VoiceNotebook({
                       if (patch.accountId) pick(row.id, "pay", patch.accountId);
                       if (patch.addRecurring !== undefined) setRecurringChoices((prev) => ({ ...prev, [row.id]: patch.addRecurring! }));
                     }} />
+                  {memoryNeedsConfirmation(d) ? (
+                    <button type="button" className="mt-2 text-sm text-primary underline" onClick={() => onMore(transcript)}>
+                      {t("capture.memoryConflict")}
+                    </button>
+                  ) : null}
                   {details ? <p className="mt-1 text-sm text-muted-foreground">{details}</p> : null}
                   {!tr && row.unit ? (
                     <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">

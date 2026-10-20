@@ -29,7 +29,7 @@ import {
   type CaptureUnit,
   type ParseContext,
 } from "@/lib/capture/transaction-parser";
-import { buildCaptureSaveInput, canSaveDraft, smartCaptureNeedsAnswer, type CaptureDraft } from "@/lib/capture/draft";
+import { buildCaptureSaveInput, canSaveDraft, smartCaptureNeedsAnswer, memoryNeedsConfirmation, type CaptureDraft } from "@/lib/capture/draft";
 import { mergeAIParse, needsAIAssist, recapItemsNeedingAI, type AIParseFields } from "@/lib/capture/ai-fallback";
 import { isMultiItemRecap, parseRecap } from "@/lib/capture/recap";
 import { applyCaptureDate } from "@/lib/capture/capture-date";
@@ -54,6 +54,8 @@ import {
 import { reviewScrollDelta } from "@/features/capture/lib/review-visibility";
 import { prepareReceiptImage } from "@/features/capture/lib/image";
 import { parseCancelIntent } from "@/lib/capture/subscription-intent";
+import { evaluateCaptureConfidence } from "@/lib/capture/confidence";
+import { useMerchantMemory } from "../use-merchant-memory";
 import { saveCaptureDraft } from "../save-capture-draft";
 import { SubscriptionCancelCard } from "./subscription-cancel-card";
 import { TransactionPreview } from "./transaction-preview";
@@ -116,6 +118,7 @@ export function QuickCaptureSheet({
   onInitialImageConsumed,
 }: QuickCaptureSheetProps) {
   const { t, locale } = useTranslation();
+  const memory = useMerchantMemory(open);
   // A string-array dictionary entry (live-status steps), with a single-line fallback.
   const tList = (key: string, fallbackKey: string): string[] => {
     const value = t(key) as unknown;
@@ -244,6 +247,7 @@ export function QuickCaptureSheet({
       emergencyFundAccountId,
       categories,
       merchantPreferences: preferences,
+      deviceMemory: memory.entries,
       units: mergeCaptureUnits(
         unitSources.saved,
         unitSources.income,
@@ -251,7 +255,7 @@ export function QuickCaptureSheet({
       ),
       today: toLocalDateString(new Date()),
     }),
-    [accounts, emergencyFundAccountId, categories, preferences, unitSources]
+    [accounts, emergencyFundAccountId, categories, preferences, unitSources, memory.entries]
   );
 
   // Fresh per-open AI budget.
@@ -288,6 +292,8 @@ export function QuickCaptureSheet({
       if (recapRemoved.has(id)) return [];
       const aiCategory = recapAI[id];
       const base: CaptureDraft = {
+        learningBaseline: { categoryId: aiCategory ?? item.categoryId, type: item.type },
+        confidenceGate: evaluateCaptureConfidence(item, { ...ctx, text: item.sourceText }),
         smart: item.smart,
         subscription: item.subscription,
         subscriptionAccountMissing: item.subscriptionAccountMissing,
@@ -306,7 +312,7 @@ export function QuickCaptureSheet({
       };
       return [{ id, sourceText: item.sourceText, draft: { ...base, ...recapOverrides[id] } }];
     });
-  }, [recapMode, recapItems, recapRemoved, recapAI, recapOverrides, textSource, ctx.today, captureDate]);
+  }, [recapMode, recapItems, recapRemoved, recapAI, recapOverrides, textSource, ctx, captureDate]);
   const aiReading = aiReadings[textKey] ?? null;
 
   // One AI pass only for a sentence the rules could not fully read (never for
@@ -418,6 +424,8 @@ export function QuickCaptureSheet({
     if (!localParsed) return null;
     const parsed = aiReading ? mergeAIParse(textKey, localParsed, aiReading, ctx) : localParsed;
     return {
+      learningBaseline: { categoryId: parsed.categoryId, type: parsed.type },
+      confidenceGate: evaluateCaptureConfidence(parsed, { ...ctx, text: textKey }),
       smart: parsed.smart,
       subscription: parsed.subscription,
       subscriptionAccountMissing: parsed.subscriptionAccountMissing,
@@ -713,6 +721,7 @@ export function QuickCaptureSheet({
         return;
       }
 
+      const undoLearning = await memory.remember(textKey, draft, ctx);
       const needsReview = !(draft.confidence === "high" || draft.categoryConfirmedByUser);
       const savedId = draft.smart && draft.smartAssetAccepted !== false ? undefined : result.transactionId;
       cheerCompanion();
@@ -723,7 +732,10 @@ export function QuickCaptureSheet({
               label: t("capture.undo"),
               onClick: async () => {
                 const res = await deleteTransaction(savedId);
-                if (res.success) toast(t("capture.undone"));
+                if (res.success) {
+                  undoLearning();
+                  toast(t("capture.undone"));
+                }
                 else if (res.error) toast.error(res.error);
               },
             }
@@ -752,7 +764,7 @@ export function QuickCaptureSheet({
    */
   async function confirmRecap() {
     if (saving) return;
-    if (recapRows.some((r) => smartCaptureNeedsAnswer(r.draft))) return;
+    if (recapRows.some((r) => smartCaptureNeedsAnswer(r.draft) || memoryNeedsConfirmation(r.draft))) return;
     const rows = recapRows.filter((r) => canSaveDraft(r.draft));
     if (rows.length === 0) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -762,6 +774,7 @@ export function QuickCaptureSheet({
     setSaving(true);
     setError(null);
     setRecapProgress({ done: 0, total: rows.length });
+    const undoLearning = new Map<string, () => void>();
     const savedRowIds: string[] = [];
     const savedTransactionIds: string[] = [];
     let needsReview = 0;
@@ -777,6 +790,7 @@ export function QuickCaptureSheet({
           failed += 1; // keep the row + its request id; a retry fills only the missing parts
         } else if (result?.success) {
           if (result.recurringError) toast.error(t("capture.subscription.recurringFailed"));
+          if (result.transactionId) undoLearning.set(result.transactionId, await memory.remember(row.sourceText, row.draft, ctx));
           savedRowIds.push(row.id);
           if (result.transactionId && (!row.draft.smart || row.draft.smartAssetAccepted === false)) savedTransactionIds.push(result.transactionId);
           delete recapRequestIdsRef.current[row.id];
@@ -800,6 +814,10 @@ export function QuickCaptureSheet({
               label: t("capture.undo"),
               onClick: async () => {
                 const results = await Promise.all(savedTransactionIds.map((id) => deleteTransaction(id)));
+                // Undo snapshots in reverse save order when rows share a key.
+                for (let i = results.length - 1; i >= 0; i--) {
+                  if (results[i].success) undoLearning.get(savedTransactionIds[i])?.();
+                }
                 if (results.every((r) => r.success)) toast(t("capture.undone"));
                 else toast.error(t("capture.saveFailed"));
               },

@@ -7186,7 +7186,7 @@
         "direction": "income",
         "date": "2026-10-19",
         "accountId": "cash",
-        "categoryId": "other-in",
+        "categoryId": "freelance",
         "autoSave": true,
         "reasons": [],
         "questionField": null
@@ -7715,6 +7715,247 @@
         "date": "2026-10-19",
         "accountId": "cash",
         "categoryId": "work",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "device-memory-repeat",
+      "text": "zorbix 200 เงินสด",
+      "tags": [
+        "thai_regression",
+        "device_memory"
+      ],
+      "context": {
+        "deviceMemory": [
+          {
+            "key": "zorbix",
+            "counts": [
+              {
+                "categoryId": "freelance",
+                "direction": "income",
+                "count": 1,
+                "weight": 3
+              }
+            ],
+            "lastUsed": 1,
+            "source": "correction"
+          }
+        ]
+      },
+      "expected": {
+        "amountCents": 20000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "freelance",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "device-memory-explicit",
+      "text": "ซื้อกาแฟ zorbix 100 เงินสด",
+      "tags": [
+        "thai_regression",
+        "device_memory"
+      ],
+      "context": {
+        "deviceMemory": [
+          {
+            "key": "zorbix",
+            "counts": [
+              {
+                "categoryId": "freelance",
+                "direction": "income",
+                "count": 1,
+                "weight": 3
+              }
+            ],
+            "lastUsed": 1,
+            "source": "correction"
+          }
+        ]
+      },
+      "expected": {
+        "amountCents": 10000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "food",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "device-memory-missing-amount",
+      "text": "zorbix เงินสด",
+      "tags": [
+        "thai_regression",
+        "device_memory"
+      ],
+      "context": {
+        "deviceMemory": [
+          {
+            "key": "zorbix",
+            "counts": [
+              {
+                "categoryId": "freelance",
+                "direction": "income",
+                "count": 1,
+                "weight": 3
+              }
+            ],
+            "lastUsed": 1,
+            "source": "correction"
+          }
+        ]
+      },
+      "expected": {
+        "amountCents": null,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "freelance",
+        "autoSave": false,
+        "reasons": [
+          "missing_amount"
+        ],
+        "questionField": "amount"
+      }
+    },
+    {
+      "id": "device-memory-account",
+      "text": "zorbix 100",
+      "tags": [
+        "thai_regression",
+        "device_memory"
+      ],
+      "context": {
+        "deviceMemory": [
+          {
+            "key": "zorbix",
+            "counts": [
+              {
+                "categoryId": "freelance",
+                "direction": "income",
+                "count": 1,
+                "weight": 3
+              }
+            ],
+            "lastUsed": 1,
+            "source": "correction"
+          }
+        ]
+      },
+      "expected": {
+        "amountCents": 10000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "freelance",
+        "autoSave": false,
+        "reasons": [
+          "default_account_guess"
+        ],
+        "questionField": "account"
+      }
+    },
+    {
+      "id": "device-memory-conflict",
+      "text": "ซื้อ shopee 100 เงินสด",
+      "tags": [
+        "thai_regression",
+        "device_memory"
+      ],
+      "context": {
+        "deviceMemory": [
+          {
+            "key": "shopee",
+            "counts": [
+              {
+                "categoryId": "food",
+                "direction": "expense",
+                "count": 1,
+                "weight": 3
+              },
+              {
+                "categoryId": "other",
+                "direction": "expense",
+                "count": 1,
+                "weight": 3
+              }
+            ],
+            "lastUsed": 1,
+            "source": "correction"
+          }
+        ]
+      },
+      "expected": {
+        "amountCents": 10000,
+        "direction": "expense",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "other",
+        "autoSave": false,
+        "reasons": [
+          "memory_conflict"
+        ],
+        "questionField": "category"
+      }
+    },
+    {
+      "id": "freelancer-memory-0",
+      "text": "ลูกค้าโอนมา 2 พัน เงินสด",
+      "tags": [
+        "thai_regression",
+        "freelancer_dictionary"
+      ],
+      "expected": {
+        "amountCents": 200000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "freelance",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "freelancer-memory-1",
+      "text": "รับจ้างขนของ 500 เงินสด",
+      "tags": [
+        "thai_regression",
+        "freelancer_dictionary"
+      ],
+      "expected": {
+        "amountCents": 50000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "freelance",
+        "autoSave": true,
+        "reasons": [],
+        "questionField": null
+      }
+    },
+    {
+      "id": "freelancer-memory-2",
+      "text": "ได้ค่าแรงร้านกาแฟ 500 เงินสด",
+      "tags": [
+        "thai_regression",
+        "freelancer_dictionary"
+      ],
+      "expected": {
+        "amountCents": 50000,
+        "direction": "income",
+        "date": "2026-10-19",
+        "accountId": "cash",
+        "categoryId": "freelance",
         "autoSave": true,
         "reasons": [],
         "questionField": null

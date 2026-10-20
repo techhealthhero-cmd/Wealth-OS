@@ -99,7 +99,7 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
 
 export const INCOME_CATEGORY_KEYWORDS: Record<Exclude<IncomeCategoryKey, "Other">, string[]> = {
   Salary: ["เงินเดือน", "salary", "payroll"],
-  Freelance: ["สปอนเซอร์", "ฟรีแลนซ์", "freelance", "ค่าจ้าง", "ค่าคอม", "คอมมิชชัน", "คอมมิชชั่น", "commission"],
+  Freelance: ["ลูกค้าโอน", "รับจ้าง", "ได้ค่าแรง", "รับค่าแรง", "สปอนเซอร์", "ฟรีแลนซ์", "freelance", "ค่าจ้าง", "ค่าคอม", "คอมมิชชัน", "คอมมิชชั่น", "commission"],
   Business: ["ขายของ", "ยอดขาย", "ขาย", "sales"],
   Bonus: ["โบนัส", "bonus"],
   Interest: ["ดอกเบี้ย", "interest", "ปันผล", "dividend"],
@@ -112,7 +112,7 @@ export const INCOME_CATEGORY_KEYWORDS: Record<Exclude<IncomeCategoryKey, "Other"
 
 /** Words that mark a capture as INCOME rather than an expense. */
 export const INCOME_MARKERS = [
-  "รายได้", "สปอนเซอร์", "รายรับ", "ได้เงิน", "ได้รับเงิน", "ได้รับ", "income", "received",
+  "รายได้", "รับจ้าง", "รับค่าแรง", "สปอนเซอร์", "รายรับ", "ได้เงิน", "ได้รับเงิน", "ได้รับ", "income", "received",
   // Someone GAVE me money ("แม่ให้ 2000"); the reverse order ("ให้แม่") is a Family expense.
   "แม่ให้", "พ่อให้", "ยายให้", "ตาให้", "ปู่ให้", "ย่าให้", "พี่ให้", "น้องให้", "แฟนให้", "เพื่อนให้", "ลูกให้",
   "ให้มา", "โอนมาให้", "เงินเข้า", "เงินเดือนออก", "ขายได้", "ได้ทิป",
