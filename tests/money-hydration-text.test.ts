@@ -4,6 +4,24 @@ import { buildMonthGrid } from "@/lib/financial/week-strip";
 import { moneyCalendarText } from "@/lib/money-calendar-text";
 
 describe("money hydration text", () => {
+  it.each([
+    ["2026-10-19", "จ.", "Mon"],
+    ["2026-10-20", "อ.", "Tue"],
+    ["2026-10-21", "พ.", "Wed"],
+    ["2026-10-22", "พฤ.", "Thu"],
+    ["2026-10-23", "ศ.", "Fri"],
+    ["2026-10-24", "ส.", "Sat"],
+    ["2026-10-25", "อา.", "Sun"],
+  ])("uses compact weekday labels for %s", (date, th, en) => {
+    expect(formatWeekday(date, "th")).toBe(th);
+    expect(formatWeekday(date, "en")).toBe(en);
+  });
+
+  it("keeps invalid weekday dates empty", () => {
+    expect(formatWeekday("invalid", "th")).toBe("");
+    expect(formatWeekday("invalid", "en")).toBe("");
+  });
+
   it("uses the server calendar day even if hydration crosses Bangkok midnight", () => {
     vi.useFakeTimers();
     try {
