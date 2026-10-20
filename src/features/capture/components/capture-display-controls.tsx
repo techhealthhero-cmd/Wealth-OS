@@ -1,7 +1,8 @@
 "use client";
+import { SettingsSwitch } from "@/components/ui/settings-switch";
 import { useCaptureDisplay } from "../use-capture-display";
 export function CaptureLargeTextToggle({ enabled, disabled, onChange }: { enabled: boolean; disabled?: boolean; onChange: (enabled: boolean) => void }) {
-  return <button type="button" role="switch" aria-checked={enabled} aria-label="ตัวใหญ่ อ่านง่าย" data-testid="capture-large-text-toggle" disabled={disabled} onClick={() => onChange(!enabled)} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border px-4 py-2 text-left text-base disabled:opacity-50"><span>ตัวใหญ่ อ่านง่าย</span><span aria-hidden="true">{enabled ? "เปิด" : "ปิด"}</span></button>;
+  return <label className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border px-4 py-2 text-left text-base cursor-pointer"><span>ตัวใหญ่ อ่านง่าย</span><SettingsSwitch enabled={enabled} aria-label="ตัวใหญ่ อ่านง่าย" data-testid="capture-large-text-toggle" disabled={disabled} onChange={onChange} /></label>;
 }
 export function CaptureDisplaySettings() {
   const display = useCaptureDisplay();

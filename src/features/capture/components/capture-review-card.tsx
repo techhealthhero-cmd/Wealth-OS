@@ -5,6 +5,7 @@ import type { Account, Category } from "@/types/database";
 import type { CaptureDraft } from "@/lib/capture/draft";
 import type { UnsureAnswer } from "@/lib/capture/capture-device-store";
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
+import { buildUnsureQuestion } from "@/lib/capture/unsure-answer";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/client";
 import { ConfidenceBadge } from "./confidence-badge";
@@ -29,10 +30,10 @@ export function CaptureSaveButton({ onSave, disabled, saving, largeText, pending
   );
 }
 
-export function CaptureUnsureQuestion({ text, onAnswer }: { text: string; onAnswer: (answer: UnsureAnswer) => void }) {
+export function CaptureUnsureQuestion({ draft, onAnswer }: { draft: CaptureDraft; onAnswer: (answer: UnsureAnswer) => void }) {
   return (
     <div data-testid="capture-unsure-question" aria-label="คำถามรายการที่ยังไม่แน่ใจ" className="space-y-2">
-      <p className="line-clamp-2 text-base font-semibold break-words">{text} นี้คืออะไร?</p>
+      <p className="line-clamp-2 text-base font-semibold break-words">{buildUnsureQuestion(draft)}</p>
       <div className="grid gap-2">
         {UNSURE_CHOICES.map(choice => (
           <button type="button" key={choice.value} onClick={() => onAnswer(choice.value)}
@@ -164,7 +165,7 @@ export function CaptureReviewCard({ draft, accounts, categories, largeText, comp
           {dateControl(false)}
         </div>
       </>}
-      {unsure && <CaptureUnsureQuestion text={text} onAnswer={onAnswer} />}
+      {unsure && <CaptureUnsureQuestion draft={draft} onAnswer={onAnswer} />}
       </div>
       {!compact && <CaptureSaveButton onSave={onSave} disabled={disabled} saving={saving} largeText={largeText} pending={unsure}>{children}</CaptureSaveButton>}
       {!compact && !largeText && <p className="shrink-0 text-center text-xs text-muted-foreground">อ่านในเครื่อง</p>}

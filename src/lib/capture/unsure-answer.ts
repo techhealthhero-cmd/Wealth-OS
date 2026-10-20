@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/financial/money";
 import type { CaptureDraft } from "./draft";
 import type { Category } from "@/types/database";
 import type { UnsureAnswer } from "./capture-device-store";
@@ -16,4 +17,12 @@ export function applyUnsureAnswer(draft: CaptureDraft, answer: UnsureAnswer | nu
 /** Explicit defer uses the server's existing needs_review rule. */
 export function pendingUnsureDraft(draft: CaptureDraft): CaptureDraft {
   return { ...draft, confidence: "low", categoryConfirmedByUser: false };
+}
+
+/** Presentation only: the parser's description has already had amount/date/account removed. */
+export function buildUnsureQuestion(draft: Pick<CaptureDraft, "amountCents" | "description">): string {
+  if (draft.amountCents === null) return "รายการนี้คืออะไร?";
+  const amount = formatMoney(draft.amountCents, "THB", "th-TH", draft.amountCents % 100 ? 2 : 0);
+  const recipient = /โอน(?:เงิน)?\s*ให้\s*(.+)/.exec(draft.description ?? "")?.[1]?.trim();
+  return `โอน ${amount}${recipient ? ` ให้${recipient}` : ""} นี้คืออะไร?`;
 }

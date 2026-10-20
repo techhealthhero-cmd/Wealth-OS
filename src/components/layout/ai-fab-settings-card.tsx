@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronRight, Sparkles } from "lucide-react";
 
 import { useTranslation } from "@/i18n/client";
-import { cn } from "@/lib/utils";
+import { SettingsSwitch } from "@/components/ui/settings-switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AI_FAB_IDLE_OPACITY_MAX,
@@ -48,25 +48,7 @@ export function AiFabSettingsCard() {
               {enabled ? t("aiFab.showButtonOnHint") : t("aiFab.showButtonOffHint")}
             </p>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            aria-labelledby={toggleLabelId}
-            onClick={() => setAiFabEnabled(!enabled)}
-            className={cn(
-              "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors duration-(--motion-fast) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              enabled ? "bg-primary" : "bg-muted-foreground/30"
-            )}
-          >
-            <span
-              aria-hidden="true"
-              className={cn(
-                "inline-block size-6 rounded-full bg-background shadow-md transition-transform duration-(--motion-fast)",
-                enabled ? "translate-x-5.5" : "translate-x-0.5"
-              )}
-            />
-          </button>
+          <SettingsSwitch enabled={enabled} aria-labelledby={toggleLabelId} onChange={setAiFabEnabled} />
         </div>
 
         {enabled ? (

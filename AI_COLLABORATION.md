@@ -135,6 +135,10 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- W5-SWITCH-SIZE — Owner: Codex; DONE. Scope: SettingsSwitch minimum-size utilities and CaptureLargeTextToggle native label row. Requested tsc and component Vitest PASS (17 tests); no commit.
+
+- W5-FOLLOWUPS — Owner: Codex; DONE. Scope: shared Profile AI/large-text switch, pure unsure-question wording and focused tests. Completed: reused switch → pure wording from parsed draft → typecheck and 58 targeted tests PASS; no DB/formula/auth/RLS or commits.
+
 - QA4-MONEY-TEXT — Owner: Codex; READY FOR HANDOFF. Server calendar/date text snapshot + shared profile-timezone day implemented. Node 22 typecheck/lint/full Vitest PASS (154 files / 2168 tests); exact production WebKit differing string unconfirmed: sandbox IPC EPERM prevents browser launch. Owner production WebKit retest; no build/dev/start or DB/auth/formula changes.
 
 - VOICE-PAPER-TAP2 — Owner: Codex; READY FOR HANDOFF. Native growing textarea + synchronous non-passive touchend fallback and transparent focus styling complete. Node 22 typecheck/lint pass; full Vitest 148 files / 2141 tests pass. Local harness remains unstaged; server/browser sandbox EPERM blocks visual run. Supervisor handles real iPhone acceptance/push/PR.
@@ -608,3 +612,17 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Emergency form reserves a 64px mobile right gutter; companion docks on that edge on this route for restored, resized and dragged positions. On leaving, the stored position for other pages is restored; page docking does not overwrite it. Input-focus hiding and main bottom safe-area reserve retained. Desktop gutter removed.
 - formatWeekday uses Thai narrow + dot and English short, preserving UTC date-only anchors and server-rendered snapshots. Both callers are transaction-list heading paths. Tests assert all seven Thai/English weekday pairs, including 2026-10-19 = จ. / Mon; existing timezone test retained. Layout contract tests cover docking/gutter/focus/bottom reserve.
 - Node 22 via /tmp/n22bin: npm run typecheck PASS; npm run lint PASS; npx vitest run tests/money-hydration-text.test.ts tests/emergency-fund-blob-layout.test.ts tests/emergency-fund.test.ts PASS (3 files / 25 tests); git diff --check PASS. No browser/device verification; owner should review 390×664 initial scroll and scrolling. No commits or DB/Supabase/auth/RLS/billing/formula edits.
+
+
+### 2026-10-20 — Codex → owner (W5-FOLLOWUPS)
+
+- Extracted the existing AI button switch into src/components/ui/settings-switch.tsx and reused it for capture large text. Identical track/thumb/focus classes; native button keyboard support, accessible label, switch role and checked state retained. Device store and display-change/storage synchronization untouched.
+- Pure buildUnsureQuestion reads draft amount and recipient after โอน…ให้ in the parser-cleaned description, using formatMoney (whole baht or two decimals). Missing recipient omits ให้; missing amount uses รายการนี้คืออะไร?. Choices and pending Save unchanged; existing question was inline Thai, so no dictionary edits.
+- Added tests: formats the parsed amount and recipient; formats amount only when no recipient is parsed; uses a generic question when no amount is parsed. Review render test also asserts final question text.
+- PATH=/tmp/n22bin:$PATH npx tsc --noEmit PASS; npx vitest run tests/capture-w5-components.test.ts tests/capture-w5-device-store.test.ts tests/capture-w5-display.test.ts PASS (3 files / 58 tests); git diff --check PASS. No browser verification, DB/schema/migrations/formula/auth/RLS edits or commits. Owner may review uncommitted patch.
+
+
+### 2026-10-20 — Codex → owner (W5-SWITCH-SIZE)
+
+- Added `min-h-0! min-w-0!` to SettingsSwitch and changed the large-text row to a native label with cursor-pointer. Native label activation uses the existing button handler once; native disabled button blocks activation. Accessibility attributes unchanged. Existing unrelated work preserved.
+- Node 22: `npx tsc --noEmit` PASS; `npx vitest run tests/capture-w5-components.test.ts` PASS (17 tests); `git diff --check` PASS. No commit. Ready for owner review.
