@@ -1,12 +1,12 @@
 "use client";
 import { SettingsSwitch } from "@/components/ui/settings-switch";
 import { useCaptureDisplay } from "../use-capture-display";
-export function CaptureLargeTextToggle({ enabled, disabled, onChange }: { enabled: boolean; disabled?: boolean; onChange: (enabled: boolean) => void }) {
-  return <label className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border px-4 py-2 text-left text-base cursor-pointer"><span>ตัวใหญ่ อ่านง่าย</span><SettingsSwitch enabled={enabled} aria-label="ตัวใหญ่ อ่านง่าย" data-testid="capture-large-text-toggle" disabled={disabled} onChange={onChange} /></label>;
+export function CaptureLargeTextToggle({ enabled, disabled, onChange, variant = "menu" }: { enabled: boolean; disabled?: boolean; onChange: (enabled: boolean) => void; variant?: "menu" | "plain" }) {
+  return <label className={variant === "plain" ? "flex w-full cursor-pointer items-center justify-between gap-3 text-left" : "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border px-4 py-2 text-left text-base cursor-pointer"}><span className={variant === "plain" ? "min-w-0 text-sm font-medium" : undefined}>ตัวใหญ่ อ่านง่าย</span><SettingsSwitch enabled={enabled} aria-label="ตัวใหญ่ อ่านง่าย" data-testid="capture-large-text-toggle" disabled={disabled} onChange={onChange} /></label>;
 }
 export function CaptureDisplaySettings() {
   const display = useCaptureDisplay();
-  return <section className="space-y-3 rounded-2xl border bg-card p-4"><h2 className="font-semibold">หน้าจดรายการ</h2><CaptureLargeTextToggle enabled={display.largeText} disabled={!display.ready} onChange={display.setLargeText} /><p className="text-sm text-muted-foreground">ใช้เฉพาะหน้าจด บนอุปกรณ์นี้</p></section>;
+  return <section className="space-y-3 rounded-2xl border bg-card p-4"><h2 className="font-semibold">หน้าจดรายการ</h2><CaptureLargeTextToggle variant="plain" enabled={display.largeText} disabled={!display.ready} onChange={display.setLargeText} /><p className="text-sm text-muted-foreground">ใช้เฉพาะหน้าจด บนอุปกรณ์นี้</p></section>;
 }
 export function CaptureTextSuggestion({ onTry, onDismiss, amount, direction = "จ่ายไป" }: {
   onTry: () => void; onDismiss: () => void; amount?: string; direction?: string;
