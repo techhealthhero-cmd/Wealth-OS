@@ -93,7 +93,8 @@ export function EmergencyFundForm({ emergencyFund, accounts, goals }: EmergencyF
           after: parseMoneyToCents(typeof value === "string" && value !== "" ? value : "0"),
         };
       }}
-      className="space-y-4"
+      // Keep every field clear of the 48px companion docked 12px from the right.
+      className="space-y-4 pr-16 md:pr-0"
     >
       <input type="hidden" name="linked_account_id" value={linkedAccountId === NO_LINK ? "" : linkedAccountId} />
       <input type="hidden" name="linked_goal_id" value={linkedGoalId === NO_LINK ? "" : linkedGoalId} />

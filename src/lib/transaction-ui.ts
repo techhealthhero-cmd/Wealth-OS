@@ -222,5 +222,9 @@ export function formatMonthHeading(month: string, locale: "th" | "en"): string {
 export function formatWeekday(isoDate: string, locale: "th" | "en"): string {
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { weekday: "short", timeZone: "UTC" }).format(date);
+  // Thai ICU "short" can be the full word; "narrow" + a dot is the abbreviation.
+  if (locale === "th") {
+    return `${new Intl.DateTimeFormat("th-TH", { weekday: "narrow", timeZone: "UTC" }).format(date)}.`;
+  }
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" }).format(date);
 }

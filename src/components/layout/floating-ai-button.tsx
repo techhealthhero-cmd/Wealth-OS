@@ -85,11 +85,11 @@ function navClearance(): number {
   return rect && rect.height > 0 ? window.innerHeight - rect.top + EDGE_MARGIN_PX : 112;
 }
 
-function clampPosition(pos: Position): Position {
+function clampPosition(pos: Position, dockRight = false): Position {
   const maxX = window.innerWidth - BUTTON_SIZE_PX - EDGE_MARGIN_PX;
   const maxY = window.innerHeight - BUTTON_SIZE_PX - navClearance();
   return {
-    x: Math.min(Math.max(pos.x, EDGE_MARGIN_PX), Math.max(maxX, EDGE_MARGIN_PX)),
+    x: dockRight ? Math.max(maxX, EDGE_MARGIN_PX) : Math.min(Math.max(pos.x, EDGE_MARGIN_PX), Math.max(maxX, EDGE_MARGIN_PX)),
     y: Math.min(Math.max(pos.y, EDGE_MARGIN_PX), Math.max(maxY, EDGE_MARGIN_PX)),
   };
 }
@@ -160,6 +160,8 @@ function defaultPosition(): Position {
  */
 export function FloatingAiButton({ companion }: { companion: FloatingCompanion }) {
   const pathname = usePathname();
+  // This page reserves a right gutter beside its form, including when scrolled.
+  const onEmergencyFundPage = pathname === "/plan/emergency-fund";
   const router = useRouter();
   const { t } = useTranslation();
   const presenceEnabled = useCompanionPresenceEnabled();
@@ -224,23 +226,23 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
   } | null>(null);
 
   useEffect(() => {
-    const initial = clampPosition(loadStoredPosition() ?? defaultPosition());
+    const initial = clampPosition(loadStoredPosition() ?? defaultPosition(), onEmergencyFundPage);
     positionRef.current = initial;
     // Genuinely can't be known during render — depends on window
     // dimensions/localStorage, neither available server-side or on the
-    // very first client render before hydration settles. This is the one
-    // read of them, not a value that then keeps re-deriving every render.
+    // very first client render before hydration settles. Read again when
+    // entering/leaving the form dock to restore the preferred position.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPosition(initial);
 
     function handleResize() {
-      const clamped = clampPosition(positionRef.current);
+      const clamped = clampPosition(positionRef.current, onEmergencyFundPage);
       positionRef.current = clamped;
       setPosition(clamped);
     }
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [onEmergencyFundPage]);
 
   function scheduleIdle() {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
@@ -371,7 +373,7 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
       drag.moved = true;
     }
     if (!drag.moved) return;
-    const next = clampPosition({ x: drag.originX + dx, y: drag.originY + dy });
+    const next = clampPosition({ x: drag.originX + dx, y: drag.originY + dy }, onEmergencyFundPage);
     positionRef.current = next;
     setPosition(next);
   }
@@ -396,10 +398,11 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
       current.x + BUTTON_SIZE_PX / 2 < viewportMidpoint
         ? EDGE_MARGIN_PX
         : window.innerWidth - BUTTON_SIZE_PX - EDGE_MARGIN_PX;
-    const snapped = clampPosition({ x: snappedX, y: current.y });
+    const snapped = clampPosition({ x: snappedX, y: current.y }, onEmergencyFundPage);
     positionRef.current = snapped;
     setPosition(snapped);
-    persist(snapped);
+    // Page-specific docking must not overwrite the preferred spot on other pages.
+    if (!onEmergencyFundPage) persist(snapped);
   }
 
   // Avoids cluttering the AI chat screen with a shortcut to itself. The
