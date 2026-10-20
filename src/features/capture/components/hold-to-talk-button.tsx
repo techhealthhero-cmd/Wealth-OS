@@ -17,11 +17,13 @@ const TAP_MS = 350;
 export function HoldToTalkButton({
   listening,
   disabled,
+  largeText = false,
   onStart,
   onStop,
 }: {
   listening: boolean;
   disabled?: boolean;
+  largeText?: boolean;
   onStart: () => void;
   onStop: () => void;
 }) {
@@ -112,6 +114,7 @@ export function HoldToTalkButton({
             "relative flex size-20 touch-none select-none items-center justify-center rounded-full text-primary-foreground shadow-[0_12px_28px_-10px_color-mix(in_oklab,var(--primary)_80%,transparent)] [-webkit-touch-callout:none]",
             "transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 motion-reduce:transition-none",
             "disabled:cursor-not-allowed disabled:opacity-50",
+            largeText && "size-24",
             listening ? "scale-105 bg-destructive" : "bg-primary"
           )}
           style={

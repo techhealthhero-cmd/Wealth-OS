@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SuccessBadge } from "@/components/illustrations";
 import { formatMoney } from "@/lib/financial/money";
+import { handFont } from "@/components/notebook/hand-font";
 import { toLocalDateString, addMonthsClamped } from "@/lib/date";
 import { useSpeechInput } from "@/lib/speech/use-speech-input";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
@@ -31,7 +32,7 @@ import {
 } from "@/lib/capture/transaction-parser";
 import { buildCaptureSaveInput, canSaveDraft, smartCaptureNeedsAnswer, memoryNeedsConfirmation, type CaptureDraft } from "@/lib/capture/draft";
 import { mergeAIParse, needsAIAssist, recapItemsNeedingAI, type AIParseFields } from "@/lib/capture/ai-fallback";
-import { isMultiItemRecap, parseRecap } from "@/lib/capture/recap";
+import { isMultiItemRecap, parseRecap, recapTotals } from "@/lib/capture/recap";
 import { applyCaptureDate } from "@/lib/capture/capture-date";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { TransactionPrefill } from "@/features/transactions/components/transaction-form";
@@ -58,6 +59,10 @@ import { evaluateCaptureConfidence } from "@/lib/capture/confidence";
 import { useMerchantMemory } from "../use-merchant-memory";
 import { saveCaptureDraft } from "../save-capture-draft";
 import { SubscriptionCancelCard } from "./subscription-cancel-card";
+import { useCaptureDisplay, useCaptureViewport } from "../use-capture-display";
+import { CaptureReviewCard, CaptureSaveButton } from "./capture-review-card";
+import { CaptureLargeTextToggle, CaptureTextSuggestion } from "./capture-display-controls";
+import { applyUnsureAnswer, needsUnsureQuestion, pendingUnsureDraft } from "@/lib/capture/unsure-answer";
 import { TransactionPreview } from "./transaction-preview";
 import { HoldToTalkButton } from "./hold-to-talk-button";
 import { RecapReview, type RecapRow } from "./recap-review";
@@ -119,6 +124,15 @@ export function QuickCaptureSheet({
 }: QuickCaptureSheetProps) {
   const { t, locale } = useTranslation();
   const memory = useMerchantMemory(open);
+  const display = useCaptureDisplay();
+  const { layout: captureDisplayLayout, viewport: captureViewport } = useCaptureViewport(open);
+  const zoomed = useRef(false);
+  const hasRecorded = useRef(false);
+  useEffect(() => {
+    const zoom = (captureViewport?.scale ?? 1) > 1;
+    if (open && zoom && !zoomed.current) display.effort();
+    zoomed.current = zoom;
+  }, [captureViewport?.scale, open, display]);
   // A string-array dictionary entry (live-status steps), with a single-line fallback.
   const tList = (key: string, fallbackKey: string): string[] => {
     const value = t(key) as unknown;
@@ -178,7 +192,8 @@ export function QuickCaptureSheet({
   const micPressedAtRef = useRef(0);
   const prefixRef = useRef<HTMLDivElement>(null);
   const reviewRef = useRef<HTMLDivElement>(null);
-  const [holdLayout, setHoldLayout] = useState<{ prefixHeight: number; sheetHeight: number } | null>(null);
+  const pinnedReviewRef = useRef<HTMLDivElement>(null);
+  const [holdLayout, setHoldLayout] = useState<{ prefixHeight: number; sheetHeight: number; reviewHeight: number } | null>(null);
   // Hybrid parsing: validated AI readings keyed by normalized sentence. A key
   // is claimed before its request starts, so re-renders, retyping the same
   // text or a failed call never trigger a second request for it.
@@ -426,6 +441,9 @@ export function QuickCaptureSheet({
     return {
       learningBaseline: { categoryId: parsed.categoryId, type: parsed.type },
       confidenceGate: evaluateCaptureConfidence(parsed, { ...ctx, text: textKey }),
+      isEmergencyFundDraw: parsed.isEmergencyFundDraw,
+      emergencyFundAccountMissing: parsed.emergencyFundAccountMissing,
+      installment: parsed.installment,
       smart: parsed.smart,
       subscription: parsed.subscription,
       subscriptionAccountMissing: parsed.subscriptionAccountMissing,
@@ -445,7 +463,10 @@ export function QuickCaptureSheet({
     };
   }, [localParsed, aiReading, textKey, ctx, textSource, overrides, captureDate]);
 
-  const activeDraft = receipt.status !== "idle" ? receiptDraft : textDraft;
+  const ordinaryTextDraft = textDraft && !transferIntent && !recapMode ? applyUnsureAnswer(textDraft, display.answer(textKey), categories) : textDraft;
+  const activeDraft = receipt.status !== "idle" ? receiptDraft : ordinaryTextDraft;
+  const pinnedDraft = receipt.status !== "scanning" && !recapMode && activeDraft && !activeDraft.cancelIntent ? activeDraft : null;
+  const unsure = receipt.status === "idle" && !transferIntent && !!pinnedDraft && !display.answer(textKey) && needsUnsureQuestion(pinnedDraft, textKey);
   // Boolean presence keeps the order stable as the draft changes while typing.
   const hasReview = recapMode || Boolean(activeDraft) || receipt.status !== "idle";
   const reviewFirst = !speech.listening && hasReview;
@@ -603,6 +624,7 @@ export function QuickCaptureSheet({
   // ---------------------------------------------------------------- save
 
   function patchDraft(patch: Partial<CaptureDraft>) {
+    display.effort();
     if (receipt.status !== "idle") setReceiptDraft((d) => (d ? { ...d, ...patch } : d));
     else setOverrides((o) => ({ ...o, ...patch }));
     if (patch.amountCents !== undefined) setDuplicate(null);
@@ -636,8 +658,9 @@ export function QuickCaptureSheet({
     });
   }
 
-  async function save(options: { skipDuplicateCheck?: boolean } = {}) {
-    const draft = activeDraft;
+  async function save(options: { skipDuplicateCheck?: boolean; deferUnsure?: boolean } = {}) {
+    const deferUnsure = options.deferUnsure ?? unsure;
+    const draft = activeDraft && deferUnsure ? pendingUnsureDraft(activeDraft) : activeDraft;
     if (!draft || saving || draft.cancelIntent || (receipt.status === "idle" && parseCancelIntent(text))) return;
     if (transferIntent && draft.amountCents !== null) {
       const fromId = transferSide("from");
@@ -721,7 +744,7 @@ export function QuickCaptureSheet({
         return;
       }
 
-      const undoLearning = await memory.remember(textKey, draft, ctx);
+      const undoLearning = deferUnsure ? () => {} : await memory.remember(textKey, draft, ctx);
       const needsReview = !(draft.confidence === "high" || draft.categoryConfirmedByUser);
       const savedId = draft.smart && draft.smartAssetAccepted !== false ? undefined : result.transactionId;
       cheerCompanion();
@@ -853,8 +876,22 @@ export function QuickCaptureSheet({
 
   const receiptHeading = receipt.status === "done" && receipt.extraction?.isPaymentDocument ? t("capture.detected") : t("capture.preview");
 
+  const pinnedSaveDisabled = saving || !pinnedDraft || Boolean(duplicate) || (transferIntent
+    ? !pinnedDraft.amountCents || !transferSide("from") || !transferSide("to") || transferSide("from") === transferSide("to")
+    : !canSaveDraft(pinnedDraft));
+  const batchSaveDisabled = saving || !recapRows.some(r => canSaveDraft(r.draft)) || recapRows.some(r => smartCaptureNeedsAnswer(r.draft) || memoryNeedsConfirmation(r.draft));
+  const batchTotals = recapTotals(recapRows.map(r => r.draft));
+  const batchSummary = `${recapRows.length} รายการ · จ่ายไป ${formatMoney(batchTotals.expenseCents)} · ได้รับ ${formatMoney(batchTotals.incomeCents)}`;
+  const captureSuggestion = display.suggestion && captureDisplayLayout === "a" && !speech.listening ? <CaptureTextSuggestion amount={activeDraft?.amountCents != null ? formatMoney(activeDraft.amountCents) : undefined} direction={activeDraft?.type === "income" ? "ได้รับ" : "จ่ายไป"} onTry={() => display.setLargeText(true)} onDismiss={display.dismissSuggestion} /> : null;
+  const batchReview = recapMode ? <section data-testid="capture-review-card" aria-label="ตรวจสอบรายการก่อนบันทึก" className="space-y-3 rounded-2xl border bg-card p-4 shadow-card">
+    {captureSuggestion ?? <p className={cn(captureDisplayLayout === "b" ? "truncate text-sm" : display.largeText ? "text-xl" : "text-base font-semibold")}>{batchSummary}</p>}
+    {captureDisplayLayout !== "b" && <CaptureSaveButton onSave={() => void confirmRecap()} disabled={batchSaveDisabled} saving={saving} largeText={display.largeText}>บันทึก {recapRows.length} รายการ</CaptureSaveButton>}
+  </section> : null;
+
   const review = (recapMode || activeDraft || receipt.status !== "idle" || error) ? (
     <div ref={reviewRef} className="space-y-3">
+      <details open={!display.largeText || receipt.status === "scanning" || Boolean(error) || Boolean(duplicate)} className="space-y-3">
+      <summary className={display.largeText ? "min-h-11 cursor-pointer py-2 text-lg font-semibold" : "hidden"}>ตรวจสอบรายละเอียด</summary>
       {receipt.status !== "idle" ? (
         <div className="flex items-center gap-3 rounded-2xl border bg-muted/40 p-2">
           {/* eslint-disable-next-line @next/next/no-img-element -- transient local object URL, never uploaded as-is or stored */}
@@ -878,7 +915,7 @@ export function QuickCaptureSheet({
             type="button"
             aria-label={t("common.close")}
             onClick={clearReceipt}
-            className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
           >
             <X className="size-4" aria-hidden="true" />
           </button>
@@ -888,9 +925,10 @@ export function QuickCaptureSheet({
       {recapMode ? (
         <RecapReview
           rows={recapRows}
+          hideSave
           accounts={accounts}
           categories={categories}
-          onChange={(id, patch) => setRecapOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }))}
+          onChange={(id, patch) => { display.effort(); setRecapOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } })); }}
           onRemove={(id) => setRecapRemoved((prev) => new Set([...prev, id]))}
           onConfirm={() => void confirmRecap()}
           saving={saving}
@@ -903,7 +941,8 @@ export function QuickCaptureSheet({
         <SubscriptionCancelCard key={activeDraft.cancelIntent.serviceQuery} serviceQuery={activeDraft.cancelIntent.serviceQuery}
           onCancelled={() => { resetAll(); onOpenChange(false); }} />
       ) : activeDraft && transferIntent && receipt.status !== "scanning" && !recapMode ? (
-        <TransferPreview
+        <div id="capture-transfer-details"><TransferPreview
+          hideSave
           intent={transferIntent}
           accounts={accounts}
           amountCents={activeDraft.amountCents}
@@ -913,6 +952,7 @@ export function QuickCaptureSheet({
           saving={saving}
           onAmountChange={(amountCents) => patchDraft({ amountCents })}
           onPick={(side, accountId, rememberWord) => {
+            display.effort();
             setTransferPicks((previous) => ({
               ...(previous.key === textKey ? previous : { key: textKey }),
               [side]: accountId,
@@ -927,10 +967,13 @@ export function QuickCaptureSheet({
             });
           }}
           onSave={() => void save()}
-        />
-      ) : activeDraft && receipt.status !== "scanning" && !recapMode ? (
+        /></div>
+      ) : activeDraft && receipt.status !== "scanning" && !recapMode && (receipt.status !== "idle" || activeDraft.smart || activeDraft.subscription || memoryNeedsConfirmation(activeDraft)) ? (
         <TransactionPreview
           draft={activeDraft}
+          hideSave={!!pinnedDraft}
+          detailsOnly={!!pinnedDraft}
+          largeText={display.largeText}
           accounts={accounts}
           categories={categories}
           heading={receipt.status !== "idle" ? receiptHeading : t("capture.preview")}
@@ -964,6 +1007,7 @@ export function QuickCaptureSheet({
           {error}
         </p>
       ) : null}
+      </details>
     </div>
   ) : null;
 
@@ -981,20 +1025,24 @@ export function QuickCaptureSheet({
     >
       <SheetContent
         ref={attachSheet}
+        data-testid="capture-layout"
+        data-layout={captureDisplayLayout}
+        data-large-text={display.largeText}
         motion="grow"
         side="bottom"
-        className="flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-t-3xl p-0 pb-[calc(env(safe-area-inset-bottom)+12px)] motion-reduce:transition-none sm:mx-auto sm:max-w-lg"
+        className="[&_button]:min-h-11 [&_button]:min-w-11 [&_select]:min-h-11 [&_input:not([type=checkbox])]:min-h-11 [&_label:has(input[type=checkbox])]:min-h-11 flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-t-3xl p-0 pb-[calc(env(safe-area-inset-bottom)+12px)] [&>[data-slot=sheet-close]]:size-11 motion-reduce:transition-none sm:mx-auto sm:max-w-lg"
         // iOS overlays the keyboard instead of resizing the page — lift the
         // sheet above it. While the keyboard is up the sheet takes ALL the
         // space above it (a fixed height, not its content's), so typing the
         // first letter — which adds the preview card — never makes the sheet
         // grow and its top jump. It glides with the keyboard (transition).
         style={
-          keyboardInset > 0
+          captureDisplayLayout === "b" && captureViewport
             ? {
-                bottom: keyboardInset,
-                height: `calc(100dvh - ${keyboardInset}px - 1rem)`,
-                maxHeight: `calc(100dvh - ${keyboardInset}px - 1rem)`,
+                top: captureViewport.offsetTop,
+                bottom: "auto",
+                height: captureViewport.height,
+                maxHeight: captureViewport.height,
                 paddingBottom: 12,
               }
             : speech.listening && holdLayout
@@ -1006,10 +1054,21 @@ export function QuickCaptureSheet({
         <div aria-hidden="true" className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/25" />
         <SheetHeader className="shrink-0 pt-2 pb-2">
           <SheetTitle className="text-lg">{t("capture.title")}</SheetTitle>
+          <details className="absolute right-14 top-3 z-20">
+            <summary aria-label="เมนูหน้าจด" className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-full border">···</summary>
+            <div className="absolute right-0 top-12 w-64 max-w-[80vw] space-y-2 rounded-2xl border bg-background p-3 shadow-lg"><CaptureLargeTextToggle enabled={display.largeText} disabled={!display.ready} onChange={display.setLargeText} /><button type="button" onClick={openManual} className="min-h-11 w-full text-left">แก้ไขรายละเอียด</button></div>
+          </details>
           <SheetDescription>{t("capture.subtitle")}</SheetDescription>
         </SheetHeader>
 
-        <div ref={scrollRef} className="edge-fade-y min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        {(pinnedDraft || recapMode || (speech.listening && holdLayout?.reviewHeight)) ? <div ref={pinnedReviewRef} className="shrink-0 px-4 pb-2" style={speech.listening && holdLayout ? { height: holdLayout.reviewHeight, overflow: "hidden" } : undefined}>{pinnedDraft && <CaptureReviewCard draft={pinnedDraft} accounts={accounts} categories={categories} largeText={display.largeText} compact={captureDisplayLayout === "b"} unsure={unsure && captureDisplayLayout !== "b"} text={textKey} today={ctx.today}
+          transfer={transferIntent ? { label: `${accounts.find(a => a.id === transferSide("from"))?.name ?? "เลือกบัญชีต้นทาง"} → ${accounts.find(a => a.id === transferSide("to"))?.name ?? "เลือกบัญชีปลายทาง"}`, onEdit: () => document.getElementById("capture-transfer-details")?.scrollIntoView({ block: "nearest" }) } : undefined}
+          suggestion={captureSuggestion}
+          onEditText={() => textRef.current?.focus({ preventScroll: true })} onExpand={() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); }}
+          onAnswer={answer => { display.effort(); display.remember(textKey, answer); }} onChange={patchDraft}
+          onSave={() => void save({ deferUnsure: unsure })} disabled={pinnedSaveDisabled} saving={saving} />}{batchReview}</div> : null}
+        {!pinnedDraft && !recapMode && captureSuggestion && <div className="shrink-0 px-4 pb-2">{captureSuggestion}</div>}
+        <div ref={scrollRef} className="journal-page edge-fade-y min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="space-y-3 px-4">
             <div
               ref={prefixRef}
@@ -1030,6 +1089,7 @@ export function QuickCaptureSheet({
                   {t("capture.inputLabel")}
                 </label>
                 <textarea
+                  data-capture-paper
                   id="quick-capture-input"
                   ref={attachText}
                   rows={1}
@@ -1052,7 +1112,7 @@ export function QuickCaptureSheet({
                   placeholder={speech.listening ? t("capture.listening") : t("capture.recap.placeholder")}
                   autoComplete="off"
                   enterKeyHint="done"
-                  className="block min-h-13 w-full resize-none overflow-y-auto overscroll-contain rounded-2xl border bg-background px-4 py-3 pr-11 text-base leading-relaxed outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
+                  className={cn(handFont.className, "voice-paper-field block min-h-13 w-full resize-none overflow-y-auto overscroll-contain border-0 bg-transparent px-4 py-3 pr-12 text-[26px] leading-8 text-[#1f3d6b] outline-none dark:text-[#9db8e6]")}
                 />
                 {text ? (
                   <button
@@ -1063,14 +1123,14 @@ export function QuickCaptureSheet({
                       setOverrides({});
                       textRef.current?.focus();
                     }}
-                    className="absolute top-3 right-3 flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+                    className="absolute top-1 right-1 flex size-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
                   >
                     <X className="size-4" aria-hidden="true" />
                   </button>
                 ) : null}
               </form>
 
-              <CaptureDatePicker value={captureDate} today={ctx.today} onChange={(d) => setPickedDate(d === ctx.today ? null : d)} />
+              {!display.largeText && <CaptureDatePicker value={captureDate} today={ctx.today} onChange={(d) => { display.effort(); setPickedDate(d === ctx.today ? null : d); }} />}
 
               {reviewFirst ? review : null}
 
@@ -1094,7 +1154,7 @@ export function QuickCaptureSheet({
                         setText(t(`capture.${key}`));
                         setTextSource("quick_text");
                       }}
-                      className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+                      className="min-h-11 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
                     >
                       {t(`capture.${key}`)}
                     </button>
@@ -1117,6 +1177,7 @@ export function QuickCaptureSheet({
                 {t("capture.scan")}
               </button>
               <HoldToTalkButton
+                largeText={display.largeText}
                 listening={speech.listening}
                 disabled={!speech.supported}
                 onStart={() => {
@@ -1124,6 +1185,7 @@ export function QuickCaptureSheet({
                   setHoldLayout({
                     prefixHeight: prefixRef.current?.getBoundingClientRect().height ?? 0,
                     sheetHeight: sheetElRef.current?.getBoundingClientRect().height ?? 0,
+                    reviewHeight: pinnedReviewRef.current?.getBoundingClientRect().height ?? 0,
                   });
                   setError(null);
                   if (receipt.status !== "idle") clearReceipt();
@@ -1136,6 +1198,8 @@ export function QuickCaptureSheet({
                   setRecapOverrides({});
                   setRecapRemoved(new Set());
                   setRecapAI({});
+                  if (text.trim() || hasRecorded.current) display.effort();
+                  hasRecorded.current = true;
                   speech.startHold("");
                 }}
                 onStop={() => {
@@ -1187,7 +1251,7 @@ export function QuickCaptureSheet({
             <button
               type="button"
               onClick={() => libraryInputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+              className="flex min-h-11 w-full items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
               <ImageUp className="size-3.5" aria-hidden="true" />
               {t("capture.uploadImage")}
@@ -1232,6 +1296,7 @@ export function QuickCaptureSheet({
             </div>
           </div>
         </div>
+        {captureDisplayLayout === "b" && (pinnedDraft || recapMode) && <div className="shrink-0 bg-background px-4 pt-2"><CaptureSaveButton onSave={() => recapMode ? void confirmRecap() : void save({ deferUnsure: unsure })} disabled={recapMode ? batchSaveDisabled : pinnedSaveDisabled} saving={saving} largeText={display.largeText} pending={unsure} /></div>}
       </SheetContent>
     </Sheet>
     <BlackHoleFab open={open} />

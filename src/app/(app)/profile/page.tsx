@@ -17,6 +17,7 @@ import { AiFabSettingsCard } from "@/components/layout/ai-fab-settings-card";
 import { AccountPrivacySettingsCard } from "@/features/account-privacy/components/account-privacy-settings-card";
 import { getAccountPrivacyState } from "@/features/account-privacy/queries";
 import { getCategories } from "@/features/categories/queries";
+import { CaptureDisplaySettings } from "@/features/capture/components/capture-display-controls";
 import { CaptureUnitsCard } from "@/features/capture/components/capture-units-card";
 import { NotebookCover } from "@/components/notebook/notebook-cover";
 import { resolveCoverPreferences } from "@/lib/notebook-covers/config";
@@ -191,6 +192,7 @@ export default async function ProfilePage() {
         </CardContent>
       </Card>
 
+      <CaptureDisplaySettings />
       <AiFabSettingsCard />
 
       <ProfileForm profile={profile} />

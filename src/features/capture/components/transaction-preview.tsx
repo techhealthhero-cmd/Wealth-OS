@@ -23,6 +23,9 @@ type OpenPanel = "category" | "account" | null;
 
 interface TransactionPreviewProps {
   draft: CaptureDraft;
+  hideSave?: boolean;
+  detailsOnly?: boolean;
+  largeText?: boolean;
   accounts: Account[];
   categories: Category[];
   heading: string;
@@ -49,6 +52,9 @@ function amountToInput(cents: number | null) {
  */
 export function TransactionPreview({
   draft,
+  hideSave = false,
+  detailsOnly = false,
+  largeText = false,
   accounts,
   categories,
   heading,
@@ -109,20 +115,21 @@ export function TransactionPreview({
   }
 
   const chip =
-    "inline-flex max-w-full items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-sm font-medium transition-colors active:scale-[0.98] hover:bg-muted";
+    "inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-sm font-medium transition-colors active:scale-[0.98] hover:bg-muted";
 
   return (
     <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-card animate-in fade-in slide-in-from-bottom-1 duration-(--motion-normal)">
-      <div className="flex items-center justify-between gap-2">
+      {!detailsOnly && <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-medium text-muted-foreground">{heading}</p>
-        <ConfidenceBadge confidence={draft.confidence} />
-      </div>
+        {!largeText && <ConfidenceBadge confidence={draft.confidence} />}
+      </div>}
 
       {notice}
       <SmartCaptureFields draft={draft} onChange={onChange} />
       <SubscriptionFields draft={draft} accounts={accounts} onChange={onChange} />
 
       {/* Amount — visually dominant; directly editable. */}
+      {!detailsOnly && <>
       <div>
         <label className="sr-only" htmlFor="capture-amount">
           {t("capture.amount")}
@@ -148,7 +155,7 @@ export function TransactionPreview({
 
       {label ? <p className="truncate text-sm text-foreground/90" title={label}>{label}</p> : null}
 
-      <div className="flex flex-wrap gap-2">
+      {!largeText && <div className="flex flex-wrap gap-2">
         <button
           type="button"
           className={cn(chip, openPanel === "category" && "border-primary ring-1 ring-primary")}
@@ -174,8 +181,9 @@ export function TransactionPreview({
           <span aria-hidden="true">📅</span>
           {formatFriendlyDate(draft.date, locale, { today: t("capture.today"), yesterday: t("capture.yesterday") })}
         </span>
-      </div>
+      </div>}
 
+      </>}
       {memoryNeedsConfirmation(draft) ? <p className="text-xs text-muted-foreground" role="status">{t("capture.memoryConflict")}</p> : null}
       {guessed && openPanel !== "category" ? <p className="text-xs text-muted-foreground">{t("capture.categoryGuessed")}</p> : null}
 
@@ -217,24 +225,26 @@ export function TransactionPreview({
             </p>
           ) : null}
           <div className="flex gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setShowExisting((v) => !v)}>
+            <Button type="button" variant="outline" size="sm" className="min-h-11" onClick={() => setShowExisting((v) => !v)}>
               {showExisting ? t("capture.hideExisting") : t("capture.viewExisting")}
             </Button>
-            <Button type="button" size="sm" onClick={onSaveAnyway} disabled={saving}>
+            <Button type="button" size="sm" className="min-h-11" onClick={onSaveAnyway} disabled={saving}>
               {t("capture.saveAnyway")}
             </Button>
           </div>
         </div>
       ) : null}
 
-      <div className="flex gap-2 pt-1">
+      {!hideSave && <div className="flex gap-2 pt-1">
         <Button type="button" variant="outline" className="h-11 flex-1 rounded-xl" onClick={onEdit}>
           <Pencil className="mr-1.5 size-4" aria-hidden="true" />
           {t("capture.edit")}
         </Button>
         <Button
           type="button"
-          className="h-11 flex-[2] rounded-xl text-base"
+          data-testid="capture-save"
+          aria-label="บันทึก"
+          className={cn("flex-[2] rounded-xl text-base", largeText ? "h-[72px] text-2xl" : "h-11")}
           onClick={onSave}
           disabled={saving || !canSaveDraft(draft) || Boolean(duplicate)}
         >
@@ -242,7 +252,7 @@ export function TransactionPreview({
           {saveLabel}
           {draft.amountCents ? <span className="ml-1 opacity-80">{formatMoney(draft.amountCents, "THB", undefined, draft.amountCents % 100 ? 2 : 0)}</span> : null}
         </Button>
-      </div>
+      </div>}
     </div>
   );
 }
