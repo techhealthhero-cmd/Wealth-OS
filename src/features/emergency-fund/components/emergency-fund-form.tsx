@@ -38,6 +38,23 @@ export function EmergencyFundForm({ emergencyFund, accounts, goals }: EmergencyF
   const [linkedAccountId, setLinkedAccountId] = useState(emergencyFund?.linked_account_id ?? NO_LINK);
   const [linkedGoalId, setLinkedGoalId] = useState(emergencyFund?.linked_goal_id ?? NO_LINK);
 
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    const reveal = () => {
+      const input = document.activeElement;
+      if (window.matchMedia("(max-width: 767px)").matches && input instanceof HTMLElement &&
+          formRef.current?.contains(input) && input.matches("input:not([type=hidden]), textarea, select, [role=combobox]")) {
+        input.scrollIntoView({ block: "center", behavior: "instant" });
+      }
+    };
+    const form = formRef.current;
+    form?.addEventListener("focusin", reveal);
+    window.visualViewport?.addEventListener("resize", reveal);
+    return () => {
+      form?.removeEventListener("focusin", reveal);
+      window.visualViewport?.removeEventListener("resize", reveal);
+    };
+  }, []);
   // Black Hole (2026-10-04): when a save adds money, the added amount flies
   // up and is swallowed by the progress bar — "your money went HERE".
   // Values are captured at submit time: by the time the success state
@@ -67,6 +84,7 @@ export function EmergencyFundForm({ emergencyFund, accounts, goals }: EmergencyF
 
   return (
     <form
+      ref={formRef}
       action={formAction}
       onSubmit={(e) => {
         const value = new FormData(e.currentTarget).get("current_amount");

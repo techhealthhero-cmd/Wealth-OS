@@ -33,18 +33,19 @@ export function WallCalendar({
   prevMonth,
   nextMonth,
   selectedDate,
+  text,
 }: {
   grid: MonthGrid;
+  text: import("@/lib/money-calendar-text").MoneyCalendarText;
   prevMonth: string;
   /** null when this is already the current month. */
   nextMonth: string | null;
   selectedDate: string | null;
 }) {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
-  const dateLocale = locale === "th" ? "th-TH" : "en-US";
   const rows = grid.weeks.length;
   const focusBottom = (grid.focusRow + 1) * ROW_H;
 
@@ -176,22 +177,12 @@ export function WallCalendar({
     });
   }
 
-  const label = (date: string, options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat(dateLocale, { timeZone: "UTC", ...options }).format(new Date(`${date}T00:00:00Z`));
-  const net = (cents: number) => {
-    // Round the size, not the signed value: Math.round(-1443.5) is -1443,
-    // while the month summary shows ฿1,444.
-    const baht = Math.round(Math.abs(cents) / 100);
-    const formatted = new Intl.NumberFormat(dateLocale, {
-      maximumFractionDigits: baht >= 100_000 ? 1 : 0,
-      notation: baht >= 100_000 ? "compact" : "standard",
-    }).format(baht);
-    return cents > 0 ? `+${formatted}` : cents < 0 ? `-${formatted}` : formatted;
-  };
+  const label = (date: string, options: { weekday: "narrow" | "long"; day?: "numeric"; month?: "long" }) => text.dates[date][options.weekday];
+  const net = (cents: number) => text.nets[String(cents)];
   const tone = (cents: number) => (cents > 0 ? "wall-pos" : cents < 0 ? "wall-neg" : "");
 
   const isCurrentMonth = nextMonth === null;
-  const title = label(`${grid.month}-01`, { month: "long", year: "numeric" });
+  const title = text.title;
   const open = Math.min(shown, rows);
   const firstShown = open * ROW_H <= focusBottom ? grid.focusRow + 1 - open : 0;
   const full = open >= rows;
@@ -281,7 +272,7 @@ export function WallCalendar({
                         )}
                       >
                         <span className="wall-n text-[16px] leading-none font-semibold">
-                          {label(day.date, { day: "numeric" })}
+                          {Number(day.date.slice(8, 10))}
                         </span>
                         <span className={cn("wall-v text-[10px]", tone(day.netCents) || "wall-muted")}>
                           {day.isFuture ? " " : net(day.netCents)}

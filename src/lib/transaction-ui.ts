@@ -1,3 +1,5 @@
+import { todayInTimeZone } from "@/lib/date";
+import { addDaysIso } from "@/lib/financial/week-strip";
 import type { AccountType, TransactionType } from "@/types/database";
 
 /**
@@ -153,23 +155,17 @@ export function transactionTypeVisual(type: TransactionType): TransactionTypeVis
 export function formatFriendlyDate(
   isoDate: string,
   locale: "th" | "en",
-  labels: { today: string; yesterday: string }
+  labels: { today: string; yesterday: string },
+  referenceToday = todayInTimeZone()
 ): string {
-  const date = new Date(`${isoDate}T00:00:00`);
+  const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return isoDate;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const dayMs = 24 * 60 * 60 * 1000;
-  const diffDays = Math.round((date.getTime() - today.getTime()) / dayMs);
-
-  if (diffDays === 0) return labels.today;
-  if (diffDays === -1) return labels.yesterday;
+  if (isoDate === referenceToday) return labels.today;
+  if (isoDate === addDaysIso(referenceToday, -1)) return labels.yesterday;
 
   return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", {
+    timeZone: "UTC",
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -217,14 +213,14 @@ export function groupTransactionsByMonthAndDay<T extends { transaction_date: str
 
 /** "ตุลาคม 2569" / "October 2026" */
 export function formatMonthHeading(month: string, locale: "th" | "en"): string {
-  const date = new Date(`${month}-01T00:00:00`);
+  const date = new Date(`${month}-01T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return month;
-  return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "long", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
 /** Short weekday for a day heading, e.g. "พฤ." / "Thu" — the long Thai form ("วันพฤหัสบดี") repeats "วัน" after "วันที่ 20". */
 export function formatWeekday(isoDate: string, locale: "th" | "en"): string {
-  const date = new Date(`${isoDate}T00:00:00`);
+  const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { weekday: "short" }).format(date);
+  return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { weekday: "short", timeZone: "UTC" }).format(date);
 }

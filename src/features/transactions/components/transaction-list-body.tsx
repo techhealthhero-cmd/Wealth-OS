@@ -18,6 +18,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TransactionRow } from "./transaction-row";
 
 interface TransactionListBodyProps {
+  today: string;
+  dateText: Record<string, { friendly: string; weekday: string; month: string }>;
   initialTransactions: TransactionWithRelations[];
   initialHasMore: boolean;
   filters: Omit<TransactionFilters, "limit" | "offset">;
@@ -42,6 +44,8 @@ interface TransactionListBodyProps {
  * each row's ⋮ menu only.
  */
 export function TransactionListBody({
+  today: referenceToday,
+  dateText,
   initialTransactions,
   initialHasMore,
   filters,
@@ -72,7 +76,7 @@ export function TransactionListBody({
   function dayLabel(date: string) {
     const today = t("transactions.today");
     const yesterday = t("transactions.yesterday");
-    const friendly = formatFriendlyDate(date, locale, { today, yesterday });
+    const friendly = dateText[date]?.friendly ?? formatFriendlyDate(date, locale, { today, yesterday }, referenceToday);
     if (friendly === today || friendly === yesterday) return friendly;
     return t("transactions.dayHeading").replace("{day}", String(Number(date.slice(8, 10))));
   }
@@ -83,12 +87,12 @@ export function TransactionListBody({
         <section
           key={month.month}
           className="space-y-2"
-          aria-label={month.month === unlabeledMonth ? formatMonthHeading(month.month, locale) : undefined}
+          aria-label={month.month === unlabeledMonth ? (dateText[month.days[0].date]?.month ?? formatMonthHeading(month.month, locale)) : undefined}
         >
           {month.month === unlabeledMonth ? null : (
             <h2 className="px-1 font-heading text-base font-semibold">
               {/* Journal: month headings get the highlighter stroke, rows are ruled ledger lines. */}
-              <span className="journal-heading">{formatMonthHeading(month.month, locale)}</span>
+              <span className="journal-heading">{(dateText[month.days[0].date]?.month ?? formatMonthHeading(month.month, locale))}</span>
             </h2>
           )}
           <Card>
@@ -97,7 +101,7 @@ export function TransactionListBody({
                 <div key={day.date}>
                   <p className="flex items-baseline gap-2 pt-3 pb-1 text-sm font-semibold">
                     {dayLabel(day.date)}
-                    <span className="text-xs font-normal text-muted-foreground">{formatWeekday(day.date, locale)}</span>
+                    <span className="text-xs font-normal text-muted-foreground">{dateText[day.date]?.weekday ?? formatWeekday(day.date, locale)}</span>
                   </p>
                   {day.items.map((transaction) => (
                     <div key={transaction.id} className="border-b border-dashed last:border-0">

@@ -1,3 +1,5 @@
+import { moneyCalendarText } from "@/lib/money-calendar-text";
+import { formatFriendlyDate, formatMonthHeading, formatWeekday } from "@/lib/transaction-ui";
 import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
 import { getProfile } from "@/features/profile/queries";
@@ -112,6 +114,7 @@ export async function TransactionList({
       {tab !== "pending" && (
         <WallCalendar
           grid={calendar}
+          text={moneyCalendarText(calendar, locale)}
           prevMonth={addMonthsIso(calendarMonth, -1)}
           nextMonth={calendarMonth < thisMonth ? addMonthsIso(calendarMonth, 1) : null}
           selectedDate={selectedDate}
@@ -170,6 +173,11 @@ export async function TransactionList({
           // the body copies its first page into state, so without a new key
           // it would keep showing the previous filter's rows.
           key={JSON.stringify(listFilters)}
+          today={today}
+          dateText={Object.fromEntries(transactions.map(tx => {
+            const date = tx.transaction_date.slice(0, 10);
+            return [date, { friendly: formatFriendlyDate(date, locale, { today: dict.transactions.today, yesterday: dict.transactions.yesterday }, today), weekday: formatWeekday(date, locale), month: formatMonthHeading(date.slice(0, 7), locale) }];
+          }))}
           initialTransactions={transactions}
           initialHasMore={hasMore}
           filters={listFilters}

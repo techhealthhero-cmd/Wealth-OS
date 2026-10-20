@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SwipeTabPages, prefetchFull, type SwipeTabPagesHandle } from "./swipe-tab-pages";
-import { tabStripScrollTarget } from "./tab-strip-scroll";
+import { tabStripMask, tabStripScrollTarget } from "./tab-strip-scroll";
 import { bookNeighbour } from "./journal-book";
 
 export interface SegmentedTabItem {
@@ -56,11 +56,30 @@ export function SegmentedTabs({
   // With 7–8 Money tabs the row overflows on mobile: keep the open one in view.
   useLayoutEffect(() => {
     const nav = navRef.current;
-    const tab = tabRefs.current[activeIndex];
-    if (!nav || !tab) return;
-    const target = tabStripScrollTarget(tab.offsetLeft, tab.offsetWidth, nav.scrollLeft, nav.clientWidth, nav.scrollWidth);
-    if (target !== null) nav.scrollLeft = target;
-  }, [activeIndex]);
+    if (!nav) return;
+    const updateMask = () => {
+      const mask = tabStripMask(nav.scrollLeft, nav.clientWidth, nav.scrollWidth);
+      nav.style.maskImage = mask;
+      nav.style.webkitMaskImage = mask;
+    };
+    const reveal = () => {
+      const tab = tabRefs.current[activeIndex];
+      if (tab) {
+        const target = tabStripScrollTarget(tab.offsetLeft, tab.offsetWidth, nav.scrollLeft, nav.clientWidth, nav.scrollWidth, 20);
+        if (target !== null) nav.scrollLeft = target;
+      }
+      updateMask();
+    };
+    reveal();
+    const observer = new ResizeObserver(reveal);
+    observer.observe(nav);
+    if (nav.firstElementChild) observer.observe(nav.firstElementChild);
+    nav.addEventListener("scroll", updateMask, { passive: true });
+    return () => {
+      observer.disconnect();
+      nav.removeEventListener("scroll", updateMask);
+    };
+  }, [activeIndex, hrefKey]);
 
   return (
     <>
