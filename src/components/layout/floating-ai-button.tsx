@@ -60,7 +60,7 @@ const BUBBLE_GAP_PX = 10;
 // pops back slightly before it ends so the hand-off looks continuous.
 const STEP_ASIDE_RETURN_MS = 520;
 
-const BUTTON_SIZE_PX = 56;
+const BUTTON_SIZE_PX = 48;
 const EDGE_MARGIN_PX = 12;
 // A real drag moves noticeably more than a finger's natural wobble during a
 // tap; below this, releasing counts as a tap (navigate) rather than a drag
@@ -78,9 +78,16 @@ interface Position {
   y: number;
 }
 
+// Match the mobile nav reservation, including the device safe area.
+function navClearance(): number {
+  const nav = document.querySelector('nav[aria-label="Primary"]')?.parentElement;
+  const rect = nav?.getBoundingClientRect();
+  return rect && rect.height > 0 ? window.innerHeight - rect.top + EDGE_MARGIN_PX : 112;
+}
+
 function clampPosition(pos: Position): Position {
   const maxX = window.innerWidth - BUTTON_SIZE_PX - EDGE_MARGIN_PX;
-  const maxY = window.innerHeight - BUTTON_SIZE_PX - EDGE_MARGIN_PX;
+  const maxY = window.innerHeight - BUTTON_SIZE_PX - navClearance();
   return {
     x: Math.min(Math.max(pos.x, EDGE_MARGIN_PX), Math.max(maxX, EDGE_MARGIN_PX)),
     y: Math.min(Math.max(pos.y, EDGE_MARGIN_PX), Math.max(maxY, EDGE_MARGIN_PX)),
@@ -117,11 +124,10 @@ function bubbleStyle(pos: Position): CSSProperties {
 }
 
 function defaultPosition(): Position {
-  // Bottom-right, comfortably above the bottom nav's floating pill (same
-  // ~112px reservation every page's own content uses — see bottom-nav.tsx).
+  // Bottom-right, just above the nav including its safe-area padding.
   return clampPosition({
     x: window.innerWidth - BUTTON_SIZE_PX - EDGE_MARGIN_PX,
-    y: window.innerHeight - BUTTON_SIZE_PX - 150,
+    y: window.innerHeight - BUTTON_SIZE_PX - navClearance(),
   });
 }
 
@@ -184,6 +190,24 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
   const idleOpacity = useAiFabIdleOpacity();
   const fabEnabled = useAiFabEnabled();
   const [active, setActive] = useState(true);
+  const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    const update = () => {
+      const element = document.activeElement;
+      setEditing(element instanceof HTMLElement && (
+        element.matches("input, textarea, select") || element.isContentEditable
+      ));
+    };
+    update();
+    document.addEventListener("focusin", update);
+    // focusout can fire before the browser assigns the next activeElement.
+    const afterBlur = () => queueMicrotask(update);
+    document.addEventListener("focusout", afterBlur);
+    return () => {
+      document.removeEventListener("focusin", update);
+      document.removeEventListener("focusout", afterBlur);
+    };
+  }, []);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const positionRef = useRef<Position>({ x: 0, y: 0 });
   const dragStateRef = useRef<{
@@ -200,7 +224,7 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
   } | null>(null);
 
   useEffect(() => {
-    const initial = loadStoredPosition() ?? defaultPosition();
+    const initial = clampPosition(loadStoredPosition() ?? defaultPosition());
     positionRef.current = initial;
     // Genuinely can't be known during render — depends on window
     // dimensions/localStorage, neither available server-side or on the
@@ -397,6 +421,8 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
           type="button"
           aria-label="AI"
           aria-expanded={sheetOpen}
+          aria-hidden={editing || stepAside}
+          tabIndex={editing || stepAside ? -1 : undefined}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -405,15 +431,15 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
           // "become" the window (whose header shows the same companion) —
           // and once the window has shrunk back into this spot it pops back
           // in with a small spring, as if the window turned back into it.
-          className={`fixed z-40 flex size-14 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg transition-[opacity,scale] md:hidden ${
-            stepAside
+          className={`fixed z-40 flex size-12 touch-none items-center justify-center rounded-full text-primary-foreground shadow-lg transition-[opacity,scale] md:hidden ${
+            stepAside || editing
               ? "pointer-events-none scale-[0.55] duration-200 ease-out"
               : "scale-100 duration-[420ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
           } ${alive && !stepAside ? "motion-safe:animate-[companion-float_6s_ease-in-out_infinite]" : ""}`}
           style={{
             left: position.x,
             top: position.y,
-            opacity: stepAside ? 0 : active ? 1 : idleOpacity / 100,
+            opacity: stepAside || editing ? 0 : active ? 1 : idleOpacity / 100,
             background: "var(--primary)",
           }}
         >
@@ -438,7 +464,7 @@ export function FloatingAiButton({ companion }: { companion: FloatingCompanion }
           </span>
         </button>
       ) : null}
-      {showButton && position && bubble && !sheetOpen ? (
+      {showButton && position && bubble && !sheetOpen && !editing ? (
         <div
           key={bubble.key}
           role="status"

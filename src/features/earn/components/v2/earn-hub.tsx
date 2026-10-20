@@ -132,10 +132,10 @@ function EarnIntro({ dict }: { dict: ReturnType<typeof getDictionary> }) {
         <Button variant="ghost" className="h-11 w-full max-w-md rounded-2xl" nativeButton={false} render={<Link href="/earn/paths/new" />}>
           {v2.intro.knowPath}
         </Button>
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <IconChip icon={Trophy} tone="slate" className="size-6 [&_svg]:size-3.5" />
           {v2.intro.note}
-        </p>
+        </div>
       </CardContent>
     </Card>
   );

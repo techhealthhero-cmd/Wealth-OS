@@ -131,7 +131,7 @@ async function AppShell({ children }: { children: React.ReactNode }) {
                 page — faint ruled lines, binder rings in the left gutter
                 (inside px-4, so they never cover content) and section
                 divider tabs on the right edge. Decoration only. */}
-            <main className="journal-page relative min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-8">
+            <main className="journal-page relative min-w-0 flex-1 overflow-x-hidden px-4 pt-6 pb-[calc(11rem+env(safe-area-inset-bottom))] md:px-8 md:pb-6">
               <div aria-hidden="true" className="journal-binding" />
               <PullToRefresh>{children}</PullToRefresh>
             </main>
