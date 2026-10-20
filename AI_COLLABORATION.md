@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- QA4-MONEY-TEXT — Owner: Codex; READY FOR HANDOFF. Server calendar/date text snapshot + shared profile-timezone day implemented. Node 22 typecheck/lint/full Vitest PASS (154 files / 2168 tests); exact production WebKit differing string unconfirmed: sandbox IPC EPERM prevents browser launch. Owner production WebKit retest; no build/dev/start or DB/auth/formula changes.
+
 - VOICE-PAPER-TAP2 — Owner: Codex; READY FOR HANDOFF. Native growing textarea + synchronous non-passive touchend fallback and transparent focus styling complete. Node 22 typecheck/lint pass; full Vitest 148 files / 2141 tests pass. Local harness remains unstaged; server/browser sandbox EPERM blocks visual run. Supervisor handles real iPhone acceptance/push/PR.
 
 - CAPTURE-SAVE-VISIBLE — Owner: Codex; READY FOR HANDOFF. Supervisor follow-up complete: restored original 92dvh cap; reveal scrolls down only; four pure tests updated. Node 22 typecheck/lint PASS; full Vitest 149 files / 2134 tests PASS. Supervisor verified review-first/Save visibility at 390×664 + 34px safe area. No git operations; supervisor owns commit.
@@ -591,3 +593,10 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Supplied Node 22 PATH: npm run typecheck PASS; npm run lint PASS; npx vitest run PASS (149 files / 2134 tests).
 - Supervisor reported WebKit iPhone 390×664 + 34px safe-area verification: all three review-first cases have Save fully visible at scrollTop 0 (bottoms 457/499/540; limit 630). No new browser run for this follow-up.
 - No git operations or metadata changes. Four scoped files remain for supervisor review and commit; supervisor owns push/PR.
+
+### 2026-10-20 — Codex → owner (QA4-MONEY-TEXT)
+
+- Current /money redirects to /money/transactions. TransactionListBody called formatFriendlyDate with an independent local clock in SSR and hydration; UTC server/Bangkok client can disagree on วันนี้/เมื่อวาน. Calendar and list headings also formatted dates in separate ICU implementations; exact observed WebKit text pair could not be reproduced (browser IPC socket Operation not permitted).
+- TransactionList passes its existing profile-timezone today and initial date strings to the body. Calendar localized date/compact-number strings are computed once on the server and serialized; client only reads the snapshot. Shared calendar-date formatters use UTC date-only anchors; friendly helper accepts an explicit reference day and otherwise defaults to Bangkok. No suppression, formula, DB/auth or localStorage changes.
+- Node 22 PATH=/tmp/n22bin:$PATH: npm run typecheck PASS; npm run lint PASS; npx vitest run PASS (154 files / 2168 tests). Added two pure tests for crossing Bangkok midnight and UTC/Bangkok process timezone equivalence. Self-review and git diff --check PASS. No next build/start/dev, commits or pushes; files left uncommitted.
+- Next: owner rerun production WebKit /money under th-TH/Asia/Bangkok; exact browser mismatch and authenticated end-to-end resolution remain unverified here.
