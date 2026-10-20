@@ -159,7 +159,14 @@ export const sampleMonth: MonthlySpendSummary = {
   canGoPrev: true,
   canGoNext: false,
   categories: [
-    { id: "home", label: "ค่าบ้าน", icon: "home", amountCents: 610000, percent: 33 },
+    {
+      id: "home",
+      label: "ค่าบ้าน",
+      icon: "home",
+      amountCents: 610000,
+      percent: 33,
+      items: [{ id: "h1", title: "ค่าเช่า", dateLabel: "1 ต.ค.", amountCents: 610000 }],
+    },
     {
       id: "food",
       label: "อาหาร",
@@ -172,8 +179,46 @@ export const sampleMonth: MonthlySpendSummary = {
         { id: "i3", title: "Grab Food · มื้อเย็น", dateLabel: "19 ต.ค.", amountCents: 42000 },
       ],
     },
-    { id: "go", label: "เดินทาง", icon: "go", amountCents: 287000, percent: 16 },
-    { id: "shop", label: "ช้อปปิ้ง", icon: "shop", amountCents: 234000, percent: 13 },
-    { id: "other", label: "อื่นๆ", icon: "other", amountCents: 179000, percent: 9 },
+    {
+      id: "go",
+      label: "เดินทาง",
+      icon: "go",
+      amountCents: 287000,
+      percent: 16,
+      items: [{ id: "g1", title: "BTS", dateLabel: "20 ต.ค.", amountCents: 5900 }],
+    },
+    {
+      id: "shop",
+      label: "ช้อปปิ้ง",
+      icon: "shop",
+      amountCents: 234000,
+      percent: 13,
+      items: [{ id: "s1", title: "Shopee", dateLabel: "18 ต.ค.", amountCents: 39900 }],
+    },
+    {
+      id: "other",
+      label: "อื่นๆ",
+      icon: "other",
+      amountCents: 179000,
+      percent: 9,
+      items: [{ id: "o1", title: "ของใช้จิปาถะ", dateLabel: "15 ต.ค.", amountCents: 12000 }],
+    },
+  ],
+};
+
+/** SAMPLE net-worth card inputs (fixture) — the real NetWorthCompactCard is presentational. */
+export const netWorthSample = {
+  netWorthCents: 24890000,
+  sinceFirst: { monthLabel: "พ.ค.", change: { changeCents: 1250000, changePercent: 5.3 } },
+  chartData: [
+    { date: "1", netWorth: 22000000 },
+    { date: "2", netWorth: 22900000 },
+    { date: "3", netWorth: 23500000 },
+    { date: "4", netWorth: 24890000 },
+  ],
+  monthLabels: [
+    { label: "พ.ค.", isCurrent: false },
+    { label: "ส.ค.", isCurrent: false },
+    { label: "ต.ค.", isCurrent: true },
   ],
 };

@@ -64,10 +64,12 @@ function ReadyRow({
               aria-expanded={editing}
               aria-label={`${slipCopy.review.changeCategory}: ${item.categoryLabel}`}
               onClick={() => setEditing((v) => !v)}
-              className="relative inline-flex h-[26px] min-w-0 items-center gap-1 rounded-full bg-[#2f8a5b]/12 px-2.5 text-xs font-semibold whitespace-nowrap text-[#173b30] before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"
+              className="-my-2.5 inline-flex min-h-11 min-w-0 items-center"
             >
-              <span className="truncate">{item.categoryLabel}</span>
-              <ChevronDown className={cn("size-[11px] shrink-0 text-[#8a8574] transition-transform", editing && "rotate-180")} strokeWidth={2.4} aria-hidden="true" />
+              <span className="inline-flex h-[26px] min-w-0 items-center gap-1 rounded-full bg-[#2f8a5b]/12 px-2.5 text-xs font-semibold whitespace-nowrap text-[#173b30]">
+                <span className="truncate">{item.categoryLabel}</span>
+                <ChevronDown className={cn("size-[11px] shrink-0 text-[#8a8574] transition-transform", editing && "rotate-180")} strokeWidth={2.4} aria-hidden="true" />
+              </span>
             </button>
             <span
               role="img"
@@ -243,7 +245,7 @@ export function SlipReviewSheet({ vm, onAnswer, onChangeCategory, onSaveAll, sav
 
       <div
         data-testid="slip-save-bar"
-        className="absolute inset-x-0 bottom-0 z-10 border-t border-border bg-[#f7efdf]/97 px-4 pt-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-center shadow-[0_-10px_16px_-10px_rgba(60,45,20,0.3)]"
+        className="absolute inset-x-0 bottom-0 z-10 border-t border-border bg-[#f7efdf] px-4 pt-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-center shadow-[0_-10px_16px_-10px_rgba(60,45,20,0.3)] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-4 before:bg-gradient-to-t before:from-[#f7efdf] before:to-transparent before:content-['']"
       >
         <div className="mx-auto max-w-lg">
           <button

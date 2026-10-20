@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { getDictionary } from "@/i18n/dictionaries";
 import { SlipAutoPreview, type PreviewScreen } from "./preview-client";
 
 const SCREENS: PreviewScreen[] = ["pick", "reading", "review", "saved", "home", "detail"];
@@ -21,5 +22,11 @@ export default async function SlipAutoPreviewPage({
   const { screen } = await searchParams;
   const value = Array.isArray(screen) ? screen[0] : screen;
   const current = SCREENS.find((s) => s === value) ?? "review";
-  return <SlipAutoPreview screen={current} />;
+  const dict = getDictionary("th");
+  const netWorthLabels = {
+    ...dict.homeNetWorth,
+    noHistoryYet: dict.netWorth.noHistoryYet,
+    viewAssetsAndLiabilities: dict.netWorth.viewAssetsAndLiabilities,
+  };
+  return <SlipAutoPreview screen={current} netWorthLabels={netWorthLabels} />;
 }

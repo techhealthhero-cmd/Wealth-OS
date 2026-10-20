@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 
 import {
+  netWorthSample,
   sampleMonth,
   sampleReading,
   sampleReview,
@@ -16,32 +17,21 @@ import type { SlipReviewViewModel } from "@/features/capture/components/slip-aut
 import { NetWorthCompactCard } from "@/features/dashboard/components/net-worth-compact-card";
 import { MonthlySpendCard } from "@/features/dashboard/components/monthly-spend-card";
 import { MonthlySpendDetail } from "@/features/dashboard/components/monthly-spend-detail";
-import { getDictionary } from "@/i18n/dictionaries";
 
 export type PreviewScreen = "pick" | "reading" | "review" | "saved" | "home" | "detail";
 
 const noop = () => {};
 
-/** SAMPLE net-worth card inputs (fixture) — the real NetWorthCompactCard is presentational. */
-const netWorthSample = {
-  netWorthCents: 24890000,
-  sinceFirst: { monthLabel: "พ.ค.", change: { changeCents: 1250000, changePercent: 5.3 } },
-  chartData: [
-    { date: "1", netWorth: 22000000 },
-    { date: "2", netWorth: 22900000 },
-    { date: "3", netWorth: 23500000 },
-    { date: "4", netWorth: 24890000 },
-  ],
-  monthLabels: [
-    { label: "พ.ค.", isCurrent: false },
-    { label: "ส.ค.", isCurrent: false },
-    { label: "ต.ค.", isCurrent: true },
-  ],
-};
+export type PreviewNetWorthLabels = ComponentProps<typeof NetWorthCompactCard>["labels"];
 
-export function SlipAutoPreview({ screen }: { screen: PreviewScreen }) {
+export function SlipAutoPreview({
+  screen,
+  netWorthLabels,
+}: {
+  screen: PreviewScreen;
+  netWorthLabels: PreviewNetWorthLabels;
+}) {
   const [review, setReview] = useState<SlipReviewViewModel>(sampleReview);
-  const dict = getDictionary("th");
 
   switch (screen) {
     case "pick":
@@ -91,11 +81,7 @@ export function SlipAutoPreview({ screen }: { screen: PreviewScreen }) {
         <div className="mx-auto w-full max-w-6xl space-y-4 px-4 pt-4">
           <div data-testid="networth-card">
             <NetWorthCompactCard
-              labels={{
-                ...dict.homeNetWorth,
-                noHistoryYet: dict.netWorth.noHistoryYet,
-                viewAssetsAndLiabilities: dict.netWorth.viewAssetsAndLiabilities,
-              }}
+              labels={netWorthLabels}
               {...netWorthSample}
               currencyCode="THB"
             />
@@ -106,7 +92,7 @@ export function SlipAutoPreview({ screen }: { screen: PreviewScreen }) {
     case "detail":
       return (
         <div className="mx-auto w-full max-w-lg px-4 pt-4">
-          <MonthlySpendDetail summary={sampleMonth} onMonthChange={noop} onViewCategory={noop} />
+          <MonthlySpendDetail summary={sampleMonth} onMonthChange={noop} onViewCategory={noop} initialOpenId="food" />
         </div>
       );
   }

@@ -16,11 +16,13 @@ export interface MonthlySpendDetailProps {
   onMonthChange: (delta: -1 | 1) => void;
   /** "ดูทั้งหมดในหมวดนี้" — TODO(codex-wiring): link to Transactions filtered by category + month. */
   onViewCategory?: (categoryId: string) => void;
+  /** Category id to start expanded (e.g. preview/fixtures). */
+  initialOpenId?: string | null;
 }
 
 /** Opened month view: month switch, categories with expandable items. */
-export function MonthlySpendDetail({ summary, onMonthChange, onViewCategory }: MonthlySpendDetailProps) {
-  const [openId, setOpenId] = useState<string | null>(null);
+export function MonthlySpendDetail({ summary, onMonthChange, onViewCategory, initialOpenId = null }: MonthlySpendDetailProps) {
+  const [openId, setOpenId] = useState<string | null>(initialOpenId);
   if (!summary) return null;
   const c = slipCopy.month;
   const max = Math.max(1, ...summary.categories.map((cat) => cat.amountCents));
