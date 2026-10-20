@@ -8,6 +8,8 @@ import type { CaptureSaveInput } from "@/lib/validation/capture";
 
 /** What the Quick Capture preview card shows and lets the user adjust before saving. */
 export interface CaptureDraft {
+  /** Reading shown before confirm-card edits, used only for local learning provenance. */
+  learningBaseline?: { categoryId: string | null; type: "income" | "expense" };
   installment?: ParsedCapture["installment"];
   isEmergencyFundDraw?: boolean;
   emergencyFundAccountMissing?: boolean;
@@ -57,7 +59,12 @@ export function smartCaptureNeedsAnswer(draft: CaptureDraft): boolean {
     || (s.ratePeriodNeedsConfirm && !draft.smartRatePeriod));
 }
 
+export function memoryNeedsConfirmation(draft: CaptureDraft): boolean {
+  return !draft.categoryConfirmedByUser && draft.confidenceGate?.reasons.includes("memory_conflict") === true;
+}
+
 export function canSaveDraft(draft: CaptureDraft): boolean {
+  if (memoryNeedsConfirmation(draft)) return false;
   const smart = effectiveSmartIntent(draft);
   if (draft.smart && (!smart || smart.priceCents <= 0 || smart.principalCents < 0)) return false;
   if (smartCaptureNeedsAnswer(draft)) return false;

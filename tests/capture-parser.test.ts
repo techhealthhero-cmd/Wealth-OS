@@ -398,9 +398,14 @@ describe("subscription capture", () => {
       .toMatchObject({ subscription: null, amountCents: 5000, categoryId: "cat-food", accountId: "acc-sub", accountSource: "matched" });
     expect(parseCaptureText("sub Netflix 419 จ่ายจาก cash", CTX)).toMatchObject({ merchant: "Netflix", subscription: { serviceName: "Netflix" }, accountId: "acc-cash" });
   });
-  it("learned service categories still win", () => {
-    expect(parseCaptureText("สมัคร Grok Bot 1079 บาทต่อเดือน", { ...CTX, merchantPreferences: [{ merchant_normalized: "grok bot", category_id: "cat-shopping" }] }))
+  it("keeps learned service categories unless an explicit category word overrides them", () => {
+    const ctx = { ...CTX, merchantPreferences: [{ merchant_normalized: "grok bot", category_id: "cat-shopping" }] };
+    expect(parseCaptureText("Grok Bot 1079 cash", ctx))
       .toMatchObject({ categoryId: "cat-shopping", categorySource: "learned" });
+    expect(parseCaptureText("สมัคร Grok Bot 1079 บาทต่อเดือน", ctx))
+      .toMatchObject({ categoryId: "cat-shopping", categorySource: "learned" });
+    expect(parseCaptureText("subscription Grok Bot 1079 cash", ctx))
+      .toMatchObject({ categoryId: "cat-subs", categorySource: "keyword" });
   });
   it("recognizes Thai categories and falls back to existing Utilities", () => {
     const thaiOnly = CTX.categories.map((c) => c.id === "cat-subs" ? { ...c, name_en: "Custom", name_th: "บริการรายเดือน" } : c);

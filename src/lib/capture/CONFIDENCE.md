@@ -119,3 +119,38 @@ unsupported financial intents require expansion and independent evaluation.
   calendar expressions and account evidence against independent labels.
 - New server provenance, emergency audit, telemetry, corpus collection or any other
   schema/migration/server storage changes: **NEEDS USER APPROVAL**.
+
+## Device merchant memory (W1)
+
+`ParseContext.deviceMemory` supplies a versioned snapshot from
+`createMerchantMemory(userId)`. The repository reads/writes only localStorage,
+uses separate user buckets (no anonymous bucket), ignores corrupt/old schemas and
+caps observations at 300 keys by recency. `forget(key)` and `clear()` are available
+for a future settings control. Unavailable browser storage fails without affecting
+transaction saves. Nothing is sent to a new server endpoint.
+
+Keys are normalized contiguous merchant/context phrases, without amounts, dates,
+currency, filler verbs or account tokens. Matching uses normalized substrings,
+longest first; 7-11/7-Eleven/เซเว่น share an alias. Context phrases remain distinct,
+so marketplace purchases can have different categories. Votes store category and
+direction together. An explicit correction reduces competing weights and immediately establishes a reliable winner. Different corrections within ten minutes retain conflicting weights and ask for a choice. A winner needs
+at least 75% of weighted history; a tie or weaker majority contributes
+`memory_conflict`, marks category evidence unreliable and blocks automatic saving.
+Explicit category words outrank device memory and merchant defaults. Deleted,
+archived and incompatible categories cannot supply device evidence.
+
+Reliable device evidence can resolve a previously unexplained direction and makes
+category evidence reliable. It does not resolve amount, date, account, duplicate,
+foreign-currency or hypothetical/contradictory evidence. Existing server preference
+behavior remains available when no device rule applies, but explicit category words
+also outrank legacy substring preferences and conflicting exact merchant preferences.
+
+Both confirm-card flows learn only after a successful explicit Save, comparing the
+final category/type against the reading displayed before edits. An explicit category
+choice is always a correction, even if a later AI reading matches that choice.
+Identity is resolved from the live auth ref or browser session at save completion,
+so a handler captured before auth hydration can still learn. Predictions alone,
+failed saves, cancelled items, unresolved readings and smart/receipt captures do not
+teach this memory. Undo restores the exact prior entry snapshot only while that save’s revision is still present; cleared, evicted or subsequently replaced entries are left alone. A conflicting device match
+shows a category question and requires a category choice; voice hands off to the
+existing full confirm card. Manual saving otherwise retains its existing behavior.

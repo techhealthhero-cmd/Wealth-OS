@@ -252,6 +252,7 @@
     "amountMissing": "No amount found yet. Enter one to save.",
     "noAccount": "Add at least one account before saving.",
     "addAccount": "Add account",
+    "memoryConflict": "This merchant has used different categories. Please choose a category.",
     "categoryGuessed": "Category guessed. You can review it later in Money › Transactions.",
     "confidenceHigh": "High confidence",
     "confidenceMedium": "Worth a check",

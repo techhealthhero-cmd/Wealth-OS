@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { formatMoney, formatMoneyFromDecimal, parseMoneyToCents } from "@/lib/financial/money";
 import { ACCOUNT_TYPE_EMOJI, formatFriendlyDate } from "@/lib/transaction-ui";
 import { CategoryIcon } from "@/components/shared/category-icon";
-import { canSaveDraft, type CaptureDraft } from "@/lib/capture/draft";
+import { canSaveDraft, memoryNeedsConfirmation, type CaptureDraft } from "@/lib/capture/draft";
 import { CategoryPicker } from "@/features/transactions/components/category-picker";
 import { AccountPicker } from "@/features/transactions/components/account-picker";
 import type { PossibleDuplicate } from "@/features/capture/actions";
@@ -176,6 +176,7 @@ export function TransactionPreview({
         </span>
       </div>
 
+      {memoryNeedsConfirmation(draft) ? <p className="text-xs text-muted-foreground" role="status">{t("capture.memoryConflict")}</p> : null}
       {guessed && openPanel !== "category" ? <p className="text-xs text-muted-foreground">{t("capture.categoryGuessed")}</p> : null}
 
       {openPanel === "category" ? (

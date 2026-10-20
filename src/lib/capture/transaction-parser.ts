@@ -1,3 +1,4 @@
+import { lookupMemory, type MerchantMemoryEntry } from "./merchant-memory";
 import { normalizeThaiAmounts } from "./thai-numbers";
 /**
  * Deterministic natural-language expense parser for Quick Capture.
@@ -21,6 +22,7 @@ import {
   INCOME_CATEGORY_KEYWORDS,
   INCOME_MARKERS,
   KNOWN_MERCHANTS,
+  KNOWN_SUBSCRIPTION_SERVICES,
   LEADING_VERBS,
 } from "./keywords";
 import { hasExplicitSubscriptionIntent, parseCancelIntent, parseSubscriptionIntent, type SubscriptionIntent } from "./subscription-intent";
@@ -43,6 +45,7 @@ export interface CaptureCategory {
   type: CategoryType;
   icon: string | null;
   is_system: boolean;
+  is_archived?: boolean;
 }
 
 export interface CaptureMerchantPreference {
@@ -66,6 +69,7 @@ export interface CaptureUnit {
 }
 
 export interface ParseContext {
+  deviceMemory?: MerchantMemoryEntry[];
   emergencyFundAccountId?: string | null;
   accounts: CaptureAccount[];
   categories: CaptureCategory[];
@@ -450,13 +454,30 @@ function keywordCategory(text: string, merchant: string | null, type: "expense" 
   return hit ? categoryByKey(ctx, hit.value, type) : null;
 }
 
+const MERCHANT_WORDS = new Set([...KNOWN_MERCHANTS.flatMap(m => m.match), ...KNOWN_SUBSCRIPTION_SERVICES]);
+function explicitMemoryCategory(text: string, type: "income" | "expense", ctx: ParseContext) {
+  const dictionary = type === "income" ? INCOME_CATEGORY_KEYWORDS : EXPENSE_CATEGORY_KEYWORDS;
+  const hit = longestMatch(normalizeText(text).toLowerCase(), Object.entries(dictionary).map(([value, words]) => ({
+    value, keywords: words.filter(word => !MERCHANT_WORDS.has(word.toLowerCase())),
+  })));
+  return hit ? categoryByKey(ctx, hit.value, type) : null;
+}
+
+/** Device memory may replace a merchant default, but never an explicit category word. */
+export function deviceMemoryMatch(text: string, ctx: ParseContext) {
+  const hit = lookupMemory(text, ctx.deviceMemory ?? []);
+  if (!hit || explicitMemoryCategory(text, "expense", ctx) || explicitMemoryCategory(text, "income", ctx)) return null;
+  const category = ctx.categories.find(c => c.id === hit.categoryId && !c.is_archived && (c.type === hit.direction || c.type === "both"));
+  return category ? hit : null;
+}
+
 function shouldUseSubscriptionDefaults(text: string, merchant: string | null, ctx: ParseContext): boolean {
   return hasExplicitSubscriptionIntent(text) || !keywordCategory(text, merchant, "expense", ctx);
 }
 
 /**
- * Category for a capture: the user's learned preference for this merchant
- * first, then the keyword dictionary, then the type's "Other" category.
+ * Category for a capture: explicit category words outrank learned preferences;
+ * otherwise use merchant learning, keywords, then the type's "Other" category.
  * Exported so receipt/slip results get the exact same suggestion logic.
  */
 export function suggestCategory(
@@ -465,6 +486,11 @@ export function suggestCategory(
   type: "expense" | "income",
   ctx: ParseContext
 ): CategorySuggestion {
+  // Explicit category words take precedence over both device and server learning.
+  const explicit = explicitMemoryCategory(text, type, ctx);
+  if (explicit && lookupMemory(text, ctx.deviceMemory ?? [])) return { categoryId: explicit.id, source: "keyword" };
+  const device = deviceMemoryMatch(text, ctx);
+  if (device?.reliable && device.direction === type) return { categoryId: device.categoryId, source: "learned" };
   const validIds = new Set(ctx.categories.filter((c) => c.type === type || c.type === "both").map((c) => c.id));
   // 1) learned — exact merchant key first, then any learned key present in the text.
   // Stored keys are normalizeMerchant() output, so the text is searched in that
@@ -474,13 +500,17 @@ export function suggestCategory(
   const keys = [merchant ? normalizeMerchant(merchant) : null, normalizedText].filter(Boolean) as string[];
   for (const key of keys) {
     const pref = ctx.merchantPreferences.find((p) => p.merchant_normalized === key && validIds.has(p.category_id));
-    if (pref) return { categoryId: pref.category_id, source: "learned" };
+    if (pref) return explicit && explicit.id !== pref.category_id
+      ? { categoryId: explicit.id, source: "keyword" }
+      : { categoryId: pref.category_id, source: "learned" };
   }
   const learnedInText = ctx.merchantPreferences
     .filter((p) => validIds.has(p.category_id) && p.merchant_normalized.length >= 3)
     .sort((a, b) => b.merchant_normalized.length - a.merchant_normalized.length)
     .find((p) => findKeyword(normalizedText, p.merchant_normalized));
-  if (learnedInText) return { categoryId: learnedInText.category_id, source: "learned" };
+  if (learnedInText) return explicit
+    ? { categoryId: explicit.id, source: "keyword" }
+    : { categoryId: learnedInText.category_id, source: "learned" };
 
   // Learned preferences win. Cadence-only bills keep their generic keyword category.
   const accountMention = matchAccount(text, ctx.accounts);
@@ -622,6 +652,10 @@ function learnedTypeOverride(
   detected: "expense" | "income",
   ctx: ParseContext
 ): "expense" | "income" {
+  const device = deviceMemoryMatch(text, ctx);
+  const explicitIncome = hasExplicitIncomeMarker(lower);
+  const explicitExpense = !explicitIncome && /ซื้อ|จ่าย|โอนให้|โอนเงินให้|\b(?:spent|paid|buy|bought)\b/.test(lower);
+  if (device?.reliable && !(device.direction === "expense" && explicitIncome) && !(device.direction === "income" && explicitExpense)) return device.direction;
   if (ctx.merchantPreferences.length === 0) return detected;
   const other = detected === "expense" ? "income" : "expense";
   if (other === "expense" && hasExplicitIncomeMarker(lower)) return detected;
@@ -740,7 +774,8 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
   // Remove the brand first so digits inside it ("7-11", "3BB") can't be
   // read as the amount; keep the original text for description building.
   const merchantHit = findKnownMerchant(datedLower);
-  let working = merchantHit ? removeSpan(dated, merchantHit.span) : dated;
+  // matchAccount returns spans in whitespace-normalized text.
+  let working = (merchantHit ? removeSpan(dated, merchantHit.span) : dated).replace(/\s+/g, " ").trim();
 
   const accountHit = matchAccount(working, ctx.accounts);
   if (accountHit?.span) working = removeSpan(working, accountHit.span);
@@ -829,7 +864,7 @@ export function parseCaptureText(input: string, ctx: ParseContext): ParsedCaptur
 
   const confidence: CaptureConfidence = amountCents === null || !accountId
     ? "low"
-    : category.source === "fallback" || !category.categoryId
+    : deviceMemoryMatch(text, ctx)?.reliable === false || category.source === "fallback" || !category.categoryId
       ? "medium"
       : "high";
 
