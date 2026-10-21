@@ -9,7 +9,8 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { IncomeThisMonth } from "@/features/dashboard/components/income-this-month";
-import { MonthlySpendCard } from "@/features/dashboard/components/monthly-spend-card";
+import { MonthlySpend } from "@/features/dashboard/components/monthly-spend";
+import { getMonthlySpendSummary } from "@/features/dashboard/monthly-spend-actions";
 import { HomeQuickActions } from "@/features/dashboard/components/home-quick-actions";
 import { HomeExpectedTileCard, HomeTaxTile } from "@/features/dashboard/components/home-tiles";
 import { HomeExpectedTile } from "@/features/dashboard/components/home-expected-tile";
@@ -75,12 +76,7 @@ export default async function DashboardPage() {
         </Suspense>
       </div>
 
-      {/* Monthly spend card — directly under the net-worth card. Renders
-          nothing while `summary` is null. TODO(codex-wiring): pass a real
-          MonthlySpendSummary once a monthly-by-category query exists (and
-          open MonthlySpendDetail on tap); also hook the slip-auto flow
-          (SlipPickSheet) into the existing slip-scan entry. */}
-      <MonthlySpendCard summary={null} />
+      <MonthlySpend summary={await getMonthlySpendSummary()} month={today.slice(0, 7)} />
 
       <div className="motion-reveal motion-reveal-2">
         <HomeQuickActions labels={dict.homeDash} />

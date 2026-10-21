@@ -68,7 +68,7 @@ const CARD_CLASS =
  * Home card: "<เดือน> ใช้ไปแล้ว ฿…" + income/left + one stacked category bar +
  * one insight line. Sits directly under the green net-worth card.
  *
- * TODO(codex-wiring): Home passes null until a monthly-by-category query exists.
+ * Home supplies the user-scoped monthly-spend query.
  */
 export function MonthlySpendCard({ summary, onOpen }: MonthlySpendCardProps) {
   if (!summary) return null;

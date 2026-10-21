@@ -105,3 +105,51 @@ it.each(["14:05:333", "14:05:99", "114:05"])("does not truncate malformed time %
 it.each(["preferred account", "refinery", "transaction identity"])("does not invent references from words: %s", (text) => {
   expect(parseSlipText(text).reference).toBeNull();
 });
+
+it("parses exact decomposed Thai WebKit OCR E2E145587A", () => {
+  const slip = parseSlipText(`โอนเงินสําเร็จ
+
+21 ต.ค. 2569 08:15:20
+
+จาก นาย ทดสอบตัวอย่าง
+ธนาคารกสิกรไทย
+XXX-X-X1234-x
+
+ไปยัง ร้านกาแฟ ทดสอบ
+ไทยพาณิชย์
+XXX-X-X5678-X
+
+จํานวนเงิน 65.00 บาท
+
+ค่าธรรมเนียม 0.00 บาท
+เลขที่รายการ E2E145587A
+`);
+  expect(slip).toMatchObject({
+    amount: 6500, date: "2026-10-21", reference: "E2E145587A",
+    sender: { account: "XXX-X-X1234-x" }, receiver: { account: "XXX-X-X5678-X" },
+  });
+});
+
+it("parses exact decomposed Thai WebKit OCR E2E145587C", () => {
+  const slip = parseSlipText(`โอนเงินสําเร็จ
+
+21 ต.ค. 2569 18:02:44
+
+จาก นาย ทดสอบตัวอย่าง
+ธนาคารกสิกรไทย
+XXX-X-X1234-x
+
+ไปยัง ปั๊มน้ามัน ตัวอย่าง
+ไทยพาณิชย์
+XXX-X-X5678-X
+
+จํานวนเงิน 800.00 บาท
+
+ค่าธรรมเนียม 0.00 บาท
+เลขที่รายการ E2E145587C
+`);
+  expect(slip).toMatchObject({
+    amount: 80000, date: "2026-10-21", reference: "E2E145587C",
+    sender: { account: "XXX-X-X1234-x" }, receiver: { account: "XXX-X-X5678-X" },
+  });
+});

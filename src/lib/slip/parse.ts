@@ -55,7 +55,7 @@ function party(lines: string[], side: "sender" | "receiver"): SlipParty {
 /** Heuristic text extraction; confidence is evidence strength, not a calibrated probability. */
 export function parseSlipText(text: string, options: ParseSlipOptions = {}): ParsedSlip {
   // Bound work for accidental non-slip input; never retain the OCR source.
-  const normalized = thaiDigitsToArabic(text.slice(0, 100_000)).replace(/\r/g, "\n").replace(/[\t\u00a0]/g, " ");
+  const normalized = thaiDigitsToArabic(text.slice(0, 100_000).normalize("NFC").replace(/\u0e4d\u0e32/g, "\u0e33")).replace(/\r/g, "\n").replace(/[\t\u00a0]/g, " ");
   const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
   let date: string | null = null;
   // Search date-like starts rather than coercing letters in names or references.

@@ -186,6 +186,8 @@ export async function dismissRecurringSuggestion(suggestion: RecurringSuggestion
 // ---------------------------------------------------------------------------
 
 export interface CaptureSaveResult {
+  /** False for an idempotent replay; batch undo must not remove a prior import. */
+  inserted?: boolean;
   success?: boolean;
   error?: string;
   transactionId?: string;
@@ -273,7 +275,7 @@ export async function saveCapturedTransaction(input: CaptureSaveInput): Promise<
   }
   if (error?.code === PG_UNIQUE_VIOLATION) {
     revalidateMoney();
-    return { success: true, transactionId, ...recurringResult };
+    return { success: true, inserted: false, transactionId, ...recurringResult };
   }
 
   // Learn only from categories that weren't a blind fallback, or that the
@@ -286,7 +288,7 @@ export async function saveCapturedTransaction(input: CaptureSaveInput): Promise<
     !d.recurring && d.type === "expense" ? await findRecurringSuggestion(user.id, d.merchant || d.description) : null;
 
   revalidateMoney();
-  return { success: true, transactionId, recurringSuggestion, ...recurringResult };
+  return { success: true, inserted: true, transactionId, recurringSuggestion, ...recurringResult };
 }
 
 // ---------------------------------------------------------------------------

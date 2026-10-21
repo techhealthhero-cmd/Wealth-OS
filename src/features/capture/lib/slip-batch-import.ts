@@ -11,6 +11,8 @@ export interface SlipBatchDeps {
   perspective?: BatchSlipInput["perspective"] | ((index: number) => BatchSlipInput["perspective"]);
   onProgress?(progress: { completed: number; total: number; phase: "reading" | "matching" | "done" }): void;
   signal?: AbortSignal;
+  /** Extracted fields only, for the live recent-items preview. */
+  onItemRead?(item: BatchSlip): void;
 }
 /** Sequential, dependency-injected processing; no images in results, no persistence or implicit save. */
 export async function processSlipBatch(files: readonly Blob[], deps: SlipBatchDeps): Promise<SlipBatchResult> {
@@ -28,6 +30,7 @@ export async function processSlipBatch(files: readonly Blob[], deps: SlipBatchDe
     } catch { input.readError = true; }
     deps.signal?.throwIfAborted();
     inputs.push(input);
+    if (deps.onItemRead) deps.onItemRead({ ...classifySlipBatch([input]).items[0], index });
     deps.onProgress?.({ completed: index + 1, total: files.length, phase: "reading" });
   }
   const preliminary = classifySlipBatch(inputs);

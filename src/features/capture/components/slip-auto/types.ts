@@ -5,7 +5,7 @@
  * ParsedSlip.amount / formatMoney) and every total is computed by the caller
  * — these components never do money math beyond display scaling.
  *
- * TODO(codex-wiring): map the engine output onto these view-models.
+ * Mapped by capture/lib/slip-auto-model.ts.
  *   - SlipBatchResult (src/lib/slip/batch.ts) -> SlipReviewViewModel:
  *       result.unsure    -> questions   (BatchSlip.reason explains why)
  *       result.ready     -> ready       (direction expense|income; transfers need a question)
@@ -157,9 +157,8 @@ export interface MonthlySpendCategory {
 }
 
 /**
- * TODO(codex-wiring): MonthlySpendSummary needs a new server query that
- * aggregates this month's expense/income transactions by category (and the
- * previous month for `insight`). Home passes null until it exists.
+ * Populated by dashboard/monthly-spend-actions.ts using existing financial semantics.
+ * Insight is omitted when there is no actionable comparison.
  */
 export interface MonthlySpendSummary {
   /** Card header, e.g. "ตุลาคม". */

@@ -6,7 +6,7 @@ import { categoryColor, type SlipSavedViewModel } from "./types";
 
 export interface SlipSavedStateProps {
   vm: SlipSavedViewModel;
-  /** TODO(codex-wiring): undo the whole batch (one client_request_id per batch). */
+  /** Undo all newly inserted rows, retaining failures for retry; one client_request_id per item. */
   onUndo: () => void;
   onViewMonth: () => void;
   onBackHome: () => void;

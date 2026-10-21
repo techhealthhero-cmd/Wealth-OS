@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { createMerchantMemory, type MerchantMemoryEntry } from "@/lib/capture/merchant-memory";
+import { createMerchantMemory, type MerchantMemoryEntry, type MemoryObservation } from "@/lib/capture/merchant-memory";
 import type { ParseContext } from "@/lib/capture/transaction-parser";
 import { confirmedMemoryObservation } from "@/lib/capture/capture-memory-signal";
 import { resolveMemoryIdentity } from "@/lib/capture/capture-memory-identity";
@@ -26,6 +26,21 @@ export function useMerchantMemory(open: boolean) {
   }, [open]);
   return {
     entries: state.entries,
+    /** Explicit slip corrections only; never raw OCR text or an unconfirmed guess. */
+    async rememberSlip(observation: MemoryObservation): Promise<() => void> {
+      const userId = await resolveMemoryIdentity(identity, state.userId, async () => {
+        const { data } = await createClient().auth.getSession();
+        return data.session?.user.id ?? null;
+      });
+      if (!userId || identity.current.userId !== userId) return () => {};
+      const repo = createMerchantMemory(userId);
+      const undo = repo.learnWithUndo(observation);
+      setState({ userId, entries: repo.load() });
+      return () => {
+        undo();
+        if (identity.current.userId === userId) setState({ userId, entries: repo.load() });
+      };
+    },
     /** Call only after a successful explicit Save. The returned callback removes this observation on undo. */
     async remember(text: string, final: CaptureDraft, context: ParseContext): Promise<() => void> {
       const observation = confirmedMemoryObservation(text, final, context);

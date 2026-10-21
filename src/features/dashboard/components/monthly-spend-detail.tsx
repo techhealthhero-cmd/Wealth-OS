@@ -12,9 +12,9 @@ import type { MonthlySpendSummary } from "@/features/capture/components/slip-aut
 export interface MonthlySpendDetailProps {
   /** null/undefined => renders nothing. */
   summary: MonthlySpendSummary | null | undefined;
-  /** -1 = previous month, +1 = next month. TODO(codex-wiring): refetch the summary. */
+  /** -1 = previous month, +1 = next month. Refetches the selected month. */
   onMonthChange: (delta: -1 | 1) => void;
-  /** "ดูทั้งหมดในหมวดนี้" — TODO(codex-wiring): link to Transactions filtered by category + month. */
+  /** "ดูทั้งหมดในหมวดนี้" — Links to Transactions filtered by category + month. */
   onViewCategory?: (categoryId: string) => void;
   /** Category id to start expanded (e.g. preview/fixtures). */
   initialOpenId?: string | null;

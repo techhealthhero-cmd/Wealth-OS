@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Check, ChevronDown, Smartphone } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -16,6 +16,8 @@ export interface SlipReviewSheetProps {
   onSaveAll: () => void;
   /** Disables the save bar while a save is in flight. */
   saving?: boolean;
+  /** Account selection and lifecycle controls supplied by the live flow. */
+  controls?: ReactNode;
 }
 
 /**
@@ -24,7 +26,7 @@ export interface SlipReviewSheetProps {
  * no money math.
  */
 export function slipSaveCount(vm: Pick<SlipReviewViewModel, "ready" | "questions">): number {
-  return vm.ready.length + vm.questions.length;
+  return new Set([...vm.ready, ...vm.questions].map(item => item.id)).size;
 }
 
 function SectionCaption({ dot, title, aside }: { dot: string; title: string; aside?: string }) {
@@ -96,7 +98,7 @@ function ReadyRow({
         <div className="flex flex-wrap gap-2 pb-2.5 pl-[46px]">
           {options.map((cat) => (
             <button
-              key={cat.id}
+              key={`${cat.id}:${cat.direction}`}
               type="button"
               onClick={() => {
                 onChangeCategory(item.id, cat.id);
@@ -122,7 +124,7 @@ function ReadyRow({
  * (asked first, one answer each), then compact ready rows, duplicates folded
  * into one line, and a fixed save bar above the safe area.
  */
-export function SlipReviewSheet({ vm, onAnswer, onChangeCategory, onSaveAll, saving }: SlipReviewSheetProps) {
+export function SlipReviewSheet({ vm, onAnswer, onChangeCategory, onSaveAll, saving, controls }: SlipReviewSheetProps) {
   const c = slipCopy.review;
   const saveCount = slipSaveCount(vm);
   const dup = vm.duplicates;
@@ -141,6 +143,7 @@ export function SlipReviewSheet({ vm, onAnswer, onChangeCategory, onSaveAll, sav
             </span>
           </div>
 
+          {controls}
           <section className="mt-3 rounded-[22px] border border-border bg-card px-3.5 py-3 shadow-card">
             <p className="text-[13px] text-muted-foreground">
               {vm.monthLabel}

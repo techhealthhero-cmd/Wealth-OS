@@ -8,9 +8,9 @@ import { SlipGlyph } from "./slip-glyph";
 
 export interface SlipPickSheetProps {
   open?: boolean;
-  /** Multi-select result. TODO(codex-wiring): feed to processSlipBatch(files, deps). */
+  /** Multi-select result. Feeds processSlipBatch(files, deps) in SlipAutoFlow. */
   onPick: (files: File[]) => void;
-  /** Single camera shot. TODO(codex-wiring): same pipeline with a one-file batch. */
+  /** Single camera shot. Same pipeline with a one-file batch. */
   onTakePhoto: (file: File) => void;
   onClose?: () => void;
 }
