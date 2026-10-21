@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/features/profile/queries";
@@ -221,7 +222,7 @@ export async function updateTransaction(
   return { success: true };
 }
 
-export async function deleteTransaction(transactionId: string): Promise<ActionResult> {
+async function deleteTransactionIds(ids: string[], action: string): Promise<ActionResult & { deleted?: number }> {
   const dict = await getRequestDictionary();
   const supabase = await createClient();
   const {
@@ -232,15 +233,16 @@ export async function deleteTransaction(transactionId: string): Promise<ActionRe
     return { error: dict.common.pleaseLogin };
   }
 
-  const { error } = await supabase
+  // One statement keeps all matching deletions and balance triggers atomic.
+  const { error, count } = await supabase
     .from("transactions")
-    .delete()
-    .eq("id", transactionId)
+    .delete({ count: "exact" })
+    .in("id", ids)
     .eq("user_id", user.id);
 
   if (error) {
     return {
-      error: friendlyDbError(error, "deleteTransaction", dict.transactions.deleteFailed),
+      error: friendlyDbError(error, action, dict.transactions.deleteFailed),
     };
   }
 
@@ -250,7 +252,23 @@ export async function deleteTransaction(transactionId: string): Promise<ActionRe
   // dashboard so both sides visibly return to their prior balances.
   revalidatePath("/money/accounts");
   revalidatePath("/dashboard");
-  return { success: true };
+  return { success: true, deleted: count ?? 0 };
+}
+
+export async function deleteTransaction(transactionId: string): Promise<ActionResult> {
+  return deleteTransactionIds([transactionId], "deleteTransaction");
+}
+
+// Match the slip picker's 500-file limit: undo always uses one atomic statement.
+const transactionBatchIds = z.array(z.uuid()).min(1).max(500);
+
+export async function deleteTransactionsBatch(ids: string[]): Promise<ActionResult & { deleted?: number }> {
+  const parsed = transactionBatchIds.safeParse(ids);
+  if (!parsed.success) {
+    const dict = await getRequestDictionary();
+    return { error: dict.transactions.deleteFailed };
+  }
+  return deleteTransactionIds([...new Set(parsed.data.map(id => id.toLowerCase()))], "deleteTransactionsBatch");
 }
 
 /**

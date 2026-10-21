@@ -57,7 +57,7 @@ export const EXPENSE_CATEGORY_KEYWORDS: Record<Exclude<ExpenseCategoryKey, "Othe
   ],
   Transport: [
     "แท็กซี่", "รถไฟฟ้า", "ล้างรถ", "น้ำมัน", "เติมน้ำมัน", "มอไซค์", "วินมอไซค์", "มอไซต์", "วินมอไซต์", "มอเตอร์ไซค์", "วินมอเตอร์ไซค์", "ทางด่วน", "จอดรถ", "รถเมล์", "ค่ารถ",
-    "เดินทาง", "ตั๋ว", "ผ่อนรถ", "grab", "bolt", "taxi", "bts", "mrt", "ptt", "shell", "bangchak", "esso", "caltex",
+    "เดินทาง", "ตั๋ว", "ผ่อนรถ", "grab", "bolt", "taxi", "bts", "mrt", "ปั๊ม", "ปตท", "บางจาก", "pt", "ptt", "shell", "bangchak", "esso", "caltex",
     "parking", "bus", "fuel", "gas", "easy pass", "m-flow", "airasia", "nok air", "thai airways",
   ],
   Housing: ["ค่าเช่า", "ค่าห้อง", "ค่าหอ", "ค่าส่วนกลาง", "rent", "condo"],

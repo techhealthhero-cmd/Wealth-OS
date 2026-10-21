@@ -74,16 +74,35 @@ describe("slip engine to live review", () => {
   });
 });
 describe("whole batch undo", () => {
-  it("really calls delete for every tracked row and retains only errors for retry", async () => {
-    const saved = ["1", "2", "3"].map(id => ({ id, clientRequestId: `request-${id}` }));
-    const remove = vi.fn().mockResolvedValueOnce({ success: true }).mockResolvedValueOnce({ error: "failed" }).mockRejectedValueOnce(Error("offline"));
+  const saved = ["1", "2", "3"].map(id => ({ id, clientRequestId: `request-${id}` }));
+  it("makes exactly one request with every ID", async () => {
+    const remove = vi.fn().mockResolvedValue({ success: true, deleted: 3 });
+    expect(await undoSlipBatch(saved, remove)).toEqual({ removed: saved, remaining: [] });
+    expect(remove).toHaveBeenCalledExactlyOnceWith(["1", "2", "3"]);
+  });
+  it.each(["error", "throw"])("keeps all rows retryable after %s", async mode => {
+    const remove = mode === "error" ? vi.fn().mockResolvedValue({ error: "failed" }) : vi.fn().mockRejectedValue(Error("offline"));
     const result = await undoSlipBatch(saved, remove);
-    expect(remove.mock.calls.map(c => c[0])).toEqual(["1", "2", "3"]);
-    expect(result.removed).toEqual([saved[0]]);
-    expect(result.remaining).toEqual(saved.slice(1));
+    expect(result).toEqual({ removed: [], remaining: saved });
+    expect(remove).toHaveBeenCalledTimes(1);
     const retry = vi.fn().mockResolvedValue({ success: true });
     expect((await undoSlipBatch(result.remaining, retry)).remaining).toEqual([]);
-    expect(retry.mock.calls.map(c => c[0])).toEqual(["2", "3"]);
+    expect(retry).toHaveBeenCalledExactlyOnceWith(["1", "2", "3"]);
+  });
+  it("skips empty batches and deduplicates IDs", async () => {
+    const remove = vi.fn().mockResolvedValue({ success: true });
+    await undoSlipBatch([], remove);
+    expect(remove).not.toHaveBeenCalled();
+    await undoSlipBatch([saved[0], saved[0]], remove);
+    expect(remove).toHaveBeenCalledExactlyOnceWith(["1"]);
+  });
+  it("refreshes the router and selected monthly summary after undo, preserving unlearning", () => {
+    const source = fs.readFileSync("src/features/capture/components/slip-auto/slip-auto-flow.tsx", "utf8");
+    const undo = source.slice(source.indexOf("async function undo()"), source.indexOf("const editItem"));
+    expect(undo).toContain("undoSlipBatch([...saved.current].reverse(), deleteTransactionsBatch)");
+    expect(undo).toContain("unlearn.current.get(row.clientRequestId)?.()");
+    expect(undo.indexOf("router.refresh()")).toBeGreaterThan(undo.indexOf("await undoSlipBatch"));
+    expect(undo.indexOf("await loadMonth(month)")).toBeGreaterThan(undo.indexOf("await undoSlipBatch"));
   });
 });
 const row = (id: string, type: MonthlySpendRow["type"], amount: string, category_id: string | null = food, transaction_date = "2026-10-20"): MonthlySpendRow => ({ id, type, amount, category_id, transaction_date, merchant: "synthetic", description: null });
