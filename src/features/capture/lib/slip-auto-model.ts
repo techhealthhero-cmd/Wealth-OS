@@ -1,3 +1,4 @@
+import { normalizeSlipCategoryText } from "./slip-category-text";
 import { monthLabel, slipCategoryIcon } from "../components/slip-auto/format";
 import type { BatchSlip, SlipBatchResult } from "@/lib/slip/batch";
 import { suggestCategory, type ParseContext } from "@/lib/capture/transaction-parser";
@@ -29,7 +30,8 @@ export function resolveSlip(item: BatchSlip, selection: SlipSelection, ctx: Pars
   // category, but cannot establish which bank party belongs to the user.
   const direction = selection.direction ?? (item.status !== "unsure" && item.direction === "income" ? "income" : "expense");
   const title = slipTitle(item, direction);
-  const suggestion = suggestCategory(title, title, direction, ctx);
+  const categoryText = normalizeSlipCategoryText(title);
+  const suggestion = suggestCategory(categoryText, categoryText, direction, ctx);
   const categories = slipCategories(ctx);
   const categoryId = selection.categoryId === undefined ? suggestion.categoryId : selection.categoryId;
   const category = categories.find(c => c.id === categoryId && c.direction === direction);
@@ -67,13 +69,12 @@ export function slipSavePayloads(batch: SlipBatchResult, selections: SlipSelecti
   });
 }
 export interface SavedSlip { id: string; clientRequestId: string }
-/** Remove successes immediately; failures remain retryable. */
-export async function undoSlipBatch(saved: readonly SavedSlip[], remove: (id: string) => Promise<{ error?: string; success?: boolean }>) {
-  const remaining: SavedSlip[] = [];
-  const removed: SavedSlip[] = [];
-  for (const row of saved) {
-    try { const result = await remove(row.id); if (result.success && !result.error) removed.push(row); else remaining.push(row); }
-    catch { remaining.push(row); }
-  }
-  return { remaining, removed };
+/** One atomic server request; keep the entire batch retryable on failure. */
+export async function undoSlipBatch(saved: readonly SavedSlip[], remove: (ids: string[]) => Promise<{ error?: string; success?: boolean }>) {
+  if (!saved.length) return { remaining: [], removed: [] };
+  try {
+    const result = await remove([...new Set(saved.map(row => row.id))]);
+    if (result.success && !result.error) return { remaining: [], removed: [...saved] };
+  } catch { /* A lost response is safe to retry: deleting absent IDs is a no-op. */ }
+  return { remaining: [...saved], removed: [] };
 }

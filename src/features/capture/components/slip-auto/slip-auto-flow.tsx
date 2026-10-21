@@ -21,7 +21,7 @@ import { recognizeSlipText } from "../../lib/local-slip-ocr";
 import { localSlipQRDecoder } from "../../lib/local-slip-qr";
 import { readingModel, reviewModel, resolveSlip, slipSavePayloads, undoSlipBatch, type SavedSlip, type SlipSelections } from "../../lib/slip-auto-model";
 import { getMonthlySpendSummary } from "@/features/dashboard/monthly-spend-actions";
-import { deleteTransaction } from "@/features/transactions/actions";
+import { deleteTransactionsBatch } from "@/features/transactions/actions";
 import { MonthlySpendDetail } from "@/features/dashboard/components/monthly-spend-detail";
 import { monthlyCategoryHref, shiftSpendMonth } from "@/features/dashboard/lib/monthly-spend";
 import { SlipPickSheet } from "./slip-pick-sheet";
@@ -169,9 +169,10 @@ export const SlipAutoFlow = forwardRef<SlipAutoHandle, { accounts: Account[]; ca
     busyRef.current = true; setBusy(true);
     try {
       // Reverse order also unwinds multiple learning observations for one merchant.
-      const result = await undoSlipBatch([...saved.current].reverse(), deleteTransaction);
+      const result = await undoSlipBatch([...saved.current].reverse(), deleteTransactionsBatch);
       for (const row of result.removed) { unlearn.current.get(row.clientRequestId)?.(); unlearn.current.delete(row.clientRequestId); completed.current.delete(row.clientRequestId); }
       saved.current = result.remaining.reverse(); router.refresh();
+      await loadMonth(month);
       if (result.remaining.length) { setSavedVM(null); toast.error("เลิกทำบางรายการไม่สำเร็จ กรุณาลองอีกครั้ง"); return; }
       setVisible(false); setStage("pick"); setBatch(null); setSavedVM(null); completed.current.clear();
     } finally { busyRef.current = false; setBusy(false); }
