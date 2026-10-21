@@ -9,6 +9,8 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { IncomeThisMonth } from "@/features/dashboard/components/income-this-month";
+import { MonthlySpend } from "@/features/dashboard/components/monthly-spend";
+import { getMonthlySpendSummary } from "@/features/dashboard/monthly-spend-actions";
 import { HomeQuickActions } from "@/features/dashboard/components/home-quick-actions";
 import { HomeExpectedTileCard, HomeTaxTile } from "@/features/dashboard/components/home-tiles";
 import { HomeExpectedTile } from "@/features/dashboard/components/home-expected-tile";
@@ -73,6 +75,8 @@ export default async function DashboardPage() {
           <NetWorthHero variant="compact" />
         </Suspense>
       </div>
+
+      <MonthlySpend summary={await getMonthlySpendSummary()} month={today.slice(0, 7)} />
 
       <div className="motion-reveal motion-reveal-2">
         <HomeQuickActions labels={dict.homeDash} />

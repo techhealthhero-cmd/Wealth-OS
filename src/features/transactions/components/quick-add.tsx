@@ -74,7 +74,7 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
     if (voiceActiveRef.current && !typedRef.current) setVoiceText(text);
   });
   const scanInputRef = useRef<HTMLInputElement>(null);
-  const [captureInitialImage, setCaptureInitialImage] = useState<File | null>(null);
+  const [captureInitialImage, setCaptureInitialImage] = useState<File[] | null>(null);
   const consumeCaptureInitialImage = useCallback(() => setCaptureInitialImage(null), []);
   const [captureInitialText, setCaptureInitialText] = useState<string | null>(null);
   const [carryOverAmount, setCarryOverAmount] = useState<string | undefined>(undefined);
@@ -262,13 +262,13 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
           ref={scanInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
+          multiple
           hidden
           onChange={(event) => {
-            const file = event.target.files?.[0];
+            const files = Array.from(event.target.files ?? []);
             event.target.value = "";
-            if (!file) return;
-            setCaptureInitialImage(file);
+            if (!files.length) return;
+            setCaptureInitialImage(files);
             openCapture();
           }}
         />
@@ -404,7 +404,7 @@ export function QuickAdd({ accounts = [], categories = [], variant = "inline" }:
           onIncome={() => openDialog("income")}
           onTransfer={() => openDialog("transfer")}
           initialText={captureInitialText}
-          initialImageFile={captureInitialImage}
+          initialImageFiles={captureInitialImage}
           onInitialImageConsumed={consumeCaptureInitialImage}
         />
       ) : null}
