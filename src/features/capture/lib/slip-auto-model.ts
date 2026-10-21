@@ -78,3 +78,20 @@ export async function undoSlipBatch(saved: readonly SavedSlip[], remove: (ids: s
   } catch { /* A lost response is safe to retry: deleting absent IDs is a no-op. */ }
   return { remaining: [...saved], removed: [] };
 }
+
+/** Fire the server request before closing the UI; retain retry state on failure. */
+export async function optimisticUndoSlipBatch(
+  saved: readonly SavedSlip[],
+  remove: Parameters<typeof undoSlipBatch>[1],
+  callbacks: {
+    onOptimistic: () => void;
+    onSuccess: (removed: SavedSlip[]) => void;
+    onFailure: (remaining: SavedSlip[]) => void;
+  },
+) {
+  const pending = undoSlipBatch(saved, remove);
+  callbacks.onOptimistic();
+  const result = await pending;
+  if (result.remaining.length) callbacks.onFailure(result.remaining);
+  else callbacks.onSuccess(result.removed);
+}

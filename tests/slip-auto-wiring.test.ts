@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import fs from "node:fs";
 import { classifySlipBatch } from "@/lib/slip/batch";
-import { readingModel, reviewModel, slipSavePayloads, undoSlipBatch } from "@/features/capture/lib/slip-auto-model";
+import { readingModel, reviewModel, slipSavePayloads, optimisticUndoSlipBatch, undoSlipBatch } from "@/features/capture/lib/slip-auto-model";
 import { SlipReviewSheet, slipSaveCount } from "@/features/capture/components/slip-auto/slip-review-sheet";
 import { aggregateMonthlySpend, monthlyCategoryHref, shiftSpendMonth, spendMonthRange, type MonthlySpendRow } from "@/features/dashboard/lib/monthly-spend";
 import type { ParseContext } from "@/lib/capture/transaction-parser";
@@ -96,13 +96,35 @@ describe("whole batch undo", () => {
     await undoSlipBatch([saved[0], saved[0]], remove);
     expect(remove).toHaveBeenCalledExactlyOnceWith(["1"]);
   });
-  it("refreshes the router and selected monthly summary after undo, preserving unlearning", () => {
-    const source = fs.readFileSync("src/features/capture/components/slip-auto/slip-auto-flow.tsx", "utf8");
-    const undo = source.slice(source.indexOf("async function undo()"), source.indexOf("const editItem"));
-    expect(undo).toContain("undoSlipBatch([...saved.current].reverse(), deleteTransactionsBatch)");
-    expect(undo).toContain("unlearn.current.get(row.clientRequestId)?.()");
-    expect(undo.indexOf("router.refresh()")).toBeGreaterThan(undo.indexOf("await undoSlipBatch"));
-    expect(undo.indexOf("await loadMonth(month)")).toBeGreaterThan(undo.indexOf("await undoSlipBatch"));
+  it.each([true, false])("optimistically closes before settling, then restores or refreshes (success=%s)", async success => {
+    let settle!: (result: { success: boolean }) => void;
+    const order: string[] = [];
+    const remove = vi.fn(() => {
+      order.push("remove");
+      return new Promise<{ success: boolean }>(resolve => { settle = resolve; });
+    });
+    const snapshot = { saved, stage: "saved", vm: { savedCount: 3 } };
+    let state = snapshot;
+    const refresh = vi.fn();
+    const restore = vi.fn((remaining: typeof saved) => { state = { ...snapshot, saved: remaining }; });
+    const pending = optimisticUndoSlipBatch(saved, remove, {
+      onOptimistic: () => { order.push("optimistic"); state = { saved: [], stage: "pick", vm: { savedCount: 0 } }; },
+      onSuccess: refresh,
+      onFailure: restore,
+    });
+    expect(order).toEqual(["remove", "optimistic"]);
+    expect(state.stage).toBe("pick");
+    expect(refresh).not.toHaveBeenCalled();
+    settle({ success });
+    await pending;
+    if (success) {
+      expect(refresh).toHaveBeenCalledExactlyOnceWith(saved);
+      expect(restore).not.toHaveBeenCalled();
+    } else {
+      expect(state).toEqual(snapshot);
+      expect(restore).toHaveBeenCalledExactlyOnceWith(saved);
+      expect(refresh).not.toHaveBeenCalled();
+    }
   });
 });
 const row = (id: string, type: MonthlySpendRow["type"], amount: string, category_id: string | null = food, transaction_date = "2026-10-20"): MonthlySpendRow => ({ id, type, amount, category_id, transaction_date, merchant: "synthetic", description: null });
