@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- SLIP-POLISH — Owner: Codex; READY FOR HANDOFF. Optimistic undo + retry snapshot and explicit fuel keywords implemented. Node 22 NLP precision=1 / zero critical; tsc (after next typegen), lint and 64 focused tests PASS. Full Vitest: 167 files / 2469 tests PASS; one offline-assets test blocked by spawnSync EPERM. Supervisor reviews/commits; no DB/auth/RLS/billing/formula changes or commit/push.
+
 - W5-SWITCH-SIZE — Owner: Codex; DONE. Scope: SettingsSwitch minimum-size utilities and CaptureLargeTextToggle native label row. Requested tsc and component Vitest PASS (17 tests); no commit.
 
 - W5-FOLLOWUPS — Owner: Codex; DONE. Scope: shared Profile AI/large-text switch, pure unsure-question wording and focused tests. Completed: reused switch → pure wording from parsed draft → typecheck and 58 targeted tests PASS; no DB/formula/auth/RLS or commits.
@@ -626,3 +628,11 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 - Added `min-h-0! min-w-0!` to SettingsSwitch and changed the large-text row to a native label with cursor-pointer. Native label activation uses the existing button handler once; native disabled button blocks activation. Accessibility attributes unchanged. Existing unrelated work preserved.
 - Node 22: `npx tsc --noEmit` PASS; `npx vitest run tests/capture-w5-components.test.ts` PASS (17 tests); `git diff --check` PASS. No commit. Ready for owner review.
+
+
+### 2026-10-21 — Codex → supervisor (SLIP-POLISH)
+
+- Undo starts the single batch request before closing/resetting and showing the success toast. busyRef prevents duplicate operations without setting the sheet spinner. Snapshot restores saved rows, batch, stage, VM, summary/month, completed IDs and unlearn callbacks on failure and reopens retry UI. Memory unlearning runs only after success in reverse order; refresh and non-awaited summary reload follow. Pending summary reads are invalidated before reset.
+- Replaced bare ปั๊ม with explicit fuel phrases; retained station brands and Latin word boundaries (including PT). Tests exercise resolveSlip's normalizer/categorizer path, OCR variants, Thai spacing, all requested pump exclusions and embedded Latin pt negatives. Updated undo orchestration tests use a deferred request to verify request-before-close ordering, failure restoration and success refresh callback.
+- Node 22 explicitly via /tmp/n22bin: npm run nlp:eval PASS (358 cases, autoSavePrecision=1, criticalFailures=[]); npx tsc --noEmit PASS after npx next typegen; npm run lint PASS; focused Vitest PASS (64 tests). Full npx vitest run: 167 files / 2469 tests pass, one unrelated tests/slip-assets-offline.test.ts failure because child-process spawnSync is denied (EPERM); isolated forks retry confirms the same environment restriction. No test bypass or unrelated production fix. git diff --check PASS.
+- Changes limited to flow/model, keywords, two test files and this collaboration board. No schema/migrations/RLS/auth/billing/formula edits, commits or pushes. Next: supervisor review and rerun the offline-assets test in an environment allowing child-process spawn; physical-device instant-close timing remains unmeasured.

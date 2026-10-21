@@ -19,7 +19,7 @@ import { getSlipCandidates } from "../../slip-auto-actions";
 import { processSlipBatch } from "../../lib/slip-batch-import";
 import { recognizeSlipText } from "../../lib/local-slip-ocr";
 import { localSlipQRDecoder } from "../../lib/local-slip-qr";
-import { readingModel, reviewModel, resolveSlip, slipSavePayloads, undoSlipBatch, type SavedSlip, type SlipSelections } from "../../lib/slip-auto-model";
+import { readingModel, reviewModel, resolveSlip, slipSavePayloads, optimisticUndoSlipBatch, type SavedSlip, type SlipSelections } from "../../lib/slip-auto-model";
 import { getMonthlySpendSummary } from "@/features/dashboard/monthly-spend-actions";
 import { deleteTransactionsBatch } from "@/features/transactions/actions";
 import { MonthlySpendDetail } from "@/features/dashboard/components/monthly-spend-detail";
@@ -166,17 +166,35 @@ export const SlipAutoFlow = forwardRef<SlipAutoHandle, { accounts: Account[]; ca
     } finally { busyRef.current = false; setBusy(false); }
   }
   async function undo() {
-    if (busyRef.current) return;
-    busyRef.current = true; setBusy(true);
+    if (busyRef.current || !saved.current.length) return;
+    busyRef.current = true;
+    const snapshot = { saved: [...saved.current], batch, savedVM, summary, month, stage,
+      completed: new Set(completed.current), unlearn: new Map(unlearn.current) };
+    // Invalidate summary requests that could overwrite the optimistic/reset state.
+    monthRequest.current++;
     try {
-      // Reverse order also unwinds multiple learning observations for one merchant.
-      const result = await undoSlipBatch([...saved.current].reverse(), deleteTransactionsBatch);
-      for (const row of result.removed) { unlearn.current.get(row.clientRequestId)?.(); unlearn.current.delete(row.clientRequestId); completed.current.delete(row.clientRequestId); }
-      saved.current = result.remaining.reverse(); router.refresh();
-      await loadMonth(month);
-      if (result.remaining.length) { setSavedVM(null); toast.error("เลิกทำบางรายการไม่สำเร็จ กรุณาลองอีกครั้ง"); return; }
-      setVisible(false); setStage("pick"); setBatch(null); setSavedVM(null); completed.current.clear();
-    } finally { busyRef.current = false; setBusy(false); }
+      await optimisticUndoSlipBatch([...snapshot.saved].reverse(), deleteTransactionsBatch, {
+        onOptimistic: () => {
+          setVisible(false); setStage("pick"); setBatch(null); setSavedVM(null);
+          saved.current = []; completed.current.clear(); unlearn.current.clear();
+          toast.success("เลิกทำแล้ว");
+        },
+        onSuccess: removed => {
+          // Reverse order unwinds multiple observations for the same merchant.
+          for (const row of removed) snapshot.unlearn.get(row.clientRequestId)?.();
+          router.refresh();
+          void loadMonth(snapshot.month);
+        },
+        onFailure: remaining => {
+          saved.current = [...remaining].reverse();
+          completed.current = snapshot.completed; unlearn.current = snapshot.unlearn;
+          setBatch(snapshot.batch); setSavedVM(snapshot.savedVM);
+          setSummary(snapshot.summary); setMonth(snapshot.month); setStage(snapshot.stage);
+          setVisible(true);
+          toast.error("เลิกทำไม่สำเร็จ กรุณาลองอีกครั้ง");
+        },
+      });
+    } finally { busyRef.current = false; }
   }
   const editItem = batch?.items.find(i => i.clientRequestId === editing);
   return <>
