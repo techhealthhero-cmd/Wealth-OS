@@ -26,6 +26,7 @@ import { MonthlySpendDetail } from "@/features/dashboard/components/monthly-spen
 import { monthlyCategoryHref, shiftSpendMonth } from "@/features/dashboard/lib/monthly-spend";
 import { SlipPickSheet } from "./slip-pick-sheet";
 import { SlipReadingProgress } from "./slip-reading-progress";
+import { SlipReviewControls } from "./slip-review-controls";
 import { SlipReviewSheet } from "./slip-review-sheet";
 import { SlipSavedState } from "./slip-saved-state";
 import type { MonthlySpendSummary, SlipSavedViewModel } from "./types";
@@ -187,7 +188,7 @@ export const SlipAutoFlow = forwardRef<SlipAutoHandle, { accounts: Account[]; ca
         {stage === "reading" ? <SlipReadingProgress vm={progress} onLater={() => setVisible(false)} /> : null}
         {stage === "review" && vm ? <>
           <SlipReviewSheet vm={vm} saving={busy} onSaveAll={() => void save()} onAnswer={answer} onChangeCategory={(id, categoryId) => patch(id, { categoryId, confirmed: true })}
-            controls={<><label>บัญชี<select aria-label="บัญชีสำหรับชุดสลิป" value={accountId || defaultAccountId(accounts) || ""} disabled={busy} onChange={e => setAccountId(e.target.value)}>{accounts.filter(a => !a.is_archived).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label><Button variant="ghost" onClick={() => setVisible(false)}>ไว้ดูทีหลัง</Button>{saved.current.length ? <Button variant="ghost" disabled={busy} onClick={() => void undo()}>เลิกทำชุดนี้</Button> : null}</>} />
+            controls={<SlipReviewControls accounts={accounts.filter(a => !a.is_archived)} accountId={accountId || defaultAccountId(accounts) || ""} disabled={busy} onAccountChange={setAccountId} onLater={() => setVisible(false)} onUndo={saved.current.length ? () => void undo() : undefined} />} />
         </> : null}
         {stage === "saved" ? savedVM ? <SlipSavedState vm={savedVM} onUndo={() => void undo()} onViewMonth={() => { if (!busyRef.current) setStage("month"); }} onBackHome={() => { setVisible(false); router.push("/dashboard"); }} onScanMore={() => { if (busyRef.current) return; saved.current = []; completed.current.clear(); setStage("pick"); }} /> : <><p role="status">บันทึกแล้ว {saved.current.length} รายการ</p><Button disabled={busy} onClick={() => void undo()}>เลิกทำชุดนี้</Button><Button onClick={() => void loadMonth(month)}>โหลดสรุปอีกครั้ง</Button></> : null}
         {stage === "month" ? <MonthlySpendDetail summary={summary} onMonthChange={delta => void loadMonth(shiftSpendMonth(month, delta))} onViewCategory={id => { setVisible(false); router.push(monthlyCategoryHref(month, id)); }} /> : null}
