@@ -350,7 +350,9 @@
     "spentOfIncome": "Spent {percent}% of income",
     "dayProgress": "Day {day} of {total}",
     "year": {
-      "stripLabel": "This year ({range})",
+      "title": "This year · {range}",
+      "noDataTitle": "No income or expenses recorded this year yet",
+      "noDataHint": "Log an income or expense to see your year at a glance",
       "surplus": "left over",
       "deficit": "short",
       "even": "break-even",

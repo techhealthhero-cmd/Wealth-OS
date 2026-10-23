@@ -18,7 +18,6 @@ import { InlineLoadError } from "@/components/shared/inline-load-error";
 import { NetWorthMiniChart } from "./net-worth-mini-chart";
 import { NetWorthInfoPopover } from "./net-worth-info-popover";
 import { NetWorthBreakdownDisclosure } from "./net-worth-breakdown-disclosure";
-import { YearlyBalanceStrip, type YearlyBalanceStripProps } from "./yearly-balance-strip";
 import type { NetWorthBreakdown } from "@/features/net-worth/queries";
 
 const CHART_HISTORY_MONTHS = 6;
@@ -85,7 +84,7 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
  * full at /money/net-worth anyway) is folded into a chevron-expand section
  * via NetWorthBreakdownDisclosure, collapsed by default.
  */
-export async function NetWorthHero({ yearly = null }: { yearly?: YearlyBalanceStripProps | null } = {}) {
+export async function NetWorthHero() {
   const data = await loadNetWorthHeroData();
   if (!data) {
     // `data` is only ever null here from the catch block in
@@ -177,10 +176,6 @@ export async function NetWorthHero({ yearly = null }: { yearly?: YearlyBalanceSt
               <NetWorthMiniChart data={chartData} tone="highlight" />
             </div>
           ) : null}
-
-          {/* 2026-10-24 (design H3): the year-to-date summary lives here as
-              a quiet supporting row, so Net Worth stays the one headline. */}
-          {yearly ? <YearlyBalanceStrip {...yearly} /> : null}
 
           <NetWorthBreakdownDisclosure
             totalAssetsCents={breakdown.totalAssetsCents}

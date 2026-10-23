@@ -11,7 +11,7 @@ import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
 import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboard-details-toggle";
 import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
-import { ThisMonthCard } from "@/features/dashboard/components/summary-visuals";
+import { YearlyBalanceCard } from "@/features/dashboard/components/summary-visuals";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { DailyInboxSection } from "@/features/capture/components/daily-inbox-section";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -112,27 +112,7 @@ export default async function DashboardPage() {
           resolved content. */}
       <div className="motion-reveal motion-reveal-1">
         <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
-          {/* 2026-10-24 (design H3): the year-to-date income-vs-expense
-              summary is a quiet row inside the hero, so Net Worth stays the
-              one headline on Home. Why yearly: /help#yearly-view. */}
-          <NetWorthHero
-            yearly={
-              data.hasYearData
-                ? {
-                    incomeCents: data.yearIncomeCents,
-                    expensesCents: data.yearExpensesCents,
-                    rangeLabel: `${monthFormatter.format(new Date(today.getFullYear(), 0, 1))} – ${monthFormatter.format(today)}`,
-                    helpHref: "/help#yearly-view",
-                    currencyCode,
-                    labels: {
-                      ...dict.dashboard.year,
-                      income: dict.dashboard.incomeShort,
-                      expenses: dict.dashboard.expensesShort,
-                    },
-                  }
-                : null
-            }
-          />
+          <NetWorthHero />
         </Suspense>
       </div>
 
@@ -147,6 +127,49 @@ export default async function DashboardPage() {
       <Suspense fallback={null}>
         <DailyInboxSection />
       </Suspense>
+
+      <div className="motion-reveal motion-reveal-3">
+        {/* 2026-10-24 (design H1): year-to-date income vs expenses as a
+            compact card, kept quiet so Net Worth stays the one headline.
+            Yearly because a once-a-year bill (insurance, car tax) made its
+            month look like an overspend — explained at /help#yearly-view.
+            This month's numbers and the category chart are under its
+            "View details". */}
+        <YearlyBalanceCard
+          yearIncomeCents={data.yearIncomeCents}
+          yearExpensesCents={data.yearExpensesCents}
+          hasYearData={data.hasYearData}
+          rangeLabel={`${monthFormatter.format(new Date(today.getFullYear(), 0, 1))} – ${monthFormatter.format(today)}`}
+          helpHref="/help#yearly-view"
+          month={{
+            incomeCents: data.incomeCents,
+            expensesCents: data.expensesCents,
+            cashFlowCents: data.cashFlowCents,
+            savingsRatePercent: data.savingsRatePercent,
+            incomeChangePercent: data.incomeChangePercent,
+            expensesChangePercent: data.expensesChangePercent,
+            cashFlowChangePercent: data.cashFlowChangePercent,
+            savingsRateChangePoints: data.savingsRateChangePoints,
+            hasData: data.hasMonthData,
+          }}
+          currencyCode={currencyCode}
+          accounts={data.accounts}
+          categories={data.categories}
+          labels={{
+            ...dict.dashboard.year,
+            viewDetails: dict.dashboard2.viewDetails,
+            income: dict.dashboard.incomeShort,
+            expenses: dict.dashboard.expensesShort,
+            thisMonth: dict.dashboard.thisMonth,
+            remaining: dict.dashboard.remaining,
+            savingsRate: dict.dashboard.savingsRate,
+            vsLastMonth: dict.dashboard.vsLastMonth,
+            monthNoData: dict.dashboard.noIncomeExpenseData,
+          }}
+        >
+          <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} embedded />
+        </YearlyBalanceCard>
+      </div>
 
       {FEATURES.ai ? (
         <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
@@ -175,34 +198,6 @@ export default async function DashboardPage() {
 
       <div className="motion-reveal motion-reveal-7">
         <DashboardDetailsToggle label={dict.dashboard.moreInsights}>
-          {/* This month in detail — Home's headline summary is yearly. */}
-          <ThisMonthCard
-            incomeCents={data.incomeCents}
-            expensesCents={data.expensesCents}
-            cashFlowCents={data.cashFlowCents}
-            savingsRatePercent={data.savingsRatePercent}
-            incomeChangePercent={data.incomeChangePercent}
-            expensesChangePercent={data.expensesChangePercent}
-            cashFlowChangePercent={data.cashFlowChangePercent}
-            savingsRateChangePoints={data.savingsRateChangePoints}
-            hasData={data.hasMonthData}
-            currencyCode={currencyCode}
-            accounts={data.accounts}
-            categories={data.categories}
-            labels={{
-              title: dict.dashboard.thisMonth,
-              income: dict.dashboard.incomeShort,
-              expenses: dict.dashboard.expensesShort,
-              remaining: dict.dashboard.remaining,
-              savingsRate: dict.dashboard.savingsRate,
-              vsLastMonth: dict.dashboard.vsLastMonth,
-              noDataTitle: dict.dashboard.noIncomeExpenseData,
-              noDataHint: dict.dashboard.noDataThisMonthHint,
-            }}
-          >
-            <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} embedded />
-          </ThisMonthCard>
-
           <Suspense fallback={<Skeleton className="h-[240px] w-full rounded-xl" />}>
             <IncomeExpenseTrendSection locale={locale} currencyCode={currencyCode} />
           </Suspense>
