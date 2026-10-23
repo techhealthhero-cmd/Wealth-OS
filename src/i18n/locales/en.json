@@ -350,21 +350,12 @@
     "spentOfIncome": "Spent {percent}% of income",
     "dayProgress": "Day {day} of {total}",
     "year": {
-      "title": "This year · {year}",
-      "surplus": "Left over",
-      "deficit": "Income fell short",
-      "even": "Break-even",
-      "incomeMore": "Income is {percent}% more than expenses",
-      "expensesMore": "Expenses are {percent}% more than income",
-      "evenLine": "Income exactly matches expenses",
-      "noRatio": "Since the start of the year",
-      "scaleShort": "Short",
-      "scaleEven": "Break-even",
-      "scaleSurplus": "Left over",
+      "stripLabel": "This year ({range})",
+      "surplus": "left over",
+      "deficit": "short",
+      "even": "break-even",
       "barAria": "Since the start of the year: income {income}, expenses {expenses}",
-      "whyYearly": "Why yearly?",
-      "noDataTitle": "No income or expenses recorded this year yet",
-      "noDataHint": "Log an income or expense to see your year at a glance"
+      "whyYearly": "Why yearly?"
     }
   },
   "accounts": {

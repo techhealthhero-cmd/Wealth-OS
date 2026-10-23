@@ -350,21 +350,12 @@
     "spentOfIncome": "ใช้ไป {percent}% ของรายรับ",
     "dayProgress": "วันที่ {day}/{total}",
     "year": {
-      "title": "ปีนี้ · {year}",
+      "stripLabel": "ปีนี้ ({range})",
       "surplus": "เหลือเก็บ",
       "deficit": "รายรับไม่พอ",
       "even": "พอดี",
-      "incomeMore": "รายรับมากกว่ารายจ่าย {percent}%",
-      "expensesMore": "รายจ่ายมากกว่ารายรับ {percent}%",
-      "evenLine": "รายรับเท่ากับรายจ่ายพอดี",
-      "noRatio": "ตั้งแต่ต้นปี",
-      "scaleShort": "ขาด",
-      "scaleEven": "จุดเท่ากัน",
-      "scaleSurplus": "เหลือ",
       "barAria": "ตั้งแต่ต้นปี รายรับ {income} รายจ่าย {expenses}",
-      "whyYearly": "ทำไมคิดเป็นรายปี?",
-      "noDataTitle": "ยังไม่มีรายรับหรือรายจ่ายในปีนี้",
-      "noDataHint": "บันทึกรายรับ-รายจ่ายเพื่อดูภาพรวมการเงินทั้งปี"
+      "whyYearly": "ทำไมคิดเป็นรายปี?"
     }
   },
   "accounts": {
