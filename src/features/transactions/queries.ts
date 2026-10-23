@@ -114,17 +114,33 @@ export function getTransactions(filters: TransactionFilters = {}): Promise<Trans
 
 type FinancialTransactionFilters = Pick<TransactionFilters, "from" | "to" | "type">;
 
+// PostgREST caps a single response (Supabase default: 1000 rows) without
+// raising an error, so a long range — e.g. the year-to-date total on Home —
+// would silently under-count. Page through in fixed chunks with a stable
+// order until a short page comes back.
+const FINANCIAL_PAGE_SIZE = 1000;
+
 async function fetchFinancialTransactions(filters: FinancialTransactionFilters): Promise<FinancialTransactionRow[]> {
   const supabase = await createClient();
-  let query = supabase.from("transactions").select("type, amount, category_id, transaction_date");
+  const rows: FinancialTransactionRow[] = [];
 
-  if (filters.from) query = query.gte("transaction_date", filters.from);
-  if (filters.to) query = query.lte("transaction_date", filters.to);
-  if (filters.type) query = query.eq("type", filters.type);
+  for (let offset = 0; ; offset += FINANCIAL_PAGE_SIZE) {
+    let query = supabase
+      .from("transactions")
+      .select("type, amount, category_id, transaction_date")
+      .order("transaction_date", { ascending: true })
+      .order("id", { ascending: true });
 
-  const { data, error } = await query;
-  if (error) throwDbError(error, "transactions.fetchFinancialTransactions", "Failed to load transaction totals");
-  return (data ?? []) as FinancialTransactionRow[];
+    if (filters.from) query = query.gte("transaction_date", filters.from);
+    if (filters.to) query = query.lte("transaction_date", filters.to);
+    if (filters.type) query = query.eq("type", filters.type);
+
+    const { data, error } = await query.range(offset, offset + FINANCIAL_PAGE_SIZE - 1);
+    if (error) throwDbError(error, "transactions.fetchFinancialTransactions", "Failed to load transaction totals");
+    const page = (data ?? []) as FinancialTransactionRow[];
+    rows.push(...page);
+    if (page.length < FINANCIAL_PAGE_SIZE) return rows;
+  }
 }
 
 const fetchFinancialTransactionsCached = cache((filtersKey: string): Promise<FinancialTransactionRow[]> =>

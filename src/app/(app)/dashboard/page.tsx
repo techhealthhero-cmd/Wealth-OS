@@ -11,7 +11,7 @@ import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
 import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboard-details-toggle";
 import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
-import { MonthlyDonutCard } from "@/features/dashboard/components/summary-visuals";
+import { YearlyBalanceCard } from "@/features/dashboard/components/summary-visuals";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { DailyInboxSection } from "@/features/capture/components/daily-inbox-section";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -48,6 +48,11 @@ export default async function DashboardPage() {
   const dict = getDictionary(locale);
   // Same server-local clock getCurrentMonthRange() uses for "this month".
   const today = new Date();
+  const dateLocale = locale === "th" ? "th-TH" : "en-US";
+  // th-TH gives the Buddhist-era year; only the digits are used ("2569",
+  // not "พ.ศ. 2569") so the title stays short.
+  const yearFormatter = new Intl.DateTimeFormat(dateLocale, { year: "numeric" });
+  const monthFormatter = new Intl.DateTimeFormat(dateLocale, { month: "short" });
 
   if (!data.hasAnyData) {
     return (
@@ -127,41 +132,45 @@ export default async function DashboardPage() {
       </Suspense>
 
       <div className="motion-reveal motion-reveal-3">
-        <MonthlyDonutCard
-          incomeCents={data.incomeCents}
-          expensesCents={data.expensesCents}
-          cashFlowCents={data.cashFlowCents}
-          savingsRatePercent={data.savingsRatePercent}
-          incomeChangePercent={data.incomeChangePercent}
-          expensesChangePercent={data.expensesChangePercent}
-          cashFlowChangePercent={data.cashFlowChangePercent}
-          savingsRateChangePoints={data.savingsRateChangePoints}
-          hasDataThisMonth={data.hasMonthData}
-          dayOfMonth={today.getDate()}
-          daysInMonth={new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()}
+        {/* 2026-10-24: the summary is year to date, not this month — a
+            once-a-year bill (insurance, car tax) made its month look like an
+            overspend. This month's numbers live under "View details". The
+            why is explained at /help#yearly-view. */}
+        <YearlyBalanceCard
+          yearIncomeCents={data.yearIncomeCents}
+          yearExpensesCents={data.yearExpensesCents}
+          hasYearData={data.hasYearData}
+          yearLabel={yearFormatter.formatToParts(today).find((part) => part.type === "year")?.value ?? String(today.getFullYear())}
+          rangeLabel={`${monthFormatter.format(new Date(today.getFullYear(), 0, 1))} – ${monthFormatter.format(today)}`}
+          helpHref="/help#yearly-view"
+          month={{
+            incomeCents: data.incomeCents,
+            expensesCents: data.expensesCents,
+            cashFlowCents: data.cashFlowCents,
+            savingsRatePercent: data.savingsRatePercent,
+            incomeChangePercent: data.incomeChangePercent,
+            expensesChangePercent: data.expensesChangePercent,
+            cashFlowChangePercent: data.cashFlowChangePercent,
+            savingsRateChangePoints: data.savingsRateChangePoints,
+            hasData: data.hasMonthData,
+          }}
           currencyCode={currencyCode}
           accounts={data.accounts}
           categories={data.categories}
           labels={{
-            title: dict.dashboard.thisMonth,
-            income: dict.dashboard.monthlyIncome,
-            expenses: dict.dashboard.monthlyExpenses,
+            ...dict.dashboard.year,
+            viewDetails: dict.dashboard2.viewDetails,
+            monthNoData: dict.dashboard.noIncomeExpenseData,
+            income: dict.dashboard.incomeShort,
+            expenses: dict.dashboard.expensesShort,
+            thisMonth: dict.dashboard.thisMonth,
             remaining: dict.dashboard.remaining,
-            incomeShort: dict.dashboard.incomeShort,
-            expensesShort: dict.dashboard.expensesShort,
-            overIncome: dict.dashboard.overIncome,
-            spentOfIncome: dict.dashboard.spentOfIncome,
-            dayProgress: dict.dashboard.dayProgress,
-            cashFlow: dict.dashboard.cashFlow,
             savingsRate: dict.dashboard.savingsRate,
             vsLastMonth: dict.dashboard.vsLastMonth,
-            viewDetails: dict.dashboard2.viewDetails,
-            noDataTitle: dict.dashboard.noIncomeExpenseData,
-            noDataHint: dict.dashboard.noDataThisMonthHint,
           }}
         >
           <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} embedded />
-        </MonthlyDonutCard>
+        </YearlyBalanceCard>
       </div>
 
       {FEATURES.ai ? (

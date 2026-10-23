@@ -6,7 +6,38 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-18
+Last updated: 2026-10-24
+
+## Home summary is year to date ("ปีนี้" income-vs-expense tug bar) — 2026-10-24
+
+- The user asked for the Home money summary to be yearly, not monthly: a
+  once-a-year bill (insurance, car tax) made its month look like an
+  overspend. Picked design P1 from a mockup round (canvas
+  "Monthly Summary Card Options"): a green income bar pushing from the left
+  against a red expense bar from the right, a gold ฿ coin where they meet,
+  a dashed break-even line in the middle.
+- `YearlyBalanceCard` (`src/features/dashboard/components/summary-visuals.tsx`)
+  replaces `MonthlyDonutCard` on `/dashboard`. Range = 1 Jan → end of the
+  current month (same end as "this month", so the year always contains the
+  month shown under "ดูรายละเอียด"). Details still show this month's income,
+  expenses, remaining, savings rate (with vs-last-month trends) and the
+  spending-by-category chart.
+- Deterministic math in `src/lib/financial/yearly-balance.ts`
+  (`calculateYearlyBalance`, tests in `tests/yearly-balance.test.ts`). The
+  meeting point is **amplified** (gap ÷ larger side × 150, clamped 8–92%)
+  so a modest surplus is visible — not a literal money ratio; the guide says so.
+- `getFinancialTransactions` now pages through results 1000 rows at a time
+  (stable order by date, id). PostgREST silently caps a response at 1000
+  rows, which would have under-counted a year of transactions; this also
+  protects the 6-month trend and every other caller.
+- Guide: new `/help#yearly-view` card ("ทำไม WEALTH OS ดูเงินเป็นรายปี"),
+  linked from the card's "ทำไมคิดเป็นรายปี?"; plus a Home-section item.
+  `ScrollToHash` makes that client-side link land on the section.
+- Verified: typecheck, lint, full vitest (1029 passed), production build;
+  live run as the demo account at 390 px — card, details expand, help link
+  scroll all checked by screenshot.
+- Known: the gold coin was the user's explicit pick; `GRAPHICS_PLAN.md`
+  warns against casino-like visuals, so revisit if it reads that way.
 
 ## Account card back = "what this money is for" — 2026-10-18
 
