@@ -529,10 +529,19 @@ src/
     illustrations/   ← all current SVG React components live here (flat, this file's convention)
     ui/               ← shadcn/ui primitives (unrelated to this doc)
 public/
-    (currently only unused create-next-app scaffold SVGs — file.svg, globe.svg,
-     next.svg, vercel.svg, window.svg — not part of the WEALTH OS asset system;
-     left in place, out of scope for this documentation pass)
+    artwork/             ← optimized raster/static artwork approved for use in the app
+assets/
+  artwork/
+    drafts/              ← generated candidates and work in progress; not served
+    masters/             ← approved high-quality/editable source files; not served
+    references/          ← visual references safe to keep with the project; not served
 ```
+
+Existing feature-specific static assets remain in their established folders
+under `public/` (for example `story/`, `companions/`, and `splash/`). New
+standalone drawings without a feature-specific home go through
+`assets/artwork/` and are exported to `public/artwork/` only when ready for use.
+See `assets/artwork/README.md` for naming and export guidance.
 
 The originally-proposed `public/graphics/{brand,onboarding,empty-states,...}`
 subfolder structure is **not** in use — every current asset is a React SVG

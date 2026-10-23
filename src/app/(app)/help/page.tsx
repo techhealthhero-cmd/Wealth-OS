@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Artwork } from "@/components/shared/artwork";
 import { MoneyStoryGallery } from "@/features/help/components/money-story-gallery";
+import { ScrollToHash } from "@/features/help/components/scroll-to-hash";
 
 export const metadata: Metadata = { title: "Help — Wealth OS" };
 
@@ -40,6 +41,7 @@ export default async function HelpPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-28">
+      <ScrollToHash />
       <div className="space-y-3 text-center">
         <Artwork src="/artwork/brand/journey.webp" wide priority className="mx-auto w-full max-w-md rounded-2xl shadow-card" />
         <h1 className="font-heading text-2xl font-bold text-balance">{help.title}</h1>
@@ -80,6 +82,70 @@ export default async function HelpPage() {
               </div>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* Linked from Home's "This year" card ("Why yearly?"). */}
+      <Card id="yearly-view" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle className="text-base">{help.yearlyView.title}</CardTitle>
+          <p className="text-sm text-muted-foreground">{help.yearlyView.intro}</p>
+        </CardHeader>
+        <CardContent className="space-y-5 text-sm">
+          <section className="space-y-2">
+            <h3 className="font-semibold">{help.yearlyView.problemTitle}</h3>
+            <p className="text-muted-foreground">{help.yearlyView.problemBody}</p>
+            <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+              {help.yearlyView.lumpItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <p className="text-muted-foreground">{help.yearlyView.bonusNote}</p>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="font-semibold">{help.yearlyView.exampleTitle}</h3>
+            <p className="text-muted-foreground">{help.yearlyView.exampleIntro}</p>
+            {/* Illustrative bars for the fixed example above, not user data. */}
+            <div className="space-y-1.5 rounded-xl bg-rose-50 p-3 dark:bg-rose-950/40">
+              <p className="text-xs font-semibold text-[#8A2F3C] dark:text-rose-200">{help.yearlyView.monthOnlyLabel}</p>
+              <div className="flex h-3 overflow-hidden rounded-full" aria-hidden="true">
+                <span className="bg-[#74C29E]" style={{ width: "60.3%" }} />
+                <span className="flex-1 bg-[repeating-linear-gradient(135deg,#A3404E_0_4px,#C9727A_4px_8px)]" />
+              </div>
+              <p>{help.yearlyView.monthOnlyBody}</p>
+            </div>
+            <div className="space-y-1.5 rounded-xl bg-emerald-50 p-3 dark:bg-emerald-950/40">
+              <p className="text-xs font-semibold text-[#1F5C43] dark:text-emerald-200">{help.yearlyView.yearLabel}</p>
+              <div className="flex h-3 overflow-hidden rounded-full" aria-hidden="true">
+                <span className="bg-[#74C29E]" style={{ width: "92%" }} />
+                <span className="flex-1 bg-[#C9A24A]" />
+              </div>
+              <p>{help.yearlyView.yearBody}</p>
+            </div>
+            <p className="text-muted-foreground">{help.yearlyView.exampleTakeaway}</p>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="font-semibold">{help.yearlyView.readTitle}</h3>
+            <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+              {help.yearlyView.readItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="font-semibold">{help.yearlyView.monthlyTitle}</h3>
+            <p className="text-muted-foreground">{help.yearlyView.monthlyBody}</p>
+          </section>
+
+          <section className="space-y-1 rounded-xl bg-amber-50 p-3 dark:bg-amber-950/30">
+            <h3 className="font-semibold">{help.yearlyView.tipTitle}</h3>
+            <p className="text-muted-foreground">{help.yearlyView.tipBody}</p>
+          </section>
+
+          <p className="text-xs text-muted-foreground">{help.yearlyView.footnote}</p>
         </CardContent>
       </Card>
 

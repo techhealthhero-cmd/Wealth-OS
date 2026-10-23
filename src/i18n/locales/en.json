@@ -348,7 +348,24 @@
     "expensesShort": "Expenses",
     "overIncome": "Spent {amount} more than income",
     "spentOfIncome": "Spent {percent}% of income",
-    "dayProgress": "Day {day} of {total}"
+    "dayProgress": "Day {day} of {total}",
+    "year": {
+      "title": "This year · {year}",
+      "surplus": "Left over",
+      "deficit": "Income fell short",
+      "even": "Break-even",
+      "incomeMore": "Income is {percent}% more than expenses",
+      "expensesMore": "Expenses are {percent}% more than income",
+      "evenLine": "Income exactly matches expenses",
+      "noRatio": "Since the start of the year",
+      "scaleShort": "Short",
+      "scaleEven": "Break-even",
+      "scaleSurplus": "Left over",
+      "barAria": "Since the start of the year: income {income}, expenses {expenses}",
+      "whyYearly": "Why yearly?",
+      "noDataTitle": "No income or expenses recorded this year yet",
+      "noDataHint": "Log an income or expense to see your year at a glance"
+    }
   },
   "accounts": {
     "title": "Accounts",
@@ -2903,7 +2920,34 @@
     "navLabel": "How to use",
     "title": "How to use WEALTH OS",
     "subtitle": "Know your money, grow your income, build your wealth — an easy guide to every feature in the app.",
-    "lastUpdated": "Last updated Oct 18, 2026 · updated every time a new feature ships",
+    "lastUpdated": "Last updated Oct 24, 2026 · updated every time a new feature ships",
+    "yearlyView": {
+      "title": "Why WEALTH OS looks at your money by the year",
+      "intro": "Real life doesn't cost the same every month. Looking at the whole year gives a truer picture — no panic over a month with a big once-a-year bill, and no false comfort from a bonus month.",
+      "problemTitle": "1. One month at a time can mislead",
+      "problemBody": "Some costs come once a year, in one big payment. The month they land in looks like an overspend even though you knew it was coming. For example:",
+      "lumpItems": ["Life / health insurance premiums", "Car tax and compulsory insurance", "School fees", "Annual income tax"],
+      "bonusNote": "The other way round, a bonus month looks better than it really is.",
+      "exampleTitle": "2. Example: the insurance month",
+      "exampleIntro": "A earns ฿35,000 every month and pays a ฿24,000 insurance premium in March (illustrative numbers).",
+      "monthOnlyLabel": "Looking at March alone",
+      "monthOnlyBody": "Income ฿35,000 · Expenses ฿58,000 — short by ฿23,000. Looks alarming.",
+      "yearLabel": "Looking at the year (Jan – Oct)",
+      "yearBody": "Income ฿350,000 · Expenses ฿322,000 — still ฿28,000 left over.",
+      "exampleTakeaway": "A's money is fine. March was simply the month the yearly bill came due.",
+      "readTitle": "3. How to read the “This year” card",
+      "readItems": [
+        "The big number is income minus expenses from 1 January to the end of this month. Green = left over, red = income fell short.",
+        "The green bar (income) pushes from the left, the red bar (expenses) pushes from the right. The coin sits where they meet.",
+        "The dashed line in the middle is break-even. Coin right of it = left over, left of it = short. The further from the line, the bigger the gap.",
+        "The push is exaggerated so it's easy to see; it isn't an exact money ratio. The real figures are the income and expense amounts on the card."
+      ],
+      "monthlyTitle": "4. Does the month still matter?",
+      "monthlyBody": "Yes — it shows which month was unusual. Over in one month because of a big bill? Nothing to worry about. A little over almost every month? That's a real signal worth acting on. Tap “View details” on the card to see this month's numbers.",
+      "tipTitle": "Tip: divide by 12 and set it aside monthly",
+      "tipBody": "For big bills you know are coming, divide by 12 and set that much aside each month. A ฿24,000 yearly premium = ฿2,000 a month, so the money is ready when the bill arrives.",
+      "footnote": "The card only uses transactions you've recorded. Transfers between your own accounts aren't counted."
+    },
     "philosophy": {
       "track": "Track",
       "analyze": "Analyze",
@@ -2962,6 +3006,7 @@
         "description": "Your whole financial picture in one place — open the app and immediately know where you stand and what to do next.",
         "items": [
           { "emoji": "💎", "title": "Net Worth", "description": "The biggest number on the home page, with a 6-month trend chart." },
+          { "emoji": "⚖️", "title": "This year: income vs expenses", "description": "Income minus expenses since 1 January. The green bar (income) and red bar (expenses) push against each other — coin right of the middle line = left over, left of it = short. Tap \"View details\" for this month's numbers; why it's yearly is explained in \"Why WEALTH OS looks at your money by the year\" above." },
           { "emoji": "💯", "title": "Wealth Score", "description": "An overall financial health score from 0-100, based on cash flow, savings, debt, and goals." },
           { "emoji": "🟢", "title": "Safe-to-Spend", "description": "How much you can spend today without hurting your budget or goals." },
           { "emoji": "🧭", "title": "Next Best Action", "description": "The single top recommendation the system picked for you specifically." },

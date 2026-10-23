@@ -84,10 +84,14 @@ export function getDashboardData() {
   return withPerfLog("getDashboardData", async () => {
   const { from, to } = getCurrentMonthRange();
   const { from: prevFrom, to: prevTo } = getPreviousMonthRange();
+  // Year to date ends where "this month" ends, so the yearly total always
+  // contains exactly the month total shown alongside it.
+  const yearFrom = `${from.slice(0, 4)}-01-01`;
 
-  const [monthTransactions, prevMonthTransactions, recentTransactions, accounts, categories] = await Promise.all([
+  const [monthTransactions, prevMonthTransactions, yearTransactions, recentTransactions, accounts, categories] = await Promise.all([
     getFinancialTransactions({ from, to }),
     getFinancialTransactions({ from: prevFrom, to: prevTo }),
+    getFinancialTransactions({ from: yearFrom, to }),
     // 2026-09 Home redesign: recent transactions is now a 3-item preview
     // behind the "show more details" toggle (full history at
     // /money/transactions), not a 5-item list rendered by default.
@@ -114,6 +118,9 @@ export function getDashboardData() {
     cashFlowCents,
     savingsRatePercent,
     hasMonthData: monthTransactions.length > 0,
+    yearIncomeCents: calculateIncome(yearTransactions),
+    yearExpensesCents: calculateExpenses(yearTransactions),
+    hasYearData: yearTransactions.length > 0,
     incomeChangePercent: calculateChangePercent(incomeCents, prevIncomeCents),
     expensesChangePercent: calculateChangePercent(expensesCents, prevExpensesCents),
     cashFlowChangePercent: calculateChangePercent(cashFlowCents, prevCashFlowCents),
