@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Home › ดูรายละเอียด › ทางเลือกเพิ่ม (v3)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f7f1e3; --card:#fffdf6; --line:#ece3cc; --ink:#22302a; --muted:#7a7566;
+    --green:#1f4a3a; --mint:#8fd1ae; --mint-soft:#dcefe3; --good:#2f7a55; --bad:#b4435a;
+    --pink:#e8a7b3; --bad-soft:#f6e3e6; --good-soft:#e2f1e8; --gold:#c9a24a; --sand:#f3ecdb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9e2d0;font-family:"IBM Plex Sans Thai",system-ui,sans-serif;color:var(--ink);padding:24px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 24px;font-size:14px}
+  .row{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+  .col{width:390px}
+  .tag{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;margin-bottom:10px}
+  .tag.new{background:var(--green);color:#fff}
+  .tag.alt{background:#e5ded0;color:#6b6555}
+  .phone{background:var(--paper);border-radius:36px;padding:16px 12px 28px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px 18px}
+  .between{display:flex;justify-content:space-between;align-items:baseline}
+  .muted{color:var(--muted)}
+  .small{font-size:13px}
+  .hr{height:1px;background:var(--line);margin:16px 0}
+  .bar{height:12px;border-radius:99px;background:var(--mint-soft);position:relative;overflow:hidden}
+  .bar > i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--mint)}
+  .link{color:#2a6a8e;font-weight:600;font-size:14px;text-decoration:none}
+  .toggle{font-weight:600;font-size:14px}
+  .sec-title{font-weight:700;font-size:16px;margin:0}
+  .num{font-variant-numeric:tabular-nums;font-weight:600}
+  .chip{font-size:12px;color:var(--muted);background:var(--sand);border-radius:99px;padding:2px 9px;white-space:nowrap}
+
+  /* segmented switch */
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--sand);border-radius:12px;padding:3px;margin-bottom:16px}
+  .seg span{text-align:center;font-size:13px;font-weight:600;padding:6px 0;border-radius:9px;color:var(--muted)}
+  .seg span.on{background:#fff;color:var(--green);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+  /* stat tiles */
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .tile{border:1px solid var(--line);border-radius:14px;padding:10px 10px 9px}
+  .tile .lbl{font-size:11.5px;color:var(--muted);line-height:1.3}
+  .tile .val{font-size:18px;margin:3px 0 1px}
+  .tile .hint{font-size:11px;color:var(--muted);line-height:1.35}
+
+  /* diverging month chart */
+  .chart{position:relative;margin-top:12px;height:150px}
+  .chart .zero{position:absolute;left:0;right:0;height:1px;background:#d9cfb6}
+  .chart .cols{position:absolute;inset:0;display:grid;grid-template-columns:repeat(12,1fr);gap:5px}
+  .chart .c{position:relative}
+  .chart .c b{position:absolute;left:2px;right:2px;border-radius:5px}
+  .chart .c b.up{background:var(--mint)}
+  .chart .c b.down{background:var(--pink)}
+  .chart .c b.live{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 3px,transparent 3px 6px)}
+  .chart .c b.none{height:4px;background:#e6dfcc}
+  .chart .c b.future{border:1.5px dashed #d9cfb6;background:transparent}
+  .coach{margin-top:14px;border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.55;background:var(--good-soft)}
+  .coach b{color:var(--good)}
+  .coach.neutral{background:var(--sand)}
+  .coach .muted{display:block;margin-top:2px}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .duo .box{border:1px solid var(--line);border-radius:14px;padding:9px 11px}
+  .duo .lbl{font-size:11.5px;color:var(--muted)}
+  .duo .val{font-size:15px;margin-top:2px}
+  .cta{display:flex;justify-content:center;gap:6px;margin-top:14px;padding:11px;border-radius:14px;background:var(--sand);font-weight:600;font-size:14px;color:var(--green);text-decoration:none}
+  .notes{max-width:440px;background:#fffdf6;border-radius:18px;padding:18px 20px;font-size:14px;line-height:1.65;border:1px solid var(--line)}
+  .notes h3{margin:0 0 6px;font-size:15px}
+  .notes ol,.notes ul{padding-left:18px;margin:0 0 12px}
+  .notes li{margin-bottom:6px}
+
+  /* C: pace + calendar */
+  .pace-legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);margin-top:6px}
+  .pace-legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:3px}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px}
+  .cal .dow{font-size:10.5px;color:var(--muted);text-align:center}
+  .cal .d{aspect-ratio:1;border-radius:8px;font-size:10.5px;display:grid;place-items:center;color:var(--ink);font-variant-numeric:tabular-nums}
+  .cal .d.today{outline:2px solid var(--green);outline-offset:1px;font-weight:700}
+  .cal .d.fut{border:1.5px dashed #e3d9c2;color:#c2b9a3}
+  .scale{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);margin-top:8px;justify-content:flex-end}
+  .scale i{width:14px;height:10px;border-radius:3px;display:inline-block}
+
+  /* D: stacked share + deltas */
+  .stack{display:flex;height:14px;border-radius:99px;overflow:hidden;margin:12px 0 6px;gap:2px}
+  .stack i{display:block;height:100%}
+  .crow{display:grid;grid-template-columns:12px 1fr auto auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+  .crow:last-of-type{border-bottom:0}
+  .dot{width:10px;height:10px;border-radius:3px}
+  .delta{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap;min-width:78px;text-align:center}
+  .delta.less{background:var(--good-soft);color:var(--good)}
+  .delta.more{background:var(--bad-soft);color:var(--bad)}
+  .delta.new{background:var(--sand);color:var(--muted)}
+  .crow small{display:block;font-size:11px;color:var(--muted)}
+
+  /* E: insight cards */
+  .ins{border:1px solid var(--line);border-radius:16px;padding:12px 13px;margin-top:10px;display:grid;grid-template-columns:34px 1fr;gap:10px}
+  .ins .em{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:17px}
+  .ins h4{margin:0;font-size:14px}
+  .ins p{margin:3px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5}
+  .ins a{display:inline-block;margin-top:7px;font-size:13px;font-weight:600;color:#2a6a8e;text-decoration:none}
+  .ring{display:flex;gap:14px;align-items:center}
+</style>
+</head>
+<body>
+<h1>Home › การ์ดรายปี › “ดูรายละเอียด” — Mockup v3 (ทางเลือกเพิ่มสำหรับแท็บ “เดือนนี้”)</h1>
+<p class="sub">ข้อมูลหลักจากภาพหน้าจอ (24 ต.ค.) · ยอดรายวัน และป้ายเทียบรายหมวดเป็นตัวเลขตัวอย่าง · ขวาสุด = เหตุผลและข้อเปรียบเทียบ</p>
+
+<div class="row">
+
+<!-- ================= C: pace ================= -->
+<div class="col">
+  <span class="tag new">C · จังหวะการใช้เงิน</span>
+  <div class="phone"><div class="card">
+    <div class="seg"><span class="on">เดือนนี้</span><span>ทั้งปี</span></div>
+    <div class="between" style="align-items:center"><p class="sec-title">ตุลาคม ใช้ไปแล้ว</p><span class="chip">วันที่ 24 · เหลือ 7 วัน</span></div>
+    <div style="margin-top:8px"><span class="num" style="font-size:28px">฿5,918</span> <span class="small muted">/ รับ ฿4,000</span></div>
+
+    <svg id="pace" viewBox="0 0 330 150" width="100%" style="margin-top:8px;overflow:visible"></svg>
+    <div class="pace-legend"><span><i style="background:var(--green)"></i>ต.ค.</span><span><i style="background:#c9bfa6"></i>ก.ย. (ช่วงวันเดียวกัน)</span></div>
+
+    <div class="coach">
+      <b>ใช้น้อยกว่าเดือนก่อน ฿14,920</b> ณ วันเดียวกัน — เฉลี่ยวันละ ฿247
+      <span class="muted">ถ้าใช้เท่านี้ต่อ ทั้งเดือนจะประมาณ ฿7,600 (ประมาณจากค่าเฉลี่ย ไม่ใช่ตัวเลขที่แน่นอน)</span>
+    </div>
+
+    <div class="hr"></div>
+    <div class="between"><p class="sec-title">ปฏิทินการใช้เงิน</p><span class="small muted">แตะวันเพื่อดูรายการ</span></div>
+    <div class="cal" id="cal"></div>
+    <div class="scale">น้อย <i style="background:#efe8d6"></i><i style="background:#cfe7d8"></i><i style="background:#8fd1ae"></i><i style="background:#3f8a66"></i> มาก</div>
+
+    <div class="duo">
+      <div class="box"><div class="lbl">วันที่ใช้มากสุด</div><div class="val num">24 ต.ค. · ฿1,240</div></div>
+      <div class="box"><div class="lbl">วันที่ไม่ได้ใช้เลย</div><div class="val num">6 วัน</div></div>
+    </div>
+    <a class="cta" href="#">ดูรายการทั้งหมดของเดือนนี้ →</a>
+  </div></div>
+</div>
+
+<!-- ================= D: categories vs last month ================= -->
+<div class="col">
+  <span class="tag new">D · หมวดหมู่เทียบเดือนก่อน</span>
+  <div class="phone"><div class="card">
+    <div class="seg"><span class="on">เดือนนี้</span><span>ทั้งปี</span></div>
+    <div class="between" style="align-items:center"><p class="sec-title">ตุลาคม</p><span class="chip">1–24 ต.ค.</span></div>
+    <div class="duo">
+      <div class="box"><div class="lbl">รายรับ</div><div class="val num">฿4,000</div></div>
+      <div class="box"><div class="lbl">รายจ่าย</div><div class="val num" style="color:var(--bad)">฿5,918</div></div>
+    </div>
+
+    <div class="hr"></div>
+    <div class="between"><p class="sec-title">เงินไปไหนบ้าง</p><span class="small muted">รวม ฿5,918</span></div>
+    <div class="stack">
+      <i style="flex:32;background:#2f6b52"></i><i style="flex:20;background:#5f9a7f"></i><i style="flex:14;background:#8fbfa6"></i><i style="flex:10;background:#b9d8c6"></i><i style="flex:9;background:#d6e6dc"></i><i style="flex:15;background:repeating-linear-gradient(135deg,#e8a7b3 0 4px,#f6e3e6 4px 8px)"></i>
+    </div>
+    <div class="small muted" style="margin-bottom:6px">ป้ายขวา = เทียบกับ 1–24 ก.ย. (ช่วงวันเดียวกัน)</div>
+
+    <div class="crow"><span class="dot" style="background:#2f6b52"></span><span>🍜 อาหาร<small>32% · วันละ ฿79</small></span><span class="num">฿1,888</span><span class="delta less">↓ ฿2,312</span></div>
+    <div class="crow"><span class="dot" style="background:#5f9a7f"></span><span>👪 ครอบครัว<small>20%</small></span><span class="num">฿1,212</span><span class="delta more">↑ ฿412</span></div>
+    <div class="crow"><span class="dot" style="background:#8fbfa6"></span><span>🏠 ที่พัก<small>14%</small></span><span class="num">฿800</span><span class="delta less">↓ ฿7,200</span></div>
+    <div class="crow"><span class="dot" style="background:#b9d8c6"></span><span>💊 สุขภาพ<small>10%</small></span><span class="num">฿575</span><span class="delta new">ใหม่เดือนนี้</span></div>
+    <div class="crow"><span class="dot" style="background:#d6e6dc"></span><span>📦 อื่นๆ<small>9%</small></span><span class="num">฿530</span><span class="delta less">↓ ฿1,150</span></div>
+    <div class="crow"><span class="dot" style="background:#e8a7b3"></span><span style="color:var(--bad)">❔ ยังไม่ใส่หมวด<small>15% · 4 รายการ</small></span><span class="num">฿913</span><a class="delta more" style="text-decoration:none" href="#">จัดหมวด</a></div>
+
+    <div class="coach neutral">
+      <b style="color:var(--ink)">ครอบครัว</b> เป็นหมวดเดียวที่ใช้มากกว่าเดือนก่อน (+฿412)
+      <span class="muted">ถ้าเป็นค่าใช้จ่ายตามแผนก็ไม่ต้องกังวล — ลองตั้งงบหมวดนี้ไว้ จะเห็นชัดขึ้นว่าใช้ไปเท่าไรแล้ว</span>
+    </div>
+    <a class="cta" href="#">ตั้งงบรายหมวด →</a>
+  </div></div>
+</div>
+
+<!-- ================= E: insights first ================= -->
+<div class="col">
+  <span class="tag new">E · สรุปเป็นข้อ + สิ่งที่ทำต่อได้</span>
+  <div class="phone"><div class="card">
+    <div class="seg"><span class="on">เดือนนี้</span><span>ทั้งปี</span></div>
+    <div class="ring">
+      <svg width="86" height="86" viewBox="0 0 86 86">
+        <circle cx="43" cy="43" r="35" fill="none" stroke="#e8a7b3" stroke-width="10"/>
+        <circle cx="43" cy="43" r="35" fill="none" stroke="#8fd1ae" stroke-width="10"
+          stroke-dasharray="148.6 219.9" transform="rotate(-90 43 43)"/>
+        <text x="43" y="40" text-anchor="middle" font-size="10" fill="#7a7566" font-family="IBM Plex Sans Thai">ใช้ไป</text>
+        <text x="43" y="56" text-anchor="middle" font-size="15" font-weight="700" fill="#b4435a" font-family="IBM Plex Sans Thai">148%</text>
+      </svg>
+      <div>
+        <p class="sec-title">ตุลาคม · 3 เรื่องที่ควรรู้</p>
+        <div class="small muted" style="margin-top:3px;line-height:1.5">ใช้ไป ฿5,918 จากรายรับ ฿4,000<br>(เขียว = ส่วนที่รายรับครอบคลุม, ชมพู = ส่วนที่เกิน)</div>
+      </div>
+    </div>
+
+    <div class="ins">
+      <div class="em" style="background:var(--good-soft)">👍</div>
+      <div><h4>ใช้น้อยกว่าเดือนก่อน ฿14,920</h4>
+        <p>เทียบช่วงวันเดียวกัน (1–24 ก.ย.) — ส่วนใหญ่มาจากค่าที่พักที่ลดลง</p></div>
+    </div>
+    <div class="ins">
+      <div class="em" style="background:var(--bad-soft)">💡</div>
+      <div><h4>รายรับเดือนนี้ยังน้อยกว่าปกติ</h4>
+        <p>บันทึกไว้ ฿4,000 ขณะที่ช่วงเดียวกันของ ก.ย. มี ฿34,180 — ถ้ามีเงินเข้าที่ยังไม่ได้บันทึก (เช่นเงินเดือน) เพิ่มได้เลย ภาพจะได้ตรงขึ้น</p>
+        <a href="#">+ เพิ่มรายรับ</a></div>
+    </div>
+    <div class="ins">
+      <div class="em" style="background:#f1eadb">🍜</div>
+      <div><h4>อาหารคือหมวดที่ใช้มากสุด · ฿1,888</h4>
+        <p>32% ของรายจ่าย เฉลี่ยวันละ ฿79</p>
+        <a href="#">ดูรายการอาหาร →</a></div>
+    </div>
+
+    <div class="coach neutral" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <span>มี <b style="color:var(--bad)">฿913</b> (4 รายการ) ที่ยังไม่ใส่หมวด</span>
+      <a class="link" href="#" style="white-space:nowrap">จัดหมวด →</a>
+    </div>
+
+    <div class="hr"></div>
+    <div class="between small"><b>ดูตัวเลขทั้งหมด</b><span>⌃</span></div>
+    <div style="margin-top:8px;font-size:13.5px;line-height:2">
+      <div class="between"><span class="muted">รายรับ</span><span class="num">฿4,000</span></div>
+      <div class="between"><span class="muted">รายจ่าย</span><span class="num">฿5,918</span></div>
+      <div class="between"><span class="muted">คงเหลือ</span><span class="num" style="color:var(--bad)">−฿1,918</span></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ================= notes ================= -->
+<div class="notes">
+  <h3>3 ทางเลือกใหม่ (ใช้แทนแท็บ “เดือนนี้” ของ v1 ได้)</h3>
+  <ol>
+    <li><b>C · จังหวะการใช้เงิน</b> — กราฟเส้นสะสมเทียบเดือนก่อน ณ วันเดียวกัน ตอบคำถาม “เดือนนี้ใช้เร็วไปไหม?” ได้ทันที + ปฏิทินสีเข้ม/อ่อนตามยอดใช้รายวัน เห็นว่าวันไหนใช้หนัก</li>
+    <li><b>D · หมวดหมู่เทียบเดือนก่อน</b> — แถบสัดส่วนเส้นเดียว + ทุกหมวดมีป้าย ↑/↓ เป็นบาท บอกทันทีว่าหมวดไหนเพิ่ม (ชมพู) หมวดไหนลด (เขียว) แล้วพาไปตั้งงบ</li>
+    <li><b>E · สรุปเป็นข้อ</b> — เน้นการกระทำ: วงแหวน “ใช้ไปกี่ % ของรายรับ” + 3 การ์ดข้อสังเกต แต่ละข้อมีปุ่มทำต่อ ตัวเลขดิบพับไว้ใน “ดูตัวเลขทั้งหมด”</li>
+  </ol>
+  <h3>เทียบกัน</h3>
+  <ul>
+    <li><b>C</b> เหมาะกับคนที่อยากคุมจังหวะรายวัน — ต้องบันทึกสม่ำเสมอถึงจะสวย</li>
+    <li><b>D</b> เหมาะกับคนที่อยากรู้ว่าเงินรั่วตรงไหน — ใกล้ของเดิมที่สุด ทำง่ายสุด</li>
+    <li><b>E</b> ตรงกับแนว “Next Best Action” ของ WEALTH OS มากที่สุด — อ่านน้อย ทำต่อได้ทันที</li>
+    <li>ผสมได้ เช่น การ์ดข้อสังเกตของ E ไว้บน + รายการหมวดของ D ไว้ล่าง</li>
+  </ul>
+  <h3>ข้อมูลในภาพ</h3>
+  <ul>
+    <li>ยอดเดือนนี้ / รายหมวด ต.ค. / ยอดรวม 1–24 ก.ย. มาจากภาพหน้าจอและ v1</li>
+    <li>ยอดรายวัน, ป้าย ↑/↓ รายหมวด, จำนวนรายการ เป็น<b>ตัวอย่าง</b></li>
+    <li>“ประมาณทั้งเดือน” คิดจากค่าเฉลี่ยตรง ๆ และบอกชัดว่าไม่ใช่ตัวเลขแน่นอน</li>
+    <li>ไอคอนเป็น emoji ชั่วคราว — ของจริงใช้ไอคอนหมวดในแอป</li>
+  </ul>
+</div>
+
+</div>
+
+<script>
+// example daily spend Oct 1-24, forced to total 5,918
+const oct=[0,320,150,0,410,95,180,0,260,530,120,0,75,300,210,0,640,180,95,0,388,150,170,1240];
+oct[22]+=5918-oct.reduce((a,b)=>a+b,0);
+// example Sep: rent early, total 20,838 by day 24
+const sep=[8000,400,350,600,250,900,300,450,500,700,350,280,600,900,400,350,620,480,700,550,400,600,980,0];
+sep[23]+=20838-sep.reduce((a,b)=>a+b,0);
+const cum=a=>a.reduce((r,v,i)=>(r.push((r[i-1]||0)+v),r),[]);
+const co=cum(oct), cs=cum(sep);
+const W=330,H=130,max=22000,x=d=>18+d*(W-24)/30,y=v=>H-v/max*(H-12);
+const path=c=>c.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+let s='';
+[0,10000,20000].forEach(v=>{s+=`<line x1="18" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="#ece3cc"/><text x="0" y="${y(v)+3}" font-size="9" fill="#7a7566">${v/1000}k</text>`});
+s+=`<rect x="${x(23)}" y="0" width="${W-x(23)}" height="${H}" fill="#f3ecdb" opacity=".7"/>`;
+s+=`<path d="${path(cs)}" fill="none" stroke="#c9bfa6" stroke-width="2.5" stroke-dasharray="5 4"/>`;
+s+=`<path d="${path(co)} L ${x(23)} ${H} L ${x(0)} ${H} Z" fill="#8fd1ae" opacity=".25"/>`;
+s+=`<path d="${path(co)}" fill="none" stroke="#1f4a3a" stroke-width="3" stroke-linejoin="round"/>`;
+s+=`<circle cx="${x(23)}" cy="${y(cs[23])}" r="4" fill="#c9bfa6"/>`;
+s+=`<circle cx="${x(23)}" cy="${y(co[23])}" r="5" fill="#1f4a3a" stroke="#fff" stroke-width="2"/>`;
+s+=`<text x="${x(23)-6}" y="${y(cs[23])-8}" font-size="10.5" text-anchor="end" fill="#7a7566" font-weight="600">ก.ย. ฿20,838</text>`;
+s+=`<text x="${x(23)-6}" y="${y(co[23])-9}" font-size="10.5" text-anchor="end" fill="#1f4a3a" font-weight="700">ต.ค. ฿5,918</text>`;
+[1,8,15,22,31].forEach(d=>s+=`<text x="${x(d-1)}" y="${H+14}" font-size="9.5" text-anchor="middle" fill="#7a7566">${d}</text>`);
+s+=`<text x="${(x(23)+W)/2}" y="${H-6}" font-size="9.5" text-anchor="middle" fill="#7a7566">ยังไม่ถึง</text>`;
+document.getElementById('pace').innerHTML=s;
+
+// calendar: Oct 2026 starts on Thursday
+let h=['จ','อ','พ','พฤ','ศ','ส','อา'].map(d=>`<div class="dow">${d}</div>`).join('')+'<div></div>'.repeat(3);
+const col=v=>v===0?'#efe8d6':v<200?'#cfe7d8':v<500?'#8fd1ae':'#3f8a66';
+for(let d=1;d<=31;d++){
+  if(d<=24){const v=oct[d-1];h+=`<div class="d${d===24?' today':''}" style="background:${col(v)};${v>=500?'color:#fff':''}">${d}</div>`}
+  else h+=`<div class="d fut">${d}</div>`;
+}
+document.getElementById('cal').innerHTML=h;
+</script>
+</body>
+</html>
