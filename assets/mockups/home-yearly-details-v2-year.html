@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Home › ดูรายละเอียด › รายปี (v2)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f7f1e3; --card:#fffdf6; --line:#ece3cc; --ink:#22302a; --muted:#7a7566;
+    --green:#1f4a3a; --mint:#8fd1ae; --mint-soft:#dcefe3; --good:#2f7a55; --bad:#b4435a;
+    --pink:#e8a7b3; --bad-soft:#f6e3e6; --good-soft:#e2f1e8; --gold:#c9a24a; --sand:#f3ecdb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9e2d0;font-family:"IBM Plex Sans Thai",system-ui,sans-serif;color:var(--ink);padding:24px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 24px;font-size:14px}
+  .row{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+  .col{width:390px}
+  .tag{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;margin-bottom:10px}
+  .tag.new{background:var(--green);color:#fff}
+  .tag.alt{background:#e5ded0;color:#6b6555}
+  .phone{background:var(--paper);border-radius:36px;padding:16px 12px 28px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px 18px}
+  .between{display:flex;justify-content:space-between;align-items:baseline}
+  .muted{color:var(--muted)}
+  .small{font-size:13px}
+  .hr{height:1px;background:var(--line);margin:16px 0}
+  .bar{height:12px;border-radius:99px;background:var(--mint-soft);position:relative;overflow:hidden}
+  .bar > i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--mint)}
+  .link{color:#2a6a8e;font-weight:600;font-size:14px;text-decoration:none}
+  .toggle{font-weight:600;font-size:14px}
+  .sec-title{font-weight:700;font-size:16px;margin:0}
+  .num{font-variant-numeric:tabular-nums;font-weight:600}
+  .chip{font-size:12px;color:var(--muted);background:var(--sand);border-radius:99px;padding:2px 9px;white-space:nowrap}
+
+  /* segmented switch */
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--sand);border-radius:12px;padding:3px;margin-bottom:16px}
+  .seg span{text-align:center;font-size:13px;font-weight:600;padding:6px 0;border-radius:9px;color:var(--muted)}
+  .seg span.on{background:#fff;color:var(--green);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+  /* stat tiles */
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .tile{border:1px solid var(--line);border-radius:14px;padding:10px 10px 9px}
+  .tile .lbl{font-size:11.5px;color:var(--muted);line-height:1.3}
+  .tile .val{font-size:18px;margin:3px 0 1px}
+  .tile .hint{font-size:11px;color:var(--muted);line-height:1.35}
+
+  /* diverging month chart */
+  .chart{position:relative;margin-top:12px;height:150px}
+  .chart .zero{position:absolute;left:0;right:0;height:1px;background:#d9cfb6}
+  .chart .cols{position:absolute;inset:0;display:grid;grid-template-columns:repeat(12,1fr);gap:5px}
+  .chart .c{position:relative}
+  .chart .c b{position:absolute;left:2px;right:2px;border-radius:5px}
+  .chart .c b.up{background:var(--mint)}
+  .chart .c b.down{background:var(--pink)}
+  .chart .c b.live{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 3px,transparent 3px 6px)}
+  .chart .c b.none{height:4px;background:#e6dfcc}
+  .chart .c b.future{border:1.5px dashed #d9cfb6;background:transparent}
+  .chart .c em{position:absolute;left:-6px;right:-6px;text-align:center;font-style:normal;font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums}
+  .months{display:grid;grid-template-columns:repeat(12,1fr);gap:5px;margin-top:4px}
+  .months span{text-align:center;font-size:10.5px;color:var(--muted)}
+  .months span.cur{color:var(--ink);font-weight:700}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+
+  .coach{margin-top:14px;border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.55;background:var(--good-soft)}
+  .coach b{color:var(--good)}
+  .coach.neutral{background:var(--sand)}
+  .coach .muted{display:block;margin-top:2px}
+
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .duo .box{border:1px solid var(--line);border-radius:14px;padding:9px 11px}
+  .duo .lbl{font-size:11.5px;color:var(--muted)}
+  .duo .val{font-size:15px;margin-top:2px}
+
+  /* ranked categories */
+  .cat{display:grid;grid-template-columns:30px 1fr auto;gap:4px 10px;align-items:center;padding:8px 0}
+  .ico{width:30px;height:30px;border-radius:10px;background:#f1eadb;display:grid;place-items:center;font-size:15px;grid-row:span 2}
+  .cat .name{font-size:14px;font-weight:500}
+  .cat .amt{font-size:14px;text-align:right}
+  .cat .meta{grid-column:2 / 4;display:flex;align-items:center;gap:8px}
+  .cat .meta .bar{flex:1;height:6px}
+  .cat .meta .bar > i{background:var(--green);opacity:.75}
+  .cat .meta small{font-size:11px;color:var(--muted);white-space:nowrap;min-width:92px;text-align:right}
+  .cta{display:flex;justify-content:center;gap:6px;margin-top:14px;padding:11px;border-radius:14px;background:var(--sand);font-weight:600;font-size:14px;color:var(--green);text-decoration:none}
+
+  .notes{max-width:440px;background:#fffdf6;border-radius:18px;padding:18px 20px;font-size:14px;line-height:1.65;border:1px solid var(--line)}
+  .notes h3{margin:0 0 6px;font-size:15px}
+  .notes ol,.notes ul{padding-left:18px;margin:0 0 12px}
+  .notes li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<h1>Home › การ์ดรายปี › “ดูรายละเอียด” แบบรายปี — Mockup v2</h1>
+<p class="sub">A = ข้อมูลจริงตอนนี้ (เริ่มบันทึก ก.ย.) · B = หน้าตาเมื่อมีข้อมูลครบหลายเดือน (ตัวเลขตัวอย่าง) · ขวา = เหตุผลการออกแบบ</p>
+
+<div class="row">
+
+  <!-- ================= A: real data now ================= -->
+  <div class="col">
+    <span class="tag new">A · ข้อมูลตอนนี้</span>
+    <div class="phone"><div class="card">
+      <div class="between"><b>ปีนี้ · ม.ค. – ต.ค.</b><span class="small muted">เหลือเก็บ <b style="color:var(--good);font-size:20px">+฿11,302</b></span></div>
+      <div class="bar" style="margin:16px 0 8px"><i style="width:59%"></i></div>
+      <div class="between small muted"><span>รายรับ ฿38,086</span><span>รายจ่าย ฿26,783</span></div>
+      <div class="hr"></div>
+      <div class="between"><span class="link">ทำไมคิดเป็นรายปี?</span><span class="toggle">ซ่อนรายละเอียด ⌃</span></div>
+      <div class="hr"></div>
+
+      <div class="seg"><span>เดือนนี้</span><span class="on">ทั้งปี</span></div>
+
+      <!-- 1. Year at a glance -->
+      <div class="between" style="align-items:center"><p class="sec-title">ภาพรวมปี 2569</p><span class="chip">เหลืออีก 2 เดือน</span></div>
+      <div class="tiles">
+        <div class="tile"><div class="lbl">อัตราการออม</div><div class="val num" style="color:var(--good)">30%</div><div class="hint">เก็บได้ ฿30 จากทุก ฿100</div></div>
+        <div class="tile"><div class="lbl">เก็บได้เฉลี่ย</div><div class="val num">฿5,651</div><div class="hint">ต่อเดือน (2 เดือนที่มีข้อมูล)</div></div>
+        <div class="tile"><div class="lbl">เดือนที่เป็นบวก</div><div class="val num">1<span class="muted" style="font-size:13px"> / 2</span></div><div class="hint">ต.ค. ยังไม่จบเดือน</div></div>
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- 2. Net per month -->
+      <div class="between"><p class="sec-title">เหลือเก็บรายเดือน</p><span class="small muted">รับ − จ่าย</span></div>
+      <div class="chart" id="chartA"></div>
+      <div class="months" id="monthsA"></div>
+      <div class="legend"><span><i style="background:var(--mint)"></i>เหลือเก็บ</span><span><i style="background:var(--pink)"></i>จ่ายเกินรับ</span><span><i style="background:#e6dfcc"></i>ยังไม่มีข้อมูล</span></div>
+
+      <div class="coach">
+        <b>ก.ย. เดือนเดียวเก็บได้ ฿13,221</b> ทำให้ทั้งปียังเป็นบวก ส่วน ต.ค. ตอนนี้จ่ายเกินรับ ฿1,918 แต่ยังเหลืออีก 7 วัน
+        <span class="muted">คาดการณ์สิ้นปีจะเริ่มแสดงเมื่อมีข้อมูลอย่างน้อย 3 เดือน</span>
+      </div>
+      <p class="small muted" style="margin:10px 0 0">เริ่มบันทึกเมื่อ ก.ย. · <a class="link" style="font-size:13px" href="#">เพิ่มรายการย้อนหลัง</a> เพื่อให้ภาพทั้งปีครบขึ้น</p>
+
+      <div class="hr"></div>
+
+      <!-- 3. Categories for the whole year -->
+      <div class="between"><p class="sec-title">ทั้งปีเงินไปไหนบ้าง</p><span class="small muted">รวม ฿26,783</span></div>
+      <div style="margin-top:6px">
+        <div class="cat"><div class="ico">🏠</div><span class="name">ที่พัก</span><span class="amt num">฿8,800</span>
+          <div class="meta"><div class="bar"><i style="width:100%;opacity:1"></i></div><small>33% · ฿4,400/ด.</small></div></div>
+        <div class="cat"><div class="ico">🍜</div><span class="name">อาหาร</span><span class="amt num">฿6,950</span>
+          <div class="meta"><div class="bar"><i style="width:79%"></i></div><small>26% · ฿3,475/ด.</small></div></div>
+        <div class="cat"><div class="ico">👨‍👩‍👧</div><span class="name">ครอบครัว</span><span class="amt num">฿4,620</span>
+          <div class="meta"><div class="bar"><i style="width:53%"></i></div><small>17% · ฿2,310/ด.</small></div></div>
+        <div class="cat"><div class="ico">💊</div><span class="name">สุขภาพ</span><span class="amt num">฿2,140</span>
+          <div class="meta"><div class="bar"><i style="width:24%"></i></div><small>8% · ฿1,070/ด.</small></div></div>
+        <div class="cat"><div class="ico">📦</div><span class="name">อื่นๆ <span class="small muted">(4 หมวด)</span></span><span class="amt num">฿4,273</span>
+          <div class="meta"><div class="bar"><i style="width:49%"></i></div><small>16% · ฿2,137/ด.</small></div></div>
+      </div>
+
+      <a class="cta" href="#">วางแผนทั้งปีใน Money Year →</a>
+    </div></div>
+  </div>
+
+  <!-- ================= B: full-year state (sample) ================= -->
+  <div class="col">
+    <span class="tag alt">B · เมื่อมีข้อมูลหลายเดือน (ตัวอย่าง)</span>
+    <div class="phone"><div class="card">
+      <div class="seg"><span>เดือนนี้</span><span class="on">ทั้งปี</span></div>
+
+      <div class="between" style="align-items:center"><p class="sec-title">ภาพรวมปี 2569</p><span class="chip">เหลืออีก 2 เดือน</span></div>
+      <div class="tiles">
+        <div class="tile"><div class="lbl">อัตราการออม</div><div class="val num" style="color:var(--good)">8%</div><div class="hint">เก็บได้ ฿8 จากทุก ฿100</div></div>
+        <div class="tile"><div class="lbl">เก็บได้เฉลี่ย</div><div class="val num">฿2,540</div><div class="hint">ต่อเดือน</div></div>
+        <div class="tile"><div class="lbl">เดือนที่เป็นบวก</div><div class="val num">7<span class="muted" style="font-size:13px"> / 10</span></div><div class="hint">ต.ค. ยังไม่จบเดือน</div></div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="between"><p class="sec-title">เหลือเก็บรายเดือน</p><span class="small muted">รับ − จ่าย</span></div>
+      <div class="chart" id="chartB"></div>
+      <div class="months" id="monthsB"></div>
+      <div class="legend"><span><i style="background:var(--mint)"></i>เหลือเก็บ</span><span><i style="background:var(--pink)"></i>จ่ายเกินรับ</span><span><i style="border:1.5px dashed #d9cfb6"></i>ยังมาไม่ถึง</span></div>
+
+      <div class="duo">
+        <div class="box"><div class="lbl">เดือนที่เก็บได้มากสุด</div><div class="val num">ก.ย. <span style="color:var(--good)">+฿6,100</span></div></div>
+        <div class="box"><div class="lbl">เดือนที่จ่ายเกินมากสุด</div><div class="val num">ต.ค. <span style="color:var(--bad)">−฿1,918</span></div></div>
+      </div>
+
+      <div class="coach neutral">
+        ถ้าเก็บได้เฉลี่ยเท่าเดิมอีก 2 เดือน สิ้นปีจะเหลือเก็บประมาณ <b>฿30,500</b>
+        <span class="muted">คำนวณจากค่าเฉลี่ยที่ผ่านมา เป็นการประมาณ ไม่ใช่ตัวเลขที่รับประกัน</span>
+      </div>
+      <p class="small muted" style="margin:10px 0 0">แตะแท่งของเดือนไหนก็ได้ เพื่อดูรายละเอียดเดือนนั้น</p>
+    </div></div>
+  </div>
+
+  <!-- ================= NOTES ================= -->
+  <div class="notes">
+    <h3>แนวคิด</h3>
+    <ol>
+      <li><b>สลับ “เดือนนี้ / ทั้งปี”</b> ด้านบนส่วนรายละเอียด — ส่วน “เดือนนี้” ใช้แบบ v1, ส่วน “ทั้งปี” คือแบบนี้ ไม่ต้องเลื่อนยาวสองชุด</li>
+      <li><b>3 ตัวเลขหลักของทั้งปี</b> — อัตราการออม (พร้อมคำแปล “฿30 จากทุก ฿100”), เก็บได้เฉลี่ยต่อเดือน, และกี่เดือนที่เป็นบวก</li>
+      <li><b>กราฟเหลือเก็บรายเดือน</b> แท่งขึ้น = เหลือเก็บ (เขียว), แท่งลง = จ่ายเกินรับ (ชมพู) · เดือนปัจจุบันเป็นลายทาง = ยังไม่จบ · เดือนที่ยังไม่มีข้อมูลเป็นขีดเทา ไม่ใช่ ฿0</li>
+      <li><b>ซื่อสัตย์กับข้อมูล</b> — ตอนนี้มีข้อมูลแค่ ก.ย.–ต.ค. จึงยังไม่โชว์คาดการณ์สิ้นปี (รอให้มี ≥ 3 เดือน) และชวน “เพิ่มรายการย้อนหลัง”</li>
+      <li>เมื่อข้อมูลพอ (B) จะเพิ่ม <b>เดือนที่ดีสุด / หนักสุด</b> และ <b>ประมาณการสิ้นปี</b> แบบคำนวณตรง ๆ จากค่าเฉลี่ย พร้อมบอกชัดว่าไม่ใช่การรับประกัน</li>
+      <li><b>หมวดหมู่ทั้งปี</b> เรียงลำดับ + % + เฉลี่ยต่อเดือน (ช่วยตั้งงบรายเดือนได้ทันที) · รวมหมวดเล็กเป็น “อื่นๆ” แถวเดียว</li>
+      <li>ปุ่มท้ายพาไป <b>Money Year</b> — จาก “ดูย้อนหลัง” ไปสู่ “วางแผนต่อ”</li>
+    </ol>
+    <h3>ข้อมูลในภาพ</h3>
+    <ul>
+      <li>A: ยอดรวมปี / ก.ย. / ต.ค. คำนวณจากตัวเลขในภาพหน้าจอ</li>
+      <li>A: ตัวเลข <b>รายหมวดทั้งปี</b> เป็นตัวอย่าง (ยังไม่ได้ดึงจากฐานข้อมูล)</li>
+      <li>B: ตัวเลขตัวอย่างทั้งหมด</li>
+      <li>ไอคอน emoji ชั่วคราว — ของจริงใช้ไอคอนหมวดในแอป</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+  const M = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const CUR = 9; // ต.ค.
+  function fmt(v){ const a=Math.abs(v); const s=a>=1000?(a/1000).toFixed(1).replace(/\.0$/,'')+'k':a; return (v<0?'−':'+')+s; }
+  function draw(id, mid, data, zeroPct){
+    const el=document.getElementById(id), H=150, zero=H*zeroPct;
+    const max=Math.max(...data.filter(v=>v!=null).map(Math.abs));
+    const room=Math.max(zero, H-zero)-22;
+    let html=`<div class="zero" style="top:${zero}px"></div><div class="cols">`;
+    data.forEach((v,i)=>{
+      html+='<div class="c">';
+      if(i>CUR){ html+=`<b class="future" style="top:${zero-18}px;height:18px"></b>`; }
+      else if(v==null){ html+=`<b class="none" style="top:${zero-2}px"></b>`; }
+      else{
+        const h=Math.max(4,Math.abs(v)/max*room), live=i===CUR?' live':'';
+        if(v>=0){ html+=`<b class="up${live}" style="top:${zero-h}px;height:${h}px"></b><em style="top:${zero-h-15}px;color:var(--good)">${fmt(v)}</em>`; }
+        else    { html+=`<b class="down${live}" style="top:${zero+1}px;height:${h}px"></b><em style="top:${zero+h+3}px;color:var(--bad)">${fmt(v)}</em>`; }
+      }
+      html+='</div>';
+    });
+    el.innerHTML=html+'</div>';
+    document.getElementById(mid).innerHTML=M.map((m,i)=>`<span class="${i===CUR?'cur':''}">${m}</span>`).join('');
+  }
+  draw('chartA','monthsA',[null,null,null,null,null,null,null,null,13221,-1918,null,null],0.72);
+  draw('chartB','monthsB',[4200,3100,-1200,5000,2400,3800,-600,4500,6100,-1918,null,null],0.68);
+</script>
+</body>
+</html>
