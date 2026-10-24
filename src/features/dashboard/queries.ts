@@ -13,6 +13,11 @@ import {
   calculateSavingsRate,
   calculateSpendingByCategory,
 } from "@/lib/financial/calculations";
+import {
+  calculateMonthlyNetSeries,
+  compareCategorySpending,
+  samePeriodPreviousMonthEnd,
+} from "@/lib/financial/month-details";
 
 /** Mirrors the local `previousMonthRange()` helper already used the same way in life-stage/queries.ts. */
 function getPreviousMonthRange(): { from: string; to: string } {
@@ -112,6 +117,11 @@ export function getDashboardData() {
   const prevCashFlowCents = calculateMonthlyCashFlow(prevMonthTransactions);
   const prevSavingsRatePercent = calculateSavingsRate(prevMonthTransactions);
 
+  // "This month so far" vs the same days of last month (1–24 Oct vs
+  // 1–24 Sep), so a month that isn't over yet isn't compared with a whole one.
+  const prevSamePeriodEnd = samePeriodPreviousMonthEnd(new Date());
+  const prevSamePeriodTransactions = prevMonthTransactions.filter((t) => t.transaction_date <= prevSamePeriodEnd);
+
   return {
     incomeCents,
     expensesCents,
@@ -129,14 +139,23 @@ export function getDashboardData() {
     // percent via calculateChangePercent — that would read as a much larger,
     // misleading swing for the same underlying move.
     savingsRateChangePoints: prevMonthTransactions.length > 0 ? savingsRatePercent - prevSavingsRatePercent : null,
-    spendingByCategory: calculateSpendingByCategory(monthTransactions).map((entry) => {
-      const category = entry.categoryId ? categoryById.get(entry.categoryId) : undefined;
+    // This year's left-over per month, for the yearly card's details.
+    monthlyNet: calculateMonthlyNetSeries(yearTransactions, Number(from.slice(0, 4)), Number(from.slice(5, 7)) - 1),
+    categoryComparison: compareCategorySpending(
+      calculateSpendingByCategory(monthTransactions),
+      calculateSpendingByCategory(prevSamePeriodTransactions)
+    ).map((row) => {
+      const category = row.categoryId ? categoryById.get(row.categoryId) : undefined;
       return {
-        ...entry,
+        ...row,
         categoryNameEn: category?.name_en ?? null,
         categoryNameTh: category?.name_th ?? null,
+        categoryIcon: category?.icon ?? null,
       };
     }),
+    hasPreviousSamePeriodSpending: prevSamePeriodTransactions.some((t) => t.type === "expense"),
+    /** Day of month the comparison period ends on (24 → "1–24 of last month"). */
+    previousSamePeriodEndDay: Number(prevSamePeriodEnd.slice(8, 10)),
     accounts,
     categories,
     recentTransactions,

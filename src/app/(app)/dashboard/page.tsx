@@ -10,7 +10,8 @@ import { WealthOverview } from "@/features/dashboard/components/wealth-overview"
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
 import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboard-details-toggle";
-import { IncomeVsExpenseChart, SpendingByCategoryChart } from "@/features/dashboard/components/charts-lazy";
+import { IncomeVsExpenseChart } from "@/features/dashboard/components/charts-lazy";
+import { CategorySpendingList, MonthlyNetBars } from "@/features/dashboard/components/year-details";
 import { YearlyBalanceCard } from "@/features/dashboard/components/summary-visuals";
 import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { DailyInboxSection } from "@/features/capture/components/daily-inbox-section";
@@ -166,8 +167,44 @@ export default async function DashboardPage() {
             vsLastMonth: dict.dashboard.vsLastMonth,
             monthNoData: dict.dashboard.noIncomeExpenseData,
           }}
+          yearChart={
+            <MonthlyNetBars
+              points={data.monthlyNet}
+              monthLabels={Array.from({ length: 12 }, (_, i) => monthFormatter.format(new Date(today.getFullYear(), i, 1)))}
+              currencyCode={currencyCode}
+              labels={{
+                title: dict.dashboard.year.monthlyNetTitle,
+                hint: dict.dashboard.year.monthlyNetHint,
+                saved: dict.dashboard.year.legendSaved,
+                short: dict.dashboard.year.legendShort,
+                inProgress: dict.dashboard.year.legendInProgress,
+                future: dict.dashboard.year.legendFuture,
+                noData: dict.dashboard.year.monthlyNetNoData,
+              }}
+            />
+          }
         >
-          <SpendingByCategoryChart data={data.spendingByCategory} currencyCode={currencyCode} embedded />
+          {/* 2026-10-25 (mockup v4 "D"): ranked list with ↑/↓ baht tags
+              against the same days of last month, replacing the bar chart
+              that showed two "Other" rows. */}
+          <CategorySpendingList
+            rows={data.categoryComparison}
+            locale={locale}
+            currencyCode={currencyCode}
+            showComparison={data.hasPreviousSamePeriodSpending}
+            transactionsHref="/money/transactions"
+            labels={{
+              title: dict.dashboard.year.whereMoneyWent,
+              total: dict.dashboard.year.categoryTotal,
+              compareCaption: dict.dashboard.year.compareCaption.replace("{day}", String(data.previousSamePeriodEndDay)),
+              same: dict.dashboard.year.changeSame,
+              isNew: dict.dashboard.year.changeNew,
+              other: dict.dashboard.year.otherCategories,
+              uncategorized: dict.transactions.uncategorized,
+              noSpending: dict.dashboard.noExpenseData,
+              viewAll: dict.dashboard.year.viewAllThisMonth,
+            }}
+          />
         </YearlyBalanceCard>
       </div>
 

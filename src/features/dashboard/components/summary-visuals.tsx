@@ -90,7 +90,9 @@ interface YearlyBalanceCardProps {
   currencyCode: string;
   accounts: Account[];
   categories: Category[];
-  /** The spending-by-category chart, shown under "View details". */
+  /** This year's left-over per month, first under "View details". */
+  yearChart?: ReactNode;
+  /** This month's spending by category, last under "View details". */
   children?: ReactNode;
   labels: {
     title: string;
@@ -130,6 +132,7 @@ export function YearlyBalanceCard({
   currencyCode,
   accounts,
   categories,
+  yearChart,
   children,
   labels,
 }: YearlyBalanceCardProps) {
@@ -235,6 +238,7 @@ export function YearlyBalanceCard({
 
         {expanded ? (
           <div className="animate-in fade-in slide-in-from-top-1 space-y-3 border-t pt-3 text-xs duration-(--motion-normal)">
+            {yearChart ? <div className="border-b pb-3">{yearChart}</div> : null}
             <p className="text-sm font-semibold">{labels.thisMonth}</p>
             {month.hasData ? (
               <div className="space-y-2">

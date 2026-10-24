@@ -6,7 +6,29 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-24
+Last updated: 2026-10-25
+
+## Home yearly card "ดูรายละเอียด": monthly left-over bars + category list — 2026-10-25
+
+- Picked by the user from the details mockups (`assets/mockups/home-yearly-details-v2-year.*`
+  bars, `...-v4-combined.*` category list). The expanded yearly card now shows,
+  top to bottom: **เหลือเก็บรายเดือน** (12 bars, Jan–Dec: green up = left over,
+  pink down = spent more than earned, striped = current month in progress,
+  flat grey = month with no income/expense rows, dashed = future), the existing
+  **เดือนนี้** rows (unchanged), and **เงินไปไหนบ้าง** (share bar + ranked
+  categories with category art, % share, and ↑/↓ baht tags vs the **same days of
+  last month**, e.g. 1–25 Oct vs 1–25 Sep; top 5 + "อื่นๆ (N หมวด)", never folding
+  a single row). The old category bar chart (with its two "อื่นๆ" rows) is gone
+  from Home; `SpendingByCategoryChart` itself still exists in `charts.tsx`.
+- Logic: `src/lib/financial/month-details.ts` (`calculateMonthlyNetSeries`,
+  `samePeriodPreviousMonthEnd`, `compareCategorySpending`, `groupTopCategories`),
+  tested in `tests/month-details.test.ts`. No new queries — buckets the existing
+  year-to-date and previous-month fetches in `getDashboardData()`.
+- UI: `src/features/dashboard/components/year-details.tsx`; new `yearChart` slot
+  on `YearlyBalanceCard`. /help#yearly-view text updated (th/en).
+- Verified on the demo account at 390×844 (dev server). Not yet changed: the
+  "เดือนนี้" rows still compare whole last month by % (mockup v1 suggested
+  same-period baht instead).
 
 ## Home summary is year to date ("ปีนี้" income-vs-expense tug bar) — 2026-10-24
 
