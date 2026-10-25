@@ -86,6 +86,36 @@
   /* ring */
   .ring{display:flex;gap:14px;align-items:center;margin-top:10px}
 
+  /* D: insight first */
+  .lead{font-size:17px;font-weight:700;line-height:1.45;margin:2px 0 0;text-wrap:balance}
+  .lead .good,.lead .bad{font-variant-numeric:tabular-nums}
+  .act{display:flex;gap:8px;margin-top:10px}
+  .act a{flex:1;text-align:center;font-size:13px;font-weight:600;padding:9px 6px;border-radius:12px;text-decoration:none}
+  .act a.pri{background:var(--green);color:#fff}
+  .act a.sec2{background:var(--sand);color:var(--green)}
+  .mini{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+  .mini div{background:var(--sand);border-radius:12px;padding:7px 9px}
+  .mini span{display:block;font-size:11px;color:var(--muted)}
+  .mini b{font-size:14px;font-variant-numeric:tabular-nums}
+
+  /* E: swipe pages */
+  .swipe{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -14px;padding:0 14px 4px;scrollbar-width:none}
+  .swipe::-webkit-scrollbar{display:none}
+  .swipe .pg{flex:0 0 100%;scroll-snap-align:center;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px 14px}
+  .dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+  .dots i{width:6px;height:6px;border-radius:99px;background:#d9cfb6}
+  .dots i.on{width:18px;background:var(--green)}
+  .peek{font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px}
+
+  /* F: minimal */
+  .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:12px;border-top:1px solid var(--line)}
+  .trio div{padding:10px 0 2px}
+  .trio div + div{border-left:1px solid var(--line);padding-left:12px}
+  .trio span{display:block;font-size:11.5px;color:var(--muted)}
+  .trio b{font-size:16px;font-variant-numeric:tabular-nums}
+  .rowlink{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:11px 12px;border-radius:12px;background:var(--sand);font-size:13.5px;font-weight:600;color:var(--green)}
+  .moved{margin-top:12px;border:1.5px dashed #d9cfb6;border-radius:16px;padding:12px;font-size:12.5px;color:var(--muted);line-height:1.55}
+
   .notes{max-width:420px;background:#fffdf6;border-radius:18px;padding:18px 20px;font-size:14px;line-height:1.65;border:1px solid var(--line)}
   .notes h3{margin:0 0 6px;font-size:15px}
   .notes ul,.notes ol{padding-left:18px;margin:0 0 12px}
@@ -93,7 +123,7 @@
 </style>
 </head>
 <body>
-<h1>Home › การ์ดรายปี — จัดองค์ประกอบใหม่ (v5) · 3 แบบ</h1>
+<h1>Home › การ์ดรายปี — จัดองค์ประกอบใหม่ (v5) · 6 แบบ</h1>
 <p class="sub">ตัวเลขจากภาพหน้าจอ 25 ต.ค. · ทุกแบบเก็บข้อมูลครบเหมือนเดิม แค่จัดลำดับ ขนาด และความยาวใหม่</p>
 
 <div class="row">
@@ -213,6 +243,98 @@
   </div>
 </div>
 
+<!-- ================= D: insight first ================= -->
+<div class="col">
+  <span class="tag">D · เอาคำแนะนำขึ้นก่อน</span>
+  <p class="why">ประโยคแรกบอกเลยว่าตอนนี้เป็นยังไงและควรทำอะไร ตัวเลขกับกราฟเป็นหลักฐานอยู่ข้างล่าง</p>
+  <div class="phone"><div class="card">
+    <p class="h2">ปีนี้ · ม.ค. – ต.ค.</p>
+    <p class="lead">ทั้งปียังเหลือเก็บ <span class="good">฿11,302</span> แต่ ต.ค. จ่ายเกินรับไปแล้ว <span class="bad">฿1,918</span></p>
+    <p class="small muted" style="margin:4px 0 0">รายรับเดือนนี้บันทึกไว้แค่ ฿4,000 · เหลืออีก 6 วัน</p>
+    <div class="act"><a class="pri" href="#">+ บันทึกรายรับ</a><a class="sec2" href="#">ดูรายจ่ายเดือนนี้</a></div>
+
+    <div class="hr"></div>
+    <div class="tug"><div class="track"><span class="inc" style="width:92%"></span><span class="exp"></span></div><span class="mid"></span><span class="coin" style="left:92%">฿</span></div>
+    <div class="between xs muted"><span>รายรับ ฿38,086</span><span>รายจ่าย ฿26,783</span></div>
+    <div class="mbars">
+      <span class="zero"></span>
+      <div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div>
+      <div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div>
+      <div class="c"><b class="up" style="height:46px"></b><em class="good" style="top:0">13k</em></div>
+      <div class="c"><b class="down" style="height:8px"></b><em class="bad" style="top:71px">−1.9k</em></div>
+      <div class="c"><b class="fut"></b></div><div class="c"><b class="fut"></b></div>
+    </div>
+    <div class="mlabels"><span>ม.ค.</span><span>ก.พ.</span><span>มี.ค.</span><span>เม.ย.</span><span>พ.ค.</span><span>มิ.ย.</span><span>ก.ค.</span><span>ส.ค.</span><span>ก.ย.</span><span class="on">ต.ค.</span><span>พ.ย.</span><span>ธ.ค.</span></div>
+
+    <div class="hr"></div>
+    <div class="between"><p class="sec">ต.ค. เงินไปไหนบ้าง</p><span class="small muted">รวม ฿5,918</span></div>
+    <div class="crow"><span class="ic">🍜</span><span>อาหาร<small>32% · มากขึ้นที่สุด</small></span><span class="num">฿1,888</span><span class="delta more">↑ ฿822</span></div>
+    <div class="crow"><span class="ic">🏡</span><span>ครอบครัว<small>20%</small></span><span class="num">฿1,212</span><span class="delta less">↓ ฿1,332</span></div>
+    <div class="more-link">ดูทุกหมวด →</div>
+  </div></div>
+</div>
+
+<!-- ================= E: swipe pages ================= -->
+<div class="col">
+  <span class="tag">E · ปัดซ้าย–ขวา 3 หน้า</span>
+  <p class="why">การ์ดสูงเท่าเดิมตลอด ปัดดู ปีนี้ → เดือนนี้ → เงินไปไหน ทีละหน้า (ในหน้านี้ลองปัดได้จริง)</p>
+  <div class="phone">
+    <div class="swipe">
+      <div class="pg">
+        <div class="between"><p class="h2">ปีนี้ · ม.ค. – ต.ค.</p><span class="small muted">เหลือเก็บ <span class="big good">+฿11,302</span></span></div>
+        <div class="tug"><div class="track"><span class="inc" style="width:92%"></span><span class="exp"></span></div><span class="mid"></span><span class="coin" style="left:92%">฿</span></div>
+        <div class="between xs muted"><span>รายรับ ฿38,086</span><span>รายจ่าย ฿26,783</span></div>
+        <div class="mbars">
+          <span class="zero"></span>
+          <div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div>
+          <div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div><div class="c"><b class="none"></b></div>
+          <div class="c"><b class="up" style="height:46px"></b><em class="good" style="top:0">13k</em></div>
+          <div class="c"><b class="down" style="height:8px"></b><em class="bad" style="top:71px">−1.9k</em></div>
+          <div class="c"><b class="fut"></b></div><div class="c"><b class="fut"></b></div>
+        </div>
+        <div class="mlabels"><span>ม.ค.</span><span>ก.พ.</span><span>มี.ค.</span><span>เม.ย.</span><span>พ.ค.</span><span>มิ.ย.</span><span>ก.ค.</span><span>ส.ค.</span><span>ก.ย.</span><span class="on">ต.ค.</span><span>พ.ย.</span><span>ธ.ค.</span></div>
+      </div>
+      <div class="pg">
+        <div class="between"><p class="h2">เดือนนี้ · ตุลาคม</p><span class="chip">เหลือ 6 วัน</span></div>
+        <div class="tiles">
+          <div class="tile"><div class="lbl">รายรับ</div><div class="val num">฿4,000</div></div>
+          <div class="tile"><div class="lbl">รายจ่าย</div><div class="val num">฿5,918</div></div>
+          <div class="tile"><div class="lbl">คงเหลือ</div><div class="val num bad">−฿1,918</div></div>
+          <div class="tile"><div class="lbl">อัตราการออม</div><div class="val num bad">−47.9%</div></div>
+        </div>
+        <div class="coach">💡 รายรับยังน้อยกว่าช่วงเดียวกันของ ก.ย. มาก</div>
+      </div>
+      <div class="pg">
+        <div class="between"><p class="h2">ต.ค. เงินไปไหนบ้าง</p><span class="small muted">฿5,918</span></div>
+        <div class="stack"><i style="flex:32;background:#2f6b52"></i><i style="flex:20;background:#5f9a7f"></i><i style="flex:14;background:#8fbfa6"></i><i style="flex:34;background:#e6dfcc"></i></div>
+        <div class="crow"><span class="ic">🍜</span><span>อาหาร<small>32%</small></span><span class="num">฿1,888</span><span class="delta more">↑ ฿822</span></div>
+        <div class="crow"><span class="ic">🏡</span><span>ครอบครัว<small>20%</small></span><span class="num">฿1,212</span><span class="delta less">↓ ฿1,332</span></div>
+        <div class="crow"><span class="ic">🏨</span><span>ที่พัก<small>14%</small></span><span class="num">฿800</span><span class="delta new">ใหม่</span></div>
+      </div>
+    </div>
+    <div class="dots"><i class="on"></i><i></i><i></i></div>
+    <p class="peek">← ปัดเพื่อดูเดือนนี้และหมวดหมู่</p>
+  </div>
+</div>
+
+<!-- ================= F: minimal ================= -->
+<div class="col">
+  <span class="tag">F · เรียบสุด</span>
+  <p class="why">Home เหลือแค่หลอดกับตัวเลข 3 ตัว กราฟรายเดือนและหมวดหมู่ย้ายไปหน้า “การเงิน”</p>
+  <div class="phone"><div class="card">
+    <div class="between"><p class="h2">ปีนี้ · ม.ค. – ต.ค.</p><span class="small muted">เหลือเก็บ <span class="big good">+฿11,302</span></span></div>
+    <div class="tug"><div class="track"><span class="inc" style="width:92%"></span><span class="exp"></span></div><span class="mid"></span><span class="coin" style="left:92%">฿</span></div>
+    <div class="trio">
+      <div><span>รายรับปีนี้</span><b>฿38,086</b></div>
+      <div><span>รายจ่ายปีนี้</span><b>฿26,783</b></div>
+      <div><span>ต.ค.</span><b class="bad">−฿1,918</b></div>
+    </div>
+    <div class="rowlink"><span>ดูรายเดือนและหมวดหมู่</span><span>→</span></div>
+  </div>
+  <div class="moved">หน้า “การเงิน” จะมีกราฟเหลือเก็บรายเดือน ตัวเลขเดือนนี้ และเงินไปไหนบ้างแบบเต็ม หน้า Home จะเหลือที่ว่างให้การ์ดอื่น เช่น Next Best Action</div>
+  </div>
+</div>
+
 <!-- ================= notes ================= -->
 <div class="notes">
   <h3>ปัญหาของการ์ดตอนนี้</h3>
@@ -234,6 +356,9 @@
     <li><b>C</b> ถ้าอยากเห็นทุกอย่างโดยไม่ต้องกด: แต่ละการ์ดตอบคำถามเดียว (ปีนี้เป็นยังไง / เดือนนี้เงินไปไหน)</li>
     <li><b>B</b> ถ้าอยากให้หน้า Home สั้นที่สุด แต่ต้องกด 1 ครั้งเพื่อสลับดู</li>
     <li><b>A</b> เปลี่ยนน้อยที่สุดจากของเดิม</li>
+    <li><b>D</b> ถ้าอยากให้การ์ดบอกเลยว่าควรทำอะไร ตรงกับแนว Next Best Action ของแอป</li>
+    <li><b>E</b> การ์ดสั้นคงที่ แต่ผู้ใช้บางคนอาจไม่รู้ว่าต้องปัด</li>
+    <li><b>F</b> ถ้าอยากให้ Home โล่งที่สุด รายละเอียดไปอยู่หน้าการเงิน</li>
   </ul>
   <h3>ข้อมูลในภาพ</h3>
   <ul>
