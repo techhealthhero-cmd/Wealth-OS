@@ -134,14 +134,13 @@ export default async function DashboardPage() {
             compact card, kept quiet so Net Worth stays the one headline.
             Yearly because a once-a-year bill (insurance, car tax) made its
             month look like an overspend — explained at /help#yearly-view.
-            This month's numbers and the category chart are under its
-            "View details". */}
+            Monthly bars, this month's numbers and the category list are
+            shown inline (no "View details" toggle since 2026-10-25). */}
         <YearlyBalanceCard
           yearIncomeCents={data.yearIncomeCents}
           yearExpensesCents={data.yearExpensesCents}
           hasYearData={data.hasYearData}
           rangeLabel={`${monthFormatter.format(new Date(today.getFullYear(), 0, 1))} – ${monthFormatter.format(today)}`}
-          helpHref="/help#yearly-view"
           month={{
             incomeCents: data.incomeCents,
             expensesCents: data.expensesCents,
@@ -158,7 +157,6 @@ export default async function DashboardPage() {
           categories={data.categories}
           labels={{
             ...dict.dashboard.year,
-            viewDetails: dict.dashboard2.viewDetails,
             income: dict.dashboard.incomeShort,
             expenses: dict.dashboard.expensesShort,
             thisMonth: dict.dashboard.thisMonth,

@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import Link from "next/link";
-import { ChevronDown, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import type { ReactNode } from "react";
+import { TrendingDown, TrendingUp, Wallet } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,7 +74,6 @@ interface YearlyBalanceCardProps {
   hasYearData: boolean;
   /** Already-formatted, e.g. "ม.ค. – ต.ค." */
   rangeLabel: string;
-  helpHref: string;
   month: {
     incomeCents: number;
     expensesCents: number;
@@ -90,9 +88,9 @@ interface YearlyBalanceCardProps {
   currencyCode: string;
   accounts: Account[];
   categories: Category[];
-  /** This year's left-over per month, first under "View details". */
+  /** This year's left-over per month, shown first under the bar. */
   yearChart?: ReactNode;
-  /** This month's spending by category, last under "View details". */
+  /** This month's spending by category, shown last. */
   children?: ReactNode;
   labels: {
     title: string;
@@ -100,8 +98,6 @@ interface YearlyBalanceCardProps {
     deficit: string;
     even: string;
     barAria: string;
-    whyYearly: string;
-    viewDetails: string;
     noDataTitle: string;
     noDataHint: string;
     income: string;
@@ -119,15 +115,16 @@ interface YearlyBalanceCardProps {
  * under the Net Worth hero. Kept deliberately quiet (one modest figure, a
  * slim bar) so Net Worth stays the page's only headline. A green income
  * bar pushes from the left against a red expense bar from the right; the
- * coin marks where they meet. Yearly on purpose (see /help#yearly-view);
- * this month's numbers and the category chart are under "View details".
+ * coin marks where they meet. Yearly on purpose (see /help#yearly-view).
+ * The monthly bars, this month's numbers and the category list are always
+ * shown (2026-10-25: the "Why yearly?" link and "View details" toggle were
+ * removed at the user's request).
  */
 export function YearlyBalanceCard({
   yearIncomeCents,
   yearExpensesCents,
   hasYearData,
   rangeLabel,
-  helpHref,
   month,
   currencyCode,
   accounts,
@@ -136,8 +133,6 @@ export function YearlyBalanceCard({
   children,
   labels,
 }: YearlyBalanceCardProps) {
-  const [expanded, setExpanded] = useState(false);
-
   if (!hasYearData) {
     return (
       <Card className="border-dashed">
@@ -215,57 +210,34 @@ export function YearlyBalanceCard({
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t">
-          <Link
-            href={helpHref}
-            className="flex min-h-11 items-center text-xs font-semibold text-[#2F6B8A] underline-offset-4 hover:underline dark:text-sky-300"
-          >
-            {labels.whyYearly}
-          </Link>
-          <button
-            type="button"
-            onClick={() => setExpanded((value) => !value)}
-            aria-expanded={expanded}
-            className="flex min-h-11 items-center gap-1 text-xs font-semibold transition-transform duration-(--motion-fast) active:scale-[0.98]"
-          >
-            {labels.viewDetails}
-            <ChevronDown
-              className={cn("size-3.5 transition-transform duration-(--motion-normal) ease-(--ease-standard)", expanded && "rotate-180")}
-              aria-hidden="true"
-            />
-          </button>
+        <div className="space-y-3 border-t pt-3 pb-4 text-xs">
+          {yearChart ? <div className="border-b pb-3">{yearChart}</div> : null}
+          <p className="text-sm font-semibold">{labels.thisMonth}</p>
+          {month.hasData ? (
+            <div className="space-y-2">
+              <DetailRow label={labels.income} value={formatMoney(month.incomeCents, currencyCode)}>
+                <InlineTrend changeValue={month.incomeChangePercent} />
+              </DetailRow>
+              <DetailRow label={labels.expenses} value={formatMoney(month.expensesCents, currencyCode)}>
+                <InlineTrend changeValue={month.expensesChangePercent} invertTone />
+              </DetailRow>
+              <DetailRow
+                label={labels.remaining}
+                value={formatMoney(month.cashFlowCents, currencyCode)}
+                valueClassName={month.cashFlowCents < 0 ? "text-[#B23A48] dark:text-rose-300" : undefined}
+              >
+                <InlineTrend changeValue={month.cashFlowChangePercent} />
+              </DetailRow>
+              <DetailRow label={labels.savingsRate} value={`${month.savingsRatePercent.toFixed(1)}%`}>
+                <InlineTrend changeValue={month.savingsRateChangePoints} unit="pp" />
+              </DetailRow>
+              <p className="pt-0.5 text-[11px] text-muted-foreground">{labels.vsLastMonth}</p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">{labels.monthNoData}</p>
+          )}
+          {children ? <div className="border-t pt-3">{children}</div> : null}
         </div>
-
-        {expanded ? (
-          <div className="animate-in fade-in slide-in-from-top-1 space-y-3 border-t pt-3 text-xs duration-(--motion-normal)">
-            {yearChart ? <div className="border-b pb-3">{yearChart}</div> : null}
-            <p className="text-sm font-semibold">{labels.thisMonth}</p>
-            {month.hasData ? (
-              <div className="space-y-2">
-                <DetailRow label={labels.income} value={formatMoney(month.incomeCents, currencyCode)}>
-                  <InlineTrend changeValue={month.incomeChangePercent} />
-                </DetailRow>
-                <DetailRow label={labels.expenses} value={formatMoney(month.expensesCents, currencyCode)}>
-                  <InlineTrend changeValue={month.expensesChangePercent} invertTone />
-                </DetailRow>
-                <DetailRow
-                  label={labels.remaining}
-                  value={formatMoney(month.cashFlowCents, currencyCode)}
-                  valueClassName={month.cashFlowCents < 0 ? "text-[#B23A48] dark:text-rose-300" : undefined}
-                >
-                  <InlineTrend changeValue={month.cashFlowChangePercent} />
-                </DetailRow>
-                <DetailRow label={labels.savingsRate} value={`${month.savingsRatePercent.toFixed(1)}%`}>
-                  <InlineTrend changeValue={month.savingsRateChangePoints} unit="pp" />
-                </DetailRow>
-                <p className="pt-0.5 text-[11px] text-muted-foreground">{labels.vsLastMonth}</p>
-              </div>
-            ) : (
-              <p className="text-muted-foreground">{labels.monthNoData}</p>
-            )}
-            {children ? <div className="border-t pt-3">{children}</div> : null}
-          </div>
-        ) : null}
       </CardContent>
     </Card>
   );

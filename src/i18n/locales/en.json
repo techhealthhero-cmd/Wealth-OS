@@ -2950,7 +2950,7 @@
         "The push is exaggerated so it's easy to see; it isn't an exact money ratio. The real figures are the income and expense amounts on the card."
       ],
       "monthlyTitle": "4. Does the month still matter?",
-      "monthlyBody": "Yes — it shows which month was unusual. Over in one month because of a big bill? Nothing to worry about. A little over almost every month? That's a real signal worth acting on. Tap “View details” on the card for the “Left over each month” bars (green = a month with money left over, pink = spent more than earned, striped = this month, still in progress), this month's numbers, and “Where the money went”, which shows how much more or less each category cost than the same days of last month.",
+      "monthlyBody": "Yes — it shows which month was unusual. Over in one month because of a big bill? Nothing to worry about. A little over almost every month? That's a real signal worth acting on. Under the bar on the card you'll see the “Left over each month” bars (green = a month with money left over, pink = spent more than earned, striped = this month, still in progress), this month's numbers, and “Where the money went”, which shows how much more or less each category cost than the same days of last month.",
       "tipTitle": "Tip: divide by 12 and set it aside monthly",
       "tipBody": "For big bills you know are coming, divide by 12 and set that much aside each month. A ฿24,000 yearly premium = ฿2,000 a month, so the money is ready when the bill arrives.",
       "footnote": "The card only uses transactions you've recorded. Transfers between your own accounts aren't counted."
@@ -3013,7 +3013,7 @@
         "description": "Your whole financial picture in one place — open the app and immediately know where you stand and what to do next.",
         "items": [
           { "emoji": "💎", "title": "Net Worth", "description": "The biggest number on the home page, with a 6-month trend chart." },
-          { "emoji": "⚖️", "title": "This year: income vs expenses", "description": "Income minus expenses since 1 January. The green bar (income) and red bar (expenses) push against each other — coin right of the middle line = left over, left of it = short. Tap \"View details\" for this month's numbers; why it's yearly is explained in \"Why WEALTH OS looks at your money by the year\" above." },
+          { "emoji": "⚖️", "title": "This year: income vs expenses", "description": "Income minus expenses since 1 January. The green bar (income) and red bar (expenses) push against each other — coin right of the middle line = left over, left of it = short. Below it you see the monthly left-over bars, this month's numbers and where the money went; why it's yearly is explained in \"Why WEALTH OS looks at your money by the year\" above." },
           { "emoji": "💯", "title": "Wealth Score", "description": "An overall financial health score from 0-100, based on cash flow, savings, debt, and goals." },
           { "emoji": "🟢", "title": "Safe-to-Spend", "description": "How much you can spend today without hurting your budget or goals." },
           { "emoji": "🧭", "title": "Next Best Action", "description": "The single top recommendation the system picked for you specifically." },
