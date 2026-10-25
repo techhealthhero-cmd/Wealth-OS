@@ -20,7 +20,9 @@ import { cn } from "@/lib/utils";
 
 const SAVED = "#8FD1AE";
 const SHORT = "#E8A7B3";
-const BARS_HEIGHT_PX = 96;
+// 2026-10-25 (mockup v5 "A"): roughly half the old 96px, so a year with
+// only a month or two of data doesn't spend most of the card on empty space.
+const BARS_HEIGHT_PX = 48;
 const LABEL_SPACE_PX = 16;
 
 /**
@@ -47,12 +49,6 @@ export function MonthlyNetBars({
   monthLabels: string[];
   currencyCode: string;
   labels: {
-    title: string;
-    hint: string;
-    saved: string;
-    short: string;
-    inProgress: string;
-    future: string;
     noData: string;
   };
 }) {
@@ -63,15 +59,9 @@ export function MonthlyNetBars({
   const upHeight = maxUp > 0 ? (maxUp / scale) * BARS_HEIGHT_PX + LABEL_SPACE_PX : LABEL_SPACE_PX;
   const downHeight = maxDown > 0 ? (maxDown / scale) * BARS_HEIGHT_PX + LABEL_SPACE_PX : 8;
   const barPx = (cents: number) => Math.max(4, (Math.abs(cents) / scale) * BARS_HEIGHT_PX);
-  const current = points.find((p) => p.isCurrentMonth);
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-sm font-semibold">{labels.title}</p>
-        <span className="text-[11px] text-muted-foreground">{labels.hint}</span>
-      </div>
-
+    <div className="space-y-1.5">
       <ul className="sr-only">
         {withData.map((p) => (
           <li key={p.monthIndex}>
@@ -140,37 +130,16 @@ export function MonthlyNetBars({
       </div>
 
       {withData.length === 0 ? <p className="text-xs text-muted-foreground">{labels.noData}</p> : null}
-
-      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-        <LegendSwatch color={SAVED} label={labels.saved} />
-        <LegendSwatch color={SHORT} label={labels.short} />
-        {current?.state === "data" ? <LegendSwatch color={SAVED} hatched label={labels.inProgress} /> : null}
-        {points.some((p) => p.state === "future") ? <LegendSwatch dashed label={labels.future} /> : null}
-      </div>
     </div>
   );
 }
 
-function LegendSwatch({ color, label, hatched, dashed }: { color?: string; label: string; hatched?: boolean; dashed?: boolean }) {
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span
-        className={cn(
-          "inline-block size-2.5 rounded-[3px]",
-          hatched && "bg-[repeating-linear-gradient(135deg,rgba(255,255,255,0.6)_0_2px,transparent_2px_4px)]",
-          dashed && "border border-dashed border-muted-foreground/60"
-        )}
-        style={color ? { backgroundColor: color } : undefined}
-      />
-      {label}
-    </span>
-  );
-}
-
-// Six shades: up to MAX_ROWS rows plus one unfolded leftover (see groupTopCategories).
-const CATEGORY_COLORS = ["#2F6B52", "#5F9A7F", "#8FBFA6", "#B9D8C6", "#D6E6DC", "#E3DCCB"];
+// Four shades: up to MAX_ROWS rows plus one unfolded leftover (see groupTopCategories).
+const CATEGORY_COLORS = ["#2F6B52", "#5F9A7F", "#8FBFA6", "#B9D8C6"];
 const REST_COLOR = "#E3DCCB";
-const MAX_ROWS = 5;
+// 2026-10-25 (mockup v5 "A"): top three listed; the rest is a share of the
+// bar and a count on the link, so the card ends above the bottom nav.
+const MAX_ROWS = 3;
 
 export type CategoryComparisonItem = CategoryComparisonRow & {
   categoryNameEn: string | null;
@@ -198,27 +167,27 @@ export function CategorySpendingList({
     compareCaption: string;
     same: string;
     isNew: string;
-    other: string;
     uncategorized: string;
     noSpending: string;
     viewAll: string;
+    /** "{count}" placeholder: categories past the top three. */
+    viewMore: string;
   };
 }) {
   const whole = (cents: number) => formatMoney(cents, currencyCode, undefined, 0);
   const total = rows.reduce((sum, row) => sum + row.totalCents, 0);
   const { top, rest } = groupTopCategories(rows, MAX_ROWS);
 
-  const items = [
-    ...top.map((row, i) => ({
-      key: row.categoryId ?? "uncategorized",
-      name: (locale === "th" ? row.categoryNameTh : row.categoryNameEn) ?? labels.uncategorized,
-      icon: row.categoryIcon,
-      color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-      row,
-    })),
-    ...(rest
-      ? [{ key: "rest", name: labels.other.replace("{count}", String(rest.count)), icon: null, color: REST_COLOR, row: rest }]
-      : []),
+  const items = top.map((row, i) => ({
+    key: row.categoryId ?? "uncategorized",
+    name: (locale === "th" ? row.categoryNameTh : row.categoryNameEn) ?? labels.uncategorized,
+    icon: row.categoryIcon,
+    color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+    row,
+  }));
+  const barSegments = [
+    ...items.map((item) => ({ key: item.key, cents: item.row.totalCents, color: item.color })),
+    ...(rest ? [{ key: "rest", cents: rest.totalCents, color: REST_COLOR }] : []),
   ];
 
   return (
@@ -235,8 +204,8 @@ export function CategorySpendingList({
       ) : (
         <>
           <div className="flex h-3 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
-            {items.map((item) => (
-              <span key={item.key} className="h-full" style={{ flex: item.row.totalCents, backgroundColor: item.color }} />
+            {barSegments.map((segment) => (
+              <span key={segment.key} className="h-full" style={{ flex: segment.cents, backgroundColor: segment.color }} />
             ))}
           </div>
           {showComparison ? <p className="text-[11px] text-muted-foreground">{labels.compareCaption}</p> : null}
@@ -264,7 +233,7 @@ export function CategorySpendingList({
         href={transactionsHref}
         className="flex min-h-11 items-center justify-center rounded-xl bg-muted/70 text-xs font-semibold text-primary transition-transform duration-(--motion-fast) active:scale-[0.98]"
       >
-        {labels.viewAll}
+        {rest ? labels.viewMore.replace("{count}", String(rest.count)) : labels.viewAll}
       </Link>
     </div>
   );

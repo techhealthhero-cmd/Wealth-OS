@@ -371,7 +371,16 @@
       "changeSame": "no change",
       "changeNew": "new this month",
       "otherCategories": "Other ({count} categories)",
-      "viewAllThisMonth": "See all of this month’s transactions →"
+      "viewAllThisMonth": "See all of this month’s transactions →",
+      "viewMoreCategories": "{count} more categories · all transactions →",
+      "daysLeft": "{days} days left",
+      "lastDay": "Last day of the month",
+      "previousValue": "{month}: {amount}",
+      "lessThan": "{amount} less than {month}",
+      "moreThan": "{amount} more than {month}",
+      "sameAs": "Same as {month}",
+      "leftOver": "Left over",
+      "overspent": "Spent more than earned"
     }
   },
   "accounts": {

@@ -8,6 +8,23 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-10-25
 
+## Home yearly card: layout A (compact, always expanded) — 2026-10-25
+
+- Picked from `assets/mockups/home-yearly-card-layout-v5.*` (options A–F;
+  phone copy at claude.ai/artifact/1KDDddbWr47JS1ry7h3FQD). Earlier the
+  same day the "ทำไมคิดเป็นรายปี?" link and "ดูรายละเอียด" toggle were
+  removed, so everything below the bar is always shown.
+- Monthly left-over bars: 48px tall (was 96), no title/legend.
+- This month: month name + "เหลืออีก N วัน" chip, then a 2×2 tile grid
+  (income / expenses / left / savings rate). Each tile's second line
+  compares in baht with the **same days of last month**
+  (`getDashboardData().previousSamePeriod`), replacing the old %-vs-whole-
+  last-month trends that read as "−88%" before month end.
+- Where the money went: top 3 categories listed; the rest is a bar segment
+  and a count on the link ("ดูอีก N หมวด · รายการทั้งหมด →").
+- Verified: typecheck, lint, 1041 tests, production build; screenshot of the
+  real card at 390px with the demo account (fictional data).
+
 ## Home yearly card "ดูรายละเอียด": monthly left-over bars + category list — 2026-10-25
 
 - Picked by the user from the details mockups (`assets/mockups/home-yearly-details-v2-year.*`

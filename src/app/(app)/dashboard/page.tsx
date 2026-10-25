@@ -146,11 +146,11 @@ export default async function DashboardPage() {
             expensesCents: data.expensesCents,
             cashFlowCents: data.cashFlowCents,
             savingsRatePercent: data.savingsRatePercent,
-            incomeChangePercent: data.incomeChangePercent,
-            expensesChangePercent: data.expensesChangePercent,
-            cashFlowChangePercent: data.cashFlowChangePercent,
-            savingsRateChangePoints: data.savingsRateChangePoints,
             hasData: data.hasMonthData,
+            name: new Intl.DateTimeFormat(dateLocale, { month: "long" }).format(today),
+            daysLeft: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() - today.getDate(),
+            previousName: monthFormatter.format(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
+            previous: data.previousSamePeriod,
           }}
           currencyCode={currencyCode}
           accounts={data.accounts}
@@ -159,10 +159,8 @@ export default async function DashboardPage() {
             ...dict.dashboard.year,
             income: dict.dashboard.incomeShort,
             expenses: dict.dashboard.expensesShort,
-            thisMonth: dict.dashboard.thisMonth,
             remaining: dict.dashboard.remaining,
             savingsRate: dict.dashboard.savingsRate,
-            vsLastMonth: dict.dashboard.vsLastMonth,
             monthNoData: dict.dashboard.noIncomeExpenseData,
           }}
           yearChart={
@@ -170,15 +168,7 @@ export default async function DashboardPage() {
               points={data.monthlyNet}
               monthLabels={Array.from({ length: 12 }, (_, i) => monthFormatter.format(new Date(today.getFullYear(), i, 1)))}
               currencyCode={currencyCode}
-              labels={{
-                title: dict.dashboard.year.monthlyNetTitle,
-                hint: dict.dashboard.year.monthlyNetHint,
-                saved: dict.dashboard.year.legendSaved,
-                short: dict.dashboard.year.legendShort,
-                inProgress: dict.dashboard.year.legendInProgress,
-                future: dict.dashboard.year.legendFuture,
-                noData: dict.dashboard.year.monthlyNetNoData,
-              }}
+              labels={{ noData: dict.dashboard.year.monthlyNetNoData }}
             />
           }
         >
@@ -197,10 +187,10 @@ export default async function DashboardPage() {
               compareCaption: dict.dashboard.year.compareCaption.replace("{day}", String(data.previousSamePeriodEndDay)),
               same: dict.dashboard.year.changeSame,
               isNew: dict.dashboard.year.changeNew,
-              other: dict.dashboard.year.otherCategories,
               uncategorized: dict.transactions.uncategorized,
               noSpending: dict.dashboard.noExpenseData,
               viewAll: dict.dashboard.year.viewAllThisMonth,
+              viewMore: dict.dashboard.year.viewMoreCategories,
             }}
           />
         </YearlyBalanceCard>

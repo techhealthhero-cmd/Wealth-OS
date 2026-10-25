@@ -371,7 +371,16 @@
       "changeSame": "เท่าเดิม",
       "changeNew": "ใหม่เดือนนี้",
       "otherCategories": "อื่นๆ ({count} หมวด)",
-      "viewAllThisMonth": "ดูรายการทั้งหมดของเดือนนี้ →"
+      "viewAllThisMonth": "ดูรายการทั้งหมดของเดือนนี้ →",
+      "viewMoreCategories": "ดูอีก {count} หมวด · รายการทั้งหมด →",
+      "daysLeft": "เหลืออีก {days} วัน",
+      "lastDay": "วันสุดท้ายของเดือน",
+      "previousValue": "{month} {amount}",
+      "lessThan": "น้อยกว่า {month} {amount}",
+      "moreThan": "มากกว่า {month} {amount}",
+      "sameAs": "เท่ากับ {month}",
+      "leftOver": "เหลือเก็บ",
+      "overspent": "จ่ายเกินรับ"
     }
   },
   "accounts": {

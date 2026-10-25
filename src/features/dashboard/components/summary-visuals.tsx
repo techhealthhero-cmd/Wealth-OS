@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { Wallet } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,32 +36,8 @@ export function GoalProgressRing({ progress, label }: GoalProgressRingProps) {
   );
 }
 
-function InlineTrend({
-  changeValue,
-  unit = "%",
-  invertTone = false,
-}: {
-  changeValue: number | null;
-  unit?: "%" | "pp";
-  invertTone?: boolean;
-}) {
-  if (changeValue === null) return null;
-  const isGoodDirection = invertTone ? changeValue <= 0 : changeValue >= 0;
-  const Icon = changeValue >= 0 ? TrendingUp : TrendingDown;
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-0.5 text-[11px] font-medium",
-        isGoodDirection ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-      )}
-    >
-      <Icon className="size-2.5" aria-hidden="true" />
-      {changeValue >= 0 ? "+" : ""}
-      {changeValue.toFixed(1)}
-      {unit}
-    </span>
-  );
-}
+const SHORT_TEXT = "text-[#B23A48] dark:text-rose-300";
+const GOOD_TEXT = "text-[#2F7A5A] dark:text-emerald-300";
 
 /** Rounded to whole baht: a supporting figure shouldn't read as long as the headline. */
 function formatWhole(cents: number, currencyCode: string) {
@@ -79,11 +55,15 @@ interface YearlyBalanceCardProps {
     expensesCents: number;
     cashFlowCents: number;
     savingsRatePercent: number;
-    incomeChangePercent: number | null;
-    expensesChangePercent: number | null;
-    cashFlowChangePercent: number | null;
-    savingsRateChangePoints: number | null;
     hasData: boolean;
+    /** Already-formatted, e.g. "ตุลาคม". */
+    name: string;
+    /** Days after today until the month ends; 0 on its last day. */
+    daysLeft: number;
+    /** Last month's short name, e.g. "ก.ย.". */
+    previousName: string;
+    /** Last month over the same days; null when it had no transactions. */
+    previous: { incomeCents: number; expensesCents: number; savingsRatePercent: number } | null;
   };
   currencyCode: string;
   accounts: Account[];
@@ -102,11 +82,20 @@ interface YearlyBalanceCardProps {
     noDataHint: string;
     income: string;
     expenses: string;
-    thisMonth: string;
     remaining: string;
     savingsRate: string;
-    vsLastMonth: string;
     monthNoData: string;
+    /** "{days}" placeholder. */
+    daysLeft: string;
+    lastDay: string;
+    /** "{month}" and "{amount}" placeholders. */
+    previousValue: string;
+    lessThan: string;
+    moreThan: string;
+    /** "{month}" placeholder. */
+    sameAs: string;
+    leftOver: string;
+    overspent: string;
   };
 }
 
@@ -212,30 +201,7 @@ export function YearlyBalanceCard({
 
         <div className="space-y-3 border-t pt-3 pb-4 text-xs">
           {yearChart ? <div className="border-b pb-3">{yearChart}</div> : null}
-          <p className="text-sm font-semibold">{labels.thisMonth}</p>
-          {month.hasData ? (
-            <div className="space-y-2">
-              <DetailRow label={labels.income} value={formatMoney(month.incomeCents, currencyCode)}>
-                <InlineTrend changeValue={month.incomeChangePercent} />
-              </DetailRow>
-              <DetailRow label={labels.expenses} value={formatMoney(month.expensesCents, currencyCode)}>
-                <InlineTrend changeValue={month.expensesChangePercent} invertTone />
-              </DetailRow>
-              <DetailRow
-                label={labels.remaining}
-                value={formatMoney(month.cashFlowCents, currencyCode)}
-                valueClassName={month.cashFlowCents < 0 ? "text-[#B23A48] dark:text-rose-300" : undefined}
-              >
-                <InlineTrend changeValue={month.cashFlowChangePercent} />
-              </DetailRow>
-              <DetailRow label={labels.savingsRate} value={`${month.savingsRatePercent.toFixed(1)}%`}>
-                <InlineTrend changeValue={month.savingsRateChangePoints} unit="pp" />
-              </DetailRow>
-              <p className="pt-0.5 text-[11px] text-muted-foreground">{labels.vsLastMonth}</p>
-            </div>
-          ) : (
-            <p className="text-muted-foreground">{labels.monthNoData}</p>
-          )}
+          <MonthTiles month={month} currencyCode={currencyCode} labels={labels} />
           {children ? <div className="border-t pt-3">{children}</div> : null}
         </div>
       </CardContent>
@@ -243,24 +209,85 @@ export function YearlyBalanceCard({
   );
 }
 
-function DetailRow({
-  label,
-  value,
-  valueClassName,
-  children,
+/**
+ * This month as a 2×2 grid (mockup v5 "A", 2026-10-25). Each tile's second
+ * line compares with the same days of last month in baht, not a percentage
+ * of the whole of last month, which read as "−88%" a week before month end.
+ */
+function MonthTiles({
+  month,
+  currencyCode,
+  labels,
 }: {
-  label: string;
-  value: string;
-  valueClassName?: string;
-  children?: ReactNode;
+  month: YearlyBalanceCardProps["month"];
+  currencyCode: string;
+  labels: YearlyBalanceCardProps["labels"];
 }) {
+  const whole = (cents: number) => formatWhole(cents, currencyCode);
+  const prev = month.previous;
+  const withMonth = (template: string, amount?: string) =>
+    template.replace("{month}", month.previousName).replace("{amount}", amount ?? "");
+
+  let expensesNote: { text: string; tone?: string } | null = null;
+  if (prev) {
+    const diff = month.expensesCents - prev.expensesCents;
+    // Under one baht reads as "the same" once figures are rounded to whole baht.
+    expensesNote =
+      Math.abs(diff) < 100
+        ? { text: withMonth(labels.sameAs) }
+        : diff < 0
+          ? { text: withMonth(labels.lessThan, whole(-diff)), tone: GOOD_TEXT }
+          : { text: withMonth(labels.moreThan, whole(diff)), tone: SHORT_TEXT };
+  }
+
+  const isShort = month.cashFlowCents < 0;
+  const tiles: { key: string; label: string; value: string; valueTone?: string; note: { text: string; tone?: string } | null }[] = [
+    {
+      key: "income",
+      label: labels.income,
+      value: whole(month.incomeCents),
+      note: prev ? { text: withMonth(labels.previousValue, whole(prev.incomeCents)) } : null,
+    },
+    { key: "expenses", label: labels.expenses, value: whole(month.expensesCents), note: expensesNote },
+    {
+      key: "remaining",
+      label: labels.remaining,
+      value: whole(month.cashFlowCents),
+      valueTone: isShort ? SHORT_TEXT : undefined,
+      note: month.cashFlowCents === 0 ? null : { text: isShort ? labels.overspent : labels.leftOver },
+    },
+    {
+      key: "savings",
+      label: labels.savingsRate,
+      value: `${month.savingsRatePercent.toFixed(1)}%`,
+      valueTone: month.savingsRatePercent < 0 ? SHORT_TEXT : undefined,
+      note: prev ? { text: withMonth(labels.previousValue, `${prev.savingsRatePercent.toFixed(1)}%`) } : null,
+    },
+  ];
+
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-muted-foreground">{label}</span>
-      <span className={cn("flex items-center gap-1.5 font-medium tabular-nums", valueClassName)}>
-        {value}
-        {children}
-      </span>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold">{month.name}</p>
+        <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-[11px] text-muted-foreground tabular-nums">
+          {month.daysLeft > 0 ? labels.daysLeft.replace("{days}", String(month.daysLeft)) : labels.lastDay}
+        </span>
+      </div>
+      {month.hasData ? (
+        <dl className="grid grid-cols-2 gap-2">
+          {tiles.map((tile) => (
+            <div key={tile.key} className="min-w-0 rounded-xl border px-3 py-2">
+              <dt className="text-[11px] text-muted-foreground">{tile.label}</dt>
+              <dd className={cn("text-base font-semibold tabular-nums", tile.valueTone)}>{tile.value}</dd>
+              {tile.note ? (
+                <dd className={cn("truncate text-[11px] text-muted-foreground tabular-nums", tile.note.tone)}>{tile.note.text}</dd>
+              ) : null}
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="text-muted-foreground">{labels.monthNoData}</p>
+      )}
     </div>
   );
 }

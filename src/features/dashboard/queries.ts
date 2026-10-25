@@ -154,6 +154,15 @@ export function getDashboardData() {
       };
     }),
     hasPreviousSamePeriodSpending: prevSamePeriodTransactions.some((t) => t.type === "expense"),
+    /** Last month over the same days, for the yearly card's month tiles; null when it had nothing. */
+    previousSamePeriod:
+      prevSamePeriodTransactions.length > 0
+        ? {
+            incomeCents: calculateIncome(prevSamePeriodTransactions),
+            expensesCents: calculateExpenses(prevSamePeriodTransactions),
+            savingsRatePercent: calculateSavingsRate(prevSamePeriodTransactions),
+          }
+        : null,
     /** Day of month the comparison period ends on (24 → "1–24 of last month"). */
     previousSamePeriodEndDay: Number(prevSamePeriodEnd.slice(8, 10)),
     accounts,
