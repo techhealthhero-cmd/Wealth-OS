@@ -13,11 +13,7 @@ import {
   calculateSavingsRate,
   calculateSpendingByCategory,
 } from "@/lib/financial/calculations";
-import {
-  calculateMonthlyNetSeries,
-  compareCategorySpending,
-  samePeriodPreviousMonthEnd,
-} from "@/lib/financial/month-details";
+import { calculateMonthlyNetSeries } from "@/lib/financial/month-details";
 
 /** Mirrors the local `previousMonthRange()` helper already used the same way in life-stage/queries.ts. */
 function getPreviousMonthRange(): { from: string; to: string } {
@@ -117,11 +113,6 @@ export function getDashboardData() {
   const prevCashFlowCents = calculateMonthlyCashFlow(prevMonthTransactions);
   const prevSavingsRatePercent = calculateSavingsRate(prevMonthTransactions);
 
-  // "This month so far" vs the same days of last month (1–24 Oct vs
-  // 1–24 Sep), so a month that isn't over yet isn't compared with a whole one.
-  const prevSamePeriodEnd = samePeriodPreviousMonthEnd(new Date());
-  const prevSamePeriodTransactions = prevMonthTransactions.filter((t) => t.transaction_date <= prevSamePeriodEnd);
-
   return {
     incomeCents,
     expensesCents,
@@ -130,6 +121,7 @@ export function getDashboardData() {
     hasMonthData: monthTransactions.length > 0,
     yearIncomeCents: calculateIncome(yearTransactions),
     yearExpensesCents: calculateExpenses(yearTransactions),
+    yearSavingsRatePercent: calculateSavingsRate(yearTransactions),
     hasYearData: yearTransactions.length > 0,
     incomeChangePercent: calculateChangePercent(incomeCents, prevIncomeCents),
     expensesChangePercent: calculateChangePercent(expensesCents, prevExpensesCents),
@@ -141,10 +133,9 @@ export function getDashboardData() {
     savingsRateChangePoints: prevMonthTransactions.length > 0 ? savingsRatePercent - prevSavingsRatePercent : null,
     // This year's left-over per month, for the yearly card's details.
     monthlyNet: calculateMonthlyNetSeries(yearTransactions, Number(from.slice(0, 4)), Number(from.slice(5, 7)) - 1),
-    categoryComparison: compareCategorySpending(
-      calculateSpendingByCategory(monthTransactions),
-      calculateSpendingByCategory(prevSamePeriodTransactions)
-    ).map((row) => {
+    // This year's spending per category, largest first (the yearly card
+    // lists every one — 2026-10-26).
+    yearCategorySpending: calculateSpendingByCategory(yearTransactions).map((row) => {
       const category = row.categoryId ? categoryById.get(row.categoryId) : undefined;
       return {
         ...row,
@@ -153,18 +144,6 @@ export function getDashboardData() {
         categoryIcon: category?.icon ?? null,
       };
     }),
-    hasPreviousSamePeriodSpending: prevSamePeriodTransactions.some((t) => t.type === "expense"),
-    /** Last month over the same days, for the yearly card's month tiles; null when it had nothing. */
-    previousSamePeriod:
-      prevSamePeriodTransactions.length > 0
-        ? {
-            incomeCents: calculateIncome(prevSamePeriodTransactions),
-            expensesCents: calculateExpenses(prevSamePeriodTransactions),
-            savingsRatePercent: calculateSavingsRate(prevSamePeriodTransactions),
-          }
-        : null,
-    /** Day of month the comparison period ends on (24 → "1–24 of last month"). */
-    previousSamePeriodEndDay: Number(prevSamePeriodEnd.slice(8, 10)),
     accounts,
     categories,
     recentTransactions,

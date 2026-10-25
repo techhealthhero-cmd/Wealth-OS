@@ -367,18 +367,8 @@
       "monthlyNetNoData": "No income or expenses recorded this year yet",
       "whereMoneyWent": "Where the money went",
       "categoryTotal": "Total {amount}",
-      "compareCaption": "Tags compare with days 1–{day} of last month",
-      "changeSame": "no change",
-      "changeNew": "new this month",
-      "otherCategories": "Other ({count} categories)",
-      "viewAllThisMonth": "See all of this month’s transactions →",
-      "viewMoreCategories": "{count} more categories · all transactions →",
-      "daysLeft": "{days} days left",
-      "lastDay": "Last day of the month",
-      "previousValue": "{month}: {amount}",
-      "lessThan": "{amount} less than {month}",
-      "moreThan": "{amount} more than {month}",
-      "sameAs": "Same as {month}",
+      "noSpending": "No expenses recorded this year yet.",
+      "viewAll": "See all transactions →",
       "leftOver": "Left over",
       "overspent": "Spent more than earned"
     }
@@ -2959,7 +2949,7 @@
         "The push is exaggerated so it's easy to see; it isn't an exact money ratio. The real figures are the income and expense amounts on the card."
       ],
       "monthlyTitle": "4. Does the month still matter?",
-      "monthlyBody": "Yes — it shows which month was unusual. Over in one month because of a big bill? Nothing to worry about. A little over almost every month? That's a real signal worth acting on. Under the bar on the card you'll see the “Left over each month” bars (green = a month with money left over, pink = spent more than earned, striped = this month, still in progress), this month's numbers, and “Where the money went”, which shows how much more or less each category cost than the same days of last month.",
+      "monthlyBody": "Yes — it shows which month was unusual. Over in one month because of a big bill? Nothing to worry about. A little over almost every month? That's a real signal worth acting on. Under the bar on the card you'll see this year's income, expenses, left over and savings rate, then the “Left over each month” bars (green = a month with money left over, pink = spent more than earned, striped = this month, still in progress) and “Where the money went”, which lists what every category has cost so far this year.",
       "tipTitle": "Tip: divide by 12 and set it aside monthly",
       "tipBody": "For big bills you know are coming, divide by 12 and set that much aside each month. A ฿24,000 yearly premium = ฿2,000 a month, so the money is ready when the bill arrives.",
       "footnote": "The card only uses transactions you've recorded. Transfers between your own accounts aren't counted."

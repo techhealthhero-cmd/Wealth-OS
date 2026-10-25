@@ -2,18 +2,12 @@ import Link from "next/link";
 
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { formatMoney } from "@/lib/financial/money";
-import {
-  groupTopCategories,
-  type CategoryChange,
-  type CategoryComparisonRow,
-  type MonthlyNetPoint,
-} from "@/lib/financial/month-details";
+import type { MonthlyNetPoint } from "@/lib/financial/month-details";
 import { cn } from "@/lib/utils";
 
 /**
- * The two sections picked from mockups v2/v4 (2026-10-25) for the Home
- * yearly card's "View details": left-over per month for this year, and
- * this month's spending by category against the same days of last month.
+ * The Home yearly card's two lower sections: left-over per month for this
+ * year, and this year's spending by category (whole year since 2026-10-26).
  * Presentation only — every figure arrives precomputed from
  * src/lib/financial/month-details.ts.
  */
@@ -134,61 +128,54 @@ export function MonthlyNetBars({
   );
 }
 
-// Four shades: up to MAX_ROWS rows plus one unfolded leftover (see groupTopCategories).
-const CATEGORY_COLORS = ["#2F6B52", "#5F9A7F", "#8FBFA6", "#B9D8C6"];
+// Shades for the first rows, largest first; past these every category
+// shares the neutral colour so a long year doesn't need a rainbow.
+const CATEGORY_COLORS = ["#2F6B52", "#4A8468", "#5F9A7F", "#7AAD93", "#8FBFA6", "#A6CDB7", "#B9D8C6"];
 const REST_COLOR = "#E3DCCB";
-// 2026-10-25 (mockup v5 "A"): top three listed; the rest is a share of the
-// bar and a count on the link, so the card ends above the bottom nav.
-const MAX_ROWS = 3;
 
-export type CategoryComparisonItem = CategoryComparisonRow & {
+export type CategorySpendingItem = {
+  categoryId: string | null;
+  totalCents: number;
   categoryNameEn: string | null;
   categoryNameTh: string | null;
   categoryIcon: string | null;
 };
 
+/**
+ * This year's spending by category, every category listed (2026-10-26, at
+ * the user's request — no top-three cut, no month-over-month tags).
+ * Rows arrive sorted largest first from calculateSpendingByCategory().
+ */
 export function CategorySpendingList({
   rows,
   locale,
   currencyCode,
-  showComparison,
   transactionsHref,
   labels,
 }: {
-  rows: CategoryComparisonItem[];
+  rows: CategorySpendingItem[];
   locale: "th" | "en";
   currencyCode: string;
-  /** False when last month has nothing to compare against — chips and caption are hidden. */
-  showComparison: boolean;
   transactionsHref: string;
   labels: {
     title: string;
     total: string;
-    compareCaption: string;
-    same: string;
-    isNew: string;
     uncategorized: string;
     noSpending: string;
     viewAll: string;
-    /** "{count}" placeholder: categories past the top three. */
-    viewMore: string;
   };
 }) {
   const whole = (cents: number) => formatMoney(cents, currencyCode, undefined, 0);
   const total = rows.reduce((sum, row) => sum + row.totalCents, 0);
-  const { top, rest } = groupTopCategories(rows, MAX_ROWS);
 
-  const items = top.map((row, i) => ({
+  const items = rows.map((row, i) => ({
     key: row.categoryId ?? "uncategorized",
     name: (locale === "th" ? row.categoryNameTh : row.categoryNameEn) ?? labels.uncategorized,
     icon: row.categoryIcon,
-    color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-    row,
+    color: CATEGORY_COLORS[i] ?? REST_COLOR,
+    sharePercent: total > 0 ? (row.totalCents / total) * 100 : 0,
+    totalCents: row.totalCents,
   }));
-  const barSegments = [
-    ...items.map((item) => ({ key: item.key, cents: item.row.totalCents, color: item.color })),
-    ...(rest ? [{ key: "rest", cents: rest.totalCents, color: REST_COLOR }] : []),
-  ];
 
   return (
     <div className="space-y-2">
@@ -204,11 +191,10 @@ export function CategorySpendingList({
       ) : (
         <>
           <div className="flex h-3 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
-            {barSegments.map((segment) => (
-              <span key={segment.key} className="h-full" style={{ flex: segment.cents, backgroundColor: segment.color }} />
+            {items.map((item) => (
+              <span key={item.key} className="h-full" style={{ flex: item.totalCents, backgroundColor: item.color }} />
             ))}
           </div>
-          {showComparison ? <p className="text-[11px] text-muted-foreground">{labels.compareCaption}</p> : null}
 
           <ul className="divide-y divide-dashed">
             {items.map((item) => (
@@ -217,12 +203,9 @@ export function CategorySpendingList({
                 <CategoryIcon icon={item.icon} className="size-6" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm">{item.name}</span>
-                  <span className="block text-[11px] text-muted-foreground tabular-nums">{item.row.sharePercent.toFixed(0)}%</span>
+                  <span className="block text-[11px] text-muted-foreground tabular-nums">{item.sharePercent.toFixed(0)}%</span>
                 </span>
-                <span className="text-sm font-semibold tabular-nums">{whole(item.row.totalCents)}</span>
-                {showComparison ? (
-                  <ChangeChip change={item.row.change} deltaCents={item.row.deltaCents} format={whole} labels={labels} />
-                ) : null}
+                <span className="text-sm font-semibold tabular-nums">{whole(item.totalCents)}</span>
               </li>
             ))}
           </ul>
@@ -233,35 +216,8 @@ export function CategorySpendingList({
         href={transactionsHref}
         className="flex min-h-11 items-center justify-center rounded-xl bg-muted/70 text-xs font-semibold text-primary transition-transform duration-(--motion-fast) active:scale-[0.98]"
       >
-        {rest ? labels.viewMore.replace("{count}", String(rest.count)) : labels.viewAll}
+        {labels.viewAll}
       </Link>
     </div>
-  );
-}
-
-function ChangeChip({
-  change,
-  deltaCents,
-  format,
-  labels,
-}: {
-  change: CategoryChange;
-  deltaCents: number;
-  format: (cents: number) => string;
-  labels: { same: string; isNew: string };
-}) {
-  const text =
-    change === "more" ? `↑ ${format(deltaCents)}` : change === "less" ? `↓ ${format(-deltaCents)}` : change === "same" ? labels.same : labels.isNew;
-  return (
-    <span
-      className={cn(
-        "min-w-[4.75rem] shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-center text-[11px] font-semibold tabular-nums",
-        change === "more" && "bg-rose-50 text-[#B23A48] dark:bg-rose-500/15 dark:text-rose-300",
-        change === "less" && "bg-emerald-50 text-[#2F7A5A] dark:bg-emerald-500/15 dark:text-emerald-300",
-        (change === "same" || change === "new") && "bg-muted text-muted-foreground"
-      )}
-    >
-      {text}
-    </span>
   );
 }

@@ -47,30 +47,17 @@ function formatWhole(cents: number, currencyCode: string) {
 interface YearlyBalanceCardProps {
   yearIncomeCents: number;
   yearExpensesCents: number;
+  /** Year-to-date savings rate, from calculateSavingsRate(). */
+  yearSavingsRatePercent: number;
   hasYearData: boolean;
   /** Already-formatted, e.g. "ม.ค. – ต.ค." */
   rangeLabel: string;
-  month: {
-    incomeCents: number;
-    expensesCents: number;
-    cashFlowCents: number;
-    savingsRatePercent: number;
-    hasData: boolean;
-    /** Already-formatted, e.g. "ตุลาคม". */
-    name: string;
-    /** Days after today until the month ends; 0 on its last day. */
-    daysLeft: number;
-    /** Last month's short name, e.g. "ก.ย.". */
-    previousName: string;
-    /** Last month over the same days; null when it had no transactions. */
-    previous: { incomeCents: number; expensesCents: number; savingsRatePercent: number } | null;
-  };
   currencyCode: string;
   accounts: Account[];
   categories: Category[];
-  /** This year's left-over per month, shown first under the bar. */
+  /** This year's left-over per month, shown under the year tiles. */
   yearChart?: ReactNode;
-  /** This month's spending by category, shown last. */
+  /** This year's spending by category, shown last. */
   children?: ReactNode;
   labels: {
     title: string;
@@ -84,16 +71,6 @@ interface YearlyBalanceCardProps {
     expenses: string;
     remaining: string;
     savingsRate: string;
-    monthNoData: string;
-    /** "{days}" placeholder. */
-    daysLeft: string;
-    lastDay: string;
-    /** "{month}" and "{amount}" placeholders. */
-    previousValue: string;
-    lessThan: string;
-    moreThan: string;
-    /** "{month}" placeholder. */
-    sameAs: string;
     leftOver: string;
     overspent: string;
   };
@@ -105,16 +82,16 @@ interface YearlyBalanceCardProps {
  * slim bar) so Net Worth stays the page's only headline. A green income
  * bar pushes from the left against a red expense bar from the right; the
  * coin marks where they meet. Yearly on purpose (see /help#yearly-view).
- * The monthly bars, this month's numbers and the category list are always
- * shown (2026-10-25: the "Why yearly?" link and "View details" toggle were
- * removed at the user's request).
+ * 2026-10-26: everything in the card is year to date — the "this month"
+ * tiles became year tiles and the category list covers the whole year,
+ * at the user's request.
  */
 export function YearlyBalanceCard({
   yearIncomeCents,
   yearExpensesCents,
+  yearSavingsRatePercent,
   hasYearData,
   rangeLabel,
-  month,
   currencyCode,
   accounts,
   categories,
@@ -143,6 +120,24 @@ export function YearlyBalanceCard({
   const expensesText = formatWhole(balance.expensesCents, currencyCode);
   const statusLabel = balance.status === "surplus" ? labels.surplus : isShort ? labels.deficit : labels.even;
   const meet = balance.meetingPointPercent;
+
+  const tiles: { key: string; label: string; value: string; valueTone?: string; note?: string }[] = [
+    { key: "income", label: labels.income, value: incomeText },
+    { key: "expenses", label: labels.expenses, value: expensesText },
+    {
+      key: "remaining",
+      label: labels.remaining,
+      value: formatWhole(balance.netCents, currencyCode),
+      valueTone: isShort ? SHORT_TEXT : GOOD_TEXT,
+      note: balance.netCents === 0 ? undefined : isShort ? labels.overspent : labels.leftOver,
+    },
+    {
+      key: "savings",
+      label: labels.savingsRate,
+      value: `${yearSavingsRatePercent.toFixed(1)}%`,
+      valueTone: yearSavingsRatePercent < 0 ? SHORT_TEXT : undefined,
+    },
+  ];
 
   return (
     <Card>
@@ -190,104 +185,21 @@ export function YearlyBalanceCard({
           </span>
         </div>
 
-        <div className="flex justify-between gap-3 text-xs text-muted-foreground tabular-nums">
-          <span>
-            {labels.income} {incomeText}
-          </span>
-          <span>
-            {labels.expenses} {expensesText}
-          </span>
-        </div>
-
-        <div className="space-y-3 border-t pt-3 pb-4 text-xs">
-          {yearChart ? <div className="border-b pb-3">{yearChart}</div> : null}
-          <MonthTiles month={month} currencyCode={currencyCode} labels={labels} />
-          {children ? <div className="border-t pt-3">{children}</div> : null}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-/**
- * This month as a 2×2 grid (mockup v5 "A", 2026-10-25). Each tile's second
- * line compares with the same days of last month in baht, not a percentage
- * of the whole of last month, which read as "−88%" a week before month end.
- */
-function MonthTiles({
-  month,
-  currencyCode,
-  labels,
-}: {
-  month: YearlyBalanceCardProps["month"];
-  currencyCode: string;
-  labels: YearlyBalanceCardProps["labels"];
-}) {
-  const whole = (cents: number) => formatWhole(cents, currencyCode);
-  const prev = month.previous;
-  const withMonth = (template: string, amount?: string) =>
-    template.replace("{month}", month.previousName).replace("{amount}", amount ?? "");
-
-  let expensesNote: { text: string; tone?: string } | null = null;
-  if (prev) {
-    const diff = month.expensesCents - prev.expensesCents;
-    // Under one baht reads as "the same" once figures are rounded to whole baht.
-    expensesNote =
-      Math.abs(diff) < 100
-        ? { text: withMonth(labels.sameAs) }
-        : diff < 0
-          ? { text: withMonth(labels.lessThan, whole(-diff)), tone: GOOD_TEXT }
-          : { text: withMonth(labels.moreThan, whole(diff)), tone: SHORT_TEXT };
-  }
-
-  const isShort = month.cashFlowCents < 0;
-  const tiles: { key: string; label: string; value: string; valueTone?: string; note: { text: string; tone?: string } | null }[] = [
-    {
-      key: "income",
-      label: labels.income,
-      value: whole(month.incomeCents),
-      note: prev ? { text: withMonth(labels.previousValue, whole(prev.incomeCents)) } : null,
-    },
-    { key: "expenses", label: labels.expenses, value: whole(month.expensesCents), note: expensesNote },
-    {
-      key: "remaining",
-      label: labels.remaining,
-      value: whole(month.cashFlowCents),
-      valueTone: isShort ? SHORT_TEXT : undefined,
-      note: month.cashFlowCents === 0 ? null : { text: isShort ? labels.overspent : labels.leftOver },
-    },
-    {
-      key: "savings",
-      label: labels.savingsRate,
-      value: `${month.savingsRatePercent.toFixed(1)}%`,
-      valueTone: month.savingsRatePercent < 0 ? SHORT_TEXT : undefined,
-      note: prev ? { text: withMonth(labels.previousValue, `${prev.savingsRatePercent.toFixed(1)}%`) } : null,
-    },
-  ];
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold">{month.name}</p>
-        <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-[11px] text-muted-foreground tabular-nums">
-          {month.daysLeft > 0 ? labels.daysLeft.replace("{days}", String(month.daysLeft)) : labels.lastDay}
-        </span>
-      </div>
-      {month.hasData ? (
-        <dl className="grid grid-cols-2 gap-2">
+        <dl className="grid grid-cols-2 gap-2 pt-1">
           {tiles.map((tile) => (
             <div key={tile.key} className="min-w-0 rounded-xl border px-3 py-2">
               <dt className="text-[11px] text-muted-foreground">{tile.label}</dt>
               <dd className={cn("text-base font-semibold tabular-nums", tile.valueTone)}>{tile.value}</dd>
-              {tile.note ? (
-                <dd className={cn("truncate text-[11px] text-muted-foreground tabular-nums", tile.note.tone)}>{tile.note.text}</dd>
-              ) : null}
+              {tile.note ? <dd className="truncate text-[11px] text-muted-foreground">{tile.note}</dd> : null}
             </div>
           ))}
         </dl>
-      ) : (
-        <p className="text-muted-foreground">{labels.monthNoData}</p>
-      )}
-    </div>
+
+        <div className="space-y-3 border-t pt-3 pb-4 text-xs">
+          {yearChart ? <div className="border-b pb-3">{yearChart}</div> : null}
+          {children}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

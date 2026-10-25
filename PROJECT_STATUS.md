@@ -6,7 +6,28 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-25
+Last updated: 2026-10-26
+
+## Home yearly card: everything year to date — 2026-10-26
+
+- User asked for the card to be yearly only: year income, expenses, left
+  over, and every category's total for the year.
+- The "this month" section (month name, days-left chip, tiles compared with
+  the same days of last month) is gone; in its place, right under the bar,
+  a 2×2 grid of **year** tiles: income / expenses / left over / savings rate
+  (`getDashboardData().yearSavingsRatePercent`). The duplicate
+  "รายรับ … / รายจ่าย …" line under the bar was dropped (the tiles show it).
+- Monthly left-over bars stay (they are this year, month by month).
+- "เงินไปไหนบ้าง" now lists **every** category's spending for the whole
+  year (`yearCategorySpending`), no top-3 cut and no ↑/↓ month tags; link
+  is "ดูรายการทั้งหมด →".
+- Removed the now-unused `previousSamePeriod`, `categoryComparison`,
+  `compareCategorySpending`, `groupTopCategories`,
+  `samePeriodPreviousMonthEnd` (and their tests) and the month-only i18n
+  keys. /help#yearly-view text updated to match.
+- Verified: typecheck, lint (only pre-existing errors in ignored
+  `.story-shots/` scratch scripts), 1032 tests pass (9 removed with the deleted helpers), production build;
+  screenshot of the real card at 390px with the demo account.
 
 ## Home yearly card: layout A (compact, always expanded) — 2026-10-25
 

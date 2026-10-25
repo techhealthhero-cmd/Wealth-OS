@@ -134,24 +134,14 @@ export default async function DashboardPage() {
             compact card, kept quiet so Net Worth stays the one headline.
             Yearly because a once-a-year bill (insurance, car tax) made its
             month look like an overspend — explained at /help#yearly-view.
-            Monthly bars, this month's numbers and the category list are
-            shown inline (no "View details" toggle since 2026-10-25). */}
+            Since 2026-10-26 everything in it is year to date: four year
+            tiles, the monthly left-over bars, and every category's total. */}
         <YearlyBalanceCard
           yearIncomeCents={data.yearIncomeCents}
           yearExpensesCents={data.yearExpensesCents}
+          yearSavingsRatePercent={data.yearSavingsRatePercent}
           hasYearData={data.hasYearData}
           rangeLabel={`${monthFormatter.format(new Date(today.getFullYear(), 0, 1))} – ${monthFormatter.format(today)}`}
-          month={{
-            incomeCents: data.incomeCents,
-            expensesCents: data.expensesCents,
-            cashFlowCents: data.cashFlowCents,
-            savingsRatePercent: data.savingsRatePercent,
-            hasData: data.hasMonthData,
-            name: new Intl.DateTimeFormat(dateLocale, { month: "long" }).format(today),
-            daysLeft: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() - today.getDate(),
-            previousName: monthFormatter.format(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
-            previous: data.previousSamePeriod,
-          }}
           currencyCode={currencyCode}
           accounts={data.accounts}
           categories={data.categories}
@@ -161,7 +151,6 @@ export default async function DashboardPage() {
             expenses: dict.dashboard.expensesShort,
             remaining: dict.dashboard.remaining,
             savingsRate: dict.dashboard.savingsRate,
-            monthNoData: dict.dashboard.noIncomeExpenseData,
           }}
           yearChart={
             <MonthlyNetBars
@@ -172,25 +161,17 @@ export default async function DashboardPage() {
             />
           }
         >
-          {/* 2026-10-25 (mockup v4 "D"): ranked list with ↑/↓ baht tags
-              against the same days of last month, replacing the bar chart
-              that showed two "Other" rows. */}
           <CategorySpendingList
-            rows={data.categoryComparison}
+            rows={data.yearCategorySpending}
             locale={locale}
             currencyCode={currencyCode}
-            showComparison={data.hasPreviousSamePeriodSpending}
             transactionsHref="/money/transactions"
             labels={{
               title: dict.dashboard.year.whereMoneyWent,
               total: dict.dashboard.year.categoryTotal,
-              compareCaption: dict.dashboard.year.compareCaption.replace("{day}", String(data.previousSamePeriodEndDay)),
-              same: dict.dashboard.year.changeSame,
-              isNew: dict.dashboard.year.changeNew,
               uncategorized: dict.transactions.uncategorized,
-              noSpending: dict.dashboard.noExpenseData,
-              viewAll: dict.dashboard.year.viewAllThisMonth,
-              viewMore: dict.dashboard.year.viewMoreCategories,
+              noSpending: dict.dashboard.year.noSpending,
+              viewAll: dict.dashboard.year.viewAll,
             }}
           />
         </YearlyBalanceCard>
