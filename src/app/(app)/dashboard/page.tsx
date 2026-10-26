@@ -135,6 +135,12 @@ export default async function DashboardPage() {
           categories={data.categories}
           labels={{
             ...dict.dashboard.year,
+            // "ปี 2569" / "2026": th-TH counts in the Buddhist era; only the year number is shown.
+            title: dict.dashboard.year.title.replace(
+              "{year}",
+              new Intl.DateTimeFormat(dateLocale, { year: "numeric" }).formatToParts(today).find((p) => p.type === "year")?.value ??
+                String(today.getFullYear())
+            ),
             income: dict.dashboard.incomeShort,
             expenses: dict.dashboard.expensesShort,
             remaining: dict.dashboard.remaining,
