@@ -65,10 +65,8 @@ const CARD_CLASS =
   "block w-full rounded-[22px] border border-border bg-card p-4 text-left shadow-card";
 
 /**
- * Home card: "<เดือน> ใช้ไปแล้ว ฿…" + income/left + one stacked category bar +
- * one insight line. Sits directly under the green net-worth card.
- *
- * Home supplies the user-scoped monthly-spend query.
+ * "<เดือน> ใช้ไปแล้ว ฿…" + income/left + one stacked category bar +
+ * one insight line. The slip preview still renders this card. Home does not.
  */
 export function MonthlySpendCard({ summary, onOpen }: MonthlySpendCardProps) {
   if (!summary) return null;

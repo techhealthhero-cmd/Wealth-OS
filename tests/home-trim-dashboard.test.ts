@@ -70,7 +70,8 @@ describe("Home dashboard page trim", () => {
   it("keeps the core Home sections and drops the trimmed cards", () => {
     for (const keep of [
       "NetWorthHero",
-      "MonthlySpend",
+      'variant="compact"',
+      "getMonthlySpendSummary",
       "HomeYearSection",
       "HomeQuickActions",
       "HomeExpectedTile",
@@ -86,6 +87,8 @@ describe("Home dashboard page trim", () => {
 
     for (const gone of [
       "HomeCushion",
+      "components/monthly-spend\"",
+      "<MonthlySpend",
       "MonthlyDonutCard",
       "GoalProgressCard",
       "EngagementSummaryCard",
