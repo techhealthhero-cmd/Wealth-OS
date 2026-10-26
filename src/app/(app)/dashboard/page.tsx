@@ -2,33 +2,21 @@ import Link from "next/link";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
-import { getDashboardData, getIncomeExpenseTrend } from "@/features/dashboard/queries";
+import { getDashboardData } from "@/features/dashboard/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
-import { WealthOverview } from "@/features/dashboard/components/wealth-overview";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
-import { GoalProgressCard } from "@/features/dashboard/components/goal-progress-card";
-import { DashboardDetailsToggle } from "@/features/dashboard/components/dashboard-details-toggle";
-import { IncomeVsExpenseChart } from "@/features/dashboard/components/charts-lazy";
 import { CategorySpendingList, MonthlyNetBars } from "@/features/dashboard/components/year-details";
 import { YearlyBalanceCard } from "@/features/dashboard/components/summary-visuals";
-import { TransactionRow } from "@/features/transactions/components/transaction-row";
 import { DailyInboxSection } from "@/features/capture/components/daily-inbox-section";
 import { EmptyState } from "@/components/shared/empty-state";
 import { WelcomeIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
-import { formatMoneyFromDecimal } from "@/lib/financial/money";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FEATURES } from "@/config/features";
 import { getFinancialPriority } from "@/features/ai/tools";
-import { getTopInsight } from "@/features/ai/lib/insights";
 import { NextBestActionCard } from "@/features/ai/components/next-best-action-card";
-import { InsightCards } from "@/features/ai/components/insight-card";
-import { EngagementSummaryCard } from "@/features/engagement/components/engagement-summary-card";
-import { ArrowRight } from "lucide-react";
-import { isAccountPrivacyRedacted } from "@/features/account-privacy/account-redaction";
 import { getPrivacyGate } from "@/features/account-privacy/gate";
 import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components/account-privacy-placeholder";
 
@@ -183,96 +171,10 @@ export default async function DashboardPage() {
         </Suspense>
       ) : null}
 
-      <div className="motion-reveal motion-reveal-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{dict.dashboard2.topGoal}</h2>
-          <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/plan/goals" />}>
-            {dict.dashboard.viewAll}
-            <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
-          </Button>
-        </div>
-        <Suspense fallback={<Skeleton className="h-32 w-full rounded-xl" />}>
-          <GoalProgressCard />
-        </Suspense>
-      </div>
-
-      <div className="motion-reveal motion-reveal-6">
-        <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
-          <EngagementSummaryCard />
-        </Suspense>
-      </div>
-
-      <div className="motion-reveal motion-reveal-7">
-        <DashboardDetailsToggle label={dict.dashboard.moreInsights}>
-          <Suspense fallback={<Skeleton className="h-[240px] w-full rounded-xl" />}>
-            <IncomeExpenseTrendSection locale={locale} currencyCode={currencyCode} />
-          </Suspense>
-
-          <Suspense
-            fallback={
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-24 w-full rounded-xl" />
-                ))}
-              </div>
-            }
-          >
-            <WealthOverview />
-          </Suspense>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-medium">{dict.dashboard.accountBalances}</h2>
-                  <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/money/accounts" />}>
-                    {dict.dashboard.viewAll}
-                  </Button>
-                </div>
-                {data.accounts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{dict.accounts.emptyState}</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {data.accounts.slice(0, 3).map((account) => (
-                      <li key={account.id} className="flex items-center justify-between text-sm">
-                        <span>{account.name}</span>
-                        {!isAccountPrivacyRedacted(account) ? (
-                          <span className="font-medium">
-                            {formatMoneyFromDecimal(account.current_balance, account.currency_code)}
-                          </span>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="space-y-1 pt-6">
-                <div className="flex items-center justify-between pb-2">
-                  <h2 className="font-medium">{dict.dashboard.recentTransactions}</h2>
-                  <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/money/transactions" />}>
-                    {dict.dashboard.viewAll}
-                  </Button>
-                </div>
-                {data.recentTransactions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{dict.transactions.emptyState}</p>
-                ) : (
-                  data.recentTransactions.slice(0, 3).map((transaction) => (
-                    <TransactionRow
-                      key={transaction.id}
-                      transaction={transaction}
-                      accounts={data.accounts}
-                      categories={data.categories}
-                    />
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </DashboardDetailsToggle>
-      </div>
+      {/* 2026-10-26: Home ends at the Next Best Action. The insight card,
+          top goal, streak/engagement card and the "More insights" drawer
+          were removed — each already has its own page (Plan › Goals,
+          Money › Transactions/Accounts, Plan › Forecast). */}
     </div>
   );
 }
@@ -283,29 +185,11 @@ export default async function DashboardPage() {
  * the monthly overview and the rest of the dashboard shell.
  */
 async function DashboardRecommendations({ hasTransactionHistory }: { hasTransactionHistory: boolean }) {
-  const [priority, topInsight] = await Promise.all([getFinancialPriority(), getTopInsight()]);
+  const priority = await getFinancialPriority();
 
   return (
-    <div className="motion-reveal motion-reveal-4 space-y-3">
+    <div className="motion-reveal motion-reveal-4">
       <NextBestActionCard priority={priority} hasTransactionHistory={hasTransactionHistory} />
-      {topInsight ? <InsightCards insights={[topInsight]} /> : null}
     </div>
-  );
-}
-
-/** The six-month chart is collapsed by default, so it must not hold up FCP. */
-async function IncomeExpenseTrendSection({ locale, currencyCode }: { locale: "th" | "en"; currencyCode: string }) {
-  const incomeExpenseTrend = await getIncomeExpenseTrend();
-  const monthFormatter = new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { month: "short" });
-
-  return (
-    <IncomeVsExpenseChart
-      data={incomeExpenseTrend.map((point) => ({
-        month: monthFormatter.format(point.monthDate),
-        incomeCents: point.incomeCents,
-        expensesCents: point.expensesCents,
-      }))}
-      currencyCode={currencyCode}
-    />
   );
 }
