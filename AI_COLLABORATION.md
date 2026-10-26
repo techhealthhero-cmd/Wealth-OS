@@ -148,6 +148,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 | AUTO-INFRA-03 | Safe bot build profile | Claude | TODO | Build โดยไม่ใช้ production secrets/network writes | Codex security review ก่อน Grok ใช้ |
 | AUTO-SEC-01 | npm audit triage | Claude (tracking: Grok) | ESCALATED | รายงานเสร็จ (Claude Code ร่าง, Grok ตรวจ) บน branch local `claude/auto-sec-01-audit-triage`; เข้า stop condition จึงยังไม่ push; ไม่มีการเปลี่ยน dependency/lockfile | เจ้าของโปรเจกต์ตัดสินใจจากรายงานที่ส่งตรงให้ |
 | AUTO-CLEAN-01 | Unused eslint-disable ใน `opengraph-image.tsx` | Grok | DONE — PR #1 merged (`7f62e87`) | ลบคอมเมนต์ที่ไม่ได้ใช้; lint 0 problems | — |
+| MOCK-01 | ส่งมอบภาพ Year Picker mockup ให้เปิดดูได้ในโปรเจกต์ | Codex | DONE | เพิ่ม `docs/mockups/year-picker-bottom-sheet-v1.png`; ไม่แตะโค้ด Year Picker ที่มีผู้แก้อยู่ | เจ้าของโปรเจกต์เปิดภาพและให้ความเห็น |
 
 ## Current Shared Context
 
@@ -183,6 +184,16 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 ## Handoff Log
 
 เพิ่มรายการใหม่ไว้ด้านบน ไม่ต้องคัดลอกประวัติการแก้ไฟล์ทั้งหมด
+
+### 2026-10-26 — Codex → เจ้าของโปรเจกต์
+
+- งาน/เป้าหมาย: ส่งมอบภาพอ้างอิง Year Picker ที่เปิดจาก workspace ได้โดยตรง
+- ทำเสร็จแล้ว: คัดลอกม็อกอัป PNG เข้า `docs/mockups/year-picker-bottom-sheet-v1.png`
+- ไฟล์ที่เปลี่ยน: `docs/mockups/year-picker-bottom-sheet-v1.png`, `AI_COLLABORATION.md`
+- การตรวจที่รันและผลลัพธ์: ยืนยันไฟล์มีอยู่ ขนาด 1,380,386 bytes
+- ข้อจำกัดหรือสิ่งที่ห้ามเปลี่ยน: ไม่แตะไฟล์โค้ด Year Picker/Dashboard ที่มีการแก้ค้างอยู่
+- ขั้นต่อไปที่ชัดเจน: เจ้าของโปรเจกต์เปิดภาพและแจ้งจุดที่ต้องปรับ
+- คำถามที่ต้องการคำตอบ: ดีไซน์นี้ผ่านหรืออยากให้ลองรูปแบบวงล้อ/ไทม์ไลน์ปีเพิ่มเติม
 
 ### 2026-10-26 — Claude → ทุก agent
 

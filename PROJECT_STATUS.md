@@ -8,6 +8,28 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-10-26
 
+## Home yearly card: pick any year — 2026-10-26
+
+- Heading stays "ปีนี้ · ม.ค. – ต.ค." (a brief "ปี 2569 · …" heading was
+  reverted at the user's request). Tapping it opens a grid of year cells
+  (the user asked for calendar-style cells, not a scroll wheel), from the
+  year of the oldest transaction (`getTransactionYears`) to this year,
+  Thai years in the Buddhist era; this year's cell says "ปีนี้". With only
+  one year of data the heading is plain text (no dead button).
+- Picking a year navigates to `/dashboard?year=2025`; `getDashboardData({
+  year })` rebuilds the whole card for that calendar year (Jan–Dec):
+  income, expenses, left over, savings rate, monthly left-over bars (no
+  "future" months), and every category; the category list's "ดูรายการ
+  ทั้งหมด" link filters Money › Transactions to that year. Heading for a
+  past year: "ปี 2568 · ทั้งปี". Invalid / future `?year` → this year.
+- An empty past year still shows the picker so the user can switch back.
+- /help#yearly-view has a line on how to look at earlier years.
+- Verified: typecheck, lint (only pre-existing ignored-script issues),
+  1060 tests, production build; demo account with two fictional 2025
+  transactions (deleted afterwards): grid shows 2568 / 2569 ปีนี้, picking
+  2568 shows ฿50,000 / ฿12,345 / ฿37,655 and "ปี 2568 · ทั้งปี", survives a
+  reload, tapping "ปีนี้" returns to `/dashboard`.
+
 ## Slip inbox on the user's real iPhone — setup paused 2026-10-26
 
 - The user's Shortcut is built correctly and its first run delivered 2 real

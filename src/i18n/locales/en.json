@@ -350,7 +350,11 @@
     "spentOfIncome": "Spent {percent}% of income",
     "dayProgress": "Day {day} of {total}",
     "year": {
-      "title": "{year} · {range}",
+      "title": "This year · {range}",
+      "pastTitle": "{year} · full year",
+      "pickYear": "Choose a year",
+      "pickYearHint": "Tap a year to see it",
+      "thisYear": "This year",
       "noDataTitle": "No income or expenses recorded this year yet",
       "noDataHint": "Log an income or expense to see your year at a glance",
       "surplus": "left over",
@@ -2946,7 +2950,8 @@
         "The big number is income minus expenses from 1 January to the end of this month. Green = left over, red = income fell short.",
         "The green bar (income) pushes from the left, the red bar (expenses) pushes from the right. The coin sits where they meet.",
         "The dashed line in the middle is break-even. Coin right of it = left over, left of it = short. The further from the line, the bigger the gap.",
-        "The push is exaggerated so it's easy to see; it isn't an exact money ratio. The real figures are the income and expense amounts on the card."
+        "The push is exaggerated so it's easy to see; it isn't an exact money ratio. The real figures are the income and expense amounts on the card.",
+        "To look at an earlier year, tap the card's heading (\"This year · Jan – …\") and tap a year. The whole card switches to that full year: income, expenses, savings rate, the monthly bars and where the money went. Years go back to when you started recording. Tap \"This year\" to come back."
       ],
       "monthlyTitle": "4. Does the month still matter?",
       "monthlyBody": "Yes — it shows which month was unusual. Over in one month because of a big bill? Nothing to worry about. A little over almost every month? That's a real signal worth acting on. Under the bar on the card you'll see this year's income, expenses, left over and savings rate, then the “Left over each month” bars (green = a month with money left over, pink = spent more than earned, striped = this month, still in progress) and “Where the money went”, which lists what every category has cost so far this year.",

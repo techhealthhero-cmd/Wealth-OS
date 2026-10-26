@@ -3,6 +3,7 @@ import "server-only";
 import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
 import { getCurrentMonthRange, getFinancialTransactions, getTransactions } from "@/features/transactions/queries";
+import { createClient } from "@/lib/supabase/server";
 import { toLocalDateString } from "@/lib/date";
 import { withPerfLog } from "@/lib/dev-diagnostics";
 import {
@@ -81,18 +82,41 @@ export function getIncomeExpenseTrend() {
   });
 }
 
-export function getDashboardData() {
+/**
+ * Calendar years the user can look back at on Home's yearly card: from the
+ * year of their oldest transaction up to this year (just this year when
+ * there's none yet). RLS scopes the lookup to the signed-in user.
+ */
+export async function getTransactionYears(currentYear: number): Promise<number[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("transactions")
+    .select("transaction_date")
+    .order("transaction_date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const first = data?.transaction_date ? Number(data.transaction_date.slice(0, 4)) : currentYear;
+  const start = Math.min(Math.max(first, currentYear - 50), currentYear);
+  return Array.from({ length: currentYear - start + 1 }, (_, i) => start + i);
+}
+
+export function getDashboardData(options: { year?: number } = {}) {
   return withPerfLog("getDashboardData", async () => {
   const { from, to } = getCurrentMonthRange();
   const { from: prevFrom, to: prevTo } = getPreviousMonthRange();
-  // Year to date ends where "this month" ends, so the yearly total always
-  // contains exactly the month total shown alongside it.
-  const yearFrom = `${from.slice(0, 4)}-01-01`;
+  const currentYear = Number(from.slice(0, 4));
+  // Home's yearly card can look back at an earlier year (2026-10-26): that
+  // year runs January–December. This year is year to date, ending where
+  // "this month" ends, so it always contains exactly the month total.
+  const year = options.year && options.year < currentYear ? options.year : currentYear;
+  const isPastYear = year < currentYear;
+  const yearFrom = `${year}-01-01`;
+  const yearTo = isPastYear ? `${year}-12-31` : to;
 
   const [monthTransactions, prevMonthTransactions, yearTransactions, recentTransactions, accounts, categories] = await Promise.all([
     getFinancialTransactions({ from, to }),
     getFinancialTransactions({ from: prevFrom, to: prevTo }),
-    getFinancialTransactions({ from: yearFrom, to }),
+    getFinancialTransactions({ from: yearFrom, to: yearTo }),
     // 2026-09 Home redesign: recent transactions is now a 3-item preview
     // behind the "show more details" toggle (full history at
     // /money/transactions), not a 5-item list rendered by default.
@@ -131,8 +155,12 @@ export function getDashboardData() {
     // percent via calculateChangePercent — that would read as a much larger,
     // misleading swing for the same underlying move.
     savingsRateChangePoints: prevMonthTransactions.length > 0 ? savingsRatePercent - prevSavingsRatePercent : null,
-    // This year's left-over per month, for the yearly card's details.
-    monthlyNet: calculateMonthlyNetSeries(yearTransactions, Number(from.slice(0, 4)), Number(from.slice(5, 7)) - 1),
+    /** The year the yearly figures cover (this year unless an earlier one was picked). */
+    year,
+    isPastYear,
+    // The shown year's left-over per month, for the yearly card's details
+    // (a past year has no "future" months).
+    monthlyNet: calculateMonthlyNetSeries(yearTransactions, year, isPastYear ? 11 : Number(from.slice(5, 7)) - 1),
     // This year's spending per category, largest first (the yearly card
     // lists every one — 2026-10-26).
     yearCategorySpending: calculateSpendingByCategory(yearTransactions).map((row) => {

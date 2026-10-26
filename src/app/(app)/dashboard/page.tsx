@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
-import { getDashboardData } from "@/features/dashboard/queries";
+import { getDashboardData, getTransactionYears } from "@/features/dashboard/queries";
+import { YearPicker } from "@/features/dashboard/components/year-picker";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -22,15 +23,28 @@ import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components
 
 export const metadata: Metadata = { title: "Dashboard — Wealth OS" };
 
-export default async function DashboardPage() {
+interface DashboardPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const privacyGate = await getPrivacyGate(["overview", "activity", "planning", "insights"]);
   if (privacyGate) {
     return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
   }
 
-  const [data, profile] = await Promise.all([
-    getDashboardData(),
+  // ?year=2025 — the yearly card's year picker (2026-10-26). Anything that
+  // isn't a selectable past year falls back to this year.
+  const rawYear = (await searchParams).year;
+  const currentYear = new Date().getFullYear();
+  const requestedYear = Number(Array.isArray(rawYear) ? rawYear[0] : rawYear);
+  const pickedYear =
+    Number.isInteger(requestedYear) && requestedYear >= currentYear - 50 && requestedYear < currentYear ? requestedYear : currentYear;
+
+  const [data, profile, years] = await Promise.all([
+    getDashboardData({ year: pickedYear }),
     getProfile(),
+    getTransactionYears(currentYear),
   ]);
   const currencyCode = profile?.currency_code ?? "THB";
   const locale = await getLocale(profile?.preferred_language);
@@ -39,6 +53,18 @@ export default async function DashboardPage() {
   const today = new Date();
   const dateLocale = locale === "th" ? "th-TH" : "en-US";
   const monthFormatter = new Intl.DateTimeFormat(dateLocale, { month: "short" });
+  // "ปีนี้ · ม.ค. – ต.ค." for this year; "ปี 2568 · ทั้งปี" for a past one
+  // (Thai counts in the Buddhist era; only the year number is shown).
+  const yearRange = `${monthFormatter.format(new Date(data.year, 0, 1))} – ${monthFormatter.format(
+    data.isPastYear ? new Date(data.year, 11, 1) : today
+  )}`;
+  const yearNumber =
+    new Intl.DateTimeFormat(dateLocale, { year: "numeric" }).formatToParts(new Date(data.year, 6, 1)).find((p) => p.type === "year")
+      ?.value ?? String(data.year);
+  const yearTitle = (data.isPastYear ? dict.dashboard.year.pastTitle.replace("{year}", yearNumber) : dict.dashboard.year.title).replace(
+    "{range}",
+    yearRange
+  );
 
   if (!data.hasAnyData) {
     return (
@@ -129,18 +155,20 @@ export default async function DashboardPage() {
           yearExpensesCents={data.yearExpensesCents}
           yearSavingsRatePercent={data.yearSavingsRatePercent}
           hasYearData={data.hasYearData}
-          rangeLabel={`${monthFormatter.format(new Date(today.getFullYear(), 0, 1))} – ${monthFormatter.format(today)}`}
+          rangeLabel={yearRange}
           currencyCode={currencyCode}
           accounts={data.accounts}
           categories={data.categories}
+          titleSlot={
+            <YearPicker
+              title={yearTitle}
+              years={years}
+              selectedYear={data.year}
+              currentYear={currentYear}
+            />
+          }
           labels={{
             ...dict.dashboard.year,
-            // "ปี 2569" / "2026": th-TH counts in the Buddhist era; only the year number is shown.
-            title: dict.dashboard.year.title.replace(
-              "{year}",
-              new Intl.DateTimeFormat(dateLocale, { year: "numeric" }).formatToParts(today).find((p) => p.type === "year")?.value ??
-                String(today.getFullYear())
-            ),
             income: dict.dashboard.incomeShort,
             expenses: dict.dashboard.expensesShort,
             remaining: dict.dashboard.remaining,
@@ -149,7 +177,7 @@ export default async function DashboardPage() {
           yearChart={
             <MonthlyNetBars
               points={data.monthlyNet}
-              monthLabels={Array.from({ length: 12 }, (_, i) => monthFormatter.format(new Date(today.getFullYear(), i, 1)))}
+              monthLabels={Array.from({ length: 12 }, (_, i) => monthFormatter.format(new Date(data.year, i, 1)))}
               currencyCode={currencyCode}
               labels={{ noData: dict.dashboard.year.monthlyNetNoData }}
             />
@@ -159,7 +187,9 @@ export default async function DashboardPage() {
             rows={data.yearCategorySpending}
             locale={locale}
             currencyCode={currencyCode}
-            transactionsHref="/money/transactions"
+            transactionsHref={
+              data.isPastYear ? `/money/transactions?from=${data.year}-01-01&to=${data.year}-12-31` : "/money/transactions"
+            }
             labels={{
               title: dict.dashboard.year.whereMoneyWent,
               total: dict.dashboard.year.categoryTotal,

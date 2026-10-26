@@ -59,6 +59,8 @@ interface YearlyBalanceCardProps {
   yearChart?: ReactNode;
   /** This year's spending by category, shown last. */
   children?: ReactNode;
+  /** Replaces the plain heading — Home's year picker (2026-10-26). */
+  titleSlot?: ReactNode;
   labels: {
     title: string;
     surplus: string;
@@ -97,12 +99,15 @@ export function YearlyBalanceCard({
   categories,
   yearChart,
   children,
+  titleSlot,
   labels,
 }: YearlyBalanceCardProps) {
   if (!hasYearData) {
     return (
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+          {/* Still switchable to another year when the picked one is empty. */}
+          {titleSlot ? <div className="self-start text-left">{titleSlot}</div> : null}
           <IconChip icon={Wallet} tone="lavender" className="size-10" />
           <div className="space-y-1">
             <p className="font-medium">{labels.noDataTitle}</p>
@@ -143,9 +148,11 @@ export function YearlyBalanceCard({
     <Card>
       <CardContent className="space-y-2.5 pb-0">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="truncate text-sm font-semibold text-muted-foreground">
-            {labels.title.replace("{range}", rangeLabel)}
-          </h2>
+          {titleSlot ?? (
+            <h2 className="truncate text-sm font-semibold text-muted-foreground">
+              {labels.title.replace("{range}", rangeLabel)}
+            </h2>
+          )}
           <p className="shrink-0 text-xs text-muted-foreground">
             {statusLabel}{" "}
             <span
