@@ -1,0 +1,228 @@
+<title>ชักเย่อรายได้ v7</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* Deliberately single-theme: the app's notebook-paper look (same tokens as v5/v6). */
+  :root{
+    color-scheme: light;
+    --desk:#e9e2d0; --paper:#f7f1e3; --card:#fffdf6; --line:#ece3cc; --ink:#22302a; --muted:#7a7566;
+    --green:#1f4a3a; --good:#2f7a55; --g1:#b9e8d1; --g2:#5fae88; --g3:#3f8f68; --good-soft:#e2f1e8;
+    --bad:#b4435a; --r1:#f0b3bb; --r2:#c25b67; --bad-soft:#f6e3e6; --sand:#f3ecdb; --sand-deep:#e4dac2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--desk);color:var(--ink);font-family:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:24px 40px}
+  .wrap{max-width:1280px;margin:0 auto;display:grid;gap:20px}
+  header h1{font-size:20px;margin:0 0 4px;text-wrap:balance}
+  header p{margin:0;color:var(--muted);font-size:14px;line-height:1.6;max-width:66ch}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tabs button{font:inherit;font-size:13.5px;font-weight:600;border:1px solid var(--sand-deep);background:var(--card);color:var(--muted);padding:7px 14px;border-radius:99px;cursor:pointer}
+  .tabs button[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
+  .tabs button:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+  .row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .col{width:100%;max-width:370px;display:grid;gap:8px}
+  .tag{justify-self:start;font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--green);color:#fff}
+  .why{font-size:12.5px;color:var(--muted);margin:0;line-height:1.55}
+  .phone{background:var(--paper);border-radius:32px;padding:14px 12px 20px;box-shadow:0 10px 30px rgba(0,0,0,.10)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px}
+  .num{font-variant-numeric:tabular-nums}
+  .muted{color:var(--muted)}
+  .good{color:var(--good)} .bad{color:var(--bad)}
+  .eyebrow{font-size:13px;color:var(--muted);font-weight:500;margin:0}
+  .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .lead{font-size:22px;font-weight:700;margin:2px 0 0;line-height:1.25}
+
+  /* the tug bar: green pushes from the left, red from the right, they meet at the front line */
+  .tug{position:relative;margin:16px 0 4px}
+  .tug .bar{position:relative;display:flex;height:40px;border-radius:14px;overflow:hidden;box-shadow:inset 0 -3px 0 rgba(0,0,0,.06)}
+  .tug .g,.tug .r{font-style:normal}
+  .tug .g{display:flex;align-items:center;padding-left:12px;background:linear-gradient(180deg,var(--g2),var(--g3));color:#fff;min-width:0}
+  .tug .r{flex:1;display:flex;align-items:center;justify-content:flex-end;padding-right:12px;background:linear-gradient(180deg,var(--r1),var(--r2));color:#fff;min-width:0}
+  .tug .g span,.tug .r span{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:clip;text-shadow:0 1px 1px rgba(0,0,0,.15)}
+  .tug .g small,.tug .r small{display:block;font-size:10.5px;font-weight:600;opacity:.9}
+  .tug .front{position:absolute;top:-6px;bottom:-6px;width:0;border-left:3px solid #fff;filter:drop-shadow(0 0 2px rgba(0,0,0,.25))}
+  .tug .front::after{content:"฿";position:absolute;top:50%;left:-1.5px;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:radial-gradient(circle at 35% 30%,#f6e3ae,#d9b866 55%,#b8954a);font-size:12px;font-weight:700;color:#5a4416;display:grid;place-items:center}
+  .tug .ghost{position:absolute;top:-3px;bottom:-3px;border-left:2px dashed rgba(255,255,255,.85)}
+  .tug.has-flag{margin-top:34px}
+  .tug .flag{position:absolute;top:-8px;bottom:-4px;border-left:2.5px dashed var(--g3);font-style:normal}
+  .tug .flag span{position:absolute;bottom:100%;left:0;transform:translateX(-50%);margin-bottom:2px;white-space:nowrap;font-size:11px;font-weight:700;color:#fff;background:var(--g3);padding:2px 8px;border-radius:99px}
+  .tug .even{position:absolute;left:50%;top:-10px;bottom:-10px;border-left:2px dashed rgba(34,48,42,.45)}
+  .scale{position:relative;height:30px;font-size:10.5px;color:var(--muted);margin-top:8px}
+  .scale i{position:absolute;transform:translateX(-50%);font-style:normal;text-align:center;line-height:1.3;white-space:nowrap}
+  .scale i::before{content:"";display:block;width:1.5px;height:6px;background:var(--sand-deep);margin:0 auto 2px}
+  .scale i.hit{color:var(--good);font-weight:700}
+  .scale i.hit::before{background:var(--good)}
+  .scale i.next{color:var(--ink);font-weight:700}
+
+  .push{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 11px;border-radius:12px;font-size:13px;font-weight:600;background:var(--good-soft);color:var(--good)}
+  .push.neg{background:var(--bad-soft);color:var(--bad)}
+  .push .arrow{font-size:16px;line-height:1}
+  .goal{margin-top:10px;border:1.5px dashed var(--g2);border-radius:14px;padding:10px 12px;display:grid;gap:8px}
+  .goal p{margin:0;font-size:13.5px;line-height:1.5}
+  .goal p b{color:var(--good)}
+  .cta{display:flex;justify-content:center;align-items:center;gap:6px;padding:10px;border-radius:12px;background:var(--green);color:#fff;font-weight:600;font-size:14px;text-decoration:none}
+
+  /* G3: monthly tug rows */
+  .months{display:grid;gap:5px;margin-top:12px}
+  .mrow{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;font-size:11px;color:var(--muted)}
+  .mrow .mb{position:relative;display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--r1)}
+  .mrow .mb i{background:var(--g2)}
+  .mrow .mb::after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:1.5px dashed rgba(34,48,42,.35)}
+  .mrow.now{color:var(--ink);font-weight:700}
+  .mrow.now .mb{height:14px}
+  .mnote{font-size:11px;color:var(--muted);margin:6px 0 0}
+
+  .notes{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;font-size:14px;line-height:1.7;max-width:780px}
+  .notes h2{font-size:15px;margin:0 0 6px}
+  .notes ul{margin:0;padding-left:20px}
+  .notes li + li{margin-top:4px}
+  @media (prefers-reduced-motion: no-preference){ .tug .g,.tug .front,.mrow .mb i{transition:all .5s ease} }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>ชักเย่อรายได้ (v7) · เขียวดันแดง</h1>
+    <p>ทุกแบบใช้ไอเดียเดิมที่ถูกแล้ว คือ <b>หลอดเขียว (รายได้) ดันหลอดแดง (รายจ่าย)</b> ยิ่งหาเงินได้มาก เส้นที่ทั้งสองชนกันยิ่งถูกดันไปทางขวา
+       สิ่งที่แก้คือใส่ป้ายบนหลอด บอกว่าเส้นประกลางคือ "เสมอตัว" และบอกว่าเขียวดันไปได้เพิ่มแค่ไหน
+       ยอดรวมเป็นตัวเลขจริงจากภาพหน้าจอ ส่วนตำแหน่งเดือนก่อน ยอดรายเดือน และสถานะ "แดงนำ" เป็นตัวอย่าง</p>
+  </header>
+
+  <div class="tabs" role="group" aria-label="สถานะตัวอย่าง">
+    <button type="button" id="st-pos" aria-pressed="true">เขียวนำ (เก็บได้)</button>
+    <button type="button" id="st-neg" aria-pressed="false">แดงนำ (ใช้เกิน · ตัวอย่าง)</button>
+  </div>
+
+  <div class="row">
+    <!-- G1 -->
+    <section class="col" aria-label="แบบ G1">
+      <span class="tag">G1 · ชักเย่อมีป้าย</span>
+      <p class="why">หลอดเดิมแต่หนาขึ้น เขียนชื่อกับยอดเงินไว้บนหลอดเลย เส้นประบอกว่าเป็นจุดเสมอตัว และมีเส้นจาง ๆ บอกตำแหน่งเมื่อเดือนก่อน เห็นเลยว่าเขียวดันมาได้เท่าไร</p>
+      <div class="phone"><div class="card">
+        <div class="head"><p class="eyebrow">ปีนี้ · ม.ค. – ต.ค.</p></div>
+        <p class="lead num" data-v="lead" data-tone>เขียวนำ ฿11,302</p>
+        <div class="tug">
+          <div class="bar"><i class="g" data-w="share"><span><small>รายได้</small><b data-v="inc">฿38,086</b></span></i><i class="r"><span><small>รายจ่าย</small><b data-v="exp">฿26,783</b></span></i></div>
+          <i class="even"></i><i class="ghost" data-left="ghost"></i><i class="front" data-left="share"></i>
+        </div>
+        <div class="scale"><i style="left:50%">เสมอตัว</i></div>
+        <div class="push" data-v="pushTxt" data-negclass>➜ เดือนนี้เขียวดันแดงไปอีก ฿2,140</div>
+      </div></div>
+    </section>
+
+    <!-- G2 -->
+    <section class="col" aria-label="แบบ G2">
+      <span class="tag">G2 · ชักเย่อ + ขีดเป้าถัดไป (แนะนำ)</span>
+      <p class="why">G1 บวกขีดบนหลอด: รายได้ 1 เท่า (เสมอตัว), 1.5 เท่า และ 2 เท่าของรายจ่าย บอกว่าต้องหาเพิ่มอีกเท่าไรเขียวถึงจะดันถึงขีดถัดไป แล้วพาไปหน้าหารายได้</p>
+      <div class="phone"><div class="card">
+        <p class="eyebrow">ปีนี้ · ม.ค. – ต.ค.</p>
+        <p class="lead num" data-v="lead" data-tone>เขียวนำ ฿11,302</p>
+        <div class="tug has-flag">
+          <div class="bar"><i class="g" data-w="share"><span><small>รายได้</small><b data-v="inc">฿38,086</b></span></i><i class="r"><span><small>รายจ่าย</small><b data-v="exp">฿26,783</b></span></i></div>
+          <i class="even"></i><i class="front" data-left="share"></i><i class="flag" id="target"><span id="targetLbl"></span></i>
+        </div>
+        <div class="scale"><i style="left:50%">เสมอตัว</i></div>
+        <div class="goal">
+          <p data-v="goalTxt">หาเพิ่มอีก <b>฿2,089</b> เขียวจะดันถึงขีด <b>1.5 เท่า</b> (รายได้เป็น 1.5 เท่าของรายจ่าย)</p>
+          <a class="cta" href="#" onclick="return false">หารายได้เพิ่ม →</a>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- G3 -->
+    <section class="col" aria-label="แบบ G3">
+      <span class="tag">G3 · ชักเย่อทั้งปี + รายเดือน</span>
+      <p class="why">หลอดใหญ่ของทั้งปีอยู่บน ใต้ลงมาเป็นหลอดเล็กเดือนละเส้น ไล่ดูได้ว่าเดือนไหนเขียวดันไปไกล เดือนไหนแดงตีกลับ เห็นความก้าวหน้าตลอดปี</p>
+      <div class="phone"><div class="card">
+        <p class="eyebrow">ปีนี้ · ม.ค. – ต.ค.</p>
+        <p class="lead num" data-v="lead" data-tone>เขียวนำ ฿11,302</p>
+        <div class="tug">
+          <div class="bar"><i class="g" data-w="share"><span><small>รายได้</small><b data-v="inc">฿38,086</b></span></i><i class="r"><span><small>รายจ่าย</small><b data-v="exp">฿26,783</b></span></i></div>
+          <i class="even"></i><i class="front" data-left="share"></i>
+        </div>
+        <div class="months" id="months"></div>
+        <p class="mnote">เส้นประกลาง = เสมอตัว · เขียวเลยกลาง = เดือนนั้นเก็บได้ (ยอดรายเดือนเป็นตัวอย่าง)</p>
+      </div></div>
+    </section>
+  </div>
+
+  <section class="notes">
+    <h2>ทำไม G2 น่าจะได้ผลที่สุดกับแอปเรา</h2>
+    <ul>
+      <li>หลอดเขียวยังเป็นพระเอก ตัวใหญ่ และอยู่ทางซ้ายที่ตามองก่อน</li>
+      <li>มีป้ายบอกเลยว่าเขียวคือรายได้ แดงคือรายจ่าย เส้นประคือจุดเสมอตัว ไม่ต้องเดา</li>
+      <li>ขีด "1.5 เท่า / 2 เท่า" ทำให้มีเป้าใกล้ ๆ ให้ดันต่อ และบอกเป็นเงินบาทว่าต้องหาเพิ่มเท่าไร คำนวณตรง ๆ ไม่ใช้ AI เดา</li>
+      <li>ปุ่ม "หารายได้เพิ่ม" พาไปหน้าหารายได้ทันที ตรงกับจุดขายของแอป</li>
+      <li>ปีที่แดงนำ ไม่ดุ บอกแค่ว่า "หาเพิ่มอีก ฿… เขียวจะดันกลับถึงจุดเสมอตัว"</li>
+      <li>เอาเส้น "เดือนก่อน" จาก G1 หรือหลอดรายเดือนจาก G3 มาผสมได้</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+  const data = {
+    // Screenshot totals (satang make the difference ฿11,302). Ghost/monthly figures are examples.
+    pos: { inc: 38085.6, exp: 26783.4, ghostShare: 57.1, pushed: 2140,
+           months: [[3200,3100],[3500,2600],[2900,3300],[4100,2500],[3800,2700],[3600,2900],[4200,2600],[3900,2400],[4300,2500],[4585.6,2183.4]] },
+    neg: { inc: 30000, exp: 34500, ghostShare: 47.6, pushed: -900,
+           months: [[3000,3600],[2800,3500],[3100,3300],[2900,3700],[3200,3400],[2700,3600],[3000,3500],[3100,3300],[3000,3400],[3200,3700]] },
+  };
+  const M = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค."];
+  const baht = (n) => "฿" + Math.round(Math.abs(n)).toLocaleString("en-US");
+  // Income as a multiple of expenses → position on the bar: share = m / (m + 1).
+  const RUNGS = [{ m: 1, label: "เสมอตัว" }, { m: 1.5, label: "1.5 เท่า" }, { m: 2, label: "2 เท่า" }, { m: 3, label: "3 เท่า" }];
+  const shareOf = (m) => (m / (m + 1)) * 100;
+
+  function render(state){
+    const d = data[state];
+    const kept = Math.round((d.inc - d.exp) * 100) / 100;
+    const neg = kept < 0;
+    const share = (d.inc / (d.inc + d.exp)) * 100;
+    const ratio = d.inc / d.exp;
+    const next = RUNGS.find((r) => r.m > ratio + 1e-9);
+    const need = next ? next.m * d.exp - d.inc : 0;
+    const v = {
+      inc: baht(d.inc), exp: baht(d.exp),
+      lead: neg ? "แดงนำ ใช้เกิน " + baht(kept) : "เขียวนำ เหลือเก็บ " + baht(kept),
+      pushTxt: d.pushed >= 0 ? "➜ เดือนนี้เขียวดันแดงไปได้อีก " + baht(d.pushed)
+                             : "← เดือนนี้แดงดันกลับมา " + baht(d.pushed) + " · หาเพิ่มเพื่อดันคืน",
+      goalTxt: next
+        ? (next.m === 1
+            ? "หาเพิ่มอีก <b>" + baht(need) + "</b> เขียวจะดันกลับถึง<b>จุดเสมอตัว</b> (ไม่ติดลบ)"
+            : "หาเพิ่มอีก <b>" + baht(need) + "</b> เขียวจะดันถึงขีด <b>" + next.label + "</b> (รายได้เป็น " + next.label + "ของรายจ่าย)")
+        : "เขียวดันเกินขีดสุดท้ายแล้ว 🎉",
+    };
+    document.querySelectorAll("[data-v]").forEach((el) => {
+      const val = v[el.dataset.v];
+      if (el.dataset.v === "goalTxt") el.innerHTML = val; else el.textContent = val;
+    });
+    document.querySelectorAll("[data-tone]").forEach((el) => { el.classList.toggle("good", !neg); el.classList.toggle("bad", neg); });
+    document.querySelectorAll("[data-negclass]").forEach((el) => el.classList.toggle("neg", d.pushed < 0));
+    document.querySelectorAll("[data-w='share']").forEach((el) => (el.style.width = share + "%"));
+    document.querySelectorAll("[data-left='share']").forEach((el) => (el.style.left = share + "%"));
+    document.querySelectorAll("[data-left='ghost']").forEach((el) => (el.style.left = d.ghostShare + "%"));
+
+    // G2: the stretch green still has to cover to reach the next rung, drawn on top of the red.
+    const target = document.getElementById("target");
+    const lbl = document.getElementById("targetLbl");
+    // Flag above the bar at the next rung (break-even when red is ahead).
+    target.hidden = !next;
+    if (next) {
+      target.style.left = shareOf(next.m) + "%";
+      lbl.textContent = next.m === 1 ? "เป้า: เสมอตัว" : "เป้าถัดไป " + next.label;
+    }
+
+    // G3 monthly rows
+    const box = document.getElementById("months");
+    box.innerHTML = "";
+    d.months.forEach(([inc, exp], idx) => {
+      const row = document.createElement("div");
+      row.className = "mrow" + (idx === d.months.length - 1 ? " now" : "");
+      row.innerHTML = '<span>' + M[idx] + '</span><span class="mb"><i style="width:' + (inc / (inc + exp)) * 100 + '%"></i></span>';
+      box.appendChild(row);
+    });
+
+    document.getElementById("st-pos").setAttribute("aria-pressed", String(!neg));
+    document.getElementById("st-neg").setAttribute("aria-pressed", String(neg));
+  }
+  document.getElementById("st-pos").addEventListener("click", () => render("pos"));
+  document.getElementById("st-neg").addEventListener("click", () => render("neg"));
+  render("pos");
+</script>
