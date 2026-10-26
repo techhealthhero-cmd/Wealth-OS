@@ -10,9 +10,35 @@ Last updated: 2026-10-26
 
 ## Slip inbox: iPhone Shortcut + many slips at once — 2026-10-26
 
-**Code done, tested; migration `0046_slip_inbox.sql` NOT applied to any
-database yet** (user runs `supabase db push --linked`). Until it is, every
-new surface hides itself or says "ยังไม่พร้อม" — nothing breaks.
+**LIVE and verified on production (2026-10-26).** The user pushed
+migration `0046_slip_inbox.sql` to production (`lvxuruzspchhcwebrbzy`).
+Verified the same day:
+- Read-only: both tables exist with every column; an anonymous request
+  sees 0 rows of either (RLS).
+- Live site (`wealth-os-pi-one.vercel.app`, commit `6706607`): the endpoint
+  answers a well-formed fake key with 401 (not 500, and not a redirect to
+  /login) — so `SUPABASE_SERVICE_ROLE_KEY` is set on Vercel and the proxy
+  lets the route through.
+- End-to-end with disposable users (deleted afterwards, 0 rows left) and a
+  SYNTHETIC K PLUS slip image, against the live site with the real AI
+  model: key created in the UI (only its hash stored) → GET 200 → POST
+  201 queued in ~2.7s; amount 249.00, date 2026-10-25 (from "25 ต.ค. 69"),
+  reference, merchant "KFC เซ็นทรัลเวิลด์", account = KBank (from the slip),
+  confidence high. Same photo again → skipped with no AI call; a different
+  photo of the same slip → read (2nd AI call) then skipped by its
+  reference. No transaction and KBank unchanged before ✓. ✓ in the UI →
+  exactly one transaction (expense, KBank, receipt, confirmed,
+  client_request_id = slip id), KBank 1000 → 751, slip confirmed and linked;
+  a resend after that stays skipped. Revoking in the UI → POST 401. The
+  ownership trigger rejects another user's account; a second user sees
+  none of the first user's slips/keys and can't update them (RLS).
+- Found and fixed in that run: a React hydration error (#418) on
+  /profile/slip-shortcut — "last used" was formatted in the server's UTC
+  but the phone's local time; it now uses the profile timezone.
+- Still not done: a run from a real iPhone Shortcut on the user's phone.
+
+Originally (before the push): every new surface hid itself or said
+"ยังไม่พร้อม" — nothing broke.
 
 - User asked for slips to be read automatically from the phone. A PWA can't
   read the photo library in the background, so (user's choice, 2026-10-26)
@@ -64,11 +90,8 @@ new surface hides itself or says "ยังไม่พร้อม" — nothing
 - **Visual QA**: slip card, category picker, keys card and the setup page
   rendered at 390px with the demo account (sample slips on a temporary
   page, removed), no console errors, no horizontal scroll.
-- **Not verified yet**: against a real database (needs 0046), a real
-  iPhone Shortcut run, and `SUPABASE_SERVICE_ROLE_KEY` being set on Vercel
-  production (the endpoint returns 503 without it). Next: after the push,
-  read-only check of both tables, then a live e2e (create key → POST a
-  synthetic slip → confirm → one transaction, balance moves once).
+- **Not verified yet**: a real iPhone Shortcut run (everything else above
+  is verified live).
 
 ## Home yearly card: everything year to date — 2026-10-26
 

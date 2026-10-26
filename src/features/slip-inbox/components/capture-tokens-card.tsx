@@ -36,14 +36,23 @@ function CopyField({ value, label }: { value: string; label: string }) {
 }
 
 /** Profile › ส่งสลิปอัตโนมัติ: the endpoint URL plus the user's connection keys. */
-export function CaptureTokensCard({ tokens, endpointUrl }: { tokens: CaptureTokenSummary[]; endpointUrl: string }) {
+export function CaptureTokensCard({
+  tokens,
+  endpointUrl,
+  timeZone,
+}: {
+  tokens: CaptureTokenSummary[];
+  endpointUrl: string;
+  /** The user's timezone — fixed so the server render (UTC) and the phone show the same time. */
+  timeZone: string;
+}) {
   const { t, locale } = useTranslation();
   const router = useRouter();
   const [label, setLabel] = useState("");
   const [newKey, setNewKey] = useState<string | null>(null);
   const [creating, startCreate] = useTransition();
   const [revoking, startRevoke] = useTransition();
-  const when = new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { dateStyle: "medium", timeStyle: "short" });
+  const when = new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { dateStyle: "medium", timeStyle: "short", timeZone });
 
   function create() {
     startCreate(async () => {

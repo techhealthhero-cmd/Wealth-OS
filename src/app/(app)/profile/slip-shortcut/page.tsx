@@ -43,7 +43,7 @@ export default async function SlipShortcutPage() {
       {tokens === null ? (
         <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">{dict.slipInbox.notReady}</p>
       ) : (
-        <CaptureTokensCard tokens={tokens} endpointUrl={url} />
+        <CaptureTokensCard tokens={tokens} endpointUrl={url} timeZone={profile.timezone ?? "Asia/Bangkok"} />
       )}
 
       <Card>
