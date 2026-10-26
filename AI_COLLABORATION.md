@@ -139,6 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| SLIP-01 | สลิปอัตโนมัติ: ตั้ง iPhone Shortcut ให้เสร็จ + ปรับระบบหลังทดสอบจริง | Claude | IN PROGRESS (พักโดยเจ้าของโปรเจกต์ 2026-10-26) | ดูหัวข้อ "Slip inbox — queued follow-ups" ใน `PROJECT_STATUS.md` | เจ้าของโปรเจกต์เปิดสิทธิ์ความเป็นส่วนตัวของ Shortcut แล้วรันใหม่ |
 | ART-01 | Brand & Marketing templates | Claude | TODO | จัด Feature Announcement, Product Preview และ Social Share จาก master ที่อนุมัติแล้ว | ส่งภาพหน้าจอ/ผล QA ให้ Codex ตรวจความสม่ำเสมอ |
 | QA-01 | Empty State live QA | Claude | TODO | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | บันทึก viewport, theme และผลตรวจใน `ARTWORK_ROADMAP.md` |
 | ART-02 | Brand artwork visual QA | Codex | WAITING | ตรวจ light/dark, mobile/desktop และ social safe area หลังติดตั้ง | รอ Claude ส่งหน้าจอจริง |

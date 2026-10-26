@@ -8,6 +8,42 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-10-26
 
+## Slip inbox — queued follow-ups (paused by the user 2026-10-26, NOT done)
+
+Real-phone setup reached the test-run stage, then paused. State at pause:
+- The user's Shortcut is built correctly (Find Photos: album K PLUS + วันที่ถ่าย
+  in the last N days → Repeat → Convert JPEG → Resize 1280 → Get Contents of
+  URL POST, `Authorization: Bearer <key>`, body File = resized image → after
+  End Repeat: Show Repeat Results). The first run sent 2 real slips (both
+  now waiting in the slip inbox, unconfirmed).
+- A second run was blocked by iOS: "การทำงานนี้พยายามแชร์ 36 รูปภาพ ซึ่งไม่ได้รับอนุญาต".
+  The user may have widened the window to 30 days (36 photos).
+
+Queue, in order:
+1. **User**: Shortcut ⓘ → ความเป็นส่วนตัว → allow sharing with
+   wealth-os-pi-one.vercel.app (or reset privacy), rerun and pick
+   "อนุญาตเสมอ". Set the window back to 3 days first (Free plan = 60
+   capture AI reads/month; 36 photos ≈ 34 reads).
+2. **User**: confirm the 2 waiting slips — both defaulted to the first
+   account "เงินกันจน (ฉุกเฉิน) 10" (no account matched "K PLUS"), so the
+   account must be changed (swipe right) and a category picked (person-
+   to-person transfers have no keyword).
+3. **User**: Automation tab → Time of Day 21:00 daily → Run Immediately →
+   this Shortcut; optionally drop "Show Repeat Results".
+4. **Claude (offered, awaiting the user's yes)**: remember the paying app
+   → account. When a slip's `payment_method` (e.g. "K PLUS") didn't match
+   and the user changes the account on confirm, save it (e.g. as an
+   `account_aliases` row, source 'learned') and use it in
+   `suggestSlipFields` next time. Also consider not defaulting to a
+   savings/emergency account when nothing matched.
+5. **Claude**: align `/profile/slip-shortcut` steps with the real Thai
+   iOS screens seen 2026-10-26 ("อยู่ในช่วงที่ผ่านมา" not "อยู่ในช่วงล่าสุด";
+   add the ⓘ → ความเป็นส่วนตัว → อนุญาตเสมอ step; Show Repeat Results
+   after End Repeat; one header row, "Bearer " inside the value; drag new
+   actions inside the loop), and add a quota note to the setup page.
+6. **Claude**: update the standalone Artifact user guide and the journey
+   doc (deferred until the feature is fully set up on the user's phone).
+
 ## Slip inbox: iPhone Shortcut + many slips at once — 2026-10-26
 
 **LIVE and verified on production (2026-10-26).** The user pushed
