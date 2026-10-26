@@ -135,7 +135,9 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
-- HOME-VARIANT-B — Owner: Grok Bot; IN PR → staging. Home opens with the Variant B notebook year overview: compact green net worth, Buddhist year switcher (current and two previous), selected full year vs previous full year, category comparison with อื่นๆ after 8 rows, and goals whose target date falls in that year. Monthly “ใช้ไปแล้ว” card stays under net worth. No schema, RLS, auth, billing, or formula changes. Next: owner visual check on device.
+- HOME-REMOVE-MONTH-CARD — Owner: Grok Bot; IN PR → staging. Removed the cream Home monthly-spend card (`MonthlySpend`, `src/features/dashboard/components/monthly-spend.tsx`). Compact `NetWorthHero` and Variant B `HomeYearSection` stay. Slip `MonthlySpendCard` / `MonthlySpendDetail`, finance-tab calendar, and year summary stay. No schema, RLS, auth, billing, or formula changes. Next: owner visual check on device.
+
+- HOME-VARIANT-B — Owner: Grok Bot; IN PR → staging. Home opens with the Variant B notebook year overview: compact green net worth, Buddhist year switcher (current and two previous), selected full year vs previous full year, category comparison with อื่นๆ after 8 rows, and goals whose target date falls in that year. No schema, RLS, auth, billing, or formula changes. Next: owner visual check on device.
 
 - SLIP-POLISH — Owner: Codex; READY FOR HANDOFF. Optimistic undo + retry snapshot and explicit fuel keywords implemented. Node 22 NLP precision=1 / zero critical; tsc (after next typegen), lint and 64 focused tests PASS. Full Vitest: 167 files / 2469 tests PASS; one offline-assets test blocked by spawnSync EPERM. Supervisor reviews/commits; no DB/auth/RLS/billing/formula changes or commit/push.
 
@@ -162,6 +164,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| HOME-REMOVE-MONTH-CARD | Remove cream Home monthly-spend card | Grok Bot | IN PR → staging | Deleted Home-only `MonthlySpend` shell. Keep compact net worth + Variant B year overview. Slip card/detail stay. | Owner visual check; merge to staging only |
 | HOME-VARIANT-B | Home redesign Variant B (year overview) | Grok Bot | IN PR → staging | Compact net worth, year switcher 2569/2568/2567, income/expense/ออมได้, category compare, goals due that year. Display aggregation only. | Owner 390px check; merge to staging only |
 | QA4-FOLLOWUPS | PR #51 blob clearance + Thai weekday | Codex | DONE — local review | Emergency form mobile gutter + route docking (restored/resized/dragged); UTC Thai abbreviations. Typecheck/lint and 3 Vitest files / 25 tests pass. No DB/auth/billing/formulas or commits | Owner 390×664 device review |
 | INVOICE-QA-FIXES | Bugs 5/6/7a/7b; invoice logic only | Codex | READY FOR HANDOFF | 5/6/7a implemented; 7b not reproduced (existing profile-zone and SQL-date paths correct), regressions added. Node 22 typecheck/lint; full 151 files / 2148 tests; UTC 3 files / 14 tests pass. No UI/DB-write/schema changes. | Supervisor stages/commits (Git metadata read-only), reviews/pushes/PR; affected date example needed |
@@ -239,6 +242,10 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-26 — Grok Bot → owner (HOME-REMOVE-MONTH-CARD)
+
+- Removed the cream Home monthly-spend card: `MonthlySpend` (`src/features/dashboard/components/monthly-spend.tsx`) is gone from `src/app/(app)/dashboard/page.tsx`, and that Home-only shell file is deleted because nothing else imported it. Compact green `NetWorthHero` and Variant B `HomeYearSection` stay. `getMonthlySpendSummary` still feeds the green card's month-spent line. Slip capture still uses `MonthlySpendDetail`; the slip preview still renders `MonthlySpendCard`. No schema, RLS, auth, billing, or formula changes. Finance-tab calendar and year summary untouched.
 
 ### 2026-10-19 — Codex → owner (INFRA-SIN1-STAGING)
 

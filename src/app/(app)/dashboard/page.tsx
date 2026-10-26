@@ -10,7 +10,6 @@ import { getLocale } from "@/i18n/server";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { HomeYearSection } from "@/features/dashboard/components/home-year-section";
 import { IncomeThisMonth } from "@/features/dashboard/components/income-this-month";
-import { MonthlySpend } from "@/features/dashboard/components/monthly-spend";
 import { getMonthlySpendSummary } from "@/features/dashboard/monthly-spend-actions";
 import { HomeQuickActions } from "@/features/dashboard/components/home-quick-actions";
 import { HomeExpectedTileCard, HomeTaxTile } from "@/features/dashboard/components/home-tiles";
@@ -79,7 +78,7 @@ export default async function DashboardPage({
       {/* Each data section streams independently. */}
       <div className="motion-reveal motion-reveal-1">
         <Suspense fallback={<Skeleton className="h-[220px] w-full rounded-[22px]" />}>
-          <HomeNetWorthSlot today={today} monthlySpend={getMonthlySpendSummary()} />
+          <HomeNetWorthSlot monthlySpend={getMonthlySpendSummary()} />
         </Suspense>
       </div>
 
@@ -133,17 +132,10 @@ export default async function DashboardPage({
 }
 
 async function HomeNetWorthSlot({
-  today,
   monthlySpend,
 }: {
-  today: string;
   monthlySpend: ReturnType<typeof getMonthlySpendSummary>;
 }) {
   const summary = await monthlySpend;
-  return (
-    <div className="space-y-4">
-      <NetWorthHero variant="compact" monthSpendCents={summary ? summary.spentCents : null} />
-      <MonthlySpend summary={summary} month={today.slice(0, 7)} />
-    </div>
-  );
+  return <NetWorthHero variant="compact" monthSpendCents={summary ? summary.spentCents : null} />;
 }
