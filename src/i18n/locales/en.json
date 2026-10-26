@@ -3431,12 +3431,12 @@
       "endpointTitle": "Address to send slips to (URL)",
       "stepsTitle": "Set up the Shortcut (once, about 3 minutes)",
       "steps": [
-        "Open Shortcuts › Shortcuts tab › + to create one, name it \"Send slips to Wealth OS\"",
-        "Add \"Find Photos\" › Add Filter: Album is your bank's slip album (e.g. K PLUS, SCB EASY) and Date Added is in the last 3 days",
+        "Open Shortcuts › + to create one, name it \"Send slips to Wealth OS\"",
+        "Add \"Find Photos\" › Add Filter: Album is your bank's slip album (e.g. K PLUS) and Date Taken is in the last 3 days",
         "Add \"Repeat with Each\" over the photos found",
         "Inside Repeat: add \"Convert Image\" to JPEG, then \"Resize Image\" to width 1280",
-        "Then \"Get Contents of URL\": paste the URL above › Method: POST › Headers: Authorization = Bearer followed by your key › Request Body: File = the resized image",
-        "Automation tab › + › Time of Day (e.g. 21:00 daily) › choose this Shortcut › set to \"Run Immediately\""
+        "Then \"Get Contents of URL\": paste the URL above › Show More › Method: POST › Headers: Authorization = Bearer, a space, then your key › Request Body: File = the resized image",
+        "Automation tab › + › Time of Day (e.g. 21:00 daily) › Run Immediately › choose this Shortcut (on the first run, tap Always Allow)"
       ],
       "testTitle": "Test it",
       "testHint": "Run the Shortcut once yourself, then open Money › Transactions › To review. Slips should appear within seconds.",
