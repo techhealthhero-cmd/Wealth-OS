@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- HOME-REMOVE-SHORTCUTS-INCOME — Owner: Grok Bot; IN PR → staging. Owner asked to remove the Home shortcut row (ออกใบแจ้งหนี้, บันทึกรายรับ, กันภาษี, สแกนสลิป), the รอเงินเข้า and โหลภาษี cards, and the รายได้แยกตามแหล่ง block. Compact NetWorthHero and HomeYearSection stay. Slip scan stays in the capture / voice flow. No schema, RLS, auth, billing, or formula changes. Next: owner 390px check on device.
+
 - SLIP-KPLUS-OCR — Owner: Grok Bot; IN PR → staging. Rebased onto staging after Home Variant B, the monthly-spend card removal, and Finance Variant B. On-device slip review was showing ฿0 because K PLUS prints `จำนวน:` (not `จำนวนเงิน`) and Tesseract reads `พ.ย.` as `พ.ุย.`/`พุย.`. Parser now accepts that layout, PSM 4 keeps the QR out of the text column, and gallery images are decoded on the main thread before OCR. The cream Home monthly-spend card stays removed. No schema, RLS, auth, billing, or money-formula changes. Next: owner re-upload of the 6 slips on an iPhone.
 
 - FINANCE-VARIANT-B — Owner: Grok Bot; IN PR → staging. Finance → รายการ is the monthly close-up: green month hero (รับ/จ่าย/สุทธิ, budget only when one exists) and a full-month calendar (darker red = more spent, green = income day, day tap filters the list). Home Variant B untouched. The cream Home monthly-spend card stays removed. No schema, RLS, auth, billing, or formula changes. Next: owner 390px check on device.
@@ -247,6 +249,10 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-10-26 — Grok Bot → owner (HOME-REMOVE-SHORTCUTS-INCOME)
+
+- Removed from signed-in Home: the four shortcut circles, the รอเงินเข้า / โหลภาษี cards, and the income-by-source section. Deleted the Home-only components (`home-quick-actions`, `home-expected-tile`, `HomeExpectedTileCard`, `HomeTaxTile`, `soon-chip`, `income-this-month` and its card) and the Home-only `getIncomeBySourceData` loader. The pure grouping helpers in `income-by-source.ts` stay tested but Home does not call them. Compact green net worth and Variant B `HomeYearSection` stay. Finance calendar untouched. Slip scan remains in Quick Capture and the voice notebook. Invoice and tax-jar features themselves are unchanged. No schema, RLS, auth, billing, or formula changes. No signed-in 390px screenshot: this environment has no Supabase session.
 
 ### 2026-10-26 — Grok Bot → owner (HOME-REMOVE-MONTH-CARD)
 
