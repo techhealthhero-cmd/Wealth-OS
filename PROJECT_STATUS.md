@@ -6,7 +6,16 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-19
+Last updated: 2026-10-26
+
+## Finance → รายการ Variant B — 2026-10-26
+
+- Money › รายการ is the monthly close-up. Home Variant B (year overview) is unchanged.
+- A leather-green month card shows รับ, จ่าย, and สุทธิ from the existing income/expense totals. When that month has a budget, the card also shows how much of it is used, a gold bar, and what is left. ‹ › change `?month=` and clear a picked day. Future months stay closed.
+- The calendar is the whole month, Monday first. Each day shows its net. A green number means more came in than went out. A red number gets darker the more was spent. Today is a cream chip; the chosen day is leather green and the list below is that day (`from` = `to`). Tap it again for the whole month. The dog-eared week fold is gone.
+- Existing section tabs, the ทั้งหมด | รอตรวจ tabs, exports, and empty states stay. The review tab still hides the calendar.
+- No schema, RLS, auth, billing, or money-formula changes. Display only.
+- Verified: `npm run typecheck`; ESLint on the changed TS/TSX; full Vitest 170 files / 2485 tests. 390px layout shots of the real components (sample October figures, no signed-in account in this environment).
 
 ## Subscription capture and cancellation — 2026-10-19
 
