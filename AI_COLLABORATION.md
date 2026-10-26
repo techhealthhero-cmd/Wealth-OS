@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- HOME-VARIANT-B — Owner: Grok Bot; IN PR → staging. Home opens with the Variant B notebook year overview: compact green net worth, Buddhist year switcher (current and two previous), selected full year vs previous full year, category comparison with อื่นๆ after 8 rows, and goals whose target date falls in that year. Monthly “ใช้ไปแล้ว” card stays under net worth. No schema, RLS, auth, billing, or formula changes. Next: owner visual check on device.
+
 - SLIP-POLISH — Owner: Codex; READY FOR HANDOFF. Optimistic undo + retry snapshot and explicit fuel keywords implemented. Node 22 NLP precision=1 / zero critical; tsc (after next typegen), lint and 64 focused tests PASS. Full Vitest: 167 files / 2469 tests PASS; one offline-assets test blocked by spawnSync EPERM. Supervisor reviews/commits; no DB/auth/RLS/billing/formula changes or commit/push.
 
 - W5-SWITCH-SIZE — Owner: Codex; DONE. Scope: SettingsSwitch minimum-size utilities and CaptureLargeTextToggle native label row. Requested tsc and component Vitest PASS (17 tests); no commit.
@@ -160,6 +162,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| HOME-VARIANT-B | Home redesign Variant B (year overview) | Grok Bot | IN PR → staging | Compact net worth, year switcher 2569/2568/2567, income/expense/ออมได้, category compare, goals due that year. Display aggregation only. | Owner 390px check; merge to staging only |
 | QA4-FOLLOWUPS | PR #51 blob clearance + Thai weekday | Codex | DONE — local review | Emergency form mobile gutter + route docking (restored/resized/dragged); UTC Thai abbreviations. Typecheck/lint and 3 Vitest files / 25 tests pass. No DB/auth/billing/formulas or commits | Owner 390×664 device review |
 | INVOICE-QA-FIXES | Bugs 5/6/7a/7b; invoice logic only | Codex | READY FOR HANDOFF | 5/6/7a implemented; 7b not reproduced (existing profile-zone and SQL-date paths correct), regressions added. Node 22 typecheck/lint; full 151 files / 2148 tests; UTC 3 files / 14 tests pass. No UI/DB-write/schema changes. | Supervisor stages/commits (Git metadata read-only), reviews/pushes/PR; affected date example needed |
 | THAI-CAPTURE-REVIEW | Review staged Thai parser regressions | Codex | DONE | Four blocking classes fixed; Node 22 full Vitest 148 files / 2130 tests, eval safety, tsc and eslint pass | Owner local review; unstaged fixes, no commit |

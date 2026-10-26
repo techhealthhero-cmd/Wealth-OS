@@ -1,5 +1,7 @@
 import { todayInTimeZone } from "@/lib/date";
-import { previousMonthSnapshot } from "../net-worth-baseline";
+import { classifyYearDeltaBaseline, previousMonthSnapshot } from "../net-worth-baseline";
+import { longMonthName } from "../lib/home-year";
+import { getYearChangeBaseline } from "../year-baseline";
 import { captureError } from "@/lib/observability";
 import {
   ensureTodaysNetWorthSnapshot,
@@ -27,8 +29,10 @@ interface NetWorthHeroData {
   hasHistory: boolean;
   chartData: { date: string; netWorth: number }[];
   monthLabels: { label: string; isCurrent: boolean }[];
-  /** Change from the first snapshot in the chart window (compact card); null with < 2 snapshots. */
-  sinceFirst: { monthLabel: string; change: NetWorthChange } | null;
+  /** Profile-timezone today ("YYYY-MM-DD") the year line was measured against. */
+  today: string;
+  /** Change vs a year-start or in-year snapshot. Null when nothing earlier exists. */
+  yearDelta: { scope: "year" | "since"; monthLabel: string; change: NetWorthChange } | null;
   currencyCode: string;
 }
 
@@ -77,15 +81,18 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
       isCurrent: key === currentMonthKey,
     }));
 
-    // Compact card: change since the first snapshot in the window, through
-    // the same calculateNetWorthChange() — no new formula.
-    const firstSnapshot = snapshots.length >= 2 ? snapshots[0] : null;
-    const sinceFirst = firstSnapshot
-      ? {
-          monthLabel: monthFormatter.format(new Date(`${firstSnapshot.snapshot_date}T00:00:00`)),
-          change: calculateNetWorthChange(breakdown.netWorthCents, parseMoneyToCents(firstSnapshot.net_worth)),
-        }
-      : null;
+    const baseline = await getYearChangeBaseline(today);
+    const scope = baseline ? classifyYearDeltaBaseline(baseline.snapshot_date, today) : null;
+    const yearDelta =
+      baseline && scope
+        ? {
+            scope,
+            monthLabel: new Intl.DateTimeFormat(intlLocale, { month: "short", timeZone: "UTC" }).format(
+              new Date(`${baseline.snapshot_date}T00:00:00Z`),
+            ),
+            change: calculateNetWorthChange(breakdown.netWorthCents, parseMoneyToCents(baseline.net_worth)),
+          }
+        : null;
 
     return {
       dict,
@@ -95,7 +102,8 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
       hasHistory: previousSnapshot !== null,
       chartData,
       monthLabels,
-      sinceFirst,
+      today,
+      yearDelta,
       currencyCode: profile?.currency_code ?? "THB",
     };
   } catch (error) {
@@ -116,7 +124,14 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
  * assets/liabilities breakdown is one tap away at /money/net-worth via the
  * card's row link instead of an in-place disclosure.
  */
-export async function NetWorthHero({ variant = "hero" }: { variant?: "hero" | "compact" } = {}) {
+export async function NetWorthHero({
+  variant = "hero",
+  monthSpendCents = null,
+}: {
+  variant?: "hero" | "compact";
+  /** This month's expenses from the existing monthly-spend summary. Null hides the clause. */
+  monthSpendCents?: number | null;
+} = {}) {
   const data = await loadNetWorthHeroData();
   if (!data) {
     // `data` is only ever null here from the catch block in
@@ -131,7 +146,7 @@ export async function NetWorthHero({ variant = "hero" }: { variant?: "hero" | "c
     return <InlineLoadError message={dict.common.somethingWentWrong} />;
   }
 
-  const { dict, breakdown, change, hasHistory, chartData, monthLabels, sinceFirst, currencyCode } = data;
+  const { dict, locale, breakdown, change, hasHistory, chartData, monthLabels, today, yearDelta, currencyCode } = data;
 
   if (variant === "compact") {
     return (
@@ -142,9 +157,12 @@ export async function NetWorthHero({ variant = "hero" }: { variant?: "hero" | "c
           viewAssetsAndLiabilities: dict.netWorth.viewAssetsAndLiabilities,
         }}
         netWorthCents={breakdown.netWorthCents}
-        sinceFirst={sinceFirst}
-        chartData={chartData}
-        monthLabels={monthLabels}
+        delta={yearDelta}
+        monthSpend={
+          monthSpendCents != null && monthSpendCents > 0
+            ? { monthLabel: longMonthName(today, locale), cents: monthSpendCents }
+            : null
+        }
         currencyCode={currencyCode}
       />
     );
