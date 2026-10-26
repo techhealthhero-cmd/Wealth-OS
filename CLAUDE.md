@@ -887,6 +887,7 @@ delete the second copy and point it here instead.
 | **`GRAPHICS_PLAN.md`** | Visual style, brand identity, color system, typography, icon/illustration system, shapes, motion, visual asset specs — subordinate to `UX_GUIDELINES.md` when the two pull in different directions | "What should it look and feel like?" |
 | **`PROJECT_STATUS.md`** | Current implementation status, completed/incomplete features, migrations, verified behavior, known limitations, QA/test status — **the only implementation-status source of truth**; `GRAPHICS_PLAN.md`'s own status markers are explicitly non-authoritative and defer here | "What actually exists right now?" |
 | **`README.md`** | Setup, installation, local dev, environment setup, run/test/deploy commands | "How do I run and deploy this?" |
+| **`TODO.md`** | The owner's work queue — what is still left to do (in progress / queued / ideas), in Thai, one checkbox per task. Not status (that's `PROJECT_STATUS.md`) and not agent ownership (that's `AI_COLLABORATION.md` Active Work) | "What do we still have to do?" |
 
 **Precedence when two documents discuss the same area**: the designated
 owner above wins — this is domain ownership, not a single universal
