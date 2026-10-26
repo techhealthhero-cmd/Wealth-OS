@@ -130,6 +130,128 @@ XXX-X-X5678-X
   });
 });
 
+describe("K PLUS OCR shapes", () => {
+  function slip(lines: string[]) {
+    return parseSlipText(lines.join("\n"));
+  }
+  it("reads จำนวน under a sara-u misread of พ.ย. 66", () => {
+    const parsed = slip([
+      "โอนเจินสำเร็จ",
+      "3 พ.ุย. 66 00:29 น.",
+      "นาย ผู้ส่ง ตัวอย่าง",
+      "ธ.กสิกรไทย",
+      "xxx-x-x1111-x",
+      "นาง ผู้รับ ตัวอย่าง",
+      "ธ.กสิกรไทย",
+      "xxx-x-x2222-x",
+      "เลขที่รายการ:",
+      "SYNREF8600",
+      "จํานวน:",
+      "86.00 บาท",
+      "ค่าธรรมเนียม:",
+      "0.00 บาท",
+    ]);
+    expect(parsed).toMatchObject({
+      amount: 8600, fee: 0, date: "2023-11-03", dateTime: "2023-11-03T00:29:00+07:00", reference: "SYNREF8600",
+      sender: { name: "นาย ผู้ส่ง ตัวอย่าง", bank: BankCode.KBANK },
+      receiver: { name: "นาง ผู้รับ ตัวอย่าง", bank: BankCode.KBANK },
+    });
+    expect(parsed.confidence.amount).toBeGreaterThanOrEqual(0.8);
+    expect(parsed.confidence.date).toBeGreaterThanOrEqual(0.8);
+  });
+  it.each([
+    ["3 พุย. 66 13:00 น.", "2. 70.00 บาท", 7000, "2023-11-03T13:00:00+07:00"],
+    ["3 พผุย. 66 15:45 น.", "30.00 บาท", 3000, "2023-11-03T15:45:00+07:00"],
+    ["3 พ.ย. 66 16:56 น.", "6,296.00 บาท", 629600, "2023-11-03T16:56:00+07:00"],
+    ["3 พย 66 19:02 น.", ". 79.00 บาท", 7900, "2023-11-03T19:02:00+07:00"],
+    ["3 พ.ุย. 66 19:08 น.", "85.00 บาท AS Fem", 8500, "2023-11-03T19:08:00+07:00"],
+  ])("keeps amount and date for %s", (date, amountLine, amount, dateTime) => {
+    const parsed = slip([
+      "โอนเงินสำเร็จ",
+      date,
+      "นาย ผู้ส่ง ตัวอย่าง",
+      "ธ.กสิกรไทย",
+      "xxx-x-x1111-x",
+      "นาง ผู้รับ ตัวอย่าง",
+      "ธ.กรุงไทย",
+      "xxx-x-x3333-x",
+      "เลขที่รายการ:",
+      "SYNREF",
+      "จำนวน:",
+      amountLine,
+      "ค่าธรรมเนียม:",
+      "0.00 บาท",
+    ]);
+    expect(parsed.amount).toBe(amount);
+    expect(parsed.dateTime).toBe(dateTime);
+    expect(parsed.fee).toBe(0);
+    expect(parsed.receiver).toMatchObject({ name: "นาง ผู้รับ ตัวอย่าง", bank: BankCode.KTB });
+  });
+  it("reads a bill-pay shop instead of the biller number", () => {
+    const parsed = slip([
+      "จ่ายบิลสำเร็จ",
+      "3 พุย. 66 13:00 น.",
+      "นาย ผู้ส่ง ตัวอย่าง",
+      "ธ.กสิกรไทย",
+      "xxx-x-x1111-x",
+      "ร้านถุงเงิน (ตัวอย่าง)",
+      "9990001112223334444",
+      "SUPASI",
+      "เลขที่รายการ:",
+      "SYNREF7000",
+      "จำนวน:",
+      "70.00 บาท",
+      "ค่าธรรมเนียม:",
+      "0.00 บาท",
+    ]);
+    expect(parsed.amount).toBe(7000);
+    expect(parsed.receiver.name).toBe("ร้านถุงเงิน (ตัวอย่าง)");
+    expect(parsed.receiver.account).toBe("9990001112223334444");
+  });
+  it("reads a PromptPay receiver without using the logo lines as the name", () => {
+    const parsed = slip([
+      "โอนเงินสำเร็จ",
+      "3 พ.ย. 66 19:02 น.",
+      "นาย ผู้ส่ง ตัวอย่าง",
+      "ธ.กสิกรไทย",
+      "xxx-x-x1111-x",
+      "ง/",
+      "นาง ผู้รับ ตัวอย่าง",
+      "Prompt",
+      "Pay",
+      "รหัสพร้อมเพย์",
+      "xxx-xxx-4444",
+      "เลขที่รายการ:",
+      "SYNREF7900",
+      "จำนวน:",
+      "79.00 บาท",
+    ]);
+    expect(parsed.receiver).toMatchObject({ name: "นาง ผู้รับ ตัวอย่าง", account: "xxx-xxx-4444", bank: null });
+  });
+  it("keeps the receiver name when the second account mask is unreadable", () => {
+    const parsed = slip([
+      "โอนเจินสำเร็จ",
+      "3 พุย. 66 15:45 น.",
+      "นาย ผู้ส่ง ตัวอย่าง",
+      "ธ.กสิกรไทย",
+      "xxx-x-x1111-x",
+      "นาย ผู้รับ ตัวอย่าง",
+      "ธ.กสิกรไทย",
+      "200<-%-%0762-%",
+      "เลขที่รายการ:",
+      "SYNREF3000",
+      "จำนวน:",
+      "30.00 บาท",
+    ]);
+    expect(parsed.amount).toBe(3000);
+    expect(parsed.receiver).toMatchObject({ name: "นาย ผู้รับ ตัวอย่าง", bank: BankCode.KBANK });
+  });
+  it("repairs ต.ด. to October and still reads a real ธ.ค.", () => {
+    expect(parseSlipText("19 ต.ด. 69 14:05\nจำนวน: 10.00 บาท").dateTime).toBe("2026-10-19T14:05:00+07:00");
+    expect(parseSlipText("19 ธ.ค. 69 14:05\nจำนวน: 10.00 บาท").date).toBe("2026-12-19");
+  });
+});
+
 it("parses exact decomposed Thai WebKit OCR E2E145587C", () => {
   const slip = parseSlipText(`โอนเงินสําเร็จ
 

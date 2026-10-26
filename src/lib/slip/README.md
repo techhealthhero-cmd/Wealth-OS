@@ -31,8 +31,11 @@ Reasons are stable codes describing evidence (for example `amount_exact`,
 Duplicates are suggestions for review, never instructions to delete a record.
 
 Limitations: this is a label-based heuristic, not a bank layout classifier. It
-expects sender/from/ผู้โอน/จาก and receiver/to/ผู้รับ/ไปยัง blocks, and amount or
-currency markers. Account and name on separate lines give the best results;
+reads amount from จำนวน/จำนวนเงิน/ยอดโอน or a บาท/THB marker, including K PLUS
+lines where the amount sits under `จำนวน:`. Dates accept พ.ย.-style abbreviations
+even when OCR turns the dot into sara u. Sender/receiver come from จาก/ไปยัง (or
+from/to) labels, or from two stacked account blocks when those labels are absent.
+Account and name on separate lines give the best results;
 unlabelled columns or bank/name on the same line may need review. Combined fee and
 amount on one line are unsupported. Masked account hints compare at least three
 visible trailing digits and may collide. Reference identifiers are preserved
