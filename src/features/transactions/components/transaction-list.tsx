@@ -8,6 +8,8 @@ import {
 } from "@/features/transactions/queries";
 import { getBudgetSummary } from "@/features/budget/queries";
 import { getDailyInbox } from "@/features/capture/queries";
+import { getPendingSlips } from "@/features/slip-inbox/queries";
+import { SlipInboxCard } from "@/features/slip-inbox/components/slip-inbox-card";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { todayInTimeZone } from "@/lib/date";
@@ -58,7 +60,7 @@ export async function TransactionList({
   const monthScoped = !filters.from && !filters.to && isDefaultView;
   const listFilters = monthScoped ? { ...filters, from: monthFrom, to: monthTo } : filters;
 
-  const [{ transactions, hasMore }, accounts, categories, profile, calendarTransactions, monthTransactions, budget, inbox] =
+  const [{ transactions, hasMore }, accounts, categories, profile, calendarTransactions, monthTransactions, budget, inbox, slips] =
     await Promise.all([
       // Perf audit finding: this page previously fetched a user's ENTIRE
       // transaction history on every visit (getTransactions(filters) with
@@ -75,6 +77,8 @@ export async function TransactionList({
       getFinancialTransactions({ from: monthFrom, to: monthTo }),
       getBudgetSummary(new Date(`${monthFrom}T00:00:00`)),
       getDailyInbox(),
+      // Slips waiting for ✓ (migration 0046) — null before it's applied.
+      getPendingSlips(),
     ]);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
@@ -107,12 +111,17 @@ export async function TransactionList({
         labels={{ income: m.income, expense: m.expense, left: m.left, budgetUsed: m.budgetUsed, budgetLeft: m.budgetLeft, budgetOver: m.budgetOver }}
       />
 
-      <ListTabs active={tab} pendingCount={pendingItems.length} />
+      <ListTabs active={tab} pendingCount={pendingItems.length + (slips?.length ?? 0)} />
+
+      {tab === "pending" && slips ? (
+        <SlipInboxCard slips={slips} accounts={accounts} categories={categories} today={today} />
+      ) : null}
 
       {tab === "pending" ? (
         // The pending tab is just the review list (2026-10-13): no calendar,
         // and every pending item, whatever day the "all" tab had picked.
-        inbox ? (
+        // Waiting slips above already fill the tab — no "nothing to review" under them.
+        pendingItems.length === 0 && (slips?.length ?? 0) > 0 ? null : inbox ? (
           <DailyInboxCard
             inbox={inbox}
             categories={categories}

@@ -183,6 +183,15 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 เพิ่มรายการใหม่ไว้ด้านบน ไม่ต้องคัดลอกประวัติการแก้ไฟล์ทั้งหมด
 
+### 2026-10-26 — Claude → ทุก agent
+
+- งาน/เป้าหมาย: ระบบสลิปอัตโนมัติ (iPhone Shortcut + เลือกหลายสลิปพร้อมกัน) รอผู้ใช้กด ✓ ก่อนหักยอด
+- ทำเสร็จแล้ว: migration `0046_slip_inbox.sql`, `/api/capture/slips`, `src/features/slip-inbox/`, `/profile/slip-shortcut`, การ์ด "สลิปรอยืนยัน" ในแท็บรอตรวจ, /help — รายละเอียดใน `PROJECT_STATUS.md`
+- การตรวจ: 1060/1060 tests, typecheck, lint, build, ภาพหน้าจอ 390px
+- ข้อจำกัด: 0046 ยังไม่ได้ push ขึ้นฐานข้อมูล; ยังไม่ได้ทดสอบกับ Shortcut บน iPhone จริง
+- ขั้นต่อไป: เจ้าของโปรเจกต์รัน `supabase db push --linked` → Claude ตรวจตารางแบบ read-only + live e2e
+- รักษาไว้: แอป App Store ที่อ่านสลิปเอง 100% เป็นแผนถัดไป ระบบนี้จะเปลี่ยนเมื่อแอปเสร็จทั้งหมดเท่านั้น
+
 ### 2026-10-19 — Grok → เจ้าของโปรเจกต์ (Night Report)
 
 - งาน/เป้าหมาย: ปิด AUTO-INFRA-01/02, AUTO-CLEAN-01 ผ่าน PR #1; ทำ AUTO-SEC-01 triage

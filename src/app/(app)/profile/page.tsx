@@ -20,7 +20,7 @@ import { getCategories } from "@/features/categories/queries";
 import { CaptureUnitsCard } from "@/features/capture/components/capture-units-card";
 import { NotebookCover } from "@/components/notebook/notebook-cover";
 import { resolveCoverPreferences } from "@/lib/notebook-covers/config";
-import { BookOpenCheck, ChevronRight, Compass } from "lucide-react";
+import { BookOpenCheck, ChevronRight, Compass, Smartphone } from "lucide-react";
 
 export const metadata: Metadata = { title: "Profile — Wealth OS" };
 
@@ -168,6 +168,29 @@ export default async function ProfilePage() {
           >
             {dict.incomeRankGuide.openGuide}
             <ChevronRight className="size-4" aria-hidden="true" />
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* iPhone Shortcut → slip inbox (migration 0046), 2026-10-26. */}
+      <Card>
+        <CardContent>
+          <Button
+            nativeButton={false}
+            render={<Link href="/profile/slip-shortcut" />}
+            variant="ghost"
+            className="h-auto w-full justify-between px-0 py-1 hover:bg-transparent"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
+                <Smartphone className="size-5" aria-hidden="true" />
+              </span>
+              <span className="min-w-0 text-left">
+                <span className="block text-sm font-semibold">{dict.slipInbox.tokens.navTitle}</span>
+                <span className="block truncate text-xs font-normal text-muted-foreground">{dict.slipInbox.tokens.navDescription}</span>
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </Button>
         </CardContent>
       </Card>

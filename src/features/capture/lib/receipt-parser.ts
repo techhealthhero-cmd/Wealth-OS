@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { AIProvider } from "@/features/ai/lib/provider";
+import { getAIProvider, type AIProvider } from "@/features/ai/lib/provider";
 import type { AIImageMediaType } from "@/features/ai/types";
 import { EMPTY_EXTRACTION, normalizeReceiptModelOutput, type ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 
@@ -60,6 +60,13 @@ export class AIReceiptParser implements ReceiptParser {
       usage: { model: result.model, ...result.usage },
     };
   }
+}
+
+/** The configured parser: the mock when CAPTURE_OCR_MOCK=1, the AI model when a key is set, else null (not enabled). */
+export function getReceiptParser(): ReceiptParser | null {
+  if (process.env.CAPTURE_OCR_MOCK === "1") return new MockReceiptParser();
+  const provider = getAIProvider();
+  return provider ? new AIReceiptParser(provider) : null;
 }
 
 /**

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight, Inbox } from "lucide-react";
 
 import { getDailyInbox } from "@/features/capture/queries";
+import { getPendingSlips } from "@/features/slip-inbox/queries";
 import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
@@ -15,8 +16,10 @@ import { DailyInboxCard } from "./daily-inbox-card";
  * migration 0021 not applied yet), so Home stays calm.
  */
 export async function DailyInboxSection() {
-  const [inbox, profile] = await Promise.all([getDailyInbox(), getProfile()]);
-  if (!inbox || inbox.pendingCount === 0) return null;
+  const [inbox, slips, profile] = await Promise.all([getDailyInbox(), getPendingSlips(), getProfile()]);
+  // Slips waiting for ✓ (migration 0046) count too — they're on the same tab.
+  const count = (inbox?.pendingCount ?? 0) + (slips?.length ?? 0);
+  if (count === 0) return null;
   const dict = getDictionary(await getLocale(profile?.preferred_language));
 
   return (
@@ -25,7 +28,7 @@ export async function DailyInboxSection() {
       className="flex items-center gap-2 rounded-2xl border border-dashed border-amber-400/70 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-500/15 dark:text-amber-300"
     >
       <Inbox className="size-4 shrink-0" aria-hidden="true" />
-      <span className="min-w-0 flex-1">{dict.capture.inbox.homeNudge.replace("{count}", String(inbox.pendingCount))}</span>
+      <span className="min-w-0 flex-1">{dict.capture.inbox.homeNudge.replace("{count}", String(count))}</span>
       <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary px-3 py-1 text-xs text-primary-foreground">
         {dict.capture.inbox.homeNudgeCta}
         <ChevronRight className="size-3.5" aria-hidden="true" />

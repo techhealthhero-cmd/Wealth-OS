@@ -8,6 +8,68 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-10-26
 
+## Slip inbox: iPhone Shortcut + many slips at once — 2026-10-26
+
+**Code done, tested; migration `0046_slip_inbox.sql` NOT applied to any
+database yet** (user runs `supabase db push --linked`). Until it is, every
+new surface hides itself or says "ยังไม่พร้อม" — nothing breaks.
+
+- User asked for slips to be read automatically from the phone. A PWA can't
+  read the photo library in the background, so (user's choice, 2026-10-26)
+  V1 = an **iPhone Shortcut** that posts new slips from the bank album
+  daily + **multi-select upload** in the app. A native App Store app that
+  reads slips itself is the later plan; this system is replaced only once
+  that app is complete.
+- **Waits for ✓ before touching a balance** (user's choice). Slips live in
+  the new `slip_inbox` table, not `transactions` — no balance, dashboard or
+  budget changes until confirmed. ✓ → `confirmSlip` → the normal
+  `saveCapturedTransaction` (idempotent: slip id = `client_request_id`;
+  source `receipt`, `review_status=confirmed`, learns the category).
+- **Reading/categorizing** reuses the existing scanner
+  (`getReceiptParser()`, moved into `receipt-parser.ts`) and the Quick
+  Capture rules (`suggestSlipFields` in `src/lib/capture/slip-inbox.ts`):
+  paying bank on the slip → shop's set account → first account; learned
+  category → keywords → "Other" (blind "Other" never stays high).
+- **Duplicates**: same image bytes (SHA-256) → skipped before any AI call
+  (the Shortcut looks back 3 days on purpose); same reference already in
+  the inbox → skipped; same reference on a recorded transaction → stored as
+  `duplicate`, hidden; non-slip photo → stored as `not_slip` with only its
+  hash. Same amount ±1 day + similar shop → shown with "อาจบันทึกไปแล้ว".
+- **Shortcut endpoint** `POST /api/capture/slips` (GET = test connection):
+  `Authorization: Bearer wos_slip_…`, raw JPEG/PNG/WebP body or multipart
+  `image`. Added to the proxy's public routes (no session cookie). Personal
+  keys in `capture_tokens` — SHA-256 hash only, shown once, max 5 live,
+  revocable. The route uses the service-role client (no session) and every
+  query in `features/slip-inbox/ingest.ts` filters `user_id` explicitly;
+  a key can only add slips — it returns no financial data. Limits: 20/min
+  per key, 60 slips/day per user, plus the plan's monthly capture AI quota.
+  Images are processed in memory only, never stored or logged.
+- **UI**: Money › Transactions › "รอตรวจ" shows "สลิปรอยืนยัน" above the
+  Daily Inbox (category chip, ✓, swipe right = edit amount/date/shop/
+  account, swipe left = "not this one" with undo, "เพิ่มสลิปหลายใบ");
+  the tab badge and Home nudge count waiting slips. Quick Capture's
+  "เลือกรูปสลิป" now accepts several photos (2+ → slip inbox). Profile ›
+  "ส่งสลิปอัตโนมัติ" (`/profile/slip-shortcut`): endpoint URL, create/copy/
+  revoke keys, step-by-step Shortcut setup. /help (Money) has an entry.
+- **Migration 0046**: `capture_tokens`, `slip_inbox` (NUMERIC(18,2), RLS
+  own-rows on both, ownership trigger for account/category/transaction/
+  token references, unique (user, image hash) and (user, reference)).
+- **Tests**: `tests/slip-inbox.test.ts` (28) against an in-memory fake
+  (`tests/mocks/fake-db.ts`) with a fake AI provider — token format/hash,
+  suggestions, statuses, duplicate rules, every ingest query scoped by
+  user_id, resend skipped before AI, quota stop, endpoint 401/201/415,
+  revoked key, cross-user revoke/confirm blocked, double ✓ = one
+  transaction. Full suite 1060/1060; typecheck; lint (only the pre-existing
+  ignored `.story-shots/` errors); production build.
+- **Visual QA**: slip card, category picker, keys card and the setup page
+  rendered at 390px with the demo account (sample slips on a temporary
+  page, removed), no console errors, no horizontal scroll.
+- **Not verified yet**: against a real database (needs 0046), a real
+  iPhone Shortcut run, and `SUPABASE_SERVICE_ROLE_KEY` being set on Vercel
+  production (the endpoint returns 503 without it). Next: after the push,
+  read-only check of both tables, then a live e2e (create key → POST a
+  synthetic slip → confirm → one transaction, balance moves once).
+
 ## Home yearly card: everything year to date — 2026-10-26
 
 - User asked for the card to be yearly only: year income, expenses, left

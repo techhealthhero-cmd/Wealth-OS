@@ -52,6 +52,7 @@ import {
   type RecurringSuggestion,
 } from "@/features/capture/actions";
 import { prepareReceiptImage } from "@/features/capture/lib/image";
+import { useSlipBatchUpload } from "@/features/slip-inbox/components/use-slip-batch-upload";
 import { TransactionPreview } from "./transaction-preview";
 import { HoldToTalkButton } from "./hold-to-talk-button";
 import { RecapReview, type RecapRow } from "./recap-review";
@@ -113,6 +114,7 @@ export function QuickCaptureSheet({
     return Array.isArray(value) ? (value as string[]) : [t(fallbackKey)];
   };
   const keyboardInset = useKeyboardInset(open);
+  const slipBatch = useSlipBatchUpload();
   // Pull down to close; content scrolls freely in its own area below the header.
   const { sheetRef, scrollRef } = useSwipeToDismiss({
     enabled: open,
@@ -948,11 +950,17 @@ export function QuickCaptureSheet({
               ref={libraryInputRef}
               type="file"
               accept="image/*"
+              multiple
               hidden
               onChange={(e) => {
-                const file = e.target.files?.[0];
+                const files = e.target.files ? Array.from(e.target.files) : [];
                 e.target.value = "";
-                void handleImage(file);
+                // Several slips at once go to the slip inbox to confirm later
+                // (nothing touches a balance until ✓); one keeps the preview.
+                if (files.length > 1) {
+                  onOpenChange(false);
+                  void slipBatch.upload(files);
+                } else void handleImage(files[0]);
               }}
             />
             <button

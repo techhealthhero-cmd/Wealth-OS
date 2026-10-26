@@ -22,7 +22,7 @@ import {
   type CaptureSaveInput,
   type DuplicateCheckInput,
 } from "@/lib/validation/capture";
-import { AIReceiptParser, MockReceiptParser, type ReceiptParser } from "./lib/receipt-parser";
+import { getReceiptParser } from "./lib/receipt-parser";
 import { learnMerchantCategory } from "./learning";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
 import type { CaptureMerchantPreference } from "@/lib/capture/transaction-parser";
@@ -381,12 +381,6 @@ export type ReceiptScanResult =
 // Action body limit (1 MB) is the real ceiling, not the old 5 MB figure.
 const MAX_SCAN_BYTES = SCAN_MAX_UPLOAD_BYTES;
 const SCAN_MEDIA_TYPES: readonly AIImageMediaType[] = SCAN_ACCEPTED_TYPES;
-
-function getReceiptParser(): ReceiptParser | null {
-  if (process.env.CAPTURE_OCR_MOCK === "1") return new MockReceiptParser();
-  const provider = getAIProvider();
-  return provider ? new AIReceiptParser(provider) : null;
-}
 
 /**
  * Reads a receipt / payment slip image. The image is processed in memory

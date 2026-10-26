@@ -12,6 +12,9 @@ const PUBLIC_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/auth/callback",
+  // iPhone Shortcut slip upload: no session cookie, authenticated by its own
+  // personal capture token inside the route (migration 0046).
+  "/api/capture/slips",
 ];
 
 // Generated metadata files (src/app/opengraph-image.tsx, icon.tsx,

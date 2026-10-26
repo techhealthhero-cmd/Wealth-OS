@@ -177,6 +177,9 @@ export type TransactionSource = "manual" | "seed" | "import" | "recurring" | "qu
 /** Daily Inbox state (migration 0021). */
 export type TransactionReviewStatus = "confirmed" | "needs_review";
 export type CaptureConfidence = "high" | "medium" | "low";
+/** slip_inbox (migration 0046). Only `pending` is shown; the rest are history that stops re-reads. */
+export type SlipInboxStatus = "pending" | "confirmed" | "dismissed" | "not_slip" | "duplicate";
+export type SlipInboxOrigin = "shortcut" | "upload";
 
 export type AssetType =
   | "cash"
@@ -1190,6 +1193,54 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["capture_units"]["Row"]>;
       };
+      capture_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          label: string;
+          token_hash: string;
+          token_hint: string;
+          last_used_at: string | null;
+          revoked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["capture_tokens"]["Row"], "id" | "created_at" | "updated_at">> & {
+          user_id: string;
+          label: string;
+          token_hash: string;
+          token_hint: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["capture_tokens"]["Row"]>;
+      };
+      slip_inbox: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: SlipInboxStatus;
+          origin: SlipInboxOrigin;
+          amount: string | null;
+          slip_date: string | null;
+          slip_time: string | null;
+          merchant: string | null;
+          payment_method: string | null;
+          reference: string | null;
+          account_id: string | null;
+          category_id: string | null;
+          confidence: CaptureConfidence;
+          possible_duplicate_of: string | null;
+          image_sha256: string | null;
+          transaction_id: string | null;
+          token_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Omit<Database["public"]["Tables"]["slip_inbox"]["Row"], "id" | "created_at" | "updated_at">> & {
+          user_id: string;
+          origin: SlipInboxOrigin;
+        };
+        Update: Partial<Database["public"]["Tables"]["slip_inbox"]["Row"]>;
+      };
       notification_preferences: {
         Row: {
           id: string;
@@ -1412,6 +1463,8 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
 export type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
+export type CaptureToken = Database["public"]["Tables"]["capture_tokens"]["Row"];
+export type SlipInboxRow = Database["public"]["Tables"]["slip_inbox"]["Row"];
 export type TransactionImportBatch = Database["public"]["Tables"]["transaction_import_batches"]["Row"];
 export type TransactionImportRow = Database["public"]["Tables"]["transaction_import_rows"]["Row"];
 export type Tag = Database["public"]["Tables"]["tags"]["Row"];
