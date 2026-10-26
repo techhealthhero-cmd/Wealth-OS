@@ -9,11 +9,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
 import { HomeYearSection } from "@/features/dashboard/components/home-year-section";
-import { IncomeThisMonth } from "@/features/dashboard/components/income-this-month";
 import { getMonthlySpendSummary } from "@/features/dashboard/monthly-spend-actions";
-import { HomeQuickActions } from "@/features/dashboard/components/home-quick-actions";
-import { HomeExpectedTileCard, HomeTaxTile } from "@/features/dashboard/components/home-tiles";
-import { HomeExpectedTile } from "@/features/dashboard/components/home-expected-tile";
 import { UpNextPayments } from "@/features/dashboard/components/up-next-payments";
 import { DailyInboxSection } from "@/features/capture/components/daily-inbox-section";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -93,10 +89,6 @@ export default async function DashboardPage({
         </Suspense>
       </div>
 
-      <div className="motion-reveal motion-reveal-2">
-        <HomeQuickActions labels={dict.homeDash} />
-      </div>
-
       {/* One-line "N items need review" nudge — the Daily Inbox itself
           lives on Money › Transactions (2026-10-11). Renders nothing when
           nothing is pending, so Home stays calm. No fallback skeleton: it's
@@ -105,25 +97,10 @@ export default async function DashboardPage({
         <DailyInboxSection />
       </Suspense>
 
-      <div className="motion-reveal motion-reveal-3">
-        <div className="grid grid-cols-2 gap-3">
-          <Suspense fallback={<HomeExpectedTileCard labels={dict.homeDash} receivables={null} />}>
-            <HomeExpectedTile today={today} labels={dict.homeDash} currencyCode={profile?.currency_code ?? "THB"} />
-          </Suspense>
-          <HomeTaxTile labels={dict.homeDash} />
-        </div>
-      </div>
-
-      {/* "Up next" payments — money going out, right after money coming in. */}
+      {/* "Up next" payments. */}
       <div className="motion-reveal motion-reveal-3">
         <Suspense fallback={<Skeleton className="h-40 w-full rounded-[20px]" />}>
           <UpNextPayments />
-        </Suspense>
-      </div>
-
-      <div className="motion-reveal motion-reveal-3">
-        <Suspense fallback={<Skeleton className="h-72 w-full rounded-[20px]" />}>
-          <IncomeThisMonth />
         </Suspense>
       </div>
 

@@ -61,10 +61,8 @@ describe("Home dashboard page trim", () => {
     "utf8"
   );
 
-  it("streams receivables with the same empty tile behind the existing privacy gate", () => {
-    expect(pageSource).toContain('<Suspense fallback={<HomeExpectedTileCard labels={dict.homeDash} receivables={null} />}>' );
-    expect(pageSource).toContain('<HomeExpectedTile today={today}');
-    expect(pageSource.indexOf("if (privacyGate)")).toBeLessThan(pageSource.indexOf("<HomeExpectedTile today="));
+  it("keeps the privacy gate ahead of the year overview", () => {
+    expect(pageSource.indexOf("if (privacyGate)")).toBeLessThan(pageSource.indexOf("<HomeYearSection"));
   });
 
   it("keeps the core Home sections and drops the trimmed cards", () => {
@@ -73,12 +71,7 @@ describe("Home dashboard page trim", () => {
       'variant="compact"',
       "getMonthlySpendSummary",
       "HomeYearSection",
-      "HomeQuickActions",
-      "HomeExpectedTile",
-      "HomeExpectedTileCard",
-      "HomeTaxTile",
       "UpNextPayments",
-      "IncomeThisMonth",
       "DailyInboxSection",
       "hasAnyDashboardData",
     ]) {
@@ -98,6 +91,13 @@ describe("Home dashboard page trim", () => {
       "WealthOverview",
       "getDashboardData",
       "getIncomeExpenseTrend",
+      "HomeQuickActions",
+      "HomeExpectedTile",
+      "HomeExpectedTileCard",
+      "HomeTaxTile",
+      "IncomeThisMonth",
+      "income-this-month",
+      "home-quick-actions",
     ]) {
       expect(pageSource).not.toContain(gone);
     }

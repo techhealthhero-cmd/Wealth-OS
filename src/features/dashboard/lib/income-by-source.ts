@@ -1,8 +1,7 @@
 /**
- * Income by source — DISPLAY-ONLY AGGREGATION for the Home "income this
- * month" card. Pure, no I/O: it only groups and sums income transactions
- * that were already loaded (see getIncomeBySourceData in
- * features/dashboard/queries.ts). It is not a money formula — every sum goes
+ * Income by source — DISPLAY-ONLY AGGREGATION. Pure, no I/O: it only groups
+ * and sums income transactions the caller already loaded. Home no longer
+ * renders this breakdown. It is not a money formula — every sum goes
  * through the existing calculateIncome()/parseMoneyToCents() helpers, all
  * amounts are integer cents, and nothing here is persisted or fed back into
  * any other financial calculation.
