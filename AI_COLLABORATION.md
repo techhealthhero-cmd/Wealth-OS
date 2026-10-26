@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- SLIP-KPLUS-OCR — Owner: Grok Bot; IN PR → staging. Rebased onto staging after Home Variant B, the monthly-spend card removal, and Finance Variant B. On-device slip review was showing ฿0 because K PLUS prints `จำนวน:` (not `จำนวนเงิน`) and Tesseract reads `พ.ย.` as `พ.ุย.`/`พุย.`. Parser now accepts that layout, PSM 4 keeps the QR out of the text column, and gallery images are decoded on the main thread before OCR. The cream Home monthly-spend card stays removed. No schema, RLS, auth, billing, or money-formula changes. Next: owner re-upload of the 6 slips on an iPhone.
+
 - FINANCE-VARIANT-B — Owner: Grok Bot; IN PR → staging. Finance → รายการ is the monthly close-up: green month hero (รับ/จ่าย/สุทธิ, budget only when one exists) and a full-month calendar (darker red = more spent, green = income day, day tap filters the list). Home Variant B untouched. The cream Home monthly-spend card stays removed. No schema, RLS, auth, billing, or formula changes. Next: owner 390px check on device.
 
 - HOME-REMOVE-MONTH-CARD — Owner: Grok Bot; merged to staging (#63). Removed the cream Home monthly-spend card (`MonthlySpend`, `src/features/dashboard/components/monthly-spend.tsx`). Compact `NetWorthHero` and Variant B `HomeYearSection` stay. Slip `MonthlySpendCard` / `MonthlySpendDetail`, finance-tab calendar, and year summary stay. No schema, RLS, auth, billing, or formula changes.
@@ -642,6 +644,13 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Added `min-h-0! min-w-0!` to SettingsSwitch and changed the large-text row to a native label with cursor-pointer. Native label activation uses the existing button handler once; native disabled button blocks activation. Accessibility attributes unchanged. Existing unrelated work preserved.
 - Node 22: `npx tsc --noEmit` PASS; `npx vitest run tests/capture-w5-components.test.ts` PASS (17 tests); `git diff --check` PASS. No commit. Ready for owner review.
 
+
+### 2026-10-26 — Grok Bot → staging reviewers (SLIP-KPLUS-OCR)
+
+- Root cause: K PLUS puts the amount under `จำนวน:` and the date as `3 พ.ย. 66`. The parser required `จำนวนเงิน` or a whole line that was only the amount, so leading OCR debris (`. 70.00 บาท`, `2. 70.00 บาท`) became ฿0. Tesseract reads the dot in `พ.ย.` as sara u, so the date was dropped. Default page segmentation also mixed the QR into those lines. The mini-QR still has bank + reference only, not the amount.
+- Fix stays on-device: single-column OCR (PSM 4), main-thread HEIC/EXIF decode before the worker, and parser coverage for this layout. Six real JPEGs were checked locally with Tesseract tha+eng PSM 4; all six returned the printed amount and `2023-11-03` plus the correct time. Personal names and account digits are not in the repo; unit tests use synthetic text in the same shape.
+- Direction is still a question until the user taps รายจ่าย/รายรับ. That part was already by design.
+- `npm run typecheck` PASS; eslint on the touched files PASS; focused Vitest PASS. No production, RLS, auth, billing, or money-formula edits.
 
 ### 2026-10-21 — Codex → supervisor (SLIP-POLISH)
 

@@ -19,6 +19,10 @@ scope.onmessage = async (event) => {
       cacheMethod: "none",
       errorHandler: () => scope.postMessage({ error: "OCR initialization/recognition failed" }),
     });
+    // K PLUS slips are one column beside a QR. Auto segmentation (PSM 3) pulls the
+    // QR into the date/amount lines; single-column keeps จำนวน and พ.ย. readable.
+    const tunable = worker as typeof worker & { setParameters?(params: Record<string, string>): Promise<unknown> };
+    try { await tunable.setParameters?.({ tessedit_pageseg_mode: "4" }); } catch { /* Keep reading if this build rejects the parameter. */ }
     try {
       const { data } = await worker.recognize(event.data);
       scope.postMessage({ data: { text: data.text, confidence: data.confidence } });

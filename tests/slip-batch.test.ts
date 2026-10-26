@@ -55,6 +55,19 @@ describe("batch classification", () => {
     const item = classifySlipBatch([input("REF-A", extra)]).unsure[0];
     expect(item.reason).toContain(reason); expect(buildSlipSaveInput(item, selection)).toBeNull();
   });
+  it("does not call a K PLUS จำนวน line a missing amount or date", () => {
+    const item = classifySlipBatch([{
+      ocrText: "โอนเงินสำเร็จ\n3 พ.ุย. 66 00:29 น.\nจำนวน:\n86.00 บาท\nค่าธรรมเนียม:\n0.00 บาท",
+      ocrConfidence: 90,
+      perspective: "sender",
+    }]).items[0];
+    expect(item.slip.amount).toBe(8600);
+    expect(item.slip.date).toBe("2023-11-03");
+    expect(item.status).toBe("ready");
+    expect(item.reason).not.toContain("จำนวนเงิน");
+    expect(item.reason).not.toContain("วันที่");
+    expect(item.reason).not.toContain("ความมั่นใจ");
+  });
   it("dedupes QR-only failures", () => {
     const qr = { sendingBankCode: "014", transRef: "QR-ONLY" };
     expect(classifySlipBatch([{ qr }, { qr }]).duplicate).toHaveLength(1);

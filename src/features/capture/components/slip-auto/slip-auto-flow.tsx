@@ -19,6 +19,7 @@ import { getSlipCandidates } from "../../slip-auto-actions";
 import { processSlipBatch } from "../../lib/slip-batch-import";
 import { recognizeSlipText } from "../../lib/local-slip-ocr";
 import { localSlipQRDecoder } from "../../lib/local-slip-qr";
+import { prepareSlipImage } from "../../lib/slip-image";
 import { readingModel, reviewModel, resolveSlip, slipSavePayloads, optimisticUndoSlipBatch, type SavedSlip, type SlipSelections } from "../../lib/slip-auto-model";
 import { getMonthlySpendSummary } from "@/features/dashboard/monthly-spend-actions";
 import { deleteTransactionsBatch } from "@/features/transactions/actions";
@@ -69,7 +70,14 @@ export const SlipAutoFlow = forwardRef<SlipAutoHandle, { accounts: Account[]; ca
     const abort = new AbortController(); controller.current = abort;
     const recent: typeof progress.recent = [];
     try {
-      const result = await processSlipBatch(files, {
+      // Gallery picks are often HEIC or EXIF-rotated. Decode on the main thread
+      // (WebKit can paint HEIC; the OCR worker often cannot) and pass pixels onward.
+      const prepared: Blob[] = [];
+      for (const file of files) {
+        if (abort.signal.aborted) return;
+        prepared.push(await prepareSlipImage(file));
+      }
+      const result = await processSlipBatch(prepared, {
         ocr: recognizeSlipText, qrDecode: image => localSlipQRDecoder.decode(image), signal: abort.signal,
         fetchCandidates: slips => getSlipCandidates({ dates: slips.flatMap(s => s.date ? [s.date] : []), references: slips.flatMap(s => s.reference ? [s.reference] : []) }),
         onItemRead: item => {
