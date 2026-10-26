@@ -1,0 +1,263 @@
+<title>การ์ดรายปี แบบดูแว๊บเดียว</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* Deliberately single-theme: the app's notebook-paper look (same tokens as v5). */
+  :root{
+    color-scheme: light;
+    --desk:#e9e2d0; --paper:#f7f1e3; --card:#fffdf6; --line:#ece3cc; --ink:#22302a; --muted:#7a7566;
+    --green:#1f4a3a; --good:#2f7a55; --mint:#8fd1ae; --mint-deep:#5fae88; --good-soft:#e2f1e8;
+    --bad:#b4435a; --pink:#e8a7b3; --bad-soft:#f6e3e6; --sand:#f3ecdb; --sand-deep:#e4dac2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--desk);color:var(--ink);font-family:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:24px 40px}
+  .wrap{max-width:1280px;margin:0 auto;display:grid;gap:20px}
+  header h1{font-size:20px;margin:0 0 4px;text-wrap:balance}
+  header p{margin:0;color:var(--muted);font-size:14px;line-height:1.6;max-width:62ch}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tabs button{font:inherit;font-size:13.5px;font-weight:600;border:1px solid var(--sand-deep);background:var(--card);color:var(--muted);padding:7px 14px;border-radius:99px;cursor:pointer}
+  .tabs button[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
+  .tabs button:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+  .row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .col{width:100%;max-width:360px;display:grid;gap:8px}
+  .tag{justify-self:start;font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--green);color:#fff}
+  .tag.old{background:var(--sand-deep);color:var(--ink)}
+  .why{font-size:12.5px;color:var(--muted);margin:0;line-height:1.55}
+  .phone{background:var(--paper);border-radius:32px;padding:14px 12px 20px;box-shadow:0 10px 30px rgba(0,0,0,.10)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px}
+
+  .num{font-variant-numeric:tabular-nums}
+  .muted{color:var(--muted)}
+  .good{color:var(--good)} .bad{color:var(--bad)}
+  .eyebrow{font-size:13px;color:var(--muted);font-weight:500;margin:0}
+
+  /* ---------- current (for comparison) ---------- */
+  .cur-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .cur-head b{font-size:20px}
+  .tug{position:relative;height:24px;margin:12px 0 10px}
+  .tug .track{position:absolute;inset:6px 0;border-radius:99px;overflow:hidden;display:flex;background:var(--sand)}
+  .tug .inc{background:linear-gradient(180deg,#b9e8d1,#74c29e)}
+  .tug .exp{flex:1;background:linear-gradient(180deg,#e79aa2,#c25b67)}
+  .tug .mid{position:absolute;left:50%;top:2px;bottom:2px;border-left:2px dashed rgba(34,48,42,.35)}
+  .tug .coin{position:absolute;top:0;width:24px;height:24px;margin-left:-12px;border-radius:50%;border:2px solid var(--card);background:radial-gradient(circle at 35% 30%,#f6e3ae,#d9b866 55%,#b8954a);font-size:11px;font-weight:700;color:#5a4416;display:grid;place-items:center}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tile{border:1px solid var(--line);border-radius:14px;padding:8px 11px}
+  .tile span{display:block;font-size:11.5px;color:var(--muted)}
+  .tile b{font-size:16px}
+
+  /* ---------- A: split bar ---------- */
+  .a-lead{font-size:15px;line-height:1.5;margin:4px 0 0}
+  .a-big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:2px}
+  .a-big b{font-size:30px;line-height:1.15;font-weight:700}
+  .a-big small{font-size:13.5px}
+  .split{display:flex;height:28px;border-radius:10px;overflow:hidden;margin:14px 0 8px;background:var(--sand)}
+  .split i{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:700}
+  .split .used{background:var(--pink);color:#6b2232}
+  .split .kept{background:var(--mint-deep);color:#fff}
+  .split .over{background:repeating-linear-gradient(135deg,var(--bad) 0 6px,#c86a7c 6px 12px);color:#fff}
+  .legend{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .legend div{display:grid;gap:1px}
+  .legend span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .legend span::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--dot)}
+  .legend b{font-size:16px}
+  .legend .r{text-align:right;justify-items:end}
+  .income-line{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line);margin-top:12px;padding-top:10px}
+  .income-line b{color:var(--ink)}
+  .per100{margin-top:10px;background:var(--good-soft);color:var(--good);border-radius:12px;padding:8px 11px;font-size:13px;font-weight:600}
+  .per100.neg{background:var(--bad-soft);color:var(--bad)}
+
+  /* ---------- B: receipt ---------- */
+  .rc{display:grid;gap:0;margin-top:10px}
+  .rc .ln{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px dashed var(--line);font-size:15px}
+  .rc .ln span{color:var(--muted)}
+  .rc .ln b{font-size:17px}
+  .rc .tot{display:flex;justify-content:space-between;align-items:baseline;padding-top:12px;margin-top:2px;border-top:2px solid var(--ink)}
+  .rc .tot span{font-weight:700;font-size:15px}
+  .rc .tot b{font-size:30px;line-height:1.1}
+  .rc .pct{justify-self:end;margin-top:4px;font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--good-soft);color:var(--good)}
+  .rc .pct.neg{background:var(--bad-soft);color:var(--bad)}
+  .op{display:inline-block;width:18px;font-weight:700;color:var(--muted)}
+
+  /* ---------- C: ring ---------- */
+  .c-body{display:grid;grid-template-columns:118px 1fr;gap:16px;align-items:center;margin-top:10px}
+  .ring{position:relative;width:118px;height:118px}
+  .ring svg{display:block;width:100%;height:100%}
+  .ring .ctr{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+  .ring .ctr b{font-size:26px;line-height:1}
+  .ring .ctr span{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .c-side{display:grid;gap:8px}
+  .c-side .main span{display:block;font-size:12.5px;color:var(--muted)}
+  .c-side .main b{font-size:24px;line-height:1.15}
+  .c-mini{display:grid;gap:3px;font-size:13px}
+  .c-mini div{display:flex;justify-content:space-between;gap:8px}
+  .c-mini span{color:var(--muted)}
+
+  .notes{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;font-size:14px;line-height:1.7;max-width:760px}
+  .notes h2{font-size:15px;margin:0 0 6px}
+  .notes ul{margin:0;padding-left:20px}
+  .notes li + li{margin-top:4px}
+  @media (prefers-reduced-motion: no-preference){ .split i,.ring circle{transition:all .4s ease} }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>การ์ดรายปี แบบดูแว๊บเดียว (v6)</h1>
+    <p>ทุกแบบตอบคำถามเดียวให้ได้ในครึ่งวินาที: <b>"ปีนี้เงินเหลือไหม เหลือเท่าไร"</b> แล้วค่อยบอกว่ามาจากไหน
+       ตัวเลขเป็นของจริงจากภาพหน้าจอ (ม.ค.–ต.ค.) ส่วนสถานะ "ใช้เกิน" เป็นตัวอย่าง กดสลับสถานะด้านล่างได้</p>
+  </header>
+
+  <div class="tabs" role="group" aria-label="สถานะตัวอย่าง">
+    <button type="button" id="st-pos" aria-pressed="true">ปีนี้เก็บได้</button>
+    <button type="button" id="st-neg" aria-pressed="false">ปีนี้ใช้เกินรายได้ (ตัวอย่าง)</button>
+  </div>
+
+  <div class="row">
+    <!-- current -->
+    <section class="col" aria-label="แบบปัจจุบัน">
+      <span class="tag old">ตอนนี้</span>
+      <p class="why">ตัวเลข ฿11,302 ซ้ำ 2 ที่ · แถบดึงเชือกต้องเดาว่าเหรียญกับเส้นประหมายถึงอะไร · 4 กล่องหนักเท่ากัน ตาไม่รู้จะดูอันไหนก่อน</p>
+      <div class="phone"><div class="card">
+        <div class="cur-head"><span class="eyebrow">ปีนี้ · ม.ค. – ต.ค.</span><span class="muted" style="font-size:13px">เหลือเก็บ <b class="good num" data-v="keptSigned" data-tone-head>+฿11,302</b></span></div>
+        <div class="tug"><div class="track"><i class="inc" data-w="incShare"></i><i class="exp"></i></div><i class="mid"></i><i class="coin" data-left="incShare">฿</i></div>
+        <div class="tiles">
+          <div class="tile"><span>รายรับ</span><b class="num" data-v="inc">฿38,086</b></div>
+          <div class="tile"><span>รายจ่าย</span><b class="num" data-v="exp">฿26,783</b></div>
+          <div class="tile"><span>คงเหลือ</span><b class="num good" data-v="kept" data-tone>฿11,302</b></div>
+          <div class="tile"><span>อัตราการออม</span><b class="num" data-v="rate">29.7%</b></div>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- A -->
+    <section class="col" aria-label="แบบ A">
+      <span class="tag">A · แบ่งเงินที่หามาได้ (แนะนำ)</span>
+      <p class="why">ประโยคเดียวบอกคำตอบ แถบเดียว = เงินที่หามาได้ทั้งก้อน แบ่งเป็น "ใช้ไป" กับ "เหลือเก็บ" ไม่ต้องตีความ ตัวเลขไม่ซ้ำ</p>
+      <div class="phone"><div class="card">
+        <p class="eyebrow">ปีนี้ · ม.ค. – ต.ค.</p>
+        <div class="a-big"><b class="num good" data-v="keptWord" data-tone>เหลือเก็บ ฿11,302</b></div>
+        <p class="a-lead muted" data-v="aLead">จากเงินที่หามาได้ ฿38,086</p>
+        <div class="split" aria-hidden="true">
+          <i class="used" data-w="usedShare" data-v="usedPct">70%</i>
+          <i class="kept" data-w="keptShare" data-v="keptPct">30%</i>
+        </div>
+        <div class="legend">
+          <div><span style="--dot:var(--pink)">ใช้ไป</span><b class="num" data-v="exp">฿26,783</b></div>
+          <div class="r"><span style="--dot:var(--mint-deep)" data-v="keptLabel">เหลือเก็บ</span><b class="num" data-v="kept" data-tone>฿11,302</b></div>
+        </div>
+        <div class="per100" data-v="per100" data-toneclass>ทุก 100 บาทที่หามาได้ เก็บไว้ได้ 30 บาท</div>
+      </div></div>
+    </section>
+
+    <!-- B -->
+    <section class="col" aria-label="แบบ B">
+      <span class="tag">B · บิลบวกลบ</span>
+      <p class="why">อ่านเหมือนใบเสร็จ บนลงล่าง ได้มา − ใช้ไป = เหลือเก็บ บรรทัดล่างตัวใหญ่ที่สุดคือคำตอบ เข้ากับธีมสมุดของแอป</p>
+      <div class="phone"><div class="card">
+        <p class="eyebrow">ปีนี้ · ม.ค. – ต.ค.</p>
+        <div class="rc">
+          <div class="ln"><span><i class="op">+</i>ได้มา</span><b class="num" data-v="inc">฿38,086</b></div>
+          <div class="ln"><span><i class="op">−</i>ใช้ไป</span><b class="num" data-v="exp">฿26,783</b></div>
+          <div class="tot"><span data-v="keptLabel">เหลือเก็บ</span><b class="num good" data-v="kept" data-tone>฿11,302</b></div>
+          <span class="pct" data-v="bPct" data-toneclass>เก็บได้ 30% ของรายได้</span>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- C -->
+    <section class="col" aria-label="แบบ C">
+      <span class="tag">C · วงออมเงิน</span>
+      <p class="why">วงกลมบอก % ที่เก็บได้ ตัวเลขใหญ่ข้าง ๆ คือเงินจริง สวยและจำง่าย แต่ % มาก่อนบาท บางคนต้องคิดต่ออีกนิด</p>
+      <div class="phone"><div class="card">
+        <p class="eyebrow">ปีนี้ · ม.ค. – ต.ค.</p>
+        <div class="c-body">
+          <div class="ring" aria-hidden="true">
+            <svg viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#f6e3e6" stroke-width="14"/>
+              <circle id="ringArc" cx="60" cy="60" r="50" fill="none" stroke="#5fae88" stroke-width="14" stroke-linecap="round"
+                      stroke-dasharray="94 314" transform="rotate(-90 60 60)"/>
+            </svg>
+            <div class="ctr"><b class="num" data-v="keptPct" data-tone>30%</b><span data-v="ringLbl">เก็บได้</span></div>
+          </div>
+          <div class="c-side">
+            <div class="main"><span data-v="keptLabel">เหลือเก็บ</span><b class="num good" data-v="kept" data-tone>฿11,302</b></div>
+            <div class="c-mini">
+              <div><span>ได้มา</span><b class="num" data-v="inc">฿38,086</b></div>
+              <div><span>ใช้ไป</span><b class="num" data-v="exp">฿26,783</b></div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+  </div>
+
+  <section class="notes">
+    <h2>ทำไม A ถึงดูง่ายที่สุด</h2>
+    <ul>
+      <li>คำตอบอยู่บนสุดเป็นประโยค "เหลือเก็บ ฿11,302" ไม่ต้องรวมเลขจากหลายกล่องเอง</li>
+      <li>แถบเดียวคือเงินที่หามาได้ทั้งก้อน สีชมพูส่วนที่ใช้ สีเขียวส่วนที่เก็บ ความยาวคือสัดส่วนจริง (70/30) เห็นปุ๊บเข้าใจ ไม่มีเหรียญหรือเส้นกลางให้เดา</li>
+      <li>อัตราการออม 29.7% แปลเป็นภาษาคน: "ทุก 100 บาท เก็บได้ 30 บาท"</li>
+      <li>ปีที่ใช้เกิน แถบจะมีส่วนลายแดงยื่นเกินรายได้ และประโยคเปลี่ยนเป็น "ใช้เกินรายได้ ฿…" สีแดง</li>
+      <li>ตัด 4 กล่องออก เหลือตัวเลขแค่ 3 ตัว (เก็บ / ใช้ / ได้มา) ไม่ซ้ำกัน</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+  const data = {
+    // The screenshot's own figures (satang make 38,086 − 26,783 come out at 11,302).
+    pos: { inc: 38085.6, exp: 26783.4 },
+    neg: { inc: 30000, exp: 34500 },
+  };
+  const baht = (n) => "฿" + Math.round(Math.abs(n)).toLocaleString("en-US");
+  function render(state){
+    const { inc, exp } = data[state];
+    const kept = Math.round((inc - exp) * 100) / 100;
+    const neg = kept < 0;
+    const rate = inc > 0 ? (kept / inc) * 100 : 0;
+    const keptPct = Math.round(Math.abs(rate));
+    const total = Math.max(inc, exp);
+    const v = {
+      inc: baht(inc), exp: baht(exp), kept: baht(kept),
+      keptSigned: (neg ? "−" : "+") + baht(kept),
+      rate: rate.toFixed(1) + "%",
+      keptWord: neg ? "ใช้เกิน " + baht(kept) : "เหลือเก็บ " + baht(kept),
+      keptLabel: neg ? "ใช้เกิน" : "เหลือเก็บ",
+      aLead: neg ? "รายจ่าย " + baht(exp) + " มากกว่าเงินที่หามาได้ " + baht(inc) : "จากเงินที่หามาได้ " + baht(inc),
+      usedPct: neg ? "เงินที่หามาได้ใช้หมด" : Math.round(exp / inc * 100) + "%",
+      keptPct: neg ? "−" + keptPct + "%" : keptPct + "%",
+      per100: neg ? "ทุก 100 บาทที่หามาได้ ใช้ออกไป " + Math.round(exp / inc * 100) + " บาท"
+                  : "ทุก 100 บาทที่หามาได้ เก็บไว้ได้ " + keptPct + " บาท",
+      bPct: neg ? "ใช้เกินรายได้ " + keptPct + "%" : "เก็บได้ " + keptPct + "% ของรายได้",
+      ringLbl: neg ? "ใช้เกิน" : "เก็บได้",
+    };
+    document.querySelectorAll("[data-v]").forEach((el) => { el.textContent = v[el.dataset.v]; });
+    document.querySelectorAll("[data-tone]").forEach((el) => { el.classList.toggle("good", !neg); el.classList.toggle("bad", neg); });
+    document.querySelectorAll("[data-toneclass]").forEach((el) => el.classList.toggle("neg", neg));
+    document.querySelectorAll("[data-tone-head]").forEach((el) => { el.classList.toggle("good", !neg); el.classList.toggle("bad", neg); });
+    document.querySelectorAll(".legend .r span").forEach((el) => el.style.setProperty("--dot", neg ? "var(--bad)" : "var(--mint-deep)"));
+    // A: split bar — bar = the larger of income/expense; over-spend is the striped part.
+    const used = document.querySelectorAll(".split .used");
+    const keptEl = document.querySelectorAll(".split .kept");
+    used.forEach((el) => { el.style.flex = String((neg ? inc : exp) / total); });
+    keptEl.forEach((el) => {
+      el.style.flex = String(Math.abs(kept) / total);
+      el.className = neg ? "over" : "kept";
+      el.textContent = neg ? "เกิน" : keptPct + "%";
+    });
+    // current: tug bar share
+    const share = (inc / (inc + exp)) * 100;
+    document.querySelectorAll("[data-w='incShare']").forEach((el) => (el.style.width = share + "%"));
+    document.querySelectorAll("[data-left='incShare']").forEach((el) => (el.style.left = share + "%"));
+    // C: ring
+    const arc = document.getElementById("ringArc");
+    const circ = 2 * Math.PI * 50;
+    arc.setAttribute("stroke-dasharray", (Math.min(keptPct, 100) / 100) * circ + " " + circ);
+    arc.setAttribute("stroke", neg ? "#b4435a" : "#5fae88");
+    document.getElementById("st-pos").setAttribute("aria-pressed", String(!neg));
+    document.getElementById("st-neg").setAttribute("aria-pressed", String(neg));
+  }
+  document.getElementById("st-pos").addEventListener("click", () => render("pos"));
+  document.getElementById("st-neg").addEventListener("click", () => render("neg"));
+  render("pos");
+</script>
