@@ -8,6 +8,7 @@ import { getProfile } from "@/features/profile/queries";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getLocale } from "@/i18n/server";
 import { NetWorthHero } from "@/features/dashboard/components/net-worth-hero";
+import { HomeYearSection } from "@/features/dashboard/components/home-year-section";
 import { IncomeThisMonth } from "@/features/dashboard/components/income-this-month";
 import { MonthlySpend } from "@/features/dashboard/components/monthly-spend";
 import { getMonthlySpendSummary } from "@/features/dashboard/monthly-spend-actions";
@@ -25,7 +26,11 @@ import { AccountPrivacyPlaceholder } from "@/features/account-privacy/components
 
 export const metadata: Metadata = { title: "Dashboard — Wealth OS" };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string | string[] }>;
+}) {
   const privacyGate = await getPrivacyGate(["overview", "activity", "planning", "insights"]);
   if (privacyGate) {
     return <AccountPrivacyPlaceholder {...privacyGate} section="generic" />;
@@ -36,6 +41,8 @@ export default async function DashboardPage() {
   const hasAnyData = await hasAnyDashboardData(today);
   const locale = await getLocale(profile?.preferred_language);
   const dict = getDictionary(locale);
+  const yearQuery = (await searchParams).year;
+  const yearParam = Array.isArray(yearQuery) ? yearQuery[0] : yearQuery;
 
   if (!hasAnyData) {
     return (
@@ -71,12 +78,21 @@ export default async function DashboardPage() {
 
       {/* Each data section streams independently. */}
       <div className="motion-reveal motion-reveal-1">
-        <Suspense fallback={<Skeleton className="h-[120px] w-full rounded-[20px]" />}>
-          <NetWorthHero variant="compact" />
+        <Suspense fallback={<Skeleton className="h-[220px] w-full rounded-[22px]" />}>
+          <HomeNetWorthSlot today={today} monthlySpend={getMonthlySpendSummary()} />
         </Suspense>
       </div>
 
-      <MonthlySpend summary={await getMonthlySpendSummary()} month={today.slice(0, 7)} />
+      <div className="motion-reveal motion-reveal-2">
+        <Suspense fallback={<Skeleton className="h-80 w-full rounded-[22px]" />}>
+          <HomeYearSection
+            today={today}
+            yearParam={yearParam}
+            locale={locale}
+            currencyCode={profile?.currency_code ?? "THB"}
+          />
+        </Suspense>
+      </div>
 
       <div className="motion-reveal motion-reveal-2">
         <HomeQuickActions labels={dict.homeDash} />
@@ -112,6 +128,22 @@ export default async function DashboardPage() {
         </Suspense>
       </div>
 
+    </div>
+  );
+}
+
+async function HomeNetWorthSlot({
+  today,
+  monthlySpend,
+}: {
+  today: string;
+  monthlySpend: ReturnType<typeof getMonthlySpendSummary>;
+}) {
+  const summary = await monthlySpend;
+  return (
+    <div className="space-y-4">
+      <NetWorthHero variant="compact" monthSpendCents={summary ? summary.spentCents : null} />
+      <MonthlySpend summary={summary} month={today.slice(0, 7)} />
     </div>
   );
 }

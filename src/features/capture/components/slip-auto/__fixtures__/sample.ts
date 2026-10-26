@@ -209,16 +209,10 @@ export const sampleMonth: MonthlySpendSummary = {
 /** SAMPLE net-worth card inputs (fixture) — the real NetWorthCompactCard is presentational. */
 export const netWorthSample = {
   netWorthCents: 24890000,
-  sinceFirst: { monthLabel: "พ.ค.", change: { changeCents: 1250000, changePercent: 5.3 } },
-  chartData: [
-    { date: "1", netWorth: 22000000 },
-    { date: "2", netWorth: 22900000 },
-    { date: "3", netWorth: 23500000 },
-    { date: "4", netWorth: 24890000 },
-  ],
-  monthLabels: [
-    { label: "พ.ค.", isCurrent: false },
-    { label: "ส.ค.", isCurrent: false },
-    { label: "ต.ค.", isCurrent: true },
-  ],
+  delta: {
+    scope: "year" as const,
+    monthLabel: "ธ.ค.",
+    change: { changeCents: 3240000, changePercent: 15 },
+  },
+  monthSpend: { monthLabel: "ตุลาคม", cents: 1842000 },
 };
