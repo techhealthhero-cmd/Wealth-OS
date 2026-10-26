@@ -135,7 +135,9 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
-- HOME-REMOVE-MONTH-CARD — Owner: Grok Bot; IN PR → staging. Removed the cream Home monthly-spend card (`MonthlySpend`, `src/features/dashboard/components/monthly-spend.tsx`). Compact `NetWorthHero` and Variant B `HomeYearSection` stay. Slip `MonthlySpendCard` / `MonthlySpendDetail`, finance-tab calendar, and year summary stay. No schema, RLS, auth, billing, or formula changes. Next: owner visual check on device.
+- FINANCE-VARIANT-B — Owner: Grok Bot; IN PR → staging. Finance → รายการ is the monthly close-up: green month hero (รับ/จ่าย/สุทธิ, budget only when one exists) and a full-month calendar (darker red = more spent, green = income day, day tap filters the list). Home Variant B untouched. The cream Home monthly-spend card stays removed. No schema, RLS, auth, billing, or formula changes. Next: owner 390px check on device.
+
+- HOME-REMOVE-MONTH-CARD — Owner: Grok Bot; merged to staging (#63). Removed the cream Home monthly-spend card (`MonthlySpend`, `src/features/dashboard/components/monthly-spend.tsx`). Compact `NetWorthHero` and Variant B `HomeYearSection` stay. Slip `MonthlySpendCard` / `MonthlySpendDetail`, finance-tab calendar, and year summary stay. No schema, RLS, auth, billing, or formula changes.
 
 - HOME-VARIANT-B — Owner: Grok Bot; IN PR → staging. Home opens with the Variant B notebook year overview: compact green net worth, Buddhist year switcher (current and two previous), selected full year vs previous full year, category comparison with อื่นๆ after 8 rows, and goals whose target date falls in that year. No schema, RLS, auth, billing, or formula changes. Next: owner visual check on device.
 
@@ -164,7 +166,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
-| HOME-REMOVE-MONTH-CARD | Remove cream Home monthly-spend card | Grok Bot | IN PR → staging | Deleted Home-only `MonthlySpend` shell. Keep compact net worth + Variant B year overview. Slip card/detail stay. | Owner visual check; merge to staging only |
+| FINANCE-VARIANT-B | Finance รายการ redesign Variant B (month close-up) | Grok Bot | IN PR → staging | Green month hero + full calendar with per-day net. Day tap keeps the existing from/to filter. Home B untouched. Cream Home monthly-spend card stays removed. Display only. | Owner 390px check; merge to staging only |
+| HOME-REMOVE-MONTH-CARD | Remove cream Home monthly-spend card | Grok Bot | merged (#63) | Deleted Home-only `MonthlySpend` shell. Keep compact net worth + Variant B year overview. Slip card/detail stay. | — |
 | HOME-VARIANT-B | Home redesign Variant B (year overview) | Grok Bot | IN PR → staging | Compact net worth, year switcher 2569/2568/2567, income/expense/ออมได้, category compare, goals due that year. Display aggregation only. | Owner 390px check; merge to staging only |
 | QA4-FOLLOWUPS | PR #51 blob clearance + Thai weekday | Codex | DONE — local review | Emergency form mobile gutter + route docking (restored/resized/dragged); UTC Thai abbreviations. Typecheck/lint and 3 Vitest files / 25 tests pass. No DB/auth/billing/formulas or commits | Owner 390×664 device review |
 | INVOICE-QA-FIXES | Bugs 5/6/7a/7b; invoice logic only | Codex | READY FOR HANDOFF | 5/6/7a implemented; 7b not reproduced (existing profile-zone and SQL-date paths correct), regressions added. Node 22 typecheck/lint; full 151 files / 2148 tests; UTC 3 files / 14 tests pass. No UI/DB-write/schema changes. | Supervisor stages/commits (Git metadata read-only), reviews/pushes/PR; affected date example needed |

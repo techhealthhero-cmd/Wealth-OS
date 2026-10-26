@@ -20,19 +20,18 @@ import { EmptyTransactionsIllustration } from "@/components/illustrations";
 import { TransactionListBody } from "./transaction-list-body";
 import { QuickAdd } from "./quick-add";
 import { DailyInboxCard } from "@/features/capture/components/daily-inbox-card";
-import { MonthSummary } from "./month-summary";
+import { MonthHero } from "./month-hero";
 import { WallCalendar } from "./wall-calendar";
 import { ListTabs, type ListTab } from "./list-tabs";
 import { ExportTransactionsButton } from "./export-button";
 import { ExportReportButton } from "@/features/reports/components/export-report-button";
 
 /**
- * Money › Transactions (2026-10-11, mockup "B + D"; reordered 2026-10-19):
- * this month at a glance → the wall calendar → "ทั้งหมด | รอตรวจ" tabs →
- * the list → exports (or, on the pending tab, no calendar: this month at a
- * glance → tabs → only the pending review list). A day picked on the calendar is just the existing
- * from/to filter set to that one date, so the list, search and paging all
- * keep working unchanged.
+ * Money › Transactions (Variant B, the monthly close-up):
+ * green month hero → the full-month calendar → "ทั้งหมด | รอตรวจ" tabs →
+ * the list → exports. On the pending tab the calendar hides and the review
+ * list stays. A day picked on the calendar is the existing from/to filter
+ * for that one date, so the list, search and paging keep working unchanged.
  */
 export async function TransactionList({
   filters,
@@ -97,27 +96,48 @@ export async function TransactionList({
   }).format(new Date(`${monthFrom}T00:00:00Z`));
   const m = dict.transactions.month;
 
+  const monthLabels = {
+    goal: m.heroGoal,
+    month: m.heroMonth,
+    income: m.income,
+    expense: m.expense,
+    net: m.net,
+    budgetUsed: m.budgetUsed,
+    budgetUsedShort: m.budgetUsedShort,
+    budgetFoot: m.budgetFoot,
+    budgetLeft: m.budgetLeft,
+    budgetOver: m.budgetOver,
+    previous: dict.transactions.week.previous,
+    next: dict.transactions.week.next,
+  };
+
   return (
     <div className="space-y-4">
-      {/* This month at a glance comes first, right under the page's tabs (2026-10-19). */}
-      <MonthSummary
+      <MonthHero
         title={monthTitle}
-        // The calendar right below names the month; the pending tab has no calendar,
-        // so the summary names its own month there.
-        showTitle={tab === "pending"}
         incomeCents={calculateIncome(monthTransactions)}
         expenseCents={calculateExpenses(monthTransactions)}
         budget={budget ? { percentUsed: budget.overall.percentUsed, remainingCents: budget.overall.remainingCents } : null}
-        labels={{ income: m.income, expense: m.expense, left: m.left, budgetUsed: m.budgetUsed, budgetLeft: m.budgetLeft, budgetOver: m.budgetOver }}
+        currencyCode={profile?.currency_code || "THB"}
+        prevMonth={addMonthsIso(calendarMonth, -1)}
+        nextMonth={calendarMonth < thisMonth ? addMonthsIso(calendarMonth, 1) : null}
+        labels={monthLabels}
       />
 
       {tab !== "pending" && (
         <WallCalendar
           grid={calendar}
           text={moneyCalendarText(calendar, locale)}
-          prevMonth={addMonthsIso(calendarMonth, -1)}
-          nextMonth={calendarMonth < thisMonth ? addMonthsIso(calendarMonth, 1) : null}
           selectedDate={selectedDate}
+          labels={{
+            title: m.calendarTitle,
+            tapDay: m.tapDay,
+            selectedDay: m.selectedDay,
+            heatSpend: dict.transactions.week.heatSpend,
+            heatIncome: dict.transactions.week.heatIncome,
+            hasPending: dict.transactions.week.hasPending,
+            today: dict.transactions.today,
+          }}
         />
       )}
 

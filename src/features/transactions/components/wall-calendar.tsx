@@ -1,164 +1,167 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowDownRight, ArrowUpLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import type { CSSProperties } from "react";
 
+import type { MoneyCalendarText } from "@/lib/money-calendar-text";
 import type { MonthGrid } from "@/lib/financial/week-strip";
-import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
+import { dayTone, spendMix } from "../lib/day-heat";
+import { useTransactionsQuery } from "./use-transactions-query";
 
-const ROW_H = 56;
-const STORAGE_KEY = "wos.wallCalendarWeeks";
-/** The dog-eared corner's size, and how much more it lifts while pulled. */
-const CURL = 52;
-const CURL_LIFT = 22;
+export interface DayCalendarLabels {
+  title: string;
+  tapDay: string;
+  /** Contains {day}. */
+  selectedDay: string;
+  heatSpend: string;
+  heatIncome: string;
+  hasPending: string;
+  today: string;
+}
+
+export interface DayCalendarViewProps {
+  grid: MonthGrid;
+  text: MoneyCalendarText;
+  selectedDate: string | null;
+  labels: DayCalendarLabels;
+  pending?: boolean;
+  onPickDay: (date: string) => void;
+}
+
+function fill(template: string, values: Record<string, string>): string {
+  return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{${key}}`, value), template);
+}
 
 /**
- * The wall calendar (2026-10-12, mockup 2 "ปฏิทินแขวนผนัง"): a real calendar
- * month, Monday first, hanging from rings. Folded it shows one week — this
- * week, or a past month's last. Its bottom-right corner is dog-eared
- * (2026-10-13, mockup I "พลิกมุมกระดาษ"): tapping the corner opens one more
- * week, up to the whole month, then folds back to one; dragging it down
- * pulls the calendar open (the corner lifts as you pull) and up pushes it
- * shut, snapping to a whole week. It grows upward from the focused week
- * first (earlier weeks), and only past the month's first row downward.
- * Each day shows its net (green above zero, red below) and a heat mark —
- * the redder, the more spent. Tapping a day filters the list to it (from =
- * to = that date), tapping it again clears it; ‹ › move a month (?month=).
- * How far it is open is remembered per device.
+ * The month calendar on Finance → รายการ (Variant B). The whole month is
+ * open: each day shows its net, a redder number means more spent, and green
+ * means money came in. Tapping a day filters the list to it (from = to =
+ * that date); tapping it again clears the day. Today is the cream chip;
+ * the chosen day is leather green.
  */
+export function DayCalendarView({ grid, text, selectedDate, labels, pending, onPickDay }: DayCalendarViewProps) {
+  const weekdays = grid.weeks[0] ?? [];
+  const days = grid.weeks.flat();
+  // Include later days in the month: a future-dated transaction still belongs
+  // on its day, and an empty day reads as 0 rather than a blank cell.
+  const maxSpentCents = days.reduce((max, day) => Math.max(max, day.spentCents), 0);
+  const selectedDayNumber =
+    selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate) ? String(Number(selectedDate.slice(8, 10))) : null;
+
+  return (
+    <section
+      aria-labelledby="finance-calendar-heading"
+      data-testid="finance-calendar"
+      className={cn("finance-cal relative transition-opacity", pending && "opacity-60")}
+      aria-busy={pending || undefined}
+    >
+      <div className="pointer-events-none absolute inset-x-8 -top-2 z-10 flex justify-between" aria-hidden="true">
+        {Array.from({ length: 4 }, (_, index) => (
+          <span
+            key={index}
+            className="h-[18px] w-2 rounded-full bg-gradient-to-r from-[#8d7a58] via-[#e6d3a4] to-[#8d7a58] shadow-[0_1px_1px_rgba(60,40,10,0.25)] dark:from-[#6b6352] dark:via-[#a89878] dark:to-[#6b6352]"
+          />
+        ))}
+      </div>
+      <div className="rounded-[22px] border border-[#e6dac2] bg-[#fffbf2] px-2.5 pt-4 pb-2.5 text-[#26332d] shadow-card dark:border-[#343c36] dark:bg-[#232925] dark:text-[#ece6da]">
+        <div className="flex items-baseline justify-between gap-2 px-1">
+          <h2 id="finance-calendar-heading" className="text-[15px] font-semibold">
+            {labels.title}
+          </h2>
+          <p className="max-w-[58%] text-right text-[11px] leading-4 text-[#8a8174] dark:text-[#a39c8f]">
+            {selectedDayNumber ? fill(labels.selectedDay, { day: selectedDayNumber }) : labels.tapDay}
+          </p>
+        </div>
+        <div className="mt-2 grid grid-cols-7 pb-0.5 text-center text-[11px] text-[#8a8174] dark:text-[#a39c8f]" aria-hidden="true">
+          {weekdays.map((day) => (
+            <span key={day.date}>{text.dates[day.date]?.narrow ?? ""}</span>
+          ))}
+        </div>
+        <div className="grid grid-cols-7">
+          {days.map((day) => {
+            const tone = dayTone(day, maxSpentCents);
+            const selected = selectedDate === day.date;
+            const net = text.nets[String(day.netCents)] ?? "";
+            const long = text.dates[day.date]?.long ?? day.date;
+            const name = [long, day.isToday ? labels.today : "", net, day.hasPending ? labels.hasPending : ""]
+              .filter(Boolean)
+              .join(" · ");
+            return (
+              <button
+                key={day.date}
+                type="button"
+                data-testid={`finance-day-${day.date}`}
+                data-tone={tone.kind}
+                data-today={day.isToday ? "true" : undefined}
+                onClick={() => onPickDay(day.date)}
+                aria-pressed={selected}
+                aria-label={name}
+                style={
+                  tone.kind === "spend" && !selected
+                    ? ({ "--spend": `${spendMix(tone.ratio)}%` } as CSSProperties)
+                    : undefined
+                }
+                className={cn(
+                  "relative my-px flex min-h-11 min-w-0 flex-col items-center justify-center rounded-[12px] px-0.5 py-1 tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#204d3d] focus-visible:ring-offset-1 focus-visible:ring-offset-[#fffbf2] dark:focus-visible:ring-[#8fc4a8] dark:focus-visible:ring-offset-[#232925]",
+                  !day.inMonth && !selected && "opacity-40",
+                  tone.kind === "income" && !selected && "text-[#1e7a4a] dark:text-[#8fd0ae]",
+                  tone.kind === "empty" && !selected && "text-[#8a8174] dark:text-[#a39c8f]",
+                  tone.kind === "spend" && !selected && "finance-day-spend",
+                  day.isToday && !selected && "bg-[#efe6d4] dark:bg-white/10",
+                  selected && "bg-[#1b4335] text-[#fffbf2] opacity-100 dark:bg-[#8fc4a8] dark:text-[#14201a]",
+                )}
+              >
+                <span className="text-[15px] leading-none font-semibold">{Number(day.date.slice(8, 10))}</span>
+                <span className="mt-0.5 max-w-full truncate text-[10px] leading-none font-medium">{net}</span>
+                {day.hasPending ? (
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute top-1 right-1 size-1.5 rounded-full",
+                      selected ? "bg-[#f6d27a] dark:bg-[#14201a]" : "bg-amber-500",
+                    )}
+                  />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-1 text-[11px] text-[#8a8174] dark:text-[#a39c8f]">
+          <span className="inline-flex items-center gap-1.5">
+            <i
+              aria-hidden="true"
+              className="inline-block h-1.5 w-7 rounded-full"
+              style={{
+                background: `linear-gradient(90deg, color-mix(in srgb, var(--finance-spend) ${spendMix(0)}%, var(--finance-spend-soft)), var(--finance-spend))`,
+              }}
+            />
+            {labels.heatSpend}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <i aria-hidden="true" className="inline-block size-2 rounded-[3px] bg-[#1e7a4a] dark:bg-[#8fd0ae]" />
+            {labels.heatIncome}
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function WallCalendar({
   grid,
-  prevMonth,
-  nextMonth,
-  selectedDate,
   text,
+  selectedDate,
+  labels,
 }: {
   grid: MonthGrid;
-  text: import("@/lib/money-calendar-text").MoneyCalendarText;
-  prevMonth: string;
-  /** null when this is already the current month. */
-  nextMonth: string | null;
+  text: MoneyCalendarText;
   selectedDate: string | null;
+  labels: DayCalendarLabels;
 }) {
-  const { t } = useTranslation();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [pending, startTransition] = useTransition();
-  const rows = grid.weeks.length;
-  const focusBottom = (grid.focusRow + 1) * ROW_H;
+  const { pending, push } = useTransactionsQuery();
 
-  /** How many weeks are open, 1..rows. */
-  const [shown, setShown] = useState(1);
-  const paperRef = useRef<HTMLDivElement>(null);
-  const rowsRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{
-    y0: number;
-    h0: number;
-    lastY: number;
-    lastT: number;
-    vel: number;
-    moved: boolean;
-  } | null>(null);
-
-  // A window over the month's rows that grows upward from the focused week.
-  const setHeight = useCallback(
-    (h: number) => {
-      if (rowsRef.current) rowsRef.current.style.height = `${h}px`;
-      const top = h <= focusBottom ? focusBottom - h : 0;
-      if (innerRef.current) innerRef.current.style.transform = `translateY(${-top}px)`;
-    },
-    [focusBottom]
-  );
-
-  useEffect(() => {
-    try {
-      const saved = Number(window.localStorage.getItem(STORAGE_KEY));
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of a per-device preference after hydration
-      if (saved > 0) setShown(Math.min(rows, Math.round(saved)));
-    } catch {
-      // storage unavailable: start folded
-    }
-  }, [rows]);
-
-  useLayoutEffect(() => {
-    setHeight(Math.min(shown, rows) * ROW_H);
-  }, [shown, rows, setHeight]);
-
-  function commit(next: number) {
-    const n = Math.min(rows, Math.max(1, next));
-    setShown(n);
-    setHeight(n * ROW_H);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, String(n));
-    } catch {
-      // not remembered — fine
-    }
-  }
-
-  function lift(px: number) {
-    paperRef.current?.style.setProperty("--curl", `${CURL + px}px`);
-  }
-
-  function onPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = {
-      y0: e.clientY,
-      h0: Math.min(shown, rows) * ROW_H,
-      lastY: e.clientY,
-      lastT: performance.now(),
-      vel: 0,
-      moved: false,
-    };
-    paperRef.current?.classList.add("wall-dragging");
-  }
-  function onPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
-    const d = drag.current;
-    if (!d) return;
-    const dy = e.clientY - d.y0;
-    if (Math.abs(dy) > 4) d.moved = true;
-    const now = performance.now();
-    d.vel = (e.clientY - d.lastY) / Math.max(1, now - d.lastT);
-    d.lastY = e.clientY;
-    d.lastT = now;
-    const min = ROW_H;
-    const max = rows * ROW_H;
-    let h = d.h0 + dy;
-    if (h < min) h = min - (min - h) * 0.25; // rubber band past either end
-    if (h > max) h = max + (h - max) * 0.25;
-    setHeight(h);
-    lift(Math.min(CURL_LIFT, Math.abs(dy) * 0.2));
-  }
-  function onPointerEnd() {
-    const d = drag.current;
-    if (!d) return;
-    drag.current = null;
-    paperRef.current?.classList.remove("wall-dragging");
-    lift(0);
-    if (!d.moved) {
-      // A tap turns one more week; at the whole month it folds back to one.
-      commit(shown >= rows ? 1 : shown + 1);
-      return;
-    }
-    const h = parseFloat(rowsRef.current?.style.height ?? "0");
-    // A flick carries one more week — but not if the finger stopped first.
-    const vel = performance.now() - d.lastT > 80 ? 0 : d.vel;
-    commit(Math.round(h / ROW_H + vel * 1.2));
-  }
-
-  function go(update: (params: URLSearchParams) => void) {
-    const params = new URLSearchParams(searchParams.toString());
-    update(params);
-    startTransition(() =>
-      router.push(`/money/transactions?${params.toString()}`, {
-        scroll: false,
-      })
-    );
-  }
   function pickDay(date: string) {
-    go((params) => {
+    push((params) => {
       if (selectedDate === date) {
         params.delete("from");
         params.delete("to");
@@ -168,188 +171,15 @@ export function WallCalendar({
       }
     });
   }
-  function moveMonth(month: string | null) {
-    go((params) => {
-      params.delete("from");
-      params.delete("to");
-      if (month) params.set("month", month);
-      else params.delete("month");
-    });
-  }
-
-  const label = (date: string, options: { weekday: "narrow" | "long"; day?: "numeric"; month?: "long" }) => text.dates[date][options.weekday];
-  const net = (cents: number) => text.nets[String(cents)];
-  const tone = (cents: number) => (cents > 0 ? "wall-pos" : cents < 0 ? "wall-neg" : "");
-
-  const isCurrentMonth = nextMonth === null;
-  const title = text.title;
-  const open = Math.min(shown, rows);
-  const firstShown = open * ROW_H <= focusBottom ? grid.focusRow + 1 - open : 0;
-  const full = open >= rows;
 
   return (
-    <section
-      aria-label={t("transactions.week.label")}
-      className={cn("wall-cal transition-opacity", pending && "opacity-60")}
-    >
-      <div ref={paperRef} className="wall-paper">
-        <div className="wall-card">
-          <div className="wall-rings" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-          <div className="flex items-center gap-1 px-1.5 pb-1">
-            <span className="text-[16px] font-bold">{title}</span>
-            <span className="wall-muted ml-auto text-[12px] tabular-nums">
-              {isCurrentMonth ? t("transactions.week.monthNet") : t("transactions.week.wholeMonthNet")}{" "}
-              <b className={cn("font-semibold", tone(grid.netCents))}>{net(grid.netCents)}</b>
-            </span>
-            <button
-              type="button"
-              onClick={() => moveMonth(prevMonth)}
-              aria-label={t("transactions.week.previous")}
-              className="wall-muted flex size-7 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10"
-            >
-              <ChevronLeft className="size-4" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={() => moveMonth(nextMonth)}
-              disabled={nextMonth === null}
-              aria-label={t("transactions.week.next")}
-              className="wall-muted flex size-7 items-center justify-center rounded-full hover:bg-black/5 disabled:opacity-30 dark:hover:bg-white/10"
-            >
-              <ChevronRight className="size-4" aria-hidden="true" />
-            </button>
-          </div>
-          <div className="wall-muted grid grid-cols-7 pb-0.5 text-center text-[11px]" aria-hidden="true">
-            {grid.weeks[0].map((day) => (
-              <span key={day.date} className={cn(day.index >= 5 && "wall-weekend")}>
-                {label(day.date, { weekday: "narrow" })}
-              </span>
-            ))}
-          </div>
-
-          <div ref={rowsRef} className="wall-rows" style={{ height: ROW_H }}>
-            <div ref={innerRef} className="wall-inner">
-              {grid.weeks.map((week, w) => (
-                <div
-                  key={week[0].date}
-                  // Folded-away weeks can't be focused or read out.
-                  inert={w < firstShown || w >= firstShown + open}
-                  className={cn(
-                    "grid grid-cols-7 gap-[3px]",
-                    w === grid.focusRow && isCurrentMonth && "wall-row-current"
-                  )}
-                  style={{ height: ROW_H }}
-                >
-                  {week.map((day) => {
-                    const selected = selectedDate === day.date;
-                    const heat =
-                      day.isFuture || grid.maxSpentCents === 0
-                        ? null
-                        : day.netCents > 0
-                          ? "var(--wall-pos)"
-                          : day.spentCents > 0
-                            ? `color-mix(in srgb, var(--wall-neg) ${Math.round(25 + (75 * day.spentCents) / grid.maxSpentCents)}%, transparent)`
-                            : null;
-                    return (
-                      <button
-                        key={day.date}
-                        type="button"
-                        onClick={() => pickDay(day.date)}
-                        disabled={day.isFuture}
-                        aria-pressed={selected}
-                        aria-label={`${label(day.date, { weekday: "long", day: "numeric", month: "long" })}${day.isFuture ? "" : ` · ${net(day.netCents)}`}${day.hasPending ? ` · ${t("transactions.week.hasPending")}` : ""}`}
-                        className={cn(
-                          "wall-day relative my-[3px] flex flex-col items-center justify-center gap-0.5 rounded-[11px] tabular-nums",
-                          !day.inMonth && "wall-day-out",
-                          day.isFuture && "wall-day-future",
-                          day.isToday && !selected && "wall-day-today",
-                          selected && "wall-day-selected"
-                        )}
-                      >
-                        <span className="wall-n text-[16px] leading-none font-semibold">
-                          {Number(day.date.slice(8, 10))}
-                        </span>
-                        <span className={cn("wall-v text-[10px]", tone(day.netCents) || "wall-muted")}>
-                          {day.isFuture ? " " : net(day.netCents)}
-                        </span>
-                        {heat ? (
-                          <i
-                            aria-hidden="true"
-                            className="absolute bottom-[3px] h-[3px] w-[18px] rounded-sm"
-                            style={{ background: heat }}
-                          />
-                        ) : null}
-                        {day.hasPending ? (
-                          <span
-                            aria-hidden="true"
-                            className="absolute top-1 right-1 size-1.5 rounded-full bg-amber-500"
-                          />
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <p className="wall-muted wall-hint text-[11.5px] tabular-nums">
-            {full ? t("transactions.week.curlFold") : t("transactions.week.curlHint")} · {open}/{rows}
-          </p>
-        </div>
-
-        {/* The dog-eared corner (2026-10-13, mockup I): tap to turn one more
-          week, or drag it down/up. It sits outside the clipped card so the
-          whole corner square stays tappable. */}
-        <button
-          type="button"
-          aria-label={`${full ? t("transactions.week.curlFold") : t("transactions.week.curlHint")} (${open}/${rows})`}
-          className="wall-curl"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerEnd}
-          onPointerCancel={onPointerEnd}
-          // Taps arrive through the pointer handlers; this is Enter/Space.
-          onClick={(e) => {
-            if (e.detail === 0) commit(full ? 1 : open + 1);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-              e.preventDefault();
-              commit(open + 1);
-            } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-              e.preventDefault();
-              commit(open - 1);
-            }
-          }}
-        >
-          <span className="wall-curl-flap" aria-hidden="true">
-            {full ? <ArrowUpLeft className="size-4" /> : <ArrowDownRight className="size-4" />}
-          </span>
-        </button>
-      </div>
-
-      <div className="wall-muted mt-1 flex flex-wrap gap-3 px-1 text-[11.5px]">
-        <span>
-          <i
-            className="mr-1 inline-block h-[3px] w-3.5 rounded-sm align-middle"
-            style={{ background: "var(--wall-neg)" }}
-          />
-          {t("transactions.week.heatSpend")}
-        </span>
-        <span>
-          <i
-            className="mr-1 inline-block h-[3px] w-3.5 rounded-sm align-middle"
-            style={{ background: "var(--wall-pos)" }}
-          />
-          {t("transactions.week.heatIncome")}
-        </span>
-      </div>
-    </section>
+    <DayCalendarView
+      grid={grid}
+      text={text}
+      selectedDate={selectedDate}
+      labels={labels}
+      pending={pending}
+      onPickDay={pickDay}
+    />
   );
 }
