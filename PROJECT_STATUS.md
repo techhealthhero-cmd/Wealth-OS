@@ -8,6 +8,18 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-11-01
 
+## Production slip reading on staging — 2026-11-01
+
+Staging's live slip path now matches production (`main`): one photo is read by the existing Claude vision receipt parser (memo + paying-account mask) and confirmed in Quick Capture; two or more photos, and the iPhone Shortcut, land in the slip inbox and become a transaction only when the user taps ✓. Confirmed inbox slips are expenses, the same as production.
+
+- Shortcut endpoint: `POST`/`GET /api/capture/slips`, bearer `wos_slip_…`, public in middleware (no session cookie). Profile → ส่งสลิปอัตโนมัติ shows the key and this deployment's URL.
+- Waiting slips show on Money → รายการ → รอตรวจ, above the daily inbox. Home's pending nudge counts them too.
+- Accounts have an optional full account number (digits only). A slip mask such as `xxx-x-x8710-x` matches that number wherever the visible digits sit. Several accounts at the same bank are not guessed.
+- Migrations are in the repo and **not applied** to staging or production from this change: `0049_slip_inbox.sql` (production 0046+0047, payer check already in the final 0049 form) and `0050_account_number.sql` (production 0049; production 0048 `account_last4` is omitted because production dropped it before it held data). Staging 0046 also revoked public execute on `check_rate_limit`; 0049 grants it to `service_role` so the Shortcut burst limit works. The endpoint fails open if that call errors.
+- No new environment variable. Reading a real slip needs the existing server-only `AI_API_KEY` (or `CAPTURE_OCR_MOCK=1` for the labelled sample). The Shortcut needs `SUPABASE_SERVICE_ROLE_KEY` on the server. Images are not stored.
+- The on-device Tesseract/QR reader (`src/lib/slip`, `slip-auto`) is still in the tree and still tested, but Quick Capture no longer opens it. See the port notes for what that disconnects.
+- Verified locally: `npm run typecheck`, `npm run lint`, full Vitest 170 files / 2532 tests. Migrations were not applied. Production database was not touched.
+
 ## No page-curl, including Home — 2026-11-01
 
 - Owner correction after #67: swiping Home forward to Money does not curl. `pageTurnStyle` is `"fade"` for Home and for every section. A swipe or tab tap still changes the page, then the new sheet fades in over 160ms.

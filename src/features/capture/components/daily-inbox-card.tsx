@@ -138,9 +138,12 @@ function InboxItem({
             categories={relevant}
             value={item.category_id}
             // Picking a category IS the review — confirm in the same tap.
+            // Tapping the already-selected chip (e.g. the guessed "อื่นๆ")
+            // sends null (deselect) — here it means "yes, that one".
             onValueChange={(id) => {
               setPicking(false);
-              if (id) confirm(id);
+              const chosen = id ?? item.category_id;
+              if (chosen) confirm(chosen);
             }}
           />
         </div>
