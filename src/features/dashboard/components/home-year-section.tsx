@@ -1,6 +1,7 @@
 import { getDictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/config";
 import { captureError } from "@/lib/observability";
+import { notebookHand } from "@/components/notebook/notebook-hand";
 import { InlineLoadError } from "@/components/shared/inline-load-error";
 import { loadHomeYear } from "../home-year-data";
 import { HomeYearView } from "./home-year-view";
@@ -25,7 +26,15 @@ export async function HomeYearSection({
     other: dict.homeYear.other,
   });
   if (!data) return <InlineLoadError message={dict.common.somethingWentWrong} />;
-  return <HomeYearView labels={dict.homeYear} locale={locale} currencyCode={currencyCode} {...data} />;
+  return (
+    <HomeYearView
+      labels={dict.homeYear}
+      locale={locale}
+      currencyCode={currencyCode}
+      handClassName={notebookHand.className}
+      {...data}
+    />
+  );
 }
 
 async function loadHomeYearSafe(input: Parameters<typeof loadHomeYear>[0]) {

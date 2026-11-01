@@ -3498,7 +3498,10 @@
     "goalReached": "ถึงแล้ว",
     "insightUp": "{category}ปี {year} สูงขึ้น จากปี {previous} ที่ {from} เป็น {to}",
     "insightDown": "{category}ปี {year} ลดลง จากปี {previous} ที่ {from} เป็น {to}",
-    "barsLabel": "รายรับและรายจ่ายปี {year}"
+    "barsLabel": "รายรับและรายจ่ายปี {year}",
+    "noPreviousYear": "ปี {year} ยังไม่มีบันทึก (฿0 ทุกหมวด)",
+    "goalBy": "ภายใน {date}",
+    "previousYearAmount": "ปี {year} {amount}"
   },
   "paymentCalendar": {
     "calendarLabel": "ปฏิทินรายจ่ายประจำ",

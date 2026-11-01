@@ -8,6 +8,13 @@
  * via the existing calculateMonthlyCashFlow() (expenses already net of
  * refunds). Category rows use the same netting so the column can add up
  * to that expense total. Nothing here is stored or fed into another formula.
+ *
+ * Categories that display as the same label share one row. The system
+ * "อื่นๆ" / "Other" category, a second category with that name (income and
+ * expense each have one), a null category, and an unknown category id all
+ * land in that single อื่นๆ row. When the table is longer than eight rows,
+ * the tail folds into that same row instead of appending a second one.
+ * Rows stay sorted by this year's spend, high to low.
  */
 import type { Locale } from "@/i18n/config";
 import {
@@ -159,6 +166,62 @@ function netExpenseByCategory(rows: readonly HomeYearTransaction[]): Map<string 
   return totals;
 }
 
+function normalizeLabel(label: string): string {
+  return label.trim().toLocaleLowerCase();
+}
+
+/** Ignore spaces so "อื่น ๆ" and "อื่นๆ" are the same catch-all. */
+function compactLabel(label: string): string {
+  return normalizeLabel(label).replace(/\s+/g, "");
+}
+
+const CATCH_ALL_LABELS = ["อื่นๆ", "อื่น ๆ", "other", "uncategorized", "ไม่ระบุหมวด"];
+
+function isCatchAllLabel(label: string, copy: { other: string; uncategorized: string }): boolean {
+  const compact = compactLabel(label);
+  if (!compact) return false;
+  return [copy.other, copy.uncategorized, ...CATCH_ALL_LABELS].some((alias) => compactLabel(alias) === compact);
+}
+
+function compareCategories(locale: Locale) {
+  return (a: YearCategoryComparison, b: YearCategoryComparison) =>
+    b.currentCents - a.currentCents ||
+    b.previousCents - a.previousCents ||
+    a.label.localeCompare(b.label, locale);
+}
+
+/**
+ * Keep at most eight rows. The tail folds into the existing อื่นๆ row when
+ * there is one, so a real "อื่นๆ" category and the overflow never both show.
+ * The merged row is sorted back into place by this year's amount.
+ */
+function foldHomeYearCategories(
+  ranked: readonly YearCategoryComparison[],
+  otherLabel: string,
+  locale: Locale,
+): YearCategoryComparison[] {
+  if (ranked.length <= HOME_YEAR_TABLE_CAP) return [...ranked];
+
+  const existingOther = ranked.find((row) => row.isOther);
+  const named = ranked.filter((row) => !row.isOther);
+  const head = named.slice(0, HOME_YEAR_NAMED_CAP);
+  const tail = named.slice(HOME_YEAR_NAMED_CAP);
+  const folded: YearCategoryComparison = {
+    id: "other",
+    label: otherLabel,
+    currentCents: existingOther?.currentCents ?? 0,
+    previousCents: existingOther?.previousCents ?? 0,
+    isOther: true,
+  };
+  for (const row of tail) {
+    folded.currentCents += row.currentCents;
+    folded.previousCents += row.previousCents;
+  }
+  return [...head, folded]
+    .filter((row) => row.currentCents !== 0 || row.previousCents !== 0)
+    .sort(compareCategories(locale));
+}
+
 function categoryInsight(rows: readonly YearCategoryComparison[]): HomeYearInsight | null {
   let best: YearCategoryComparison | null = null;
   let bestAbs = 0;
@@ -197,43 +260,44 @@ export function aggregateHomeYear(
   const currentByCategory = netExpenseByCategory(selected);
   const previousByCategory = netExpenseByCategory(previous);
   const byId = new Map(categories.map((category) => [category.id, category]));
-  const labelFor = (id: string | null) => {
-    if (!id) return copy.uncategorized;
-    const category = byId.get(id);
-    if (!category) return copy.uncategorized;
-    return copy.locale === "th" ? category.name_th : category.name_en;
-  };
 
   const ids = new Set<string | null>([...currentByCategory.keys(), ...previousByCategory.keys()]);
-  const ranked: YearCategoryComparison[] = [...ids]
-    .map((id) => ({
-      id: id ?? "uncategorized",
-      label: labelFor(id),
-      currentCents: currentByCategory.get(id) ?? 0,
-      previousCents: previousByCategory.get(id) ?? 0,
-      isOther: false,
-    }))
-    .filter((row) => row.currentCents !== 0 || row.previousCents !== 0)
-    .sort(
-      (a, b) =>
-        b.currentCents - a.currentCents ||
-        b.previousCents - a.previousCents ||
-        a.label.localeCompare(b.label, copy.locale),
-    );
+  const buckets = new Map<string, YearCategoryComparison>();
+  for (const id of ids) {
+    const category = id ? byId.get(id) : undefined;
+    const rawLabel = !category
+      ? copy.uncategorized
+      : copy.locale === "th"
+        ? category.name_th
+        : category.name_en;
+    const catchAll =
+      !id ||
+      !category ||
+      isCatchAllLabel(category.name_th, copy) ||
+      isCatchAllLabel(category.name_en, copy) ||
+      isCatchAllLabel(rawLabel, copy);
+    const key = catchAll ? "other" : normalizeLabel(rawLabel);
+    const currentCents = currentByCategory.get(id) ?? 0;
+    const previousCents = previousByCategory.get(id) ?? 0;
+    const existing = buckets.get(key);
+    if (existing) {
+      existing.currentCents += currentCents;
+      existing.previousCents += previousCents;
+      continue;
+    }
+    buckets.set(key, {
+      id: catchAll ? "other" : id!,
+      label: catchAll ? copy.other : rawLabel,
+      currentCents,
+      previousCents,
+      isOther: catchAll,
+    });
+  }
 
-  const categoriesOut: YearCategoryComparison[] =
-    ranked.length <= HOME_YEAR_TABLE_CAP
-      ? ranked
-      : [
-          ...ranked.slice(0, HOME_YEAR_NAMED_CAP),
-          {
-            id: "other",
-            label: copy.other,
-            currentCents: ranked.slice(HOME_YEAR_NAMED_CAP).reduce((sum, row) => sum + row.currentCents, 0),
-            previousCents: ranked.slice(HOME_YEAR_NAMED_CAP).reduce((sum, row) => sum + row.previousCents, 0),
-            isOther: true,
-          },
-        ];
+  const ranked = [...buckets.values()]
+    .filter((row) => row.currentCents !== 0 || row.previousCents !== 0)
+    .sort(compareCategories(copy.locale));
+  const categoriesOut = foldHomeYearCategories(ranked, copy.other, copy.locale);
 
   return {
     incomeCents,

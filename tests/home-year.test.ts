@@ -126,11 +126,89 @@ describe("aggregateHomeYear", () => {
 
     const summary = aggregateHomeYear(rows, many, 2026, copy);
     expect(summary.categories).toHaveLength(8);
-    expect(summary.categories.at(-1)).toMatchObject({ id: "other", label: "อื่นๆ", isOther: true });
+    expect(summary.categories.filter((row) => row.label === "อื่นๆ")).toHaveLength(1);
+    expect(summary.categories.find((row) => row.isOther)).toMatchObject({ id: "other", label: "อื่นๆ" });
+    expect(summary.categories.map((row) => row.currentCents)).toEqual(
+      [...summary.categories].map((row) => row.currentCents).sort((a, b) => b - a),
+    );
     expect(summary.categories.reduce((sum, row) => sum + row.currentCents, 0)).toBe(summary.expenseCents);
     expect(summary.categories.reduce((sum, row) => sum + row.previousCents, 0)).toBe(
       aggregateHomeYear(rows, many, 2025, copy).expenseCents,
     );
+  });
+
+  it("merges other, a same-named second category, and uncategorized into one อื่นๆ row", () => {
+    const cats = [
+      ...categories,
+      { id: "exp-other", name_th: "อื่นๆ", name_en: "Other" },
+      { id: "inc-other", name_th: "อื่นๆ", name_en: "Other" },
+    ];
+    const summary = aggregateHomeYear(
+      [
+        tx({ type: "expense", amount: "7992.00", transaction_date: "2026-01-15", category_id: "home" }),
+        tx({ type: "expense", amount: "1708.00", transaction_date: "2026-02-01", category_id: "exp-other" }),
+        tx({ type: "expense", amount: "3000.00", transaction_date: "2026-02-02", category_id: "inc-other" }),
+        tx({ type: "expense", amount: "1479.14", transaction_date: "2026-02-03", category_id: null }),
+        tx({ type: "expense", amount: "10.00", transaction_date: "2026-02-04", category_id: "missing" }),
+      ],
+      cats,
+      2026,
+      copy,
+    );
+
+    const others = summary.categories.filter((row) => row.label === "อื่นๆ");
+    expect(others).toHaveLength(1);
+    expect(others[0]).toMatchObject({ id: "other", isOther: true, currentCents: 618_714 + 1_000 });
+    expect(summary.categories.map((row) => row.label)).toEqual(["ค่าบ้าน", "อื่นๆ"]);
+    expect(summary.categories.map((row) => row.currentCents)).toEqual([799_200, 619_714]);
+  });
+
+  it("folds the overflow into the existing อื่นๆ row instead of adding a second one", () => {
+    const many = [
+      { id: "exp-other", name_th: "อื่นๆ", name_en: "Other" },
+      ...Array.from({ length: 8 }, (_, index) => ({
+        id: `c${index}`,
+        name_th: `หมวด${index}`,
+        name_en: `Cat${index}`,
+      })),
+    ];
+    const rows = [
+      tx({ type: "expense", amount: "5000.00", transaction_date: "2026-01-02", category_id: "exp-other" }),
+      ...many.slice(1).map((category, index) =>
+        tx({
+          type: "expense",
+          amount: String(100 - index),
+          transaction_date: "2026-01-03",
+          category_id: category.id,
+        }),
+      ),
+    ];
+
+    const summary = aggregateHomeYear(rows, many, 2026, copy);
+    const others = summary.categories.filter((row) => row.label === "อื่นๆ");
+    expect(summary.categories).toHaveLength(8);
+    expect(others).toHaveLength(1);
+    expect(others[0].isOther).toBe(true);
+    expect(others[0].currentCents).toBeGreaterThan(500_000);
+    expect(summary.categories.reduce((sum, row) => sum + row.currentCents, 0)).toBe(summary.expenseCents);
+    expect(summary.categories.map((row) => row.currentCents)).toEqual(
+      [...summary.categories].map((row) => row.currentCents).sort((a, b) => b - a),
+    );
+  });
+
+  it("merges a null category into Other for English", () => {
+    const summary = aggregateHomeYear(
+      [
+        tx({ type: "expense", amount: "10.00", transaction_date: "2026-01-02", category_id: "exp-other" }),
+        tx({ type: "expense", amount: "5.00", transaction_date: "2026-01-03", category_id: null }),
+      ],
+      [{ id: "exp-other", name_th: "อื่นๆ", name_en: "Other" }],
+      2026,
+      { locale: "en", uncategorized: "Uncategorized", other: "Other" },
+    );
+    expect(summary.categories).toEqual([
+      expect.objectContaining({ id: "other", label: "Other", currentCents: 1_500, isOther: true }),
+    ]);
   });
 
   it("does not narrate a category move under ฿500", () => {
@@ -239,7 +317,97 @@ describe("Home year presentation", () => {
     expect(html).toContain("เป้าหมายปี 2569");
     expect(html).toContain("เที่ยวญี่ปุ่น");
     expect(html).toContain("31 ธ.ค.");
+    expect(html).toContain("ภายใน 31 ธ.ค.");
+    expect(html).toContain("ดูทั้งหมด");
+    expect(html).toContain('data-testid="home-year-goal-note"');
     expect(html).toContain('aria-valuenow="40"');
+    expect(html).toContain('data-previous="true"');
+    expect(html).toContain("ปี 2568");
+    expect(html).not.toContain("ยังไม่มีบันทึก");
+  });
+
+  it("skips a zero previous-year line unless every category is zero", () => {
+    const html = renderToStaticMarkup(
+      createElement(HomeYearView, {
+        labels: th.homeYear,
+        locale: "th",
+        currencyCode: "THB",
+        selectedYear: 2026,
+        options: homeYearOptions("2026-10-26"),
+        throughMonth: null,
+        incomeCents: 1_000_000,
+        expenseCents: 300_000,
+        savedCents: 700_000,
+        categories: [
+          { id: "home", label: "ที่พัก", currentCents: 200_000, previousCents: 100_000, isOther: false },
+          { id: "food", label: "อาหาร", currentCents: 100_000, previousCents: 0, isOther: false },
+        ],
+        insight: null,
+        goals: [],
+      }),
+    );
+    const block = html.slice(html.indexOf('data-testid="home-year-categories"'), html.indexOf('data-testid="home-year-goals"'));
+    expect(block).toContain("ปี 2568");
+    expect(block).not.toContain("฿0");
+    expect(html).not.toContain("ยังไม่มีบันทึก");
+  });
+
+  it("draws gold share percents and one note when the previous year is all zero", () => {
+    const html = renderToStaticMarkup(
+      createElement(HomeYearView, {
+        labels: th.homeYear,
+        locale: "th",
+        currencyCode: "THB",
+        selectedYear: 2026,
+        options: homeYearOptions("2026-10-26"),
+        throughMonth: null,
+        incomeCents: 3_808_550,
+        expenseCents: 3_071_049,
+        savedCents: 737_501,
+        categories: [
+          { id: "home", label: "ที่พัก", currentCents: 799_200, previousCents: 0, isOther: false },
+          { id: "other", label: "อื่นๆ", currentCents: 618_714, previousCents: 0, isOther: true },
+        ],
+        insight: null,
+        goals: [],
+      }),
+    );
+    const categories = html.slice(html.indexOf('data-testid="home-year-categories"'), html.indexOf('data-testid="home-year-goals"'));
+    expect(html).toContain("ปี 2568 ยังไม่มีบันทึก (฿0 ทุกหมวด)");
+    expect(html).toContain('data-previous="false"');
+    expect(html).toContain("100%");
+    expect(html).toContain("77%");
+    expect(html).toContain("+");
+    expect(html).toContain("−");
+    expect(html).toContain("decoration-double");
+    expect(categories.match(/อื่นๆ/g)).toHaveLength(1);
+    expect(html).toContain("ตั้งเป้าหมาย");
+    expect(html).not.toContain("home-year-goal-note");
+    expect(html).not.toMatch(/text-red|text-destructive|#b4574a|#dc2626|#ef4444/);
+  });
+
+  it("keeps a negative ออมได้ gold and double-underlined", () => {
+    const html = renderToStaticMarkup(
+      createElement(HomeYearView, {
+        labels: th.homeYear,
+        locale: "th",
+        currencyCode: "THB",
+        selectedYear: 2026,
+        options: homeYearOptions("2026-10-26"),
+        throughMonth: null,
+        incomeCents: 100_000,
+        expenseCents: 250_000,
+        savedCents: -150_000,
+        categories: [{ id: "food", label: "อาหาร", currentCents: 250_000, previousCents: 0, isOther: false }],
+        insight: null,
+        goals: [],
+      }),
+    );
+    const saved = html.match(/<span data-testid="home-year-saved"[^>]*>/)?.[0] ?? "";
+    expect(saved).toContain("decoration-double");
+    expect(saved).toContain("text-[#8a6a2f]");
+    expect(html).toContain("−");
+    expect(html).not.toMatch(/text-red|text-destructive|#b4574a|#dc2626|#ef4444/);
   });
 });
 

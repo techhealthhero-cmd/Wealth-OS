@@ -8,6 +8,14 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-11-01
 
+## Home notebook below the gold card — 2026-11-01
+
+- Below the champagne-gold net-worth card, Home is the approved notebook (style C). Section titles are handwritten with a highlighter stroke. ภาพรวมรายปี has the circled Buddhist year switch, a ledger of รายรับ / รายจ่าย / ออมได้ (ออมได้ is double-underlined), and หมวดรายจ่าย · เทียบปี sorted high to low with a gold share bar and the percent of the largest category.
+- When the previous year is ฿0 in every category, one note replaces that column ("ปี 2568 ยังไม่มีบันทึก (฿0 ทุกหมวด)"). When it is not, only categories that had spending last year show a "ปี {year} {amount}" line. Goals due that year sit on a taped sticky note. ดูทั้งหมด and the empty-state ตั้งเป้าหมาย stay.
+- Two category ids that display as อื่นๆ (the expense Other category, the income Other category, a null category, and an unknown id) are one row. The overflow fold joins that same row instead of adding a second อื่นๆ. Amounts stay ink, green, or gold — never red.
+- The gold card, the removed shortcut / tax / awaiting / income-by-source blocks, the ~20px gap above the mic, and the fade page turn are unchanged. No schema, RLS, auth, billing, or formula changes.
+- Verified: `npm run typecheck`, `npm run lint`, full Vitest 171 files / 2542 tests, `npm run build`. WebKit 390×844 on a disposable staging user (deleted afterward): merged อื่นๆ, the empty-previous-year note, ink expense color, dark-green negative net worth, fade with no curl, no horizontal overflow, 19px above the mic.
+
 ## Finance sub-tab scroll — 2026-11-01
 
 - Money › รายการ keeps the month hero and the daily calendar above ทั้ง ทั้งหมด and รอตรวจ. Switching those sub-tabs no longer removes the calendar, so the sub-tab bar stays at the same document position.

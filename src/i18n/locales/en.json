@@ -3498,7 +3498,10 @@
     "goalReached": "Reached",
     "insightUp": "{category} in {year} rose from {from} in {previous} to {to}",
     "insightDown": "{category} in {year} fell from {from} in {previous} to {to}",
-    "barsLabel": "Income and spending in {year}"
+    "barsLabel": "Income and spending in {year}",
+    "noPreviousYear": "Nothing recorded in {year} (฿0 in every category)",
+    "goalBy": "by {date}",
+    "previousYearAmount": "{year} {amount}"
   },
   "paymentCalendar": {
     "calendarLabel": "Payment calendar",

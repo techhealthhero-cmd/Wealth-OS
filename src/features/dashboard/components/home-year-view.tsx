@@ -30,6 +30,12 @@ export interface HomeYearLabels {
   insightUp: string;
   insightDown: string;
   barsLabel: string;
+  /** "ปี {year} ยังไม่มีบันทึก (฿0 ทุกหมวด)" */
+  noPreviousYear: string;
+  /** "ภายใน {date}" */
+  goalBy: string;
+  /** "ปี {year} {amount}" */
+  previousYearAmount: string;
 }
 
 export interface HomeYearGoalView {
@@ -55,25 +61,87 @@ export interface HomeYearViewProps {
   categories: YearCategoryComparison[];
   insight: HomeYearInsight | null;
   goals: HomeYearGoalView[];
+  /** Mali class from next/font. Empty in tests that render the view alone. */
+  handClassName?: string;
 }
 
-/** Quiet paper section: hairline on the cream page, no slip card. */
-const SECTION = "border-t border-[#e9dfca] pt-5 pb-1.5 dark:border-white/10";
-/** Selected year and the savings figure. Darkened just enough to clear 4.5:1 on cream. */
-const GOLD = "text-[#80602a] dark:text-[#e2c57a]";
+const INK = "text-[#1f3a2c] dark:text-[#f3ead7]";
+const GOLD = "text-[#8a6a2f] dark:text-[#e2c57a]";
+const INCOME = "text-[#2f6a4c] dark:text-[#b7d7c4]";
+/** Highlighter behind the lower half of a handwritten heading. */
+const MARKER = "bg-[linear-gradient(transparent_60%,var(--journal-highlight)_60%)]";
 
 function money(cents: number, currencyCode: string): string {
   const digits = cents % 100 === 0 ? 0 : 2;
-  return formatMoney(cents, currencyCode, currencyCode === "THB" ? "th-TH" : undefined, digits);
+  return formatMoney(Math.abs(cents), currencyCode, currencyCode === "THB" ? "th-TH" : undefined, digits);
 }
 
-function barPercent(cents: number, max: number): number {
-  if (cents <= 0 || max <= 0) return 0;
-  return Math.min(100, Math.max(6, Math.round((cents / max) * 100)));
+/** Unicode minus, never a red style. Positive amounts have no sign. */
+function plainMoney(cents: number, currencyCode: string): string {
+  const abs = money(cents, currencyCode);
+  return cents < 0 ? `−${abs}` : abs;
+}
+
+function ledgerMoney(cents: number, currencyCode: string, role: "income" | "expense" | "saved"): string {
+  const abs = money(cents, currencyCode);
+  if (role === "income") {
+    if (cents > 0) return `+${abs}`;
+    if (cents < 0) return `−${abs}`;
+    return abs;
+  }
+  if (role === "expense") {
+    if (cents > 0) return `−${abs}`;
+    if (cents < 0) return `+${abs}`;
+    return abs;
+  }
+  return cents < 0 ? `−${abs}` : abs;
+}
+
+/** Bar width and the printed share, both relative to the largest category. */
+function shareOfMax(cents: number, max: number): { width: number; label: string } {
+  if (cents <= 0 || max <= 0) return { width: 0, label: "0%" };
+  const raw = (cents / max) * 100;
+  const width = Math.min(100, raw < 4 ? 4 : raw);
+  const label = raw < 0.5 ? "<1%" : `${Math.round(raw)}%`;
+  return { width, label };
 }
 
 function fill(template: string, values: Record<string, string>): string {
   return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{${key}}`, value), template);
+}
+
+function NotebookHeading({
+  id,
+  text,
+  handClassName,
+  pencil = false,
+}: {
+  id: string;
+  text: string;
+  handClassName: string;
+  pencil?: boolean;
+}) {
+  const splitAt = text.indexOf(" · ");
+  const lead = splitAt === -1 ? text : text.slice(0, splitAt);
+  const rest = splitAt === -1 ? "" : text.slice(splitAt);
+  return (
+    <h2
+      id={id}
+      className={cn(
+        handClassName,
+        "origin-left -rotate-1 text-[21px] leading-tight font-bold motion-reduce:transform-none",
+        INK,
+      )}
+    >
+      <span className={MARKER}>{lead}</span>
+      {rest}
+      {pencil ? (
+        <span aria-hidden="true" className="ml-1.5 inline-block text-[0.75em] font-normal">
+          ✎
+        </span>
+      ) : null}
+    </h2>
+  );
 }
 
 export function HomeYearView({
@@ -89,11 +157,13 @@ export function HomeYearView({
   categories,
   insight,
   goals,
+  handClassName = "",
 }: HomeYearViewProps) {
   const selectedBe = buddhistYear(selectedYear);
   const previousBe = buddhistYear(selectedYear - 1);
   const showMoney = incomeCents !== 0 || expenseCents !== 0 || categories.length > 0;
-  const maxBar = Math.max(incomeCents, expenseCents, 0);
+  const previousAllZero = categories.every((category) => category.previousCents === 0);
+  const maxCategory = Math.max(0, ...categories.map((category) => category.currentCents));
   const insightYear = locale === "th" ? String(selectedBe).slice(-2) : String(selectedBe);
   const insightPrevious = locale === "th" ? String(previousBe).slice(-2) : String(previousBe);
   const insightSentence = insight
@@ -101,68 +171,75 @@ export function HomeYearView({
         category: insight.label,
         year: insightYear,
         previous: insightPrevious,
-        from: money(insight.previousCents, currencyCode),
-        to: money(insight.currentCents, currencyCode),
+        from: plainMoney(insight.previousCents, currencyCode),
+        to: plainMoney(insight.currentCents, currencyCode),
       })
     : null;
 
   return (
-    <div data-testid="home-year">
-      <section className={SECTION} aria-labelledby="home-year-title">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 id="home-year-title" className="text-[13px] font-medium text-muted-foreground">
-            {labels.title}
-          </h2>
+    <div data-testid="home-year" className="pt-2 text-[#26332d] dark:text-foreground">
+      <section aria-labelledby="home-year-title">
+        <NotebookHeading id="home-year-title" text={labels.title} handClassName={handClassName} pencil />
+
+        <div className="mt-1 flex flex-wrap items-center gap-x-[18px] gap-y-1">
+          <nav aria-label={labels.yearSwitcher}>
+            <ul className="flex items-center gap-[18px]">
+              {options.map((option) => {
+                const selected = option.gregorian === selectedYear;
+                return (
+                  <li key={option.buddhist}>
+                    <Link
+                      href={option.href}
+                      aria-current={selected ? "true" : undefined}
+                      className="inline-flex h-11 items-center px-0.5 text-[13px] tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span
+                        className={cn(
+                          selected
+                            ? cn("rounded-full border-[1.5px] border-[#8a6a2f] px-2 py-px font-semibold dark:border-[#e2c57a]", GOLD)
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {option.buddhist}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
           {throughMonth ? (
-            <span className="shrink-0 text-[13px] text-muted-foreground">
-              {fill(labels.through, { month: throughMonth })}
-            </span>
+            <span className="text-[12.5px] text-muted-foreground">{fill(labels.through, { month: throughMonth })}</span>
           ) : null}
         </div>
 
-        <nav aria-label={labels.yearSwitcher} className="mt-1">
-          <ul className="flex gap-[18px]">
-            {options.map((option) => {
-              const selected = option.gregorian === selectedYear;
-              return (
-                <li key={option.buddhist}>
-                  <Link
-                    href={option.href}
-                    aria-current={selected ? "true" : undefined}
-                    className={cn(
-                      "inline-flex min-h-11 items-center text-[13px] tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      selected ? cn("border-b-[1.5px] border-[#80602a] pb-0.5 font-semibold dark:border-[#e2c57a]", GOLD) : "text-muted-foreground",
-                    )}
-                  >
-                    {option.buddhist}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
         {showMoney ? (
-          <>
-            <div className="mt-1 space-y-2.5" aria-label={fill(labels.barsLabel, { year: String(selectedBe) })}>
-              <MoneyBar
-                label={labels.income}
-                amount={money(incomeCents, currencyCode)}
-                percent={barPercent(incomeCents, maxBar)}
-                fillClassName="bg-[#4f7a62]"
-              />
-              <MoneyBar
-                label={labels.expense}
-                amount={money(expenseCents, currencyCode)}
-                percent={barPercent(expenseCents, maxBar)}
-                fillClassName="bg-[#c49a86]"
-              />
+          <div className="mt-1" aria-label={fill(labels.barsLabel, { year: String(selectedBe) })}>
+            <div className="flex h-8 items-center justify-between text-sm">
+              <span>{labels.income}</span>
+              <span data-testid="home-year-income" className={cn("font-semibold tabular-nums", INCOME)}>
+                {ledgerMoney(incomeCents, currencyCode, "income")}
+              </span>
             </div>
-            <div className="mt-3.5 flex items-baseline justify-between gap-3 text-[13px]">
-              <span className="text-muted-foreground">{fill(labels.saved, { year: String(selectedBe) })}</span>
-              <span className={cn("font-semibold tabular-nums", GOLD)}>{money(savedCents, currencyCode)}</span>
+            <div className="flex h-8 items-center justify-between text-sm">
+              <span>{labels.expense}</span>
+              <span data-testid="home-year-expense" className="font-semibold text-foreground tabular-nums">
+                {ledgerMoney(expenseCents, currencyCode, "expense")}
+              </span>
             </div>
-          </>
+            <div className="flex h-8 items-center justify-between border-t-2 border-[#1f3a2c] text-sm dark:border-[#e7d7b0]">
+              <span>{fill(labels.saved, { year: String(selectedBe) })}</span>
+              <span
+                data-testid="home-year-saved"
+                className={cn(
+                  "font-semibold underline decoration-double underline-offset-[3px] tabular-nums",
+                  GOLD,
+                )}
+              >
+                {ledgerMoney(savedCents, currencyCode, "saved")}
+              </span>
+            </div>
+          </div>
         ) : (
           <div className="mt-3">
             <p className="text-sm font-medium">{fill(labels.emptyYear, { year: String(selectedBe) })}</p>
@@ -175,52 +252,64 @@ export function HomeYearView({
       </section>
 
       {showMoney && categories.length > 0 ? (
-        <section className={SECTION} aria-labelledby="home-year-categories" data-testid="home-year-categories">
-          <h2 id="home-year-categories" className="text-[13px] font-medium text-muted-foreground">
-            {labels.categoryTitle}
-          </h2>
-          <table className="mt-3 w-full table-fixed text-[13px]">
-            <caption className="sr-only">{labels.categoryTitle}</caption>
-            <thead>
-              <tr className="border-t border-[#efe6d3] text-muted-foreground dark:border-white/10">
-                <th scope="col" className="py-2 text-left font-normal">
-                  {labels.category}
-                </th>
-                <th scope="col" className="w-16 py-2 text-right font-normal text-foreground">
-                  {selectedBe}
-                </th>
-                <th scope="col" className="w-16 py-2 text-right font-normal">
-                  {previousBe}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map((category) => (
-                <tr key={category.id} className="border-t border-[#efe6d3] dark:border-white/10">
-                  <th scope="row" className="max-w-0 py-2 text-left font-normal">
-                    <span className="block truncate">{category.label}</span>
-                  </th>
-                  <td className="py-2 text-right tabular-nums whitespace-nowrap">
-                    {money(category.currentCents, currencyCode)}
-                  </td>
-                  <td className="py-2 text-right text-muted-foreground tabular-nums whitespace-nowrap">
-                    {money(category.previousCents, currencyCode)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {insightSentence ? <p className="mt-3 text-[13px] leading-5 text-muted-foreground">{insightSentence}</p> : null}
+        <section
+          className="mt-6"
+          aria-labelledby="home-year-categories"
+          data-testid="home-year-categories"
+          data-previous={previousAllZero ? "false" : "true"}
+        >
+          <NotebookHeading id="home-year-categories" text={labels.categoryTitle} handClassName={handClassName} />
+          {previousAllZero ? (
+            <p data-testid="home-year-no-previous" className="mt-1 mb-1 text-[12.5px] text-muted-foreground">
+              {fill(labels.noPreviousYear, { year: String(previousBe) })}
+            </p>
+          ) : null}
+          <ul className="mt-1">
+            {categories.map((category) => {
+              const share = shareOfMax(category.currentCents, maxCategory);
+              const current = plainMoney(category.currentCents, currencyCode);
+              const previous = plainMoney(category.previousCents, currencyCode);
+              return (
+                <li key={category.id} className="text-[13px]">
+                  <div className="flex h-8 items-center gap-2">
+                    <span className="max-w-[46%] shrink-0 truncate">{category.label}</span>
+                    <span
+                      className="h-2 min-w-6 flex-1 overflow-hidden rounded-full bg-[rgba(201,161,90,0.15)] dark:bg-white/10"
+                      aria-hidden="true"
+                    >
+                      <span
+                        className="block h-full rounded-full bg-[linear-gradient(90deg,#c9a15a,#e9cf7a)]"
+                        style={{ width: `${share.width}%` }}
+                      />
+                    </span>
+                    <span className="w-9 shrink-0 text-right text-[12px] text-muted-foreground tabular-nums">{share.label}</span>
+                    <span className="shrink-0 text-right font-medium tabular-nums whitespace-nowrap">{current}</span>
+                  </div>
+                  {previousAllZero || category.previousCents === 0 ? null : (
+                    <p className="h-8 text-right text-[12.5px] leading-8 text-muted-foreground tabular-nums">
+                      {fill(labels.previousYearAmount, { year: String(previousBe), amount: previous })}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {insightSentence ? <p className="mt-2 text-[13px] leading-5 text-muted-foreground">{insightSentence}</p> : null}
         </section>
       ) : null}
 
-      <section className={SECTION} aria-labelledby="home-year-goals" data-testid="home-year-goals">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 id="home-year-goals" className="text-[13px] font-medium text-muted-foreground">
-            {fill(labels.goalsTitle, { year: String(selectedBe) })}
-          </h2>
+      <section className="mt-6" aria-labelledby="home-year-goals" data-testid="home-year-goals">
+        <div className="flex items-start justify-between gap-3">
+          <NotebookHeading
+            id="home-year-goals"
+            text={fill(labels.goalsTitle, { year: String(selectedBe) })}
+            handClassName={handClassName}
+          />
           {goals.length > 0 ? (
-            <Link href="/plan/goals" className="inline-flex min-h-11 shrink-0 items-center text-xs font-medium text-[#80602a] dark:text-[#e2c57a]">
+            <Link
+              href="/plan/goals"
+              className={cn("inline-flex min-h-11 shrink-0 items-center text-xs font-medium", GOLD)}
+            >
               {labels.goalsAll}
             </Link>
           ) : null}
@@ -234,35 +323,45 @@ export function HomeYearView({
             </Button>
           </div>
         ) : (
-          <ul className="mt-2 divide-y divide-[#efe6d3] dark:divide-white/10">
-            {goals.map((goal) => {
+          <ul className="mt-3 space-y-4">
+            {goals.map((goal, index) => {
               const reached = goal.status === "completed" || goal.progress >= 100;
               const width = Math.max(0, Math.min(100, goal.progress));
+              const progress = reached
+                ? labels.goalReached
+                : fill(labels.goalProgress, {
+                    current: plainMoney(goal.currentCents, currencyCode),
+                    target: plainMoney(goal.targetCents, currencyCode),
+                  });
+              const by = goal.targetLabel ? fill(labels.goalBy, { date: goal.targetLabel }) : null;
               return (
-                <li key={goal.id} className="py-3">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="min-w-0 truncate text-sm font-medium">{goal.name}</p>
-                    {goal.targetLabel ? (
-                      <span className="shrink-0 text-xs text-muted-foreground">{goal.targetLabel}</span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-                    {reached
-                      ? labels.goalReached
-                      : fill(labels.goalProgress, {
-                          current: money(goal.currentCents, currencyCode),
-                          target: money(goal.targetCents, currencyCode),
-                        })}
-                  </p>
+                <li key={goal.id}>
                   <div
-                    className="mt-2 h-[3px] overflow-hidden rounded-sm bg-[#ebe1cc] dark:bg-white/10"
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.round(width)}
-                    aria-label={goal.name}
+                    data-testid="home-year-goal-note"
+                    className={cn(
+                      "journal-note journal-tape relative mx-2 px-4 pt-4 pb-3.5 motion-reduce:transform-none",
+                      index % 2 === 0 ? "rotate-[1.2deg]" : "-rotate-[0.8deg]",
+                    )}
                   >
-                    <div className="h-full rounded-sm bg-[#4f7a62]" style={{ width: `${width}%` }} />
+                    <p className={cn(handClassName, "text-[17px] leading-snug font-bold", INK)}>{goal.name}</p>
+                    <p className="mt-1 text-[12.5px] text-muted-foreground tabular-nums">
+                      {by ? `${progress} · ${by}` : progress}
+                    </p>
+                    <div
+                      className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[rgba(138,106,47,0.2)]"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(width)}
+                      aria-label={goal.name}
+                    >
+                      {width > 0 ? (
+                        <div
+                          className="h-full rounded-full bg-[linear-gradient(90deg,#c9a15a,#e9cf7a)]"
+                          style={{ width: `${width}%` }}
+                        />
+                      ) : null}
+                    </div>
                   </div>
                 </li>
               );
@@ -270,28 +369,6 @@ export function HomeYearView({
           </ul>
         )}
       </section>
-    </div>
-  );
-}
-
-function MoneyBar({
-  label,
-  amount,
-  percent,
-  fillClassName,
-}: {
-  label: string;
-  amount: string;
-  percent: number;
-  fillClassName: string;
-}) {
-  return (
-    <div className="grid grid-cols-[3.25rem_minmax(0,1fr)_auto] items-center gap-3 text-[13px]">
-      <span className="text-muted-foreground">{label}</span>
-      <div className="h-[3px] overflow-hidden rounded-sm bg-[#ebe1cc] dark:bg-white/10" aria-hidden="true">
-        <div className={cn("h-full rounded-sm", fillClassName)} style={{ width: `${percent}%` }} />
-      </div>
-      <span className="text-right tabular-nums whitespace-nowrap text-foreground">{amount}</span>
     </div>
   );
 }

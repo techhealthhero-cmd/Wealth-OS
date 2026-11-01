@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- HOME-STYLE-C — Owner: Grok Bot; IN PR → staging. Home below the gold card is notebook style C. Duplicate อื่นๆ rows merge into one. Gold card, removed blocks, ~20px bottom gap, and fade turns stay. No schema, RLS, auth, billing, or formula changes. Slip-inbox chip files were not touched.
+
 - CATEGORY-CHIPS-OPEN — Owner: Grok Bot; IN PR → staging. Category chip pickers (slip inbox, quick capture, edit transaction, recurring) show every category as soon as they open. The ดูทั้งหมด / แสดงน้อยลง toggle is gone. Chips are compact (28px sticker, ~30px row) so 14 expense chips fit at 390px. No Home files. No schema, RLS, auth, billing, or formula changes.
 
 - FINANCE-TAB-SCROLL — Owner: Grok Bot; READY FOR HANDOFF. Money › รายการ keeps the month hero and daily calendar above both ทั้งหมด and รอตรวจ, holds window scroll across the switch, and gives the list a 50vh floor. WebKit 390×844: sub-tab bar viewport y stayed 520.17 (scrollY 254) across both tabs, delta 0. Branch off staging. No schema, RLS, auth, billing, or formula changes.
@@ -184,6 +186,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
+| HOME-STYLE-C | Home below the gold card, notebook style C | Grok Bot | IN PR → staging | Handwritten headings, ledger, gold share bars, previous-year note or comparison, taped goals. Merge duplicate อื่นๆ. Gold card and removed blocks stay. | Merge into staging |
 | FINANCE-VARIANT-B | Finance รายการ redesign Variant B (month close-up) | Grok Bot | IN PR → staging | Green month hero + full calendar with per-day net. Day tap keeps the existing from/to filter. Home B untouched. Cream Home monthly-spend card stays removed. Display only. | Owner 390px check; merge to staging only |
 | HOME-REMOVE-MONTH-CARD | Remove cream Home monthly-spend card | Grok Bot | merged (#63) | Deleted Home-only `MonthlySpend` shell. Keep compact net worth + Variant B year overview. Slip card/detail stay. | — |
 | HOME-VARIANT-B | Home redesign Variant B (year overview) | Grok Bot | IN PR → staging | Compact net worth, year switcher 2569/2568/2567, income/expense/ออมได้, category compare, goals due that year. Display aggregation only. | Owner 390px check; merge to staging only |
@@ -263,6 +266,12 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-11-01 — Grok Bot → owner (HOME-STYLE-C)
+
+- Home under the gold card is style C: Mali headings with a highlighter stroke, circled year switch, ledger รายรับ/รายจ่าย/ออมได้ (double underline, never red), category rows high→low with gold share bars and the percent of the largest category. Previous year all ฿0 is one note; otherwise only categories that had spending show "ปี {year} {amount}". Goals sit on a taped note. ดูทั้งหมด and empty-state ตั้งเป้าหมาย stay.
+- อื่นๆ is one row: expense Other, income Other, a null category, and an unknown id merge, and the overflow fold joins that same row.
+- WebKit 390×844 production: one อื่นๆ ฿6,187.14 from ฿1,708 + ฿3,000 + ฿1,479.14, note for 2568, expense ink rgb(38,51,45), figure dark green, page turn fade, no curl, horizontal overflow 0, gap above the mic 19px. Disposable staging user deleted. No schema, RLS, auth, billing, or formula changes. Slip-inbox chip files were not edited.
 
 ### 2026-11-01 — Grok Bot → owner (CATEGORY-CHIPS-OPEN)
 
