@@ -82,8 +82,8 @@ export function BottomNav() {
   });
 
   return (
-    // Floating pill inset from the screen edges; every page reserves bottom
-    // clearance for it (`pb-24` / `pb-[calc(6rem+...)]`).
+    // Floating pill inset from the screen edges. The app shell reserves
+    // `pb-[calc(7rem+env(safe-area-inset-bottom))]` so content clears the mic.
     <div className="fixed inset-x-0 bottom-0 z-30 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden">
       {/* Progressive "frosted glass" fade behind the pill, confined to the
           nav wrapper's own box so it never blurs page cards above it. */}

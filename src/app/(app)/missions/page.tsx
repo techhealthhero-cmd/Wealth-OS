@@ -16,7 +16,7 @@ export default async function MissionsPage() {
   const dict = getDictionary(locale);
 
   return (
-    <div className="space-y-4 pb-28">
+    <div className="space-y-4 md:pb-28">
       <div>
         <h1 className="text-2xl font-semibold">{dict.missions.title}</h1>
         <p className="text-sm text-muted-foreground">{dict.missions.subtitle}</p>

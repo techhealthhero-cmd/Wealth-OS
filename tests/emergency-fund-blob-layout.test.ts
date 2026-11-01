@@ -22,6 +22,6 @@ describe("emergency fund companion layout contract", () => {
     expect(blob).toContain('element.matches("input, textarea, select")');
     expect(blob).toContain("aria-hidden={editing || stepAside}");
     expect(blob).toContain("opacity: stepAside || editing ? 0");
-    expect(layout).toContain("pb-[calc(11rem+env(safe-area-inset-bottom))]");
+    expect(layout).toContain("pb-[calc(7rem+env(safe-area-inset-bottom))]");
   });
 });

@@ -56,7 +56,7 @@ export const muted = "text-[12.5px] text-muted-foreground";
 export const rose =
   "border-[#e3a898] bg-gradient-to-r from-[#fff1ec] to-card dark:border-rose-900 dark:from-rose-950/40";
 export function Screen({ children }: { children: ReactNode }) {
-  return <div className="mx-auto w-full max-w-lg space-y-4 pb-36 text-[15px]">{children}</div>;
+  return <div className="mx-auto w-full max-w-lg space-y-4 pb-20 text-[15px]">{children}</div>;
 }
 export function Header({
   title,

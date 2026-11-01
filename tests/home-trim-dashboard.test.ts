@@ -61,6 +61,11 @@ describe("Home dashboard page trim", () => {
     "utf8"
   );
 
+  it("does not stack a second mobile nav reserve under the shell", () => {
+    expect(pageSource).not.toContain("pb-[calc(7rem+env(safe-area-inset-bottom))]");
+    expect(pageSource).not.toContain("pb-28");
+  });
+
   it("keeps the privacy gate ahead of the year overview", () => {
     expect(pageSource.indexOf("if (privacyGate)")).toBeLessThan(pageSource.indexOf("<HomeYearSection"));
   });

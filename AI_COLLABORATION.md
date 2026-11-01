@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- HOME-BOTTOM-GAP — Owner: Grok Bot; READY FOR HANDOFF. Home's last card sat ~195px above the mic because the shell's 11rem reserve stacked on each page's own 7rem/pb-28. The shell is now the only mobile reserve (`7rem + safe-area`), measured at 19–20px above the mic on WebKit 390×844. Desktop `md:pb-*` kept. Local checks: typecheck, lint, vitest 2488, next build. No schema, RLS, auth, billing, or formula changes.
+
 - PAGE-TURN-FADE-EVERYWHERE — Owner: Grok Bot; READY FOR HANDOFF. Home → Money no longer curls. Notebook close and cover open stay. Every page turn fades over 160ms. Branch `cursor/home-no-curl-989d`, base `staging`. Local checks: typecheck, lint, vitest 2487, next build, WebKit 390×844. No schema, RLS, auth, billing, or formula changes.
 
 - PAGE-CURL-HOME-ONLY — Owner: Grok Bot; DONE (superseded). Merged to staging as #67 (`dc48a6d`). Home forward curl was then removed by the correction above.

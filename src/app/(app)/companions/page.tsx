@@ -56,7 +56,7 @@ export default async function CompanionsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 pb-28">
+    <div className="mx-auto max-w-2xl space-y-6 md:pb-28">
       <header className="space-y-1">
         <h1 className="font-heading text-2xl font-bold text-balance">{dict.companions.pageTitle}</h1>
         <p className="text-sm text-muted-foreground">{dict.companions.pageSubtitle}</p>
