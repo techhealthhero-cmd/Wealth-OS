@@ -31,9 +31,11 @@ import { ExportReportButton } from "@/features/reports/components/export-report-
 /**
  * Money › Transactions (Variant B, the monthly close-up):
  * green month hero → the full-month calendar → "ทั้งหมด | รอตรวจ" tabs →
- * the list → exports. On the pending tab the calendar hides and the review
- * list stays. A day picked on the calendar is the existing from/to filter
- * for that one date, so the list, search and paging keep working unchanged.
+ * the list → exports. The hero and calendar stay on both tabs so the
+ * sub-tab bar does not move. The list panel has a min-height so a short
+ * review list does not collapse the page. A day picked on the calendar is
+ * the existing from/to filter for that one date, so the list, search and
+ * paging keep working unchanged.
  */
 export async function TransactionList({
   filters,
@@ -128,104 +130,105 @@ export async function TransactionList({
         labels={monthLabels}
       />
 
-      {tab !== "pending" && (
-        <WallCalendar
-          grid={calendar}
-          text={moneyCalendarText(calendar, locale)}
-          selectedDate={selectedDate}
-          labels={{
-            title: m.calendarTitle,
-            tapDay: m.tapDay,
-            selectedDay: m.selectedDay,
-            heatSpend: dict.transactions.week.heatSpend,
-            heatIncome: dict.transactions.week.heatIncome,
-            hasPending: dict.transactions.week.hasPending,
-            today: dict.transactions.today,
-          }}
-        />
-      )}
+      <WallCalendar
+        grid={calendar}
+        text={moneyCalendarText(calendar, locale)}
+        selectedDate={selectedDate}
+        labels={{
+          title: m.calendarTitle,
+          tapDay: m.tapDay,
+          selectedDay: m.selectedDay,
+          heatSpend: dict.transactions.week.heatSpend,
+          heatIncome: dict.transactions.week.heatIncome,
+          hasPending: dict.transactions.week.hasPending,
+          today: dict.transactions.today,
+        }}
+      />
 
       <ListTabs active={tab} pendingCount={pendingItems.length + (slips?.length ?? 0)} />
 
-      {tab === "pending" && slips ? (
-        <SlipInboxCard slips={slips} accounts={accounts} categories={categories} today={today} />
-      ) : null}
+      {/* Same floor on both tabs: a short review list must not shrink the
+          page and pull the sub-tab bar to a new scroll position. */}
+      <div data-testid="finance-list-panel" className="min-h-[50vh] [overflow-anchor:none]">
+        {tab === "pending" && slips ? (
+          <SlipInboxCard slips={slips} accounts={accounts} categories={categories} today={today} />
+        ) : null}
 
-      {tab === "pending" ? (
-        // The pending tab is just the review list (2026-10-13): no calendar,
-        // and every pending item, whatever day the "all" tab had picked.
-        // Waiting slips above already fill the tab — no "nothing to review" under them.
-        pendingItems.length === 0 && (slips?.length ?? 0) > 0 ? null : inbox ? (
-          <DailyInboxCard
-            inbox={inbox}
-            categories={categories}
-            accounts={accounts}
-            onlyDate={null}
-            emptyText={dict.transactions.pendingEmpty}
-          />
+        {tab === "pending" ? (
+          // Every pending item, whatever day the "all" tab had picked.
+          // Waiting slips above already fill the tab — no "nothing to review" under them.
+          pendingItems.length === 0 && (slips?.length ?? 0) > 0 ? null : inbox ? (
+            <DailyInboxCard
+              inbox={inbox}
+              categories={categories}
+              accounts={accounts}
+              onlyDate={null}
+              emptyText={dict.transactions.pendingEmpty}
+            />
+          ) : (
+            <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.pendingEmpty}</p>
+          )
         ) : (
-          <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.pendingEmpty}</p>
-        )
-      ) : (
-        <>
-      {transactions.length === 0 && selectedDate && isDefaultView ? (
-        // One quiet day picked on the calendar: a line, not the big empty state.
-        <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.dayEmpty}</p>
-      ) : transactions.length === 0 && monthScoped && hasAnyTransaction ? (
-        // A quiet month turned to on the calendar: a line, not the big empty state.
-        <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.monthEmpty}</p>
-      ) : transactions.length === 0 ? (
-        isDefaultView && !filters.from && !filters.to ? (
-          // Genuinely zero transactions ever — explain why this matters and
-          // give one obvious action, per UX_GUIDELINES.md #10. Reuses the
-          // same QuickAdd already rendered above the list, so there's no
-          // second transaction-entry mechanism to maintain.
-          <EmptyState
-            illustration={<EmptyTransactionsIllustration size={140} />}
-            title={dict.transactions.emptyTitle}
-            description={dict.transactions.emptyDescription}
-            action={<QuickAdd accounts={accounts} categories={categories} variant="inline" />}
-          />
-        ) : (
-          // Filters/search are active and matched nothing — a different,
-          // honest message: transactions DO exist, just not matching this
-          // filter. Showing "No transactions yet" here would be false.
-          <EmptyState
-            illustration={<EmptyTransactionsIllustration size={140} />}
-            title={dict.transactions.noResultsTitle}
-            description={dict.transactions.noTransactionsFound}
-          />
-        )
-      ) : (
-        <TransactionListBody
-          // Remount when the filters change (e.g. a day picked on the calendar):
-          // the body copies its first page into state, so without a new key
-          // it would keep showing the previous filter's rows.
-          key={JSON.stringify(listFilters)}
-          today={today}
-          dateText={Object.fromEntries(transactions.map(tx => {
-            const date = tx.transaction_date.slice(0, 10);
-            return [date, { friendly: formatFriendlyDate(date, locale, { today: dict.transactions.today, yesterday: dict.transactions.yesterday }, today), weekday: formatWeekday(date, locale), month: formatMonthHeading(date.slice(0, 7), locale) }];
-          }))}
-          initialTransactions={transactions}
-          initialHasMore={hasMore}
-          filters={listFilters}
-          accounts={accounts}
-          categories={categories}
-          defaultDetailsOpen={filters.hasNotes}
-          // The calendar above already names its month.
-          unlabeledMonth={calendarMonth}
-        />
-      )}
+          <>
+          {transactions.length === 0 && selectedDate && isDefaultView ? (
+            // One quiet day picked on the calendar: a line, not the big empty state.
+            <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.dayEmpty}</p>
+          ) : transactions.length === 0 && monthScoped && hasAnyTransaction ? (
+            // A quiet month turned to on the calendar: a line, not the big empty state.
+            <p className="py-8 text-center text-sm text-muted-foreground">{dict.transactions.monthEmpty}</p>
+          ) : transactions.length === 0 ? (
+            isDefaultView && !filters.from && !filters.to ? (
+              // Genuinely zero transactions ever — explain why this matters and
+              // give one obvious action, per UX_GUIDELINES.md #10. Reuses the
+              // same QuickAdd already rendered above the list, so there's no
+              // second transaction-entry mechanism to maintain.
+              <EmptyState
+                illustration={<EmptyTransactionsIllustration size={140} />}
+                title={dict.transactions.emptyTitle}
+                description={dict.transactions.emptyDescription}
+                action={<QuickAdd accounts={accounts} categories={categories} variant="inline" />}
+              />
+            ) : (
+              // Filters/search are active and matched nothing — a different,
+              // honest message: transactions DO exist, just not matching this
+              // filter. Showing "No transactions yet" here would be false.
+              <EmptyState
+                illustration={<EmptyTransactionsIllustration size={140} />}
+                title={dict.transactions.noResultsTitle}
+                description={dict.transactions.noTransactionsFound}
+              />
+            )
+          ) : (
+            <TransactionListBody
+              // Remount when the filters change (e.g. a day picked on the calendar):
+              // the body copies its first page into state, so without a new key
+              // it would keep showing the previous filter's rows.
+              key={JSON.stringify(listFilters)}
+              today={today}
+              dateText={Object.fromEntries(transactions.map(tx => {
+                const date = tx.transaction_date.slice(0, 10);
+                return [date, { friendly: formatFriendlyDate(date, locale, { today: dict.transactions.today, yesterday: dict.transactions.yesterday }, today), weekday: formatWeekday(date, locale), month: formatMonthHeading(date.slice(0, 7), locale) }];
+              }))}
+              initialTransactions={transactions}
+              initialHasMore={hasMore}
+              filters={listFilters}
+              accounts={accounts}
+              categories={categories}
+              defaultDetailsOpen={filters.hasNotes}
+              // The calendar above already names its month.
+              unlabeledMonth={calendarMonth}
+            />
+          )}
 
-      {/* The filter row was removed (2026-10-12); the rarely used exports
-          that lived behind its "⋯" pill now sit quietly under the list. */}
-      <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-        <ExportTransactionsButton />
-        <ExportReportButton />
+          {/* The filter row was removed (2026-10-12); the rarely used exports
+              that lived behind its "⋯" pill now sit quietly under the list. */}
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+            <ExportTransactionsButton />
+            <ExportReportButton />
+          </div>
+          </>
+        )}
       </div>
-        </>
-      )}
     </div>
   );
 }
