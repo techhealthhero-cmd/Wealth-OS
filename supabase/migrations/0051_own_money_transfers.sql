@@ -46,6 +46,7 @@ begin
   end loop;
 end $$;
 
+alter table public.categories drop constraint if exists categories_type_check;
 alter table public.categories
   add constraint categories_type_check
   check (type in ('income', 'expense', 'both', 'transfer'));
