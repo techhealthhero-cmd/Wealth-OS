@@ -15,11 +15,11 @@ import { useCoverSwipe } from "./use-cover-swipe";
 type CoverState = "open" | "closing" | "closed" | "opening";
 
 /**
- * Home as the first page of the journal (2026-10-11, requested): swipe
- * right-to-left and the page turns over to Money (then on through the whole
- * book); swipe left-to-right and — there being no page before Home — the
- * front cover swings shut. The closed journal stays on the desk (no balance
- * left on screen). Taps replay the quick opening; swipes turn the cover directly.
+ * Home as the first page of the journal. Swipe right-to-left and the page
+ * changes to Money with the same short fade as every other page — no paper
+ * curl. Swipe left-to-right and, there being no page before Home, the front
+ * cover swings shut. The closed journal stays on the desk (no balance left
+ * on screen). Taps replay the quick opening; swipes close the cover directly.
  */
 export function HomeBook({
   prefs,

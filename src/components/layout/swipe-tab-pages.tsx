@@ -409,12 +409,10 @@ function runCurl(
 /**
  * Wraps a section's page content (Money / Plan / Earn) so a horizontal
  * swipe moves to the next/previous tab — requested 2026-10-08 — with a
- * paper page-turn when `turn` is "curl" (Home only). Forward: grab the
- * page and its corner curls up under your finger, folding along a slanted
- * line, then turns over past the spine, revealing the next page. Back: the
- * previous page curls back in from the spine and lands on top. Tapping a
- * tab used to call the same turn; section pages now pass `turn="fade"` and
- * switch with a short fade instead — no curl sheet.
+ * page change. Every route, including Home, passes `turn="fade"`: the swipe
+ * or tab tap still moves to the next page, and the new sheet fades in.
+ * The paper-curl path remains in this file but no page turn uses it.
+ * Swiping back on Home closes the notebook cover instead of turning a page.
  */
 export function SwipeTabPages({
   hrefs,
@@ -436,7 +434,7 @@ export function SwipeTabPages({
   nextHref?: string | null;
   /** First page of the book (Home): swiping back closes the cover instead. */
   onCloseBook?: () => void;
-  /** "curl" is Home's page turn. Every other journal page uses "fade". */
+  /** Page turns use "fade". "curl" is unused by every route. */
   turn?: PageTurnStyle;
 }) {
   const router = useRouter();
@@ -571,8 +569,8 @@ export function SwipeTabPages({
     },
   }));
 
-  // Section pages fade the new sheet in. A curl that started on Home and
-  // crosses into this section keeps owning the arrival — don't fade over it.
+  // Fade the new sheet in. If a curl flight is somehow still on screen,
+  // leave that arrival alone.
   useLayoutEffect(() => {
     if (turn === "curl" || flightRef.current) {
       fadeArmed = false;
