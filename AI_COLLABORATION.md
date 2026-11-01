@@ -145,7 +145,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 - HOME-REMOVE-SHORTCUTS-INCOME — Owner: Grok Bot; IN PR → staging. Owner asked to remove the Home shortcut row (ออกใบแจ้งหนี้, บันทึกรายรับ, กันภาษี, สแกนสลิป), the รอเงินเข้า and โหลภาษี cards, and the รายได้แยกตามแหล่ง block. Compact NetWorthHero and HomeYearSection stay. Slip scan stays in the capture / voice flow. No schema, RLS, auth, billing, or formula changes. Next: owner 390px check on device.
 
-- SLIP-KPLUS-OCR — Owner: Grok Bot; IN PR → staging. Rebased onto staging after Home Variant B, the monthly-spend card removal, and Finance Variant B. On-device slip review was showing ฿0 because K PLUS prints `จำนวน:` (not `จำนวนเงิน`) and Tesseract reads `พ.ย.` as `พ.ุย.`/`พุย.`. Parser now accepts that layout, PSM 4 keeps the QR out of the text column, and gallery images are decoded on the main thread before OCR. The cream Home monthly-spend card stays removed. No schema, RLS, auth, billing, or money-formula changes. Next: owner re-upload of the 6 slips on an iPhone.
+- SLIP-KPLUS-OCR — Owner: Grok Bot; SUPERSEDED by SLIP-PORT-FROM-MAIN. The on-device K PLUS amount/date fix remains in `src/lib/slip` but Quick Capture no longer opens that reader. Production's Claude vision inbox is the live path. Restore by reconnecting `SlipAutoFlow` if the owner wants the on-device reader back.
 
 - FINANCE-VARIANT-B — Owner: Grok Bot; IN PR → staging. Finance → รายการ is the monthly close-up: green month hero (รับ/จ่าย/สุทธิ, budget only when one exists) and a full-month calendar (darker red = more spent, green = income day, day tap filters the list). Home Variant B untouched. The cream Home monthly-spend card stays removed. No schema, RLS, auth, billing, or formula changes. Next: owner 390px check on device.
 
