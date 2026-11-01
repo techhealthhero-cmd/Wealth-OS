@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- FINANCE-TAB-SCROLL — Owner: Grok Bot; READY FOR HANDOFF. Money › รายการ keeps the month hero and daily calendar above both ทั้งหมด and รอตรวจ, holds window scroll across the switch, and gives the list a 50vh floor. WebKit 390×844: sub-tab bar viewport y stayed 520.17 (scrollY 254) across both tabs, delta 0. Branch off staging. No schema, RLS, auth, billing, or formula changes.
+
 - HOME-GOLD-CARD — Owner: Grok Bot; IN PR → staging. Home net worth is the approved champagne-gold bank card (silver chip, WEALTH OS, display name, dark-green figure with smaller satang, muted change line). A dark-green card peeks behind it. The whole card still opens /money/net-worth. Negative stays dark green and the figure shrinks to one line. ภาพรวมรายปี and หมวดรายจ่าย·เทียบปี stay, restyled as quiet paper (hairline, gold selected year). Shortcuts, tax/awaiting cards, and income-by-source stay removed. Bottom-gap reserve and Home fade (no curl) untouched. No schema, RLS, auth, billing, or formula changes.
 
 - SLIP-PORT-FROM-MAIN — Owner: Grok Bot; IN PR → staging. Production slip inbox (Shortcut `POST /api/capture/slips`, Claude vision memo + payer mask, confirm-as-expense, full account-number match) is the live reader. Staging on-device Tesseract/QR/K PLUS flow stays in the tree but is no longer opened from Quick Capture. Migrations `0049_slip_inbox.sql` and `0050_account_number.sql` are in the PR and not applied. Do not touch production (`lvxuruzspchhcwebrbzy`). Next: owner applies the two migrations on staging (`cqmgogmnfsamywocdinr`), sets the Shortcut URL to the staging host, and retests a real K PLUS slip.
@@ -259,6 +261,12 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-11-01 — Grok Bot → owner (FINANCE-TAB-SCROLL)
+
+- Tapping รอตรวจ used to drop the calendar, shrink the page, and move the ทั้งหมด | รอตรวจ bar. The calendar now stays on both sub-tabs. The list panel is `min-h-[50vh]` with overflow anchoring off. The switch still uses `router.push(..., { scroll: false })` and restores the scroll captured at the tap for 700ms, including across a remount of the tab bar.
+- WebKit 390×844 (`tests/e2e/finance-tab-scroll.spec.ts`, project iphone-390): before / รอตรวจ / back to ทั้งหมด all measured viewport y 520.171875, document y 774.171875, scrollY 254. Calendar remained visible. Review panel height 422 (50vh).
+- Checks: typecheck, lint, Vitest 171 files / 2535 tests, next build. Disposable staging user on `cqmgogmnfsamywocdinr` deleted after the check. No production or `main` changes.
 
 ### 2026-11-01 — Grok Bot → owner (HOME-GOLD-CARD)
 

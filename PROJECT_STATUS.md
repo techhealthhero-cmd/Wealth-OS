@@ -8,6 +8,14 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-11-01
 
+## Finance sub-tab scroll — 2026-11-01
+
+- Money › รายการ keeps the month hero and the daily calendar above ทั้ง ทั้งหมด and รอตรวจ. Switching those sub-tabs no longer removes the calendar, so the sub-tab bar stays at the same document position.
+- The list under the sub-tabs has a 50vh minimum height, so a short review list does not collapse the page. The tab switch keeps the window scroll (`scroll: false`, then restores the offset captured at the tap).
+- WebKit 390×844, scrolled so the sub-tab bar sat at viewport y 520.17 (scrollY 254): after รอตรวจ and back to ทั้งหมด, viewport y, document y, and scrollY were unchanged (delta 0). The calendar stayed visible on both. The review list panel measured 422px, which is 50vh of that viewport.
+- No schema, RLS, auth, billing, or money-formula changes.
+- Verified: `npm run typecheck`, `npm run lint`, full Vitest 171 files / 2535 tests, `npm run build`, Playwright WebKit `tests/e2e/finance-tab-scroll.spec.ts` on iphone-390.
+
 ## Home gold net-worth card — 2026-11-01
 
 - The Home net-worth block is the approved champagne-gold bank card: silver chip, มูลค่าสุทธิ, WEALTH OS, the profile display name, a dark-green figure with smaller satang, and the existing muted change line (this year, or since the first snapshot, plus this month's spend when there is one). A dark-green card sits slightly rotated behind it. The whole card still opens `/money/net-worth`. A negative balance stays dark green, and a long figure shrinks onto one line.
@@ -38,7 +46,7 @@ Staging's live slip path now matches production (`main`): one photo is read by t
 - Money › รายการ is the monthly close-up. Home Variant B (year overview) is unchanged.
 - A leather-green month card shows รับ, จ่าย, and สุทธิ from the existing income/expense totals. When that month has a budget, the card also shows how much of it is used, a gold bar, and what is left. ‹ › change `?month=` and clear a picked day. Future months stay closed.
 - The calendar is the whole month, Monday first. Each day shows its net. A green number means more came in than went out. A red number gets darker the more was spent. Today is a cream chip; the chosen day is leather green and the list below is that day (`from` = `to`). Tap it again for the whole month. The dog-eared week fold is gone.
-- Existing section tabs, the ทั้งหมด | รอตรวจ tabs, exports, and empty states stay. The review tab still hides the calendar.
+- Existing section tabs, the ทั้งหมด | รอตรวจ tabs, exports, and empty states stay. The review tab keeps the same month hero and calendar above the sub-tab bar (2026-11-01), so switching tabs does not move that bar.
 - No schema, RLS, auth, billing, or money-formula changes. Display only.
 - Verified: `npm run typecheck`; ESLint on the changed TS/TSX; full Vitest 170 files / 2485 tests. 390px layout shots of the real components (sample October figures, no signed-in account in this environment).
 
