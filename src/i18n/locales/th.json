@@ -696,8 +696,6 @@
     "quickRepeatHint": "แตะเพื่อเติมข้อมูลในฟอร์มใหม่ ตรวจสอบก่อนบันทึกทุกครั้ง",
     "selectAccount": "เลือกบัญชี",
     "selectCategory": "เลือกหมวดหมู่",
-    "viewAllCategories": "ดูทั้งหมด",
-    "showFewerCategories": "แสดงน้อยลง",
     "addNote": "เพิ่มโน้ต",
     "merchantExpenseLabel": "จ่ายค่าอะไร",
     "merchantExpensePlaceholder": "เช่น อาหารกลางวัน, ค่าเดินทาง, ค่าไฟฟ้า",

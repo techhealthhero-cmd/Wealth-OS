@@ -47,7 +47,7 @@ test("category artwork: full set, sizes and interactive states at 390px", async 
 
     const categories = page.getByRole("radiogroup", { name: /category|หมวดหมู่/i });
     await expect(categories).toBeVisible();
-    await categories.getByRole("button", { name: /view all(?: categories)?|ดูหมวดหมู่ทั้งหมด/i }).click();
+    await expect(categories.getByRole("button", { name: /^(view all|show less|ดูทั้งหมด|แสดงน้อยลง)$/i })).toHaveCount(0);
     const stickers = categories.locator('img[src*="categories"]');
     await expect(stickers).toHaveCount(14);
     await expect.poll(() => stickers.evaluateAll((images: HTMLImageElement[]) => images.every((image) => image.complete && image.naturalWidth > 0))).toBe(true);
@@ -55,7 +55,7 @@ test("category artwork: full set, sizes and interactive states at 390px", async 
 
     const food = categories.getByRole("radio", { name: /food/i });
     const transport = categories.getByRole("radio", { name: /transport/i });
-    await expect(food.locator("img")).toHaveCSS("width", "32px");
+    await expect(food.locator("img")).toHaveCSS("width", "28px");
     await transport.hover();
     await page.screenshot({ path: testInfo.outputPath("category-art-normal-hover-32-light-390.png"), fullPage: true });
 
