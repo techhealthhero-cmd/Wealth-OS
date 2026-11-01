@@ -46,6 +46,12 @@ export function buildAccountSchema(dict: Dictionary) {
       .max(40, dict.validation.accountPurposeTooLong)
       .optional()
       .or(z.literal("")),
+    account_last4: z
+      .string()
+      .trim()
+      .regex(/^\d{4}$/, dict.validation.accountLast4Invalid)
+      .optional()
+      .or(z.literal("")),
   });
 }
 

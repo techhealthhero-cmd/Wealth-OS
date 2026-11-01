@@ -28,32 +28,57 @@ function parseAccountFormData(formData: FormData) {
     opening_balance: formData.get("opening_balance") ?? 0,
     include_in_net_worth: formData.get("include_in_net_worth") === "on",
     purpose: formData.get("purpose") || undefined,
+    account_last4: formData.get("account_last4") || undefined,
   };
 }
 
 type DbError = { code?: string; message: string };
 
-/** accounts.purpose not there yet (migration 0045 unapplied): Postgres 42703 / PostgREST PGRST204. */
-function isMissingPurposeColumn(error: DbError | null): boolean {
-  return (error?.code === "42703" || error?.code === "PGRST204") && /purpose/.test(error?.message ?? "");
+/** Columns newer than the rest of the form: purpose (0045), account_last4 (0048). */
+const OPTIONAL_COLUMNS = ["purpose", "account_last4"] as const;
+type OptionalColumn = (typeof OPTIONAL_COLUMNS)[number];
+
+/** Which optional column a database is missing (its migration unapplied): Postgres 42703 / PostgREST PGRST204. */
+function missingOptionalColumn(error: DbError | null): OptionalColumn | null {
+  if (error?.code !== "42703" && error?.code !== "PGRST204") return null;
+  return OPTIONAL_COLUMNS.find((c) => (error.message ?? "").includes(c)) ?? null;
 }
 
 /**
- * Runs an accounts write that carries `purpose`. On a database without
- * migration 0045 an empty purpose is simply dropped and the write retried, so
- * the rest of the form still saves; a filled-in one is reported, never lost
- * silently.
+ * Runs an accounts write carrying the optional columns. On a database without
+ * their migration an EMPTY value is simply dropped and the write retried, so
+ * the rest of the form still saves; a filled-in one is reported (by name),
+ * never lost silently.
  */
-async function writeWithPurpose<T extends { purpose?: string | null }>(
-  row: T,
-  write: (row: T | Omit<T, "purpose">) => PromiseLike<{ error: DbError | null }>
-): Promise<{ error: DbError | null; purposeNotReady?: boolean }> {
-  const first = await write(row);
-  if (!isMissingPurposeColumn(first.error)) return first;
-  if (row.purpose) return { error: first.error, purposeNotReady: true };
-  const { purpose: _dropped, ...rest } = row;
-  void _dropped;
-  return write(rest);
+async function writeWithOptionalColumns<
+  T extends Partial<Record<OptionalColumn, string | null>>,
+  R extends { error: DbError | null },
+>(row: T, write: (row: Partial<T>) => PromiseLike<R>): Promise<R & { notReady?: OptionalColumn }> {
+  const current: Partial<T> = { ...row };
+  for (let attempt = 0; attempt < OPTIONAL_COLUMNS.length; attempt++) {
+    const result = await write(current);
+    const missing = missingOptionalColumn(result.error);
+    if (!missing || !(missing in current)) return result;
+    if (current[missing]) return { ...result, notReady: missing };
+    delete current[missing];
+  }
+  return write(current);
+}
+
+/**
+ * Slips waiting from this account's number now go to it: every pending slip
+ * whose paying account digits are `last4` is pointed at the account. Only
+ * suggestions change — nothing is saved as a transaction. Best-effort
+ * (before migration 0047 slips have no digits, and nothing happens).
+ */
+async function pointWaitingSlipsAt(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, accountId: string, last4: string) {
+  await supabase
+    .from("slip_inbox")
+    .update({ account_id: accountId })
+    .eq("user_id", userId)
+    .eq("status", "pending")
+    .eq("payer_account", last4);
+  revalidatePath("/money/transactions");
 }
 
 async function getRequestDictionary() {
@@ -92,21 +117,24 @@ export async function createAccount(
 
   // user_id is always derived from the server-side session, never trusted
   // from the client — see validation schemas' ownership note in README.
-  const { error, purposeNotReady } = await writeWithPurpose(
+  const last4 = parsed.data.account_last4 || null;
+  const { data: created, error, notReady } = await writeWithOptionalColumns(
     {
       ...parsed.data,
       institution: parsed.data.institution || null,
       purpose: parsed.data.purpose || null,
+      account_last4: last4,
       user_id: user.id,
       sort_order: count ?? 0,
     },
-    (row) => supabase.from("accounts").insert(row)
+    (row) => supabase.from("accounts").insert(row).select("id").single()
   );
 
-  if (purposeNotReady) return { error: dict.accounts.purposeNotReady };
+  if (notReady) return { error: notReady === "purpose" ? dict.accounts.purposeNotReady : dict.accounts.last4NotReady };
   if (error) {
     return { error: friendlyDbError(error, "createAccount", dict.accounts.createFailed) };
   }
+  if (last4 && created) await pointWaitingSlipsAt(supabase, user.id, created.id, last4);
 
   // Reuses the sort_order count above — same "count already fetched for
   // another reason doubles as the first-of-its-kind check" pattern as
@@ -141,19 +169,22 @@ export async function updateAccount(
 
   // RLS also enforces this, but checking user_id here means a mismatched
   // owner gets a clear "not found"-shaped failure instead of a silent no-op.
-  const { error, purposeNotReady } = await writeWithPurpose(
+  const last4 = parsed.data.account_last4 || null;
+  const { error, notReady } = await writeWithOptionalColumns(
     {
       ...parsed.data,
       institution: parsed.data.institution || null,
       purpose: parsed.data.purpose || null,
+      account_last4: last4,
     },
     (row) => supabase.from("accounts").update(row).eq("id", accountId).eq("user_id", user.id)
   );
 
-  if (purposeNotReady) return { error: dict.accounts.purposeNotReady };
+  if (notReady) return { error: notReady === "purpose" ? dict.accounts.purposeNotReady : dict.accounts.last4NotReady };
   if (error) {
     return { error: friendlyDbError(error, "updateAccount", dict.accounts.updateFailed) };
   }
+  if (last4) await pointWaitingSlipsAt(supabase, user.id, accountId, last4);
 
   revalidatePath("/money/accounts");
   revalidatePath("/dashboard");

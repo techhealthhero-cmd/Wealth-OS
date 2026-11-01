@@ -10,6 +10,7 @@ import { resolvePlanFromSubscription } from "@/lib/billing/entitlements";
 import { getReceiptParser } from "@/features/capture/lib/receipt-parser";
 import type { AIImageMediaType } from "@/features/ai/types";
 import type { Subscription, SlipInboxOrigin } from "@/types/database";
+import type { CaptureAccount } from "@/lib/capture/transaction-parser";
 import {
   SLIP_DAILY_LIMIT,
   SLIP_READ_VERSION,
@@ -105,6 +106,17 @@ async function findSeenSlip(db: Db, userId: string, imageSha: string): Promise<S
   return ((data as SeenSlip[] | null) ?? [])[0] ?? null;
 }
 
+/** The user's active accounts, with the account digits (0048) when the database has them. */
+async function loadAccounts(db: Db, userId: string) {
+  const query = (columns: string) =>
+    db.from("accounts").select(columns).eq("user_id", userId).eq("is_archived", false);
+  const withDigits = await query("id, name, account_type, institution, is_archived, account_last4");
+  const result = isMissingSlipColumn(withDigits.error)
+    ? await query("id, name, account_type, institution, is_archived")
+    : withDigits;
+  return { data: (result.data as unknown as CaptureAccount[] | null) ?? null, error: result.error };
+}
+
 /** Insert or update, dropping 0047's columns when the database doesn't have them yet. */
 async function writeSlipRow(db: Db, userId: string, row: Record<string, unknown>, existingId: string | null) {
   const write = (payload: Record<string, unknown>) =>
@@ -151,7 +163,7 @@ export async function ingestSlipImage(db: Db, input: SlipIngestInput): Promise<S
     const x = result.extraction;
 
     const [accounts, categories, categoryPrefs, accountPrefs, aliases, byReference] = await Promise.all([
-      db.from("accounts").select("id, name, account_type, institution, is_archived").eq("user_id", userId).eq("is_archived", false),
+      loadAccounts(db, userId),
       db
         .from("categories")
         .select("id, name_th, name_en, type, icon, is_system")

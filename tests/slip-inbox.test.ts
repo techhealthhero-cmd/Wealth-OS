@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FakeDb, type Row } from "./mocks/fake-db";
 import {
   CAPTURE_TOKEN_PREFIX,
+  accountForPayerDigits,
   accountForSlipBank,
   captureTokenHint,
   defaultSlipAccountId,
@@ -56,6 +57,7 @@ const { confirmSlip, createCaptureToken, dismissSlip, revokeCaptureToken, upload
   "@/features/slip-inbox/actions"
 );
 const route = await import("@/app/api/capture/slips/route");
+const { updateAccount } = await import("@/features/accounts/actions");
 
 const USER_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const USER_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -217,6 +219,18 @@ describe("slip suggestions (pure)", () => {
     expect(suggestSlipFields(slip({ paymentMethod: "KBank", payerAccount: "8710" }), { ...ctx, accounts }).accountId).toBeNull();
     // Only one everyday account at the bank (the rest set aside) → that one.
     expect(accountForSlipBank("K PLUS", [jar("cash", "Cash", "cash"), jar("emer", "เงินกันจน (ฉุกเฉิน) 10")])).toEqual({ accountId: "cash" });
+    // The digits the user set on an account beat every guess and every memory.
+    const marked = accounts.map((a) => (a.id === "cash" ? { ...a, account_last4: "8710" } : a));
+    expect(accountForPayerDigits("8710", marked)).toBe("cash");
+    expect(
+      suggestSlipFields(slip({ paymentMethod: "KBank", payerAccount: "8710" }), {
+        ...ctx,
+        accounts: marked,
+        accountAliases: [{ alias_normalized: "kbank 8710", account_id: "emer" }],
+      }).accountId
+    ).toBe("cash");
+    // Same digits on two accounts → can't tell → no match.
+    expect(accountForPayerDigits("8710", marked.map((a) => (a.id === "skill" ? { ...a, account_last4: "8710" } : a)))).toBeNull();
     // Once the user picked, it's remembered.
     const remembered = { ...ctx, accounts, accountAliases: [{ alias_normalized: "kbank 8710", account_id: "cash" }] };
     expect(suggestSlipFields(slip({ paymentMethod: "KBank", payerAccount: "8710" }), remembered).accountId).toBe("cash");
@@ -419,6 +433,17 @@ describe("ingestSlipImage", () => {
     expect(modelCalls).toBe(0);
   });
 
+  it("a slip goes to the account marked with its paying digits — and still reads without 0048", async () => {
+    db.rows("accounts").push({ id: "d1", user_id: USER_A, name: "Cash 2", account_type: "cash", institution: "KBank", is_archived: false, account_last4: "8710" });
+    modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R-d1" });
+    await ingestSlipImage(db as never, { userId: USER_A, image: image(24), origin: "shortcut", today: TODAY });
+    expect(db.rows("slip_inbox").at(-1)?.account_id).toBe("d1");
+
+    db.missingColumns.add("accounts.account_last4");
+    modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R-d2" });
+    expect((await ingestSlipImage(db as never, { userId: USER_A, image: image(25), origin: "shortcut", today: TODAY })).status).toBe("queued");
+  });
+
   it("still works on a database without migration 0047 (deployed before db push)", async () => {
     for (const c of ["note", "payer_account", "read_version"]) db.missingColumns.add(`slip_inbox.${c}`);
     modelReply = slipJson({ note: "ชาเขียว" });
@@ -614,6 +639,23 @@ describe("confirm / dismiss", () => {
     expect(await confirmSlip(input(first, { accountId: KBANK }))).toEqual({ success: true });
     expect(db.rows("account_aliases")).toHaveLength(0);
     expect(second.account_id).toBe(KBANK);
+  });
+
+  it("saving digits on an account points the waiting slips from that number at it — only the user's own", async () => {
+    modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R5" });
+    const waiting = await queue(51);
+    db.rows("slip_inbox").push({ id: "b-slip", user_id: USER_B, status: "pending", payer_account: "8710", account_id: B_ACCOUNT });
+    const form = new FormData();
+    form.set("name", "Cash");
+    form.set("account_type", "cash");
+    form.set("account_last4", "8710");
+    expect(await updateAccount(CASH, undefined, form)).toEqual({ success: true });
+    expect(db.rows("accounts").find((a) => a.id === CASH)?.account_last4).toBe("8710");
+    expect(waiting.account_id).toBe(CASH);
+    expect(db.rows("slip_inbox").find((r) => r.id === "b-slip")?.account_id).toBe(B_ACCOUNT);
+
+    form.set("account_last4", "87x0");
+    expect((await updateAccount(CASH, undefined, form)).error).toBeTruthy();
   });
 
   it("bulk upload goes through the same pipeline for the signed-in user", async () => {

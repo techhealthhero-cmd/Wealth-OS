@@ -134,6 +134,17 @@ export function samePayer(a: SlipPayer | null, b: SlipPayer | null): boolean {
   return a.bank === b.bank;
 }
 
+/**
+ * The account whose number ends in the slip's paying digits ("xxx-x-x8710-x"
+ * → the account the user marked 8710). The user set those digits, so this
+ * beats every guess. Two accounts with the same digits → no match.
+ */
+export function accountForPayerDigits(payerAccount: string | null, accounts: CaptureAccount[]): string | null {
+  if (!payerAccount) return null;
+  const hits = accounts.filter((a) => !a.is_archived && a.account_last4 && a.account_last4.endsWith(payerAccount));
+  return hits.length === 1 ? hits[0].id : null;
+}
+
 /** The account remembered for this payer — most specific name first. Archived accounts never count. */
 export function accountForPayer(payer: SlipPayer | null, aliases: SlipAccountAlias[], accounts: CaptureAccount[]): string | null {
   if (!payer) return null;
@@ -201,7 +212,8 @@ export function defaultSlipAccountId(accounts: CaptureAccount[]): string | null 
 }
 
 /**
- * Account and category for a read slip. Account: the account remembered for
+ * Account and category for a read slip. Account: the account the user marked
+ * with the slip's paying digits (accounts.account_last4), else the one remembered for
  * this payer (learned when the user picked one on an earlier slip), else the
  * one everyday account at the paying bank — several there means no guess
  * (the user picks) — else the shop's set account, else an everyday account
@@ -224,6 +236,7 @@ export function suggestSlipFields(
   const bank = accountForSlipBank(extraction.paymentMethod, ctx.accounts);
   const shop = merchant ? accountForMerchant(merchant, merchant, ctx.merchantAccounts ?? [], ctx.accounts) : null;
   const accountId =
+    accountForPayerDigits(extraction.payerAccount, ctx.accounts) ??
     remembered ??
     (typeof bank === "object" ? bank.accountId : null) ??
     shop ??

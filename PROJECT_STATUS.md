@@ -8,6 +8,36 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-11-02
 
+## Slips match the account by its last 4 digits — 2026-11-02
+
+**Code merged; migration `0048_account_last4.sql` written, NOT yet applied
+to production** (the user runs `supabase db push --linked`).
+
+Found live right after 0047: every KBank slip pre-filled "เงินกันจน
+(ฉุกเฉิน) 10". The user's five "jar" accounts (Cash, เงินพาโต, เงินกันจน,
+เพิ่มสกิล, Subscription) all have institution "กสิกร", so "KBank" matched
+whichever came first; then ✓ on that pre-fill taught the learned nicknames
+"KBank 8710"/"KBank" → เงินกันจน.
+
+- Accounts get an optional "เลขท้ายบัญชี 4 ตัว" (`accounts.account_last4`,
+  4 digits only — what the slip itself prints). A slip whose paying digits
+  match exactly one account goes there, ahead of every other rule (even a
+  learned nickname). Saving the digits also points every WAITING slip from
+  that number at the account (only the user's own; suggestions only).
+- Several everyday accounts at the paying bank and no digits/memory → no
+  guess ("เลือกบัญชีที่จ่าย"), instead of the first match.
+- A learned nickname is saved only when the user picked an account the slip
+  didn't already suggest — ✓ on a pre-fill teaches nothing.
+- Deploy-before-push safe: ingest and the account form fall back without
+  `account_last4` (an EMPTY field is dropped; a filled one says the
+  database needs updating, never silently lost).
+- Also fixed: tapping the already-selected "อื่นๆ" chip on a slip / Daily
+  Inbox card now picks it (it sent a deselect, which was ignored).
+- Verified: typecheck, lint (pre-existing warning only), 1075 tests,
+  production build. Production data still to clean up (asked the user):
+  the two wrong learned nicknames and the confirmed ฿38.50 Major slip that
+  was booked to เงินกันจน.
+
 ## Slip inbox: reads the memo + remembers the paying account — 2026-11-02
 
 **Code merged and deployed; migration `0047_slip_note_and_payer.sql`

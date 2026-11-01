@@ -150,6 +150,22 @@ function AccountFormFields({
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="account_last4">{`${t("accounts.last4")} (${t("common.optional")})`}</Label>
+          <Input
+            id="account_last4"
+            name="account_last4"
+            defaultValue={account?.account_last4 ?? ""}
+            placeholder={t("accounts.last4Placeholder")}
+            inputMode="numeric"
+            autoComplete="off"
+            pattern="\d{4}"
+            maxLength={4}
+            className="w-32 tabular-nums"
+          />
+          <p className="text-xs text-muted-foreground">{t("accounts.last4Hint")}</p>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="purpose">{`${t("accounts.purpose")} (${t("common.optional")})`}</Label>
           <Input
             id="purpose"

@@ -290,6 +290,8 @@ export interface Database {
           sort_order: number;
           /** What this money is for (migration 0045). Absent on a database without that migration. */
           purpose?: string | null;
+          /** Last 4 digits of the account number, matched against slips (migration 0048). Absent before it. */
+          account_last4?: string | null;
           created_at: string;
           updated_at: string;
         };
