@@ -16,8 +16,12 @@ model: store the WHOLE account number once, and match the digits a slip
 shows. Also a real bug in 0048's design: K PLUS prints "xxx-x-x8710-x" — the
 visible digits are not the last four (the final digit is hidden).
 
-**Code merged; migration `0049_account_number.sql` written, NOT yet applied
-to production.** It drops `accounts.account_last4` (guarded: refuses if any
+**Code deployed; migration `0049_account_number.sql` APPLIED to production
+2026-11-02** — verified read-only: `accounts.account_number` and
+`slip_inbox.payer_account` answer 200, `accounts.account_last4` is gone
+(42703). The widened payer_account check can't be read through PostgREST;
+it's proven by the next real slip storing a mask like "xxxxx8710x" (the
+code falls back to plain digits if it weren't). It drops `accounts.account_last4` (guarded: refuses if any
 row holds a value — checked: 0 rows did), adds `accounts.account_number`
 (digits only, 6–20), and widens `slip_inbox.payer_account` to a mask.
 
