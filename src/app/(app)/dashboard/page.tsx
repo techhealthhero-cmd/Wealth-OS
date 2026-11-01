@@ -73,7 +73,7 @@ export default async function DashboardPage({
 
       {/* Each data section streams independently. */}
       <div className="motion-reveal motion-reveal-1">
-        <Suspense fallback={<Skeleton className="h-[220px] w-full rounded-[22px]" />}>
+        <Suspense fallback={<Skeleton className="mx-auto h-[242px] w-full max-w-[420px] rounded-[20px]" />}>
           <HomeNetWorthSlot monthlySpend={getMonthlySpendSummary()} />
         </Suspense>
       </div>
