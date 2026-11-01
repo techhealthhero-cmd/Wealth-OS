@@ -28,13 +28,15 @@ export interface ReceiptParser {
 
 const SYSTEM_PROMPT = `You read photos of Thai payment slips (bank/e-wallet transfer confirmations, PromptPay) and shop receipts.
 Return ONLY one JSON object, no prose, with exactly these keys:
-{"is_payment_document": boolean, "amount": number|null, "date": "YYYY-MM-DD"|null, "time": "HH:MM"|null, "merchant": string|null, "payment_method": string|null, "reference": string|null, "confidence": "high"|"medium"|"low"}
+{"is_payment_document": boolean, "amount": number|null, "date": "YYYY-MM-DD"|null, "time": "HH:MM"|null, "merchant": string|null, "payment_method": string|null, "reference": string|null, "note": string|null, "payer_account": string|null, "confidence": "high"|"medium"|"low"}
 Rules:
 - amount: the total actually paid in THB, as a plain number (no currency, no commas). For a receipt use the grand total, not a line item.
 - date: as printed. Thai slips often use Buddhist-era years (e.g. 2569) — you may return them as printed; do not guess a date that is not shown.
 - merchant: the store name, or the transfer RECIPIENT's name on a slip (not the sender).
 - payment_method: the paying bank or app if shown (e.g. "KBank", "SCB", "Krungthai", "TrueMoney", "credit card", "cash").
 - reference: the transaction reference / ref no. if shown, else null.
+- note: the memo the payer typed, exactly as printed — on Thai slips the text after "บันทึกช่วยจำ:" (or "Memo:" / "Note:"). null if no memo is printed. Not the merchant, not a reference number.
+- payer_account: the PAYING (sender) account number exactly as printed, masked digits included (e.g. "xxx-x-x8710-x"). null if not shown. Never the recipient's.
 - confidence: "high" only if amount and merchant are clearly legible.
 - If the image is not a receipt or payment slip, set is_payment_document to false and everything else null.
 Never invent values that are not visible in the image.`;

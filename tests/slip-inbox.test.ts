@@ -4,15 +4,23 @@ import { FakeDb, type Row } from "./mocks/fake-db";
 import {
   CAPTURE_TOKEN_PREFIX,
   captureTokenHint,
+  defaultSlipAccountId,
   findPossibleDuplicate,
   generateCaptureToken,
   isWellFormedCaptureToken,
   readBearerToken,
+  samePayer,
   sha256Hex,
+  slipPayer,
   slipStatusFor,
   suggestSlipFields,
 } from "@/lib/capture/slip-inbox";
-import { EMPTY_EXTRACTION, type ReceiptExtraction } from "@/lib/capture/receipt-normalize";
+import {
+  EMPTY_EXTRACTION,
+  normalizeReceiptModelOutput,
+  payerAccountDigits,
+  type ReceiptExtraction,
+} from "@/lib/capture/receipt-normalize";
 import type { ParseContext } from "@/lib/capture/transaction-parser";
 
 /**
@@ -93,6 +101,7 @@ function seed() {
   db.tables.ai_usage_log = [];
   db.tables.subscriptions = [];
   db.tables.capture_tokens = [];
+  db.tables.account_aliases = [];
   db.tables.profiles = [{ user_id: USER_A, timezone: "Asia/Bangkok", preferred_language: "th" }];
 }
 
@@ -170,12 +179,64 @@ describe("slip suggestions (pure)", () => {
     expect(suggestSlipFields(slip({}), ctx)).toEqual({ accountId: KBANK, categoryId: FOOD, confidence: "high" });
   });
 
-  it("falls back to the first account, and a blind 'Other' never stays high", () => {
+  it("falls back to an everyday account (bank before cash), and a blind 'Other' never stays high", () => {
     expect(suggestSlipFields(slip({ merchant: "Somchai Jaidee", paymentMethod: null }), ctx)).toEqual({
-      accountId: CASH,
+      accountId: KBANK,
       categoryId: OTHER,
       confidence: "medium",
     });
+  });
+
+  it("never guesses an emergency/savings account — no everyday account means the user picks", () => {
+    const emergency = { id: "e1", name: "เงินกันจน (ฉุกเฉิน) 10", account_type: "bank" as const, institution: null, is_archived: false };
+    const savings = { id: "s1", name: "Dream", account_type: "savings" as const, institution: null, is_archived: false };
+    const daily = { id: "d1", name: "ใช้จ่ายรายวัน", account_type: "bank" as const, institution: null, is_archived: false };
+    expect(defaultSlipAccountId([emergency, savings, daily])).toBe("d1");
+    expect(defaultSlipAccountId([emergency, savings])).toBeNull();
+    const none = suggestSlipFields(slip({ paymentMethod: "K PLUS" }), { ...ctx, accounts: [emergency, savings] });
+    expect(none.accountId).toBeNull();
+  });
+
+  it("uses the slip's memo to pick the category", () => {
+    const food = suggestSlipFields(slip({ merchant: "ฟู้ดพาทิโอ", note: "ชาเขียว" }), ctx);
+    expect(food.categoryId).toBe(FOOD);
+    // A memo that names nothing ("42/40") leaves the category undecided.
+    expect(suggestSlipFields(slip({ merchant: "นาย ณภัทร", note: "42/40" }), ctx).categoryId).toBe(OTHER);
+  });
+
+  it("the account remembered for this payer wins over everything else", () => {
+    const daily = { id: "d1", name: "ใช้จ่ายรายวัน", account_type: "bank" as const, institution: null, is_archived: false };
+    const withAlias = {
+      ...ctx,
+      accounts: [...ctx.accounts, daily],
+      accountAliases: [{ alias_normalized: "kbank 8710", account_id: "d1" }],
+    };
+    expect(suggestSlipFields(slip({ paymentMethod: "K PLUS", payerAccount: "8710" }), withAlias).accountId).toBe("d1");
+    // Another KBank account (other digits) isn't this one — falls through to the name match.
+    expect(suggestSlipFields(slip({ paymentMethod: "K PLUS", payerAccount: "1234" }), withAlias).accountId).toBe(KBANK);
+    // The bank alone remembered: any slip from that bank.
+    const bankOnly = { ...withAlias, accountAliases: [{ alias_normalized: "kbank", account_id: "d1" }] };
+    expect(suggestSlipFields(slip({ paymentMethod: "Kasikorn", payerAccount: null }), bankOnly).accountId).toBe("d1");
+  });
+
+  it("names the payer the same way however the slip prints the bank", () => {
+    expect(slipPayer("K PLUS", "8710")).toMatchObject({ bank: "kbank", specific: "kbank 8710", label: "K PLUS 8710" });
+    expect(slipPayer("ธ.กสิกรไทย", null)).toMatchObject({ bank: "kbank", specific: null });
+    expect(slipPayer(null, null)).toBeNull();
+    expect(samePayer(slipPayer("KBank", "8710"), slipPayer("K PLUS", "8710"))).toBe(true);
+    expect(samePayer(slipPayer("KBank", "8710"), slipPayer("K PLUS", "1234"))).toBe(false);
+    expect(samePayer(slipPayer("KBank", "8710"), slipPayer("K PLUS", null))).toBe(true);
+    expect(samePayer(slipPayer("KBank", null), slipPayer("SCB", null))).toBe(false);
+  });
+
+  it("reads the memo and only the visible digits of the paying account", () => {
+    const x = normalizeReceiptModelOutput(
+      JSON.stringify({ amount: 38.5, merchant: "Major", note: "  น้ำเปล่า ", payer_account: "xxx-x-x8710-x", confidence: "high" }),
+      TODAY
+    );
+    expect(x).toMatchObject({ note: "น้ำเปล่า", payerAccount: "8710" });
+    expect(payerAccountDigits("xxx-x-xx1x-x")).toBeNull();
+    expect(payerAccountDigits("123-4-56789-0")).toBe("7890");
   });
 
   it("status: not a slip, already recorded, or waiting", () => {
@@ -284,6 +345,65 @@ describe("ingestSlipImage", () => {
     __setProviderForTesting(null);
     const result = await ingestSlipImage(db as never, { userId: USER_A, image: image(8), origin: "upload", today: TODAY });
     expect(result.status).toBe("unavailable");
+  });
+
+  it("keeps the memo and the paying account's digits, and uses the account remembered for them", async () => {
+    db.rows("accounts").push({ id: "d1", user_id: USER_A, name: "ใช้จ่ายรายวัน", account_type: "bank", institution: null, is_archived: false });
+    db.rows("account_aliases").push(
+      { user_id: USER_A, alias_normalized: "kbank 8710", account_id: "d1" },
+      // Another user's memory never applies.
+      { user_id: USER_B, alias_normalized: "kbank 8710", account_id: B_ACCOUNT }
+    );
+    modelReply = slipJson({ merchant: "ฟู้ดพาทิโอ", note: "ชาเขียว", payer_account: "xxx-x-x8710-x" });
+    await ingestSlipImage(db as never, { userId: USER_A, image: image(20), origin: "shortcut", today: TODAY });
+    expect(db.rows("slip_inbox")[0]).toMatchObject({
+      note: "ชาเขียว",
+      payer_account: "8710",
+      account_id: "d1",
+      category_id: FOOD,
+      read_version: 2,
+    });
+  });
+
+  it("re-reads a waiting slip from the older reader once (to get its memo), in place", async () => {
+    db.rows("slip_inbox").push({
+      id: "old-1",
+      user_id: USER_A,
+      status: "pending",
+      origin: "shortcut",
+      image_sha256: sha256Hex(image(21).bytes),
+      reference: "REF-0001",
+      merchant: "KFC",
+      note: null,
+      read_version: 1,
+    });
+    modelReply = slipJson({ note: "ข้าวมันไก่" });
+    const result = await ingestSlipImage(db as never, { userId: USER_A, image: image(21), origin: "shortcut", today: TODAY });
+    expect(result).toEqual({ status: "queued", slipId: "old-1" });
+    expect(db.rows("slip_inbox")).toHaveLength(1);
+    expect(db.rows("slip_inbox")[0]).toMatchObject({ id: "old-1", note: "ข้าวมันไก่", read_version: 2, origin: "shortcut" });
+
+    // Once re-read, never again.
+    await ingestSlipImage(db as never, { userId: USER_A, image: image(21), origin: "shortcut", today: TODAY });
+    expect(modelCalls).toBe(1);
+  });
+
+  it("doesn't re-read an old slip that's no longer waiting", async () => {
+    db.rows("slip_inbox").push({ id: "old-2", user_id: USER_A, status: "confirmed", image_sha256: sha256Hex(image(22).bytes), read_version: 1 });
+    expect((await ingestSlipImage(db as never, { userId: USER_A, image: image(22), origin: "shortcut", today: TODAY })).status).toBe("already");
+    expect(modelCalls).toBe(0);
+  });
+
+  it("still works on a database without migration 0047 (deployed before db push)", async () => {
+    for (const c of ["note", "payer_account", "read_version"]) db.missingColumns.add(`slip_inbox.${c}`);
+    modelReply = slipJson({ note: "ชาเขียว" });
+    expect((await ingestSlipImage(db as never, { userId: USER_A, image: image(23), origin: "shortcut", today: TODAY })).status).toBe("queued");
+    const [row] = db.rows("slip_inbox");
+    expect(row).toMatchObject({ status: "pending", merchant: "KFC" });
+    expect(row).not.toHaveProperty("note");
+    // And a resend is still skipped without an AI call.
+    await ingestSlipImage(db as never, { userId: USER_A, image: image(23), origin: "shortcut", today: TODAY });
+    expect(modelCalls).toBe(1);
   });
 });
 
@@ -424,6 +544,40 @@ describe("confirm / dismiss", () => {
     expect(slip.status).toBe("dismissed");
     expect((await confirmSlip(input(slip))).error).toBeTruthy();
     expect(db.rows("transactions")).toHaveLength(0);
+  });
+
+  it("saves the memo as the description", async () => {
+    modelReply = slipJson({ note: "น้ำเปล่า" });
+    const slip = await queue();
+    await confirmSlip(input(slip, { note: "น้ำเปล่า 2 ขวด" }));
+    expect(db.rows("transactions")[0]).toMatchObject({ description: "น้ำเปล่า 2 ขวด", merchant: "KFC" });
+  });
+
+  it("remembers the paying account and re-points the other waiting slips from it — only the user's own", async () => {
+    modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R1" });
+    const first = await queue(31);
+    modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R2" });
+    const second = await queue(32);
+    modelReply = slipJson({ payer_account: "xxx-x-x1234-x", reference: "R3" });
+    const otherCard = await queue(33);
+    db.rows("slip_inbox").push({ id: "b-slip", user_id: USER_B, status: "pending", payment_method: "K PLUS", payer_account: "8710", account_id: B_ACCOUNT });
+    expect(second.account_id).toBe(KBANK);
+
+    const res = await confirmSlip(input(first, { accountId: CASH }));
+    expect(res).toEqual({ success: true, repointed: 1 });
+    expect(second.account_id).toBe(CASH);
+    expect(otherCard.account_id).toBe(KBANK);
+    expect(db.rows("slip_inbox").find((r) => r.id === "b-slip")?.account_id).toBe(B_ACCOUNT);
+    expect(db.rows("account_aliases")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ user_id: USER_A, alias_normalized: "kbank 8710", account_id: CASH, source: "learned" }),
+        expect.objectContaining({ user_id: USER_A, alias_normalized: "kbank", account_id: CASH, source: "learned" }),
+      ])
+    );
+
+    // The next slip from that account is pre-filled.
+    modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R4" });
+    expect((await queue(34)).account_id).toBe(CASH);
   });
 
   it("bulk upload goes through the same pipeline for the signed-in user", async () => {

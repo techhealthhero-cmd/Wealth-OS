@@ -22,11 +22,14 @@ const UNIQUE: UniqueRule[] = [
   { table: "slip_inbox", columns: ["user_id", "reference"] },
   { table: "transactions", columns: ["user_id", "client_request_id"] },
   { table: "capture_tokens", columns: ["token_hash"] },
+  { table: "account_aliases", columns: ["user_id", "alias_normalized"] },
 ];
 
 export class FakeDb {
   tables: Record<string, Row[]> = {};
   log: QueryLog[] = [];
+  /** Columns this "database" doesn't have yet (a migration not pushed) — "table.column". */
+  missingColumns = new Set<string>();
   private nextId = 1;
 
   rows(table: string) {
@@ -60,8 +63,10 @@ type Filter = { col: string; test: (r: Row) => boolean };
 
 export class FakeQuery {
   private filters: Filter[] = [];
-  private op: "select" | "insert" | "update" = "select";
+  private op: "select" | "insert" | "update" | "upsert" = "select";
   private payload: Row | null = null;
+  private conflict: string[] = [];
+  private columns: string[] = [];
   private limitN = Infinity;
   private countMode = false;
   private returning = false;
@@ -71,14 +76,22 @@ export class FakeQuery {
     private table: string
   ) {}
 
-  select(_cols?: string, opts?: { count?: string; head?: boolean }) {
-    if (this.op === "select") this.countMode = Boolean(opts?.count);
-    else this.returning = true;
+  select(cols?: string, opts?: { count?: string; head?: boolean }) {
+    if (this.op === "select") {
+      this.countMode = Boolean(opts?.count);
+      this.columns = (cols ?? "").split(",").map((c) => c.trim());
+    } else this.returning = true;
     return this;
   }
   insert(payload: Row) {
     this.op = "insert";
     this.payload = payload;
+    return this;
+  }
+  upsert(payload: Row, opts: { onConflict: string }) {
+    this.op = "upsert";
+    this.payload = payload;
+    this.conflict = opts.onConflict.split(",");
     return this;
   }
   update(payload: Row) {
@@ -126,7 +139,19 @@ export class FakeQuery {
 
   private run(): { data: Row[] | null; error: { code: string; message: string } | null; count?: number } {
     this.db.log.push({ table: this.table, op: this.op, filterColumns: this.filters.map((f) => f.col) });
+    const missing = (cols: string[]) => cols.some((c) => this.db.missingColumns.has(`${this.table}.${c}`));
+    if (this.op === "select" && missing(this.columns)) return { data: null, error: { code: "42703", message: "column does not exist" } };
+    if (this.op !== "select" && missing(Object.keys(this.payload ?? {}))) {
+      return { data: null, error: { code: "PGRST204", message: "column not in schema cache" } };
+    }
     const rows = this.db.rows(this.table);
+    if (this.op === "upsert") {
+      const p = this.payload ?? {};
+      const existing = rows.find((r) => this.conflict.every((c) => r[c] === p[c]));
+      if (existing) Object.assign(existing, p);
+      else rows.push({ id: this.db.newId(), created_at: new Date().toISOString(), ...p });
+      return { data: null, error: null };
+    }
     if (this.op === "insert") {
       const row: Row = { id: this.db.newId(), created_at: new Date().toISOString(), ...this.payload };
       if (this.db.violatesUnique(this.table, row)) return { data: null, error: { code: "23505", message: "duplicate key" } };

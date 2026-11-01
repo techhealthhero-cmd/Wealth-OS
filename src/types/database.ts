@@ -1225,6 +1225,12 @@ export interface Database {
           merchant: string | null;
           payment_method: string | null;
           reference: string | null;
+          /** 0047: memo printed on the slip. */
+          note: string | null;
+          /** 0047: last 3–4 digits of the paying account. */
+          payer_account: string | null;
+          /** 0047: reader version (1 = before the memo was read). */
+          read_version: number;
           account_id: string | null;
           category_id: string | null;
           confidence: CaptureConfidence;

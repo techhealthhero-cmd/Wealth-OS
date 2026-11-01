@@ -139,7 +139,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 | ID | งาน | Owner | Status | Scope / Deliverable | Next handoff |
 |---|---|---|---|---|---|
-| SLIP-01 | สลิปอัตโนมัติ: ตั้ง iPhone Shortcut ให้เสร็จ + ปรับระบบหลังทดสอบจริง | Claude | IN PROGRESS (พักโดยเจ้าของโปรเจกต์ 2026-10-26) | ดูรายการ SLIP-01 ใน `TODO.md` | เจ้าของโปรเจกต์เปิดสิทธิ์ความเป็นส่วนตัวของ Shortcut แล้วรันใหม่ |
+| SLIP-01 | สลิปอัตโนมัติ: ตั้ง iPhone Shortcut ให้เสร็จ + ปรับระบบหลังทดสอบจริง | Claude | IN PROGRESS (2026-11-02: อ่านบันทึกช่วยจำ + จำบัญชีที่จ่าย เสร็จในโค้ด) | ดูรายการ SLIP-01 ใน `TODO.md` | เจ้าของโปรเจกต์รัน `supabase db push --linked` (0047) แล้วรัน Shortcut อีกรอบ |
 | ART-01 | Brand & Marketing templates | Claude | TODO | จัด Feature Announcement, Product Preview และ Social Share จาก master ที่อนุมัติแล้ว | ส่งภาพหน้าจอ/ผล QA ให้ Codex ตรวจความสม่ำเสมอ |
 | QA-01 | Empty State live QA | Claude | TODO | ตรวจ Notifications และ Forecast ด้วยสถานะจริง | บันทึก viewport, theme และผลตรวจใน `ARTWORK_ROADMAP.md` |
 | ART-02 | Brand artwork visual QA | Codex | WAITING | ตรวจ light/dark, mobile/desktop และ social safe area หลังติดตั้ง | รอ Claude ส่งหน้าจอจริง |
@@ -184,6 +184,15 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 ## Handoff Log
 
 เพิ่มรายการใหม่ไว้ด้านบน ไม่ต้องคัดลอกประวัติการแก้ไฟล์ทั้งหมด
+
+### 2026-11-02 — Claude → เจ้าของโปรเจกต์
+
+- งาน/เป้าหมาย: SLIP-01 — สลิปจริง 20 ใบเข้าบัญชีฉุกเฉินทุกใบ และไม่อ่านบันทึกช่วยจำ
+- ทำเสร็จแล้ว: อ่าน `note` + เลขท้ายบัญชีผู้จ่าย, จำบัญชีที่จ่ายผ่าน `account_aliases`, เปลี่ยนสลิปที่รออยู่จากบัญชีเดียวกันให้พร้อมกัน, ไม่เดาบัญชีออม/ฉุกเฉิน, อ่านสลิปเก่าที่ยังรออยู่ใหม่ 1 ครั้ง
+- ไฟล์ที่เปลี่ยน: `supabase/migrations/0047_slip_note_and_payer.sql`, `src/lib/capture/{slip-inbox,receipt-normalize}.ts`, `src/features/slip-inbox/*`, `receipt-parser.ts`, `quick-capture-sheet.tsx`, i18n, tests
+- การตรวจที่รันและผลลัพธ์: typecheck ผ่าน, lint 0 errors, 1071 tests ผ่าน, build ผ่าน
+- ข้อจำกัดหรือสิ่งที่ห้ามเปลี่ยน: โค้ดรองรับฐานข้อมูลก่อน 0047 (fallback) — อย่าลบจนกว่าจะยืนยันว่า push แล้ว
+- ขั้นต่อไปที่ชัดเจน: เจ้าของโปรเจกต์ push 0047 → Claude ตรวจ read-only + รัน Shortcut จริง
 
 ### 2026-10-26 — Codex → เจ้าของโปรเจกต์
 

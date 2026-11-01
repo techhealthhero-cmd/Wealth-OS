@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { AlertTriangle, Check, ImagePlus, Loader2, PencilLine, ReceiptText, Smartphone } from "lucide-react";
+import { AlertTriangle, Check, ImagePlus, Loader2, PencilLine, ReceiptText, Smartphone, StickyNote } from "lucide-react";
 
 import type { Account, Category } from "@/types/database";
 import { useTranslation } from "@/i18n/client";
@@ -53,10 +53,15 @@ function SlipItem({
   const [categoryId, setCategoryId] = useState(slip.category_id);
   const [categoryPicked, setCategoryPicked] = useState(false);
   const activeAccounts = useMemo(() => accounts.filter((a) => !a.is_archived), [accounts]);
-  const [accountId, setAccountId] = useState(slip.account_id ?? activeAccounts[0]?.id ?? "");
+  // Until the user picks one here, follow the server's suggestion — it
+  // changes when another slip from the same bank/card is confirmed.
+  // No suggestion → no guess: the user picks.
+  const [pickedAccountId, setPickedAccountId] = useState<string | null>(null);
+  const accountId = pickedAccountId ?? slip.account_id ?? "";
   const [amountText, setAmountText] = useState(slip.amount ? String(Number(slip.amount)) : "");
   const [date, setDate] = useState(slip.slip_date ?? today);
   const [merchant, setMerchant] = useState(slip.merchant ?? "");
+  const [note, setNote] = useState(slip.note ?? "");
 
   const expenseCategories = useMemo(() => categories.filter((c) => c.type === "expense" || c.type === "both"), [categories]);
   const category = categories.find((c) => c.id === categoryId) ?? null;
@@ -80,11 +85,16 @@ function SlipItem({
         accountId,
         categoryId,
         merchant: merchant.trim() || null,
+        note: note.trim() || null,
         date,
       });
       if (res.success) {
         onDone(slip.id);
-        toast.success(t("slipInbox.confirmed").replace("{account}", account?.name ?? ""));
+        toast.success(t("slipInbox.confirmed").replace("{account}", account?.name ?? ""), {
+          description: res.repointed
+            ? t("slipInbox.repointed").replace("{count}", String(res.repointed)).replace("{account}", account?.name ?? "")
+            : undefined,
+        });
       } else toast.error(res.error ?? t("slipInbox.saveFailed"));
     });
   }
@@ -108,8 +118,14 @@ function SlipItem({
               {label} · {slip.slip_date ? friendlyDate : t("slipInbox.noDate")}
               {slip.slip_date && slip.slip_time ? ` ${slip.slip_time}` : ""}
             </p>
-            <p className="truncate text-[11px] text-muted-foreground">
-              {t("slipInbox.account")}: {account?.name ?? "—"}
+            {note.trim() ? (
+              <p className="flex items-center gap-1 truncate text-xs text-foreground/80" title={note}>
+                <StickyNote className="size-3 shrink-0 text-muted-foreground" aria-label={t("slipInbox.note")} />
+                <span className="truncate">{note}</span>
+              </p>
+            ) : null}
+            <p className={cn("truncate text-[11px]", account ? "text-muted-foreground" : "font-medium text-amber-800 dark:text-amber-300")}>
+              {t("slipInbox.account")}: {account?.name ?? t("slipInbox.pickAccount")}
             </p>
           </div>
           <button
@@ -194,12 +210,22 @@ function SlipItem({
               <Input value={merchant} maxLength={120} onChange={(e) => setMerchant(e.target.value)} />
             </label>
             <label className="col-span-2 space-y-1 text-xs">
+              <span className="text-muted-foreground">{t("slipInbox.note")}</span>
+              <Input value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
+            </label>
+            <label className="col-span-2 space-y-1 text-xs">
               <span className="text-muted-foreground">{t("slipInbox.account")}</span>
               <select
                 value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
+                onChange={(e) => setPickedAccountId(e.target.value)}
+                aria-invalid={!account}
                 className="h-9 w-full rounded-md border bg-background px-2 text-sm"
               >
+                {!account ? (
+                  <option value="" disabled>
+                    {t("slipInbox.pickAccount")}
+                  </option>
+                ) : null}
                 {activeAccounts.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name}

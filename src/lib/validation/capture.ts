@@ -41,5 +41,7 @@ export const receiptModelOutputSchema = z.object({
   merchant: z.string().nullable().optional(),
   payment_method: z.string().nullable().optional(),
   reference: z.string().nullable().optional(),
+  note: z.string().nullable().optional(),
+  payer_account: z.string().nullable().optional(),
   confidence: z.enum(["high", "medium", "low"]).optional().default("low"),
 });

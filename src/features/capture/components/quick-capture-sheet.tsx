@@ -457,7 +457,9 @@ export function QuickCaptureSheet({
    */
   function draftFromExtraction(extraction: ReceiptExtraction | null, fallback: CaptureDraft | null): CaptureDraft {
     const merchant = extraction?.merchant ?? fallback?.merchant ?? fallback?.description ?? null;
-    const scannedCategory = extraction?.merchant ? suggestCategory(extraction.merchant, extraction.merchant, "expense", ctx) : null;
+    // The slip's memo ("บันทึกช่วยจำ: ชาเขียว") counts toward the category too.
+    const scannedText = [extraction?.note, extraction?.merchant].filter(Boolean).join(" ");
+    const scannedCategory = scannedText ? suggestCategory(scannedText, extraction?.merchant ?? null, "expense", ctx) : null;
     const category =
       scannedCategory && scannedCategory.source !== "fallback"
         ? scannedCategory
@@ -476,7 +478,7 @@ export function QuickCaptureSheet({
       categorySource: category.source,
       accountId: account?.accountId ?? fallback?.accountId ?? defaultAccountId(accounts),
       merchant,
-      description: null,
+      description: extraction?.note ?? null,
       date: extraction?.date ?? fallback?.date ?? ctx.today,
       confidence,
       source: "receipt",

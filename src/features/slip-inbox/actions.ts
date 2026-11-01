@@ -15,8 +15,11 @@ import {
   captureTokenHint,
   captureTokenLabelSchema,
   generateCaptureToken,
+  isMissingSlipColumn,
+  samePayer,
   sha256Hex,
   slipConfirmSchema,
+  slipPayer,
   type SlipConfirmInput,
 } from "@/lib/capture/slip-inbox";
 import { saveCapturedTransaction } from "@/features/capture/actions";
@@ -136,13 +139,78 @@ export async function uploadSlipImage(formData: FormData): Promise<UploadSlipRes
 // confirm / dismiss
 // ---------------------------------------------------------------------------
 
+type Db = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * "Slips paid from this bank/card come from this account": remembered as a
+ * learned nickname on the account (account_aliases, 0041) — the user can see
+ * and remove it in the account's nicknames. Then every OTHER waiting slip
+ * from the same payer is pointed at that account too, so fixing one fixes
+ * the rest. Best-effort: the transaction is already saved, so a failure here
+ * only means the next slip isn't pre-filled. Returns how many waiting slips
+ * were re-pointed.
+ */
+async function rememberSlipPayer(
+  supabase: Db,
+  userId: string,
+  slip: { id: string; payment_method: string | null; payer_account?: string | null },
+  accountId: string
+): Promise<number> {
+  const payer = slipPayer(slip.payment_method, slip.payer_account ?? null);
+  if (!payer) return 0;
+
+  // The specific name ("kbank 8710") plus the bank alone, so a slip whose
+  // digits are unreadable still finds the account.
+  const remember = [
+    ...(payer.specific ? [{ key: payer.specific, label: payer.label }] : []),
+    { key: payer.bank, label: (slip.payment_method ?? payer.bank).trim().slice(0, 60) },
+  ];
+  for (const { key, label } of remember) {
+    await supabase
+      .from("account_aliases")
+      .upsert(
+        { user_id: userId, account_id: accountId, alias: label, alias_normalized: key, source: "learned" },
+        { onConflict: "user_id,alias_normalized" }
+      );
+  }
+
+  const waitingQuery = (columns: string) =>
+    supabase.from("slip_inbox").select(columns).eq("user_id", userId).eq("status", "pending");
+  let waiting = await waitingQuery("id, payment_method, payer_account, account_id");
+  if (isMissingSlipColumn(waiting.error)) waiting = await waitingQuery("id, payment_method, account_id");
+  if (waiting.error || !waiting.data) return 0;
+
+  const rows = waiting.data as unknown as {
+    id: string;
+    payment_method: string | null;
+    payer_account?: string | null;
+    account_id: string | null;
+  }[];
+  const ids = rows
+    .filter((w) => w.id !== slip.id && w.account_id !== accountId)
+    .filter((w) => samePayer(payer, slipPayer(w.payment_method, w.payer_account ?? null)))
+    .map((w) => w.id);
+  if (ids.length === 0) return 0;
+  const { error: updateError } = await supabase
+    .from("slip_inbox")
+    .update({ account_id: accountId })
+    .eq("user_id", userId)
+    .eq("status", "pending")
+    .in("id", ids);
+  return updateError ? 0 : ids.length;
+}
+
 /**
  * ✓ on a waiting slip: saves it as a real transaction through the normal
  * capture save (idempotent — the slip id is the client_request_id, so a
  * retried tap never creates a second transaction), then marks the slip
- * confirmed. This is the first moment the slip touches a balance.
+ * confirmed. This is the first moment the slip touches a balance. The
+ * slip's memo becomes the description; the chosen account is remembered for
+ * this payer (rememberSlipPayer).
  */
-export async function confirmSlip(input: SlipConfirmInput): Promise<{ success?: boolean; error?: string }> {
+export async function confirmSlip(
+  input: SlipConfirmInput
+): Promise<{ success?: boolean; error?: string; repointed?: number }> {
   const { dict } = await context();
   const parsed = slipConfirmSchema.safeParse(input);
   if (!parsed.success) return { error: dict.common.invalidInput };
@@ -155,12 +223,18 @@ export async function confirmSlip(input: SlipConfirmInput): Promise<{ success?: 
   } = await supabase.auth.getUser();
   if (!user) return { error: dict.common.pleaseLogin };
 
-  const { data: slip } = await supabase
-    .from("slip_inbox")
-    .select("id, status, reference, confidence")
-    .eq("id", d.slipId)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const slipQuery = (columns: string) =>
+    supabase.from("slip_inbox").select(columns).eq("id", d.slipId).eq("user_id", user.id).maybeSingle();
+  let found = await slipQuery("id, status, reference, confidence, payment_method, payer_account");
+  if (isMissingSlipColumn(found.error)) found = await slipQuery("id, status, reference, confidence, payment_method");
+  const slip = found.data as unknown as {
+    id: string;
+    status: string;
+    reference: string | null;
+    confidence: string;
+    payment_method: string | null;
+    payer_account?: string | null;
+  } | null;
   if (!slip) return { error: dict.slipInbox.notFound };
   if (slip.status === "confirmed") return { success: true };
   if (slip.status !== "pending") return { error: dict.slipInbox.notFound };
@@ -172,7 +246,7 @@ export async function confirmSlip(input: SlipConfirmInput): Promise<{ success?: 
     accountId: d.accountId,
     categoryId: d.categoryId,
     merchant: d.merchant || null,
-    description: null,
+    description: d.note || null,
     date: d.date,
     source: "receipt",
     confidence: slip.confidence as CaptureConfidence,
@@ -189,8 +263,9 @@ export async function confirmSlip(input: SlipConfirmInput): Promise<{ success?: 
     .eq("user_id", user.id);
   // The transaction exists either way; a retry finds it via its idempotency key.
   if (error) return { error: friendlyDbError(error, "confirmSlip", dict.slipInbox.saveFailed) };
+  const repointed = await rememberSlipPayer(supabase, user.id, slip, d.accountId);
   revalidateSlips();
-  return { success: true };
+  return repointed > 0 ? { success: true, repointed } : { success: true };
 }
 
 /** "Not this one": hidden for good (and never re-read if the Shortcut sends it again). */

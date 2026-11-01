@@ -12,7 +12,9 @@ import type { AIImageMediaType } from "@/features/ai/types";
 import type { Subscription, SlipInboxOrigin } from "@/types/database";
 import {
   SLIP_DAILY_LIMIT,
+  SLIP_READ_VERSION,
   findPossibleDuplicate,
+  isMissingSlipColumn,
   sha256Hex,
   slipStatusFor,
   suggestSlipFields,
@@ -88,21 +90,47 @@ async function dailyLimitReached(db: Db, userId: string): Promise<boolean> {
   return !error && (count ?? 0) >= SLIP_DAILY_LIMIT;
 }
 
+interface SeenSlip {
+  id: string;
+  status: string;
+  read_version?: number | null;
+}
+
+/** This photo already in the inbox? (Falls back to the 0046 columns before migration 0047.) */
+async function findSeenSlip(db: Db, userId: string, imageSha: string): Promise<SeenSlip | null> {
+  const query = (columns: string) =>
+    db.from("slip_inbox").select(columns).eq("user_id", userId).eq("image_sha256", imageSha).limit(1);
+  let { data, error } = await query("id, status, read_version");
+  if (isMissingSlipColumn(error)) ({ data, error } = await query("id, status"));
+  return ((data as SeenSlip[] | null) ?? [])[0] ?? null;
+}
+
+/** Insert or update, dropping 0047's columns when the database doesn't have them yet. */
+async function writeSlipRow(db: Db, userId: string, row: Record<string, unknown>, existingId: string | null) {
+  const write = (payload: Record<string, unknown>) =>
+    existingId
+      ? db.from("slip_inbox").update(payload).eq("id", existingId).eq("user_id", userId).select("id").single()
+      : db.from("slip_inbox").insert(payload).select("id").single();
+  const first = await write(row);
+  if (!isMissingSlipColumn(first.error)) return first;
+  const legacy = { ...row };
+  for (const column of ["note", "payer_account", "read_version"]) delete legacy[column];
+  return write(legacy);
+}
+
 export async function ingestSlipImage(db: Db, input: SlipIngestInput): Promise<SlipIngestResult> {
   const { userId } = input;
   const imageSha = sha256Hex(input.image.bytes);
 
-  const { data: seen } = await db
-    .from("slip_inbox")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("image_sha256", imageSha)
-    .limit(1);
-  if (seen?.[0]) return { status: "already", slipId: seen[0].id as string };
+  // Same photo again: skipped before any AI call — except a slip still
+  // waiting that an older reader read (no memo yet), which is read once more.
+  const seen = await findSeenSlip(db, userId, imageSha);
+  const reread = Boolean(seen && seen.status === "pending" && (seen.read_version ?? SLIP_READ_VERSION) < SLIP_READ_VERSION);
+  if (seen && !reread) return { status: "already", slipId: seen.id };
 
   const parser = getReceiptParser();
   if (!parser) return { status: "unavailable" };
-  if (await dailyLimitReached(db, userId)) return { status: "limit" };
+  if (!reread && (await dailyLimitReached(db, userId))) return { status: "limit" };
   const isMock = process.env.CAPTURE_OCR_MOCK === "1";
   if (!isMock && (await captureQuotaReached(db, userId))) return { status: "quota" };
 
@@ -122,7 +150,7 @@ export async function ingestSlipImage(db: Db, input: SlipIngestInput): Promise<S
     }
     const x = result.extraction;
 
-    const [accounts, categories, categoryPrefs, accountPrefs, byReference] = await Promise.all([
+    const [accounts, categories, categoryPrefs, accountPrefs, aliases, byReference] = await Promise.all([
       db.from("accounts").select("id, name, account_type, institution, is_archived").eq("user_id", userId).eq("is_archived", false),
       db
         .from("categories")
@@ -136,6 +164,8 @@ export async function ingestSlipImage(db: Db, input: SlipIngestInput): Promise<S
         .limit(500),
       // Missing before migration 0042 — then simply no shop accounts.
       db.from("merchant_account_preferences").select("merchant_normalized, account_id").eq("user_id", userId).limit(500),
+      // Which account pays for this bank/card — learned when the user confirmed an earlier slip.
+      db.from("account_aliases").select("alias_normalized, account_id").eq("user_id", userId).limit(500),
       x.reference
         ? db.from("transactions").select("id").eq("user_id", userId).eq("reference", x.reference).limit(1)
         : Promise.resolve({ data: [] as { id: string }[] }),
@@ -147,6 +177,7 @@ export async function ingestSlipImage(db: Db, input: SlipIngestInput): Promise<S
       categories: categories.data ?? [],
       merchantPreferences: categoryPrefs.data ?? [],
       merchantAccounts: accountPrefs.error ? [] : (accountPrefs.data ?? []),
+      accountAliases: aliases.error ? [] : (aliases.data ?? []),
       today: input.today,
     });
 
@@ -175,29 +206,32 @@ export async function ingestSlipImage(db: Db, input: SlipIngestInput): Promise<S
     }
 
     const keep = status === "pending";
-    const { data: row, error } = await db
-      .from("slip_inbox")
-      .insert({
-        user_id: userId,
-        status,
-        origin: input.origin,
-        token_id: input.tokenId ?? null,
-        image_sha256: imageSha,
-        // A non-slip keeps nothing but its hash.
-        amount: keep && x.amountCents !== null ? centsToDecimalString(x.amountCents) : null,
-        slip_date: keep ? x.date : null,
-        slip_time: keep ? x.time : null,
-        merchant: keep ? x.merchant : null,
-        payment_method: keep ? x.paymentMethod : null,
-        // Kept on duplicates too: it's what makes a resend recognisable.
-        reference: status === "not_slip" ? null : x.reference,
-        account_id: keep ? suggestion.accountId : null,
-        category_id: keep ? suggestion.categoryId : null,
-        confidence: keep ? suggestion.confidence : "low",
-        possible_duplicate_of: possibleDuplicateOf,
-      })
-      .select("id")
-      .single();
+    const fields = {
+      status,
+      // A non-slip keeps nothing but its hash.
+      amount: keep && x.amountCents !== null ? centsToDecimalString(x.amountCents) : null,
+      slip_date: keep ? x.date : null,
+      slip_time: keep ? x.time : null,
+      merchant: keep ? x.merchant : null,
+      payment_method: keep ? x.paymentMethod : null,
+      note: keep ? x.note : null,
+      payer_account: keep ? x.payerAccount : null,
+      // Kept on duplicates too: it's what makes a resend recognisable.
+      reference: status === "not_slip" ? null : x.reference,
+      account_id: keep ? suggestion.accountId : null,
+      category_id: keep ? suggestion.categoryId : null,
+      confidence: keep ? suggestion.confidence : "low",
+      possible_duplicate_of: possibleDuplicateOf,
+      read_version: SLIP_READ_VERSION,
+    };
+    const { data: row, error } = await writeSlipRow(
+      db,
+      userId,
+      reread
+        ? fields
+        : { ...fields, user_id: userId, origin: input.origin, token_id: input.tokenId ?? null, image_sha256: imageSha },
+      reread && seen ? seen.id : null
+    );
 
     if (error?.code === PG_UNIQUE_VIOLATION) return { status: "already" };
     if (error || !row) throw error ?? new Error("slip_inbox insert returned no row");

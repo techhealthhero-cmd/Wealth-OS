@@ -6,7 +6,40 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-26
+Last updated: 2026-11-02
+
+## Slip inbox: reads the memo + remembers the paying account — 2026-11-02
+
+**Code merged; migration `0047_slip_note_and_payer.sql` written, NOT yet
+applied to production** (the user runs `supabase db push --linked`).
+Prompted by the user's first real batch: 20 K PLUS slips arrived, every one
+defaulted to "เงินกันจน (ฉุกเฉิน) 10" (first account) and none kept the
+slip's "บันทึกช่วยจำ".
+
+- The slip reader now also returns `note` (the printed memo) and
+  `payer_account` (the paying account's visible digits, "xxx-x-x8710-x" →
+  "8710" — never more than the 4 digits the slip itself shows). Stored on
+  `slip_inbox` (0047), shown on the waiting slip (editable), used for the
+  category suggestion ("ชาเขียว" → food), saved as the transaction
+  description on ✓. Single-slip Quick Capture scans use the memo too.
+- Paying account: on ✓ the chosen account is remembered as learned
+  nicknames (`account_aliases`, 0041 — visible/removable in the account's
+  nicknames): "K PLUS 8710" and the bank alone ("kbank"; every way a slip
+  prints KBank lands on that key). The next slip from that payer is
+  pre-filled, and every other WAITING slip from the same payer is
+  re-pointed at once (toast says how many). Only the user's own rows.
+- No match → an everyday account (bank › e-wallet › cash › card), never
+  savings/investment or one named ฉุกเฉิน/สำรอง/ออม/เก็บ/กันจน/…; none →
+  no account, the user picks (the card asks "เลือกบัญชีที่จ่าย").
+- `read_version`: rows from before 0047 are 1. A still-pending v1 slip is
+  read ONE more time when the Shortcut resends the same photo (to get its
+  memo), updated in place — costs one capture AI read per waiting slip.
+- Deploy-before-push safe: ingest, the pending list and confirm fall back
+  to the 0046 columns on `42703`/`PGRST204` (tested with a fake database
+  missing the columns).
+- Verified: typecheck, lint (only the pre-existing opengraph `<img>`
+  warning), 1071 tests (13 new), production build. NOT yet verified live —
+  needs the push, then a Shortcut run against production.
 
 ## Home yearly card: pick any year — 2026-10-26
 

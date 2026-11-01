@@ -11,6 +11,10 @@ export interface ReceiptExtraction {
   merchant: string | null;
   paymentMethod: string | null;
   reference: string | null;
+  /** The memo printed on a slip ("บันทึกช่วยจำ: ชาเขียว"). */
+  note: string | null;
+  /** Last 3–4 digits of the paying account ("xxx-x-x8710-x" → "8710"). */
+  payerAccount: string | null;
   confidence: CaptureConfidence;
 }
 
@@ -22,8 +26,22 @@ export const EMPTY_EXTRACTION: ReceiptExtraction = {
   merchant: null,
   paymentMethod: null,
   reference: null,
+  note: null,
+  payerAccount: null,
   confidence: "low",
 };
+
+/**
+ * The visible digits of a masked account number, last four at most:
+ * "xxx-x-x8710-x" → "8710". Fewer than three visible digits isn't enough to
+ * tell two accounts apart, so it's dropped.
+ */
+export function payerAccountDigits(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 3) return null;
+  return digits.slice(-4);
+}
 
 function firstJsonObject(text: string): unknown {
   const start = text.indexOf("{");
@@ -139,6 +157,8 @@ export function normalizeReceiptModelOutput(rawText: string, today: string): Rec
     merchant,
     paymentMethod: cleanString(d.payment_method, 60),
     reference: cleanString(d.reference, 80),
+    note: cleanString(d.note, 200),
+    payerAccount: payerAccountDigits(d.payer_account),
     confidence,
   };
 }
