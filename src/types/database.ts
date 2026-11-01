@@ -290,8 +290,8 @@ export interface Database {
           sort_order: number;
           /** What this money is for (migration 0045). Absent on a database without that migration. */
           purpose?: string | null;
-          /** Last 4 digits of the account number, matched against slips (migration 0048). Absent before it. */
-          account_last4?: string | null;
+          /** The account number, digits only, matched against slips (migration 0049). Absent before it. */
+          account_number?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1229,7 +1229,7 @@ export interface Database {
           reference: string | null;
           /** 0047: memo printed on the slip. */
           note: string | null;
-          /** 0047: last 3–4 digits of the paying account. */
+          /** 0047/0049: paying account mask ("xxxxx8710x"); older rows just the visible digits. */
           payer_account: string | null;
           /** 0047: reader version (1 = before the memo was read). */
           read_version: number;

@@ -30,6 +30,8 @@ export class FakeDb {
   log: QueryLog[] = [];
   /** Columns this "database" doesn't have yet (a migration not pushed) — "table.column". */
   missingColumns = new Set<string>();
+  /** A CHECK constraint this "database" enforces on writes (Postgres 23514). */
+  checkViolation: ((table: string, row: Row) => boolean) | null = null;
   private nextId = 1;
 
   rows(table: string) {
@@ -143,6 +145,9 @@ export class FakeQuery {
     if (this.op === "select" && missing(this.columns)) return { data: null, error: { code: "42703", message: "column does not exist" } };
     if (this.op !== "select" && missing(Object.keys(this.payload ?? {}))) {
       return { data: null, error: { code: "PGRST204", message: "column not in schema cache" } };
+    }
+    if (this.op !== "select" && this.db.checkViolation?.(this.table, this.payload ?? {})) {
+      return { data: null, error: { code: "23514", message: "violates check constraint" } };
     }
     const rows = this.db.rows(this.table);
     if (this.op === "upsert") {

@@ -10,7 +10,7 @@ import { z } from "zod";
 
 import type { CaptureConfidence, SlipInboxStatus } from "@/types/database";
 import { ACCOUNT_HINTS } from "./keywords";
-import type { ReceiptExtraction } from "./receipt-normalize";
+import { accountNumberMatches, visibleDigits, type ReceiptExtraction } from "./receipt-normalize";
 import { normalizeAlias } from "./transfer";
 import {
   accountForMerchant,
@@ -114,13 +114,15 @@ export function slipPayer(paymentMethod: string | null, payerAccount: string | n
   const bank = hint ? hint.phrases[0] : normalizeAlias(method);
   if (!bank) return null;
   const label = (paymentMethod ?? bank).trim().slice(0, 40);
-  const specific = payerAccount ? normalizeAlias(`${bank} ${payerAccount}`) : null;
+  // The visible digits only ("xxxxx8710x" and an older row's "8710" are the same payer).
+  const digits = payerAccount ? visibleDigits(payerAccount) : "";
+  const specific = digits ? normalizeAlias(`${bank} ${digits}`) : null;
   const keys = [specific, bank, ...(hint?.phrases ?? []).map(normalizeAlias)].filter((k): k is string => Boolean(k));
   return {
     bank,
     specific,
     keys: [...new Set(keys)],
-    label: payerAccount ? `${label} ${payerAccount}` : label,
+    label: digits ? `${label} ${digits}` : label,
   };
 }
 
@@ -135,13 +137,15 @@ export function samePayer(a: SlipPayer | null, b: SlipPayer | null): boolean {
 }
 
 /**
- * The account whose number ends in the slip's paying digits ("xxx-x-x8710-x"
- * → the account the user marked 8710). The user set those digits, so this
- * beats every guess. Two accounts with the same digits → no match.
+ * The account whose number fits the slip's paying mask ("xxx-x-x8710-x" fits
+ * 123-4-58871-0). The user typed that number, so this beats every guess.
+ * Two accounts that both fit → no match (the user picks).
  */
-export function accountForPayerDigits(payerAccount: string | null, accounts: CaptureAccount[]): string | null {
+export function accountForPayerNumber(payerAccount: string | null, accounts: CaptureAccount[]): string | null {
   if (!payerAccount) return null;
-  const hits = accounts.filter((a) => !a.is_archived && a.account_last4 && a.account_last4.endsWith(payerAccount));
+  const hits = accounts.filter(
+    (a) => !a.is_archived && a.account_number && accountNumberMatches(payerAccount, a.account_number)
+  );
   return hits.length === 1 ? hits[0].id : null;
 }
 
@@ -212,8 +216,8 @@ export function defaultSlipAccountId(accounts: CaptureAccount[]): string | null 
 }
 
 /**
- * Account and category for a read slip. Account: the account the user marked
- * with the slip's paying digits (accounts.account_last4), else the one remembered for
+ * Account and category for a read slip. Account: the account whose number
+ * fits the slip's paying mask (accounts.account_number), else the one remembered for
  * this payer (learned when the user picked one on an earlier slip), else the
  * one everyday account at the paying bank — several there means no guess
  * (the user picks) — else the shop's set account, else an everyday account
@@ -236,7 +240,7 @@ export function suggestSlipFields(
   const bank = accountForSlipBank(extraction.paymentMethod, ctx.accounts);
   const shop = merchant ? accountForMerchant(merchant, merchant, ctx.merchantAccounts ?? [], ctx.accounts) : null;
   const accountId =
-    accountForPayerDigits(extraction.payerAccount, ctx.accounts) ??
+    accountForPayerNumber(extraction.payerAccount, ctx.accounts) ??
     remembered ??
     (typeof bank === "object" ? bank.accountId : null) ??
     shop ??

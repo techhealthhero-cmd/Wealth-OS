@@ -46,12 +46,12 @@ export function buildAccountSchema(dict: Dictionary) {
       .max(40, dict.validation.accountPurposeTooLong)
       .optional()
       .or(z.literal("")),
-    account_last4: z
+    // Typed however the bank shows it ("123-4-58871-0"); stored as digits only.
+    account_number: z
       .string()
-      .trim()
-      .regex(/^\d{4}$/, dict.validation.accountLast4Invalid)
-      .optional()
-      .or(z.literal("")),
+      .transform((v) => v.replace(/[\s-]/g, ""))
+      .pipe(z.string().regex(/^(\d{6,20})?$/, dict.validation.accountNumberInvalid))
+      .optional(),
   });
 }
 

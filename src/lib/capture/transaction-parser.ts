@@ -30,8 +30,8 @@ export interface CaptureAccount {
   account_type: AccountType;
   institution: string | null;
   is_archived: boolean;
-  /** Last 4 digits of the account number (0048) — matched against bank slips. */
-  account_last4?: string | null;
+  /** The account number, digits only (0049) — matched against bank slips. */
+  account_number?: string | null;
 }
 
 export interface CaptureCategory {

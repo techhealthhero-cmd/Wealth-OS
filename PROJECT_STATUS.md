@@ -8,10 +8,35 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-11-02
 
-## Slips match the account by its last 4 digits — 2026-11-02
+## Slips match the account by its full account number — 2026-11-02
 
-**Code merged; migration `0048_account_last4.sql` written, NOT yet applied
-to production** (the user runs `supabase db push --linked`).
+**Supersedes the "last 4 digits" design below.** 0048 (`account_last4`)
+was applied to production and verified, but the user pointed out the right
+model: store the WHOLE account number once, and match the digits a slip
+shows. Also a real bug in 0048's design: K PLUS prints "xxx-x-x8710-x" — the
+visible digits are not the last four (the final digit is hidden).
+
+**Code merged; migration `0049_account_number.sql` written, NOT yet applied
+to production.** It drops `accounts.account_last4` (guarded: refuses if any
+row holds a value — checked: 0 rows did), adds `accounts.account_number`
+(digits only, 6–20), and widens `slip_inbox.payer_account` to a mask.
+
+- The reader keeps the slip's paying account as a mask, position by
+  position: "xxx-x-x8710-x" → "xxxxx8710x". Matching (`accountNumberMatches`):
+  same length → every visible digit in its exact place; otherwise (an older
+  row with only "8710") → the digits appear in the number.
+- Account form: "เลขบัญชี (ไม่บังคับ)", typed with or without dashes,
+  stored as digits. Saving it points every waiting slip whose mask fits.
+- Before 0049 is pushed: an empty field is dropped; a filled one reports
+  that the database needs updating; slips keep only the visible digits
+  (the old check constraint), and are re-matched later by containment.
+- Verified: typecheck, lint (pre-existing warning only), 1076 tests,
+  production build.
+
+## Slips match the account by its last 4 digits — 2026-11-02 (superseded)
+
+**Migration `0048_account_last4.sql` applied to production 2026-11-02 and
+verified (column answered 200); replaced by 0049 above.**
 
 Found live right after 0047: every KBank slip pre-filled "เงินกันจน
 (ฉุกเฉิน) 10". The user's five "jar" accounts (Cash, เงินพาโต, เงินกันจน,

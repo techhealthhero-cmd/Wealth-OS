@@ -11,6 +11,7 @@ import { getReceiptParser } from "@/features/capture/lib/receipt-parser";
 import type { AIImageMediaType } from "@/features/ai/types";
 import type { Subscription, SlipInboxOrigin } from "@/types/database";
 import type { CaptureAccount } from "@/lib/capture/transaction-parser";
+import { visibleDigits } from "@/lib/capture/receipt-normalize";
 import {
   SLIP_DAILY_LIMIT,
   SLIP_READ_VERSION,
@@ -62,6 +63,7 @@ export interface SlipIngestInput {
 }
 
 const PG_UNIQUE_VIOLATION = "23505";
+const PG_CHECK_VIOLATION = "23514";
 
 async function captureQuotaReached(db: Db, userId: string): Promise<boolean> {
   const { start, end } = getCurrentBillingPeriod();
@@ -106,11 +108,11 @@ async function findSeenSlip(db: Db, userId: string, imageSha: string): Promise<S
   return ((data as SeenSlip[] | null) ?? [])[0] ?? null;
 }
 
-/** The user's active accounts, with the account digits (0048) when the database has them. */
+/** The user's active accounts, with their account numbers (0049) when the database has them. */
 async function loadAccounts(db: Db, userId: string) {
   const query = (columns: string) =>
     db.from("accounts").select(columns).eq("user_id", userId).eq("is_archived", false);
-  const withDigits = await query("id, name, account_type, institution, is_archived, account_last4");
+  const withDigits = await query("id, name, account_type, institution, is_archived, account_number");
   const result = isMissingSlipColumn(withDigits.error)
     ? await query("id, name, account_type, institution, is_archived")
     : withDigits;
@@ -123,7 +125,13 @@ async function writeSlipRow(db: Db, userId: string, row: Record<string, unknown>
     existingId
       ? db.from("slip_inbox").update(payload).eq("id", existingId).eq("user_id", userId).select("id").single()
       : db.from("slip_inbox").insert(payload).select("id").single();
-  const first = await write(row);
+  let first = await write(row);
+  // Before 0049 payer_account only accepts plain digits: keep the visible ones.
+  if (first.error?.code === PG_CHECK_VIOLATION && typeof row.payer_account === "string") {
+    const digits = visibleDigits(row.payer_account);
+    row = { ...row, payer_account: digits.length >= 3 && digits.length <= 4 ? digits : null };
+    first = await write(row);
+  }
   if (!isMissingSlipColumn(first.error)) return first;
   const legacy = { ...row };
   for (const column of ["note", "payer_account", "read_version"]) delete legacy[column];

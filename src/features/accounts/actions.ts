@@ -12,6 +12,7 @@ import { getLocale } from "@/i18n/server";
 import { trackEvent } from "@/lib/analytics";
 import { normalizeAlias } from "@/lib/capture/transfer";
 import { shopKey } from "@/lib/capture/transaction-parser";
+import { accountNumberMatches } from "@/lib/capture/receipt-normalize";
 import type { AccountAliasSource } from "@/types/database";
 
 export interface ActionResult {
@@ -28,14 +29,14 @@ function parseAccountFormData(formData: FormData) {
     opening_balance: formData.get("opening_balance") ?? 0,
     include_in_net_worth: formData.get("include_in_net_worth") === "on",
     purpose: formData.get("purpose") || undefined,
-    account_last4: formData.get("account_last4") || undefined,
+    account_number: formData.get("account_number") || undefined,
   };
 }
 
 type DbError = { code?: string; message: string };
 
-/** Columns newer than the rest of the form: purpose (0045), account_last4 (0048). */
-const OPTIONAL_COLUMNS = ["purpose", "account_last4"] as const;
+/** Columns newer than the rest of the form: purpose (0045), account_number (0049). */
+const OPTIONAL_COLUMNS = ["purpose", "account_number"] as const;
 type OptionalColumn = (typeof OPTIONAL_COLUMNS)[number];
 
 /** Which optional column a database is missing (its migration unapplied): Postgres 42703 / PostgREST PGRST204. */
@@ -67,17 +68,32 @@ async function writeWithOptionalColumns<
 
 /**
  * Slips waiting from this account's number now go to it: every pending slip
- * whose paying account digits are `last4` is pointed at the account. Only
- * suggestions change — nothing is saved as a transaction. Best-effort
- * (before migration 0047 slips have no digits, and nothing happens).
+ * whose paying mask fits `accountNumber` is pointed at the account. Only
+ * suggestions change â€” nothing is saved as a transaction. Best-effort
+ * (before migration 0047 slips have no paying account, and nothing happens).
  */
-async function pointWaitingSlipsAt(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, accountId: string, last4: string) {
+async function pointWaitingSlipsAt(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  accountId: string,
+  accountNumber: string
+) {
+  const { data, error } = await supabase
+    .from("slip_inbox")
+    .select("id, payer_account")
+    .eq("user_id", userId)
+    .eq("status", "pending");
+  if (error || !data) return;
+  const ids = (data as { id: string; payer_account: string | null }[])
+    .filter((s) => s.payer_account && accountNumberMatches(s.payer_account, accountNumber))
+    .map((s) => s.id);
+  if (ids.length === 0) return;
   await supabase
     .from("slip_inbox")
     .update({ account_id: accountId })
     .eq("user_id", userId)
     .eq("status", "pending")
-    .eq("payer_account", last4);
+    .in("id", ids);
   revalidatePath("/money/transactions");
 }
 
@@ -116,27 +132,27 @@ export async function createAccount(
     .eq("user_id", user.id);
 
   // user_id is always derived from the server-side session, never trusted
-  // from the client — see validation schemas' ownership note in README.
-  const last4 = parsed.data.account_last4 || null;
+  // from the client â€” see validation schemas' ownership note in README.
+  const accountNumber = parsed.data.account_number || null;
   const { data: created, error, notReady } = await writeWithOptionalColumns(
     {
       ...parsed.data,
       institution: parsed.data.institution || null,
       purpose: parsed.data.purpose || null,
-      account_last4: last4,
+      account_number: accountNumber,
       user_id: user.id,
       sort_order: count ?? 0,
     },
     (row) => supabase.from("accounts").insert(row).select("id").single()
   );
 
-  if (notReady) return { error: notReady === "purpose" ? dict.accounts.purposeNotReady : dict.accounts.last4NotReady };
+  if (notReady) return { error: notReady === "purpose" ? dict.accounts.purposeNotReady : dict.accounts.accountNumberNotReady };
   if (error) {
     return { error: friendlyDbError(error, "createAccount", dict.accounts.createFailed) };
   }
-  if (last4 && created) await pointWaitingSlipsAt(supabase, user.id, created.id, last4);
+  if (accountNumber && created) await pointWaitingSlipsAt(supabase, user.id, created.id, accountNumber);
 
-  // Reuses the sort_order count above — same "count already fetched for
+  // Reuses the sort_order count above â€” same "count already fetched for
   // another reason doubles as the first-of-its-kind check" pattern as
   // goals/actions.ts's createGoal().
   if ((count ?? 0) === 0) trackEvent("first_account_created", user.id);
@@ -169,22 +185,22 @@ export async function updateAccount(
 
   // RLS also enforces this, but checking user_id here means a mismatched
   // owner gets a clear "not found"-shaped failure instead of a silent no-op.
-  const last4 = parsed.data.account_last4 || null;
+  const accountNumber = parsed.data.account_number || null;
   const { error, notReady } = await writeWithOptionalColumns(
     {
       ...parsed.data,
       institution: parsed.data.institution || null,
       purpose: parsed.data.purpose || null,
-      account_last4: last4,
+      account_number: accountNumber,
     },
     (row) => supabase.from("accounts").update(row).eq("id", accountId).eq("user_id", user.id)
   );
 
-  if (notReady) return { error: notReady === "purpose" ? dict.accounts.purposeNotReady : dict.accounts.last4NotReady };
+  if (notReady) return { error: notReady === "purpose" ? dict.accounts.purposeNotReady : dict.accounts.accountNumberNotReady };
   if (error) {
     return { error: friendlyDbError(error, "updateAccount", dict.accounts.updateFailed) };
   }
-  if (last4) await pointWaitingSlipsAt(supabase, user.id, accountId, last4);
+  if (accountNumber) await pointWaitingSlipsAt(supabase, user.id, accountId, accountNumber);
 
   revalidatePath("/money/accounts");
   revalidatePath("/dashboard");
@@ -220,11 +236,11 @@ export async function archiveAccount(accountId: string): Promise<ActionResult> {
 /**
  * Persists a new manual drag-to-reorder position for the active accounts
  * list. `orderedAccountIds` is the full new order (index = new sort_order)
- * — untrusted client input, so every update is scoped to `.eq("user_id",
+ * â€” untrusted client input, so every update is scoped to `.eq("user_id",
  * user.id)` the same way every other write in this file is: an id that
  * isn't actually this user's own account simply matches zero rows rather
  * than being trusted. Writes one row at a time rather than a single batch
- * RPC — fine for an accounts list, which is always a small, human-sized
+ * RPC â€” fine for an accounts list, which is always a small, human-sized
  * count, and this is a rare user-initiated action, not a hot path.
  */
 export async function reorderAccounts(orderedAccountIds: string[]): Promise<ActionResult> {
@@ -348,7 +364,7 @@ export async function deleteAccountAlias(aliasId: string): Promise<ActionResult>
 }
 
 // ---------------------------------------------------------------------------
-// Shop → pay-from account (merchant_account_preferences, migration 0042)
+// Shop â†’ pay-from account (merchant_account_preferences, migration 0042)
 // ---------------------------------------------------------------------------
 
 export interface MerchantAccountPref {
@@ -359,7 +375,7 @@ export interface MerchantAccountPref {
   source: AccountAliasSource;
 }
 
-/** All of the user's shop → account settings. Empty when none, or before migration 0042. */
+/** All of the user's shop â†’ account settings. Empty when none, or before migration 0042. */
 export async function getMerchantAccountPreferences(): Promise<MerchantAccountPref[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -378,8 +394,8 @@ const shopInputSchema = z.object({
 });
 
 /**
- * "Buy at `shop` → pay from this account". Known brands are stored by their
- * canonical name ("เซเว่น" → 7-Eleven) so every way of saying them matches.
+ * "Buy at `shop` â†’ pay from this account". Known brands are stored by their
+ * canonical name ("à¹€à¸‹à¹€à¸§à¹ˆà¸™" â†’ 7-Eleven) so every way of saying them matches.
  * Choosing a shop again re-points it. The database trigger checks the
  * account is the user's own.
  */
@@ -435,7 +451,7 @@ export async function deleteMerchantAccountPreference(prefId: string): Promise<A
   return { success: true };
 }
 
-/** Reverses `archiveAccount` — see account-card.tsx's confirm copy, which promises the account can be restored. */
+/** Reverses `archiveAccount` â€” see account-card.tsx's confirm copy, which promises the account can be restored. */
 export async function unarchiveAccount(accountId: string): Promise<ActionResult> {
   const dict = await getRequestDictionary();
   const supabase = await createClient();

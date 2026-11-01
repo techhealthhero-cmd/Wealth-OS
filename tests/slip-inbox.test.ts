@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FakeDb, type Row } from "./mocks/fake-db";
 import {
   CAPTURE_TOKEN_PREFIX,
-  accountForPayerDigits,
+  accountForPayerNumber,
   accountForSlipBank,
   captureTokenHint,
   defaultSlipAccountId,
@@ -20,7 +20,9 @@ import {
 import {
   EMPTY_EXTRACTION,
   normalizeReceiptModelOutput,
-  payerAccountDigits,
+  accountNumberMatches,
+  payerAccountMask,
+  visibleDigits,
   type ReceiptExtraction,
 } from "@/lib/capture/receipt-normalize";
 import type { ParseContext } from "@/lib/capture/transaction-parser";
@@ -219,18 +221,23 @@ describe("slip suggestions (pure)", () => {
     expect(suggestSlipFields(slip({ paymentMethod: "KBank", payerAccount: "8710" }), { ...ctx, accounts }).accountId).toBeNull();
     // Only one everyday account at the bank (the rest set aside) → that one.
     expect(accountForSlipBank("K PLUS", [jar("cash", "Cash", "cash"), jar("emer", "เงินกันจน (ฉุกเฉิน) 10")])).toEqual({ accountId: "cash" });
-    // The digits the user set on an account beat every guess and every memory.
-    const marked = accounts.map((a) => (a.id === "cash" ? { ...a, account_last4: "8710" } : a));
-    expect(accountForPayerDigits("8710", marked)).toBe("cash");
+    // The account number the user typed beats every guess and every memory.
+    // K PLUS prints "xxx-x-x8710-x": 8710 are NOT the last four digits.
+    const marked = accounts.map((a) =>
+      a.id === "cash" ? { ...a, account_number: "1234587101" } : a.id === "skill" ? { ...a, account_number: "9998710999" } : a
+    );
+    expect(accountForPayerNumber("xxxxx8710x", marked)).toBe("cash");
     expect(
-      suggestSlipFields(slip({ paymentMethod: "KBank", payerAccount: "8710" }), {
+      suggestSlipFields(slip({ paymentMethod: "KBank", payerAccount: "xxxxx8710x" }), {
         ...ctx,
         accounts: marked,
         accountAliases: [{ alias_normalized: "kbank 8710", account_id: "emer" }],
       }).accountId
     ).toBe("cash");
-    // Same digits on two accounts → can't tell → no match.
-    expect(accountForPayerDigits("8710", marked.map((a) => (a.id === "skill" ? { ...a, account_last4: "8710" } : a)))).toBeNull();
+    // A row from before 0049 kept only "8710": both numbers contain it → can't tell.
+    expect(accountForPayerNumber("8710", marked)).toBeNull();
+    // Two accounts that both fit the mask → no match.
+    expect(accountForPayerNumber("xxxxx8710x", marked.map((a) => (a.id === "skill" ? { ...a, account_number: "0000087109" } : a)))).toBeNull();
     // Once the user picked, it's remembered.
     const remembered = { ...ctx, accounts, accountAliases: [{ alias_normalized: "kbank 8710", account_id: "cash" }] };
     expect(suggestSlipFields(slip({ paymentMethod: "KBank", payerAccount: "8710" }), remembered).accountId).toBe("cash");
@@ -273,9 +280,17 @@ describe("slip suggestions (pure)", () => {
       JSON.stringify({ amount: 38.5, merchant: "Major", note: "  น้ำเปล่า ", payer_account: "xxx-x-x8710-x", confidence: "high" }),
       TODAY
     );
-    expect(x).toMatchObject({ note: "น้ำเปล่า", payerAccount: "8710" });
-    expect(payerAccountDigits("xxx-x-xx1x-x")).toBeNull();
-    expect(payerAccountDigits("123-4-56789-0")).toBe("7890");
+    expect(x).toMatchObject({ note: "น้ำเปล่า", payerAccount: "xxxxx8710x" });
+    expect(payerAccountMask("xxx-x-xx1x-x")).toBeNull();
+    expect(payerAccountMask("XXX-X-X8710-X")).toBe("xxxxx8710x");
+    expect(payerAccountMask("***-*-*8710-*")).toBe("xxxxx8710x");
+    expect(visibleDigits("xxxxx8710x")).toBe("8710");
+    // Position by position against the full number.
+    expect(accountNumberMatches("xxxxx8710x", "123-4-58710-1")).toBe(true);
+    expect(accountNumberMatches("xxxxx8710x", "1234567890")).toBe(false);
+    expect(accountNumberMatches("xxxxx8710x", "1238710456")).toBe(false); // right digits, wrong place
+    // An older row with just the digits: contained anywhere.
+    expect(accountNumberMatches("8710", "1234587101")).toBe(true);
   });
 
   it("status: not a slip, already recorded, or waiting", () => {
@@ -397,7 +412,7 @@ describe("ingestSlipImage", () => {
     await ingestSlipImage(db as never, { userId: USER_A, image: image(20), origin: "shortcut", today: TODAY });
     expect(db.rows("slip_inbox")[0]).toMatchObject({
       note: "ชาเขียว",
-      payer_account: "8710",
+      payer_account: "xxxxx8710x",
       account_id: "d1",
       category_id: FOOD,
       read_version: 2,
@@ -433,15 +448,22 @@ describe("ingestSlipImage", () => {
     expect(modelCalls).toBe(0);
   });
 
-  it("a slip goes to the account marked with its paying digits — and still reads without 0048", async () => {
-    db.rows("accounts").push({ id: "d1", user_id: USER_A, name: "Cash 2", account_type: "cash", institution: "KBank", is_archived: false, account_last4: "8710" });
+  it("a slip goes to the account whose number fits its mask — and still reads without 0049", async () => {
+    db.rows("accounts").push({ id: "d1", user_id: USER_A, name: "Cash 2", account_type: "cash", institution: "KBank", is_archived: false, account_number: "1234587101" });
     modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R-d1" });
     await ingestSlipImage(db as never, { userId: USER_A, image: image(24), origin: "shortcut", today: TODAY });
-    expect(db.rows("slip_inbox").at(-1)?.account_id).toBe("d1");
+    expect(db.rows("slip_inbox").at(-1)).toMatchObject({ account_id: "d1", payer_account: "xxxxx8710x" });
 
-    db.missingColumns.add("accounts.account_last4");
+    db.missingColumns.add("accounts.account_number");
     modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R-d2" });
     expect((await ingestSlipImage(db as never, { userId: USER_A, image: image(25), origin: "shortcut", today: TODAY })).status).toBe("queued");
+  });
+
+  it("before 0049 the slip keeps just the visible digits (old payer_account check)", async () => {
+    db.checkViolation = (table, row) => table === "slip_inbox" && typeof row.payer_account === "string" && !/^\d{3,4}$/.test(row.payer_account);
+    modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R-old" });
+    expect((await ingestSlipImage(db as never, { userId: USER_A, image: image(26), origin: "shortcut", today: TODAY })).status).toBe("queued");
+    expect(db.rows("slip_inbox").at(-1)?.payer_account).toBe("8710");
   });
 
   it("still works on a database without migration 0047 (deployed before db push)", async () => {
@@ -641,20 +663,23 @@ describe("confirm / dismiss", () => {
     expect(second.account_id).toBe(KBANK);
   });
 
-  it("saving digits on an account points the waiting slips from that number at it — only the user's own", async () => {
+  it("saving an account number points the waiting slips it fits at that account — only the user's own", async () => {
     modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R5" });
     const waiting = await queue(51);
-    db.rows("slip_inbox").push({ id: "b-slip", user_id: USER_B, status: "pending", payer_account: "8710", account_id: B_ACCOUNT });
+    modelReply = slipJson({ payer_account: "xxx-x-x1234-x", reference: "R6" });
+    const otherNumber = await queue(52);
+    db.rows("slip_inbox").push({ id: "b-slip", user_id: USER_B, status: "pending", payer_account: "xxxxx8710x", account_id: B_ACCOUNT });
     const form = new FormData();
     form.set("name", "Cash");
     form.set("account_type", "cash");
-    form.set("account_last4", "8710");
+    form.set("account_number", "123-4-58710-1");
     expect(await updateAccount(CASH, undefined, form)).toEqual({ success: true });
-    expect(db.rows("accounts").find((a) => a.id === CASH)?.account_last4).toBe("8710");
+    expect(db.rows("accounts").find((a) => a.id === CASH)?.account_number).toBe("1234587101");
     expect(waiting.account_id).toBe(CASH);
+    expect(otherNumber.account_id).toBe(KBANK);
     expect(db.rows("slip_inbox").find((r) => r.id === "b-slip")?.account_id).toBe(B_ACCOUNT);
 
-    form.set("account_last4", "87x0");
+    form.set("account_number", "12-ab");
     expect((await updateAccount(CASH, undefined, form)).error).toBeTruthy();
   });
 
