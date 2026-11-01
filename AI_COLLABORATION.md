@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- SLIP-PORT-FROM-MAIN — Owner: Grok Bot; IN PR → staging. Production slip inbox (Shortcut `POST /api/capture/slips`, Claude vision memo + payer mask, confirm-as-expense, full account-number match) is the live reader. Staging on-device Tesseract/QR/K PLUS flow stays in the tree but is no longer opened from Quick Capture. Migrations `0049_slip_inbox.sql` and `0050_account_number.sql` are in the PR and not applied. Do not touch production (`lvxuruzspchhcwebrbzy`). Next: owner applies the two migrations on staging (`cqmgogmnfsamywocdinr`), sets the Shortcut URL to the staging host, and retests a real K PLUS slip.
+
 - HOME-BOTTOM-GAP — Owner: Grok Bot; READY FOR HANDOFF. Home's last card sat ~195px above the mic because the shell's 11rem reserve stacked on each page's own 7rem/pb-28. The shell is now the only mobile reserve (`7rem + safe-area`), measured at 19–20px above the mic on WebKit 390×844. Desktop `md:pb-*` kept. Local checks: typecheck, lint, vitest 2488, next build. No schema, RLS, auth, billing, or formula changes.
 
 - PAGE-TURN-FADE-EVERYWHERE — Owner: Grok Bot; READY FOR HANDOFF. Home → Money no longer curls. Notebook close and cover open stay. Every page turn fades over 160ms. Branch `cursor/home-no-curl-989d`, base `staging`. Local checks: typecheck, lint, vitest 2487, next build, WebKit 390×844. No schema, RLS, auth, billing, or formula changes.
@@ -143,7 +145,7 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 - HOME-REMOVE-SHORTCUTS-INCOME — Owner: Grok Bot; IN PR → staging. Owner asked to remove the Home shortcut row (ออกใบแจ้งหนี้, บันทึกรายรับ, กันภาษี, สแกนสลิป), the รอเงินเข้า and โหลภาษี cards, and the รายได้แยกตามแหล่ง block. Compact NetWorthHero and HomeYearSection stay. Slip scan stays in the capture / voice flow. No schema, RLS, auth, billing, or formula changes. Next: owner 390px check on device.
 
-- SLIP-KPLUS-OCR — Owner: Grok Bot; IN PR → staging. Rebased onto staging after Home Variant B, the monthly-spend card removal, and Finance Variant B. On-device slip review was showing ฿0 because K PLUS prints `จำนวน:` (not `จำนวนเงิน`) and Tesseract reads `พ.ย.` as `พ.ุย.`/`พุย.`. Parser now accepts that layout, PSM 4 keeps the QR out of the text column, and gallery images are decoded on the main thread before OCR. The cream Home monthly-spend card stays removed. No schema, RLS, auth, billing, or money-formula changes. Next: owner re-upload of the 6 slips on an iPhone.
+- SLIP-KPLUS-OCR — Owner: Grok Bot; SUPERSEDED by SLIP-PORT-FROM-MAIN. The on-device K PLUS amount/date fix remains in `src/lib/slip` but Quick Capture no longer opens that reader. Production's Claude vision inbox is the live path. Restore by reconnecting `SlipAutoFlow` if the owner wants the on-device reader back.
 
 - FINANCE-VARIANT-B — Owner: Grok Bot; IN PR → staging. Finance → รายการ is the monthly close-up: green month hero (รับ/จ่าย/สุทธิ, budget only when one exists) and a full-month calendar (darker red = more spent, green = income day, day tap filters the list). Home Variant B untouched. The cream Home monthly-spend card stays removed. No schema, RLS, auth, billing, or formula changes. Next: owner 390px check on device.
 
@@ -255,6 +257,13 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-11-01 — Grok Bot → owner (SLIP-PORT-FROM-MAIN)
+
+- Live slip reading on staging now follows production: Shortcut `POST /api/capture/slips`, Claude vision (memo + payer mask), one photo in Quick Capture, many photos into the slip inbox, confirm saves an expense. Full account number matches a K PLUS mask such as `xxxxx8710x`.
+- On-device Tesseract/QR/K PLUS parser (`src/lib/slip`, `slip-auto`) remains in the repo and in tests, and is no longer opened from Quick Capture or the library button. Reconnect `SlipAutoFlow` in `quick-capture-sheet.tsx` to restore it.
+- Migrations `0049_slip_inbox.sql` and `0050_account_number.sql` are not applied. Production (`lvxuruzspchhcwebrbzy`) and `main` were not modified.
+- Checks: typecheck, lint, full Vitest 170 files / 2532 tests. Next: owner applies the two migrations on staging and points the iPhone Shortcut at the staging host.
 
 ### 2026-11-01 — Grok Bot → owner (PAGE-TURN-FADE-EVERYWHERE)
 

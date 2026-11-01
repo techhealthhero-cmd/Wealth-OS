@@ -36,6 +36,8 @@ export interface CaptureAccount {
   institution: string | null;
   is_archived: boolean;
   purpose?: string | null;
+  /** The account number, digits only — matched against bank slips. */
+  account_number?: string | null;
 }
 
 export interface CaptureCategory {

@@ -21,8 +21,11 @@ import { useSpeechInput } from "@/lib/speech/use-speech-input";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { useSwipeToDismiss } from "@/hooks/use-swipe-to-dismiss";
 import {
+  defaultAccountId,
+  matchAccount,
   normalizeText,
   parseCaptureText,
+  suggestCategory,
   type CaptureMerchantPreference,
   type CaptureUnit,
   type ParseContext,
@@ -45,11 +48,13 @@ import {
   dismissRecurringSuggestion,
   getCaptureEmergencyFundAccountId,
   getCapturePreferences,
+  scanReceipt,
   type PossibleDuplicate,
   type RecurringSuggestion,
 } from "@/features/capture/actions";
+import { prepareReceiptImage } from "@/features/capture/lib/image";
 import { reviewScrollDelta } from "@/features/capture/lib/review-visibility";
-import { SlipAutoFlow, type SlipAutoHandle } from "./slip-auto/slip-auto-flow";
+import { useSlipBatchUpload } from "@/features/slip-inbox/components/use-slip-batch-upload";
 import { parseCancelIntent } from "@/lib/capture/subscription-intent";
 import { evaluateCaptureConfidence } from "@/lib/capture/confidence";
 import { useMerchantMemory } from "../use-merchant-memory";
@@ -137,6 +142,7 @@ export function QuickCaptureSheet({
     return Array.isArray(value) ? (value as string[]) : [t(fallbackKey)];
   };
   const keyboardInset = useKeyboardInset(open);
+  const slipBatch = useSlipBatchUpload();
   // Pull down to close; content scrolls freely in its own area below the header.
   const { sheetRef, scrollRef } = useSwipeToDismiss({
     enabled: open,
@@ -530,15 +536,93 @@ export function QuickCaptureSheet({
 
   // ---------------------------------------------------------------- receipt
 
-  const slipFlowRef = useRef<SlipAutoHandle>(null);
+  /**
+   * Draft from a scan result. Anything the scan couldn't read is filled
+   * from what the user had already typed (`fallback`), so a partial or
+   * failed scan never throws away information that was already captured.
+   */
+  function draftFromExtraction(extraction: ReceiptExtraction | null, fallback: CaptureDraft | null): CaptureDraft {
+    const merchant = extraction?.merchant ?? fallback?.merchant ?? fallback?.description ?? null;
+    // The slip's memo ("บันทึกช่วยจำ: ชาเขียว") counts toward the category too.
+    const scannedText = [extraction?.note, extraction?.merchant].filter(Boolean).join(" ");
+    const scannedCategory = scannedText ? suggestCategory(scannedText, extraction?.merchant ?? null, "expense", ctx) : null;
+    const category =
+      scannedCategory && scannedCategory.source !== "fallback"
+        ? scannedCategory
+        : fallback && fallback.categorySource !== "fallback"
+          ? { categoryId: fallback.categoryId, source: fallback.categorySource }
+          : (scannedCategory ?? suggestCategory("", null, "expense", ctx));
+    const account = extraction?.paymentMethod ? matchAccount(extraction.paymentMethod, accounts) : null;
+    const amountCents = extraction?.amountCents ?? fallback?.amountCents ?? null;
+    let confidence = extraction?.confidence ?? "low";
+    // Never "high" if the category was a blind guess.
+    if (confidence === "high" && category.source === "fallback") confidence = "medium";
+    return {
+      type: "expense",
+      amountCents,
+      categoryId: category.categoryId,
+      categorySource: category.source,
+      accountId: account?.accountId ?? fallback?.accountId ?? defaultAccountId(accounts),
+      merchant,
+      description: extraction?.note ?? null,
+      date: extraction?.date ?? fallback?.date ?? ctx.today,
+      confidence,
+      source: "receipt",
+      reference: extraction?.reference ?? null,
+      categoryConfirmedByUser: false,
+    };
+  }
+
+  async function handleImage(file: File | undefined) {
+    if (!file) return;
+    setError(null);
+    setDuplicate(null);
+    if (receipt.status !== "idle") URL.revokeObjectURL(receipt.previewUrl);
+    const previewUrl = URL.createObjectURL(file);
+    setReceipt({ status: "scanning", previewUrl });
+    // Keep whatever was already typed — a scan never discards captured info.
+    const typed = textDraft;
+    try {
+      const prepared = await prepareReceiptImage(file);
+      if (!prepared.ok) {
+        const message = prepared.reason === "too_large" ? t("capture.scanTooLarge") : t("capture.scanInvalid");
+        setReceipt({ status: "done", previewUrl, extraction: null, message });
+        setReceiptDraft(draftFromExtraction(null, typed));
+        return;
+      }
+      const formData = new FormData();
+      formData.append("image", prepared.file);
+      const result = await scanReceipt(formData);
+      if (result.status === "ok") {
+        const partial =
+          !result.extraction.isPaymentDocument
+            ? t("capture.notAReceipt")
+            : result.extraction.amountCents === null || !result.extraction.merchant
+              ? t("capture.partialRead")
+              : null;
+        setReceipt({ status: "done", previewUrl, extraction: result.extraction, message: partial, mock: result.mock });
+        setReceiptDraft(draftFromExtraction(result.extraction, typed));
+      } else {
+        setReceipt({ status: "done", previewUrl, extraction: null, message: result.message });
+        setReceiptDraft(draftFromExtraction(null, typed));
+      }
+    } catch {
+      setReceipt({ status: "done", previewUrl, extraction: null, message: t("capture.scanFailed") });
+      setReceiptDraft(draftFromExtraction(null, typed));
+    }
+  }
+
   function handleImages(files: File[]) {
     if (!files.length) return;
     speech.stop();
-    onOpenChange(false);
-    slipFlowRef.current?.start(files);
-  }
-  function handleImage(file: File | undefined) {
-    if (file) handleImages([file]);
+    // Several slips at once go to the slip inbox to confirm later
+    // (nothing touches a balance until ✓); one keeps the preview.
+    if (files.length > 1) {
+      onOpenChange(false);
+      void slipBatch.upload(files);
+      return;
+    }
+    void handleImage(files[0]);
   }
 
   const appliedInitialImageRef = useRef<File | File[] | null>(null);
@@ -948,7 +1032,6 @@ export function QuickCaptureSheet({
 
   return (
     <>
-    <SlipAutoFlow ref={slipFlowRef} accounts={accounts} categories={categories} onTransfer={onTransfer} />
     <Sheet
       open={open}
       onOpenChange={(next) => {
@@ -1187,7 +1270,7 @@ export function QuickCaptureSheet({
             />
             <button
               type="button"
-              onClick={() => { speech.stop(); onOpenChange(false); slipFlowRef.current?.start(); }}
+              onClick={() => libraryInputRef.current?.click()}
               className="flex min-h-11 w-full items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
               <ImageUp className="size-3.5" aria-hidden="true" />

@@ -19,6 +19,8 @@ describe("normalizeReceiptModelOutput", () => {
       merchant: "KFC",
       paymentMethod: "KBank",
       reference: "015272123456",
+      note: null,
+      payerAccount: null,
       confidence: "high",
     });
   });

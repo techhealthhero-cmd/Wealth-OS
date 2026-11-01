@@ -153,12 +153,13 @@ describe("monthly saved-transaction summary", () => {
     expect(monthlyCategoryHref("2026-10", "uncategorized")).not.toContain("categoryId");
   });
 });
-it("the new scan path never imports external AI or scanReceipt", () => {
+it("the live slip scan is production's reader; the on-device module stays local-only", () => {
   for (const path of ["src/features/capture/components/slip-auto/slip-auto-flow.tsx", "src/features/capture/lib/slip-auto-model.ts", "src/features/capture/slip-auto-actions.ts"]) {
     const source = fs.readFileSync(path, "utf8");
     expect(source).not.toMatch(/scanReceipt|features\/ai/);
   }
   const quick = fs.readFileSync("src/features/capture/components/quick-capture-sheet.tsx", "utf8");
-  expect(quick).not.toMatch(/scanReceipt|prepareReceiptImage/);
-  expect(quick).toContain("slipFlowRef.current?.start(files)");
+  expect(quick).toMatch(/scanReceipt/);
+  expect(quick).toMatch(/useSlipBatchUpload/);
+  expect(quick).not.toMatch(/SlipAutoFlow/);
 });

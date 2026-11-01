@@ -11,6 +11,10 @@ export interface ReceiptExtraction {
   merchant: string | null;
   paymentMethod: string | null;
   reference: string | null;
+  /** The memo printed on a slip ("บันทึกช่วยจำ: ชาเขียว"). */
+  note: string | null;
+  /** The paying account as printed, masked digits as "x" ("xxx-x-x8710-x" → "xxxxx8710x"). */
+  payerAccount: string | null;
   confidence: CaptureConfidence;
 }
 
@@ -22,8 +26,45 @@ export const EMPTY_EXTRACTION: ReceiptExtraction = {
   merchant: null,
   paymentMethod: null,
   reference: null,
+  note: null,
+  payerAccount: null,
   confidence: "low",
 };
+
+/**
+ * A masked account number as printed, kept position by position: separators
+ * dropped, any hidden digit ("x", "*", "•") as "x" — "xxx-x-x8710-x" →
+ * "xxxxx8710x". Positions matter: the visible digits aren't always the last
+ * ones. Fewer than three visible digits can't tell accounts apart → null.
+ */
+export function payerAccountMask(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const mask = value
+    .toLowerCase()
+    .replace(/[*•●#]/g, "x")
+    .replace(/[^0-9x]/g, "");
+  if ((mask.match(/\d/g) ?? []).length < 3 || mask.length > 20) return null;
+  return mask;
+}
+
+/** The longest run of visible digits in a mask: "xxxxx8710x" → "8710" (older rows store just that). */
+export function visibleDigits(mask: string): string {
+  return (mask.match(/\d+/g) ?? []).reduce((best, run) => (run.length > best.length ? run : best), "");
+}
+
+/**
+ * Does a slip's mask fit this account number? Same length → every visible
+ * digit in its exact position. Different length (a bank that prints fewer
+ * x's, or a row from before the full account number) → the visible digits
+ * appear in the number.
+ */
+export function accountNumberMatches(mask: string, accountNumber: string): boolean {
+  const digits = accountNumber.replace(/\D/g, "");
+  if (!digits) return false;
+  if (mask.length === digits.length) return [...mask].every((c, i) => c === "x" || c === digits[i]);
+  const run = visibleDigits(mask);
+  return run.length >= 3 && digits.includes(run);
+}
 
 function firstJsonObject(text: string): unknown {
   const start = text.indexOf("{");
@@ -139,6 +180,8 @@ export function normalizeReceiptModelOutput(rawText: string, today: string): Rec
     merchant,
     paymentMethod: cleanString(d.payment_method, 60),
     reference: cleanString(d.reference, 80),
+    note: cleanString(d.note, 200),
+    payerAccount: payerAccountMask(d.payer_account),
     confidence,
   };
 }
