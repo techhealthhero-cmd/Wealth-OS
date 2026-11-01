@@ -8,6 +8,12 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-11-01
 
+## Home gold net-worth card — 2026-11-01
+
+- The Home net-worth block is the approved champagne-gold bank card: silver chip, มูลค่าสุทธิ, WEALTH OS, the profile display name, a dark-green figure with smaller satang, and the existing muted change line (this year, or since the first snapshot, plus this month's spend when there is one). A dark-green card sits slightly rotated behind it. The whole card still opens `/money/net-worth`. A negative balance stays dark green, and a long figure shrinks onto one line.
+- ภาพรวมรายปี and หมวดรายจ่าย·เทียบปี stay on the cream page: year switch, thin income/expense bars, ออมได้, and the year comparison table, with hairline dividers and a gold selected year. Goals whose deadline is in that year stay. The shortcut row, tax and awaiting cards, and income-by-source stay off Home.
+- The shell's single mobile bottom reserve and the Home page fade (no curl) are unchanged. No schema, RLS, auth, billing, or formula changes.
+
 ## Production slip reading on staging — 2026-11-01
 
 Staging's live slip path now matches production (`main`): one photo is read by the existing Claude vision receipt parser (memo + paying-account mask) and confirmed in Quick Capture; two or more photos, and the iPhone Shortcut, land in the slip inbox and become a transaction only when the user taps ✓. Confirmed inbox slips are expenses, the same as production.
