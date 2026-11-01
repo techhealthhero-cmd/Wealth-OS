@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- PAGE-CURL-HOME-ONLY — Owner: Grok Bot; READY FOR HANDOFF. Paper curl stays only when swiping forward from Home. Notebook close (ปิดสมุด) and cover open are unchanged. Money, Plan, Earn, their tabs, settings, and the month calendar no longer curl; a swipe or tab still changes page with a 160ms fade. Month moves with ‹ ›. No schema, RLS, auth, billing, or formula changes. Branch `cursor/disable-page-curl-989d`, base `staging`. Checks: typecheck, lint, vitest 2487, next build, WebKit 390×844 passed.
+
 - HOME-REMOVE-SHORTCUTS-INCOME — Owner: Grok Bot; IN PR → staging. Owner asked to remove the Home shortcut row (ออกใบแจ้งหนี้, บันทึกรายรับ, กันภาษี, สแกนสลิป), the รอเงินเข้า and โหลภาษี cards, and the รายได้แยกตามแหล่ง block. Compact NetWorthHero and HomeYearSection stay. Slip scan stays in the capture / voice flow. No schema, RLS, auth, billing, or formula changes. Next: owner 390px check on device.
 
 - SLIP-KPLUS-OCR — Owner: Grok Bot; IN PR → staging. Rebased onto staging after Home Variant B, the monthly-spend card removal, and Finance Variant B. On-device slip review was showing ฿0 because K PLUS prints `จำนวน:` (not `จำนวนเงิน`) and Tesseract reads `พ.ย.` as `พ.ุย.`/`พุย.`. Parser now accepts that layout, PSM 4 keeps the QR out of the text column, and gallery images are decoded on the main thread before OCR. The cream Home monthly-spend card stays removed. No schema, RLS, auth, billing, or money-formula changes. Next: owner re-upload of the 6 slips on an iPhone.
@@ -249,6 +251,13 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-11-01 — Grok Bot → owner (PAGE-CURL-HOME-ONLY)
+
+- Paper curl remains only for a forward swipe on Home (`pageTurnStyle("home")`). Swiping back on Home still closes the notebook. Cover open/close is untouched.
+- Money, Plan, Earn, inner tabs, cross-section swipes, settings, and the month calendar do not build a curl sheet. Those moves still change page; section pages fade in over 160ms. Month still uses ‹ ›.
+- Removed the unused "พลิกมุมกระดาษ" / "Turn the corner" strings and updated the journal help line.
+- Checks on this branch: `npm run typecheck`, `npm run lint`, `npm test` (169 files / 2487 tests), `npm run build`, and Playwright WebKit at 390×844 (`tests/e2e/page-turn-home-only.spec.ts`) all passed. No production or `main` changes. Disposable staging user deleted afterward.
 
 ### 2026-10-26 — Grok Bot → owner (HOME-REMOVE-SHORTCUTS-INCOME)
 

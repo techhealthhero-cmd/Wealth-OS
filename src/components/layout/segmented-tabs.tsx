@@ -6,6 +6,7 @@ import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { pageTurnStyle } from "@/lib/motion/page-turn";
 import { SwipeTabPages, prefetchFull, type SwipeTabPagesHandle } from "./swipe-tab-pages";
 import { tabStripMask, tabStripScrollTarget } from "./tab-strip-scroll";
 import { bookNeighbour } from "./journal-book";
@@ -40,7 +41,7 @@ export function SegmentedTabs({
 }: {
   tabs: SegmentedTabItem[];
   stretch?: boolean;
-  /** The section's page content: when given, it can be swiped left/right between these tabs with a page-turn (see SwipeTabPages). */
+  /** The section's page content: swipe or a tab tap still changes page, with a short fade and no paper curl. */
   children?: ReactNode;
 }) {
   const pathname = usePathname();
@@ -108,7 +109,7 @@ export function SegmentedTabs({
               onPointerDown={() => {
                 if (!active) prefetchFull(router, tab.href);
               }}
-                // Tapping a tab turns the page the same way a swipe does.
+                // Tapping a tab changes page. Section pages fade; they do not curl.
                 onClick={(e) => {
                   if (active || activeIndex < 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                   pagesRef.current?.beginFlip(i > activeIndex ? 1 : -1);
@@ -141,8 +142,9 @@ export function SegmentedTabs({
           hrefs={hrefs}
           activeIndex={activeIndex}
           handleRef={pagesRef}
-          // The journal is one book: past this section's first/last tab the
-          // swipe turns into the neighbouring section (or back to Home).
+          turn={pageTurnStyle("section")}
+          // Past this section's first/last tab the swipe still moves into the
+          // neighbouring section (or back to Home), without a paper curl.
           prevHref={bookNeighbour(hrefs[0], -1)}
           nextHref={bookNeighbour(hrefs[hrefs.length - 1], 1)}
         >

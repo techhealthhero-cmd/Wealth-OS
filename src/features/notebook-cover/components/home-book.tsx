@@ -4,10 +4,11 @@ import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { useTranslation } from "@/i18n/client";
-import { SwipeTabPages } from "@/components/layout/swipe-tab-pages";
 import { bookNeighbour } from "@/components/layout/journal-book";
+import { SwipeTabPages } from "@/components/layout/swipe-tab-pages";
 import { NotebookOpening } from "@/components/notebook/notebook-opening";
 import type { CoverPreferences } from "@/lib/notebook-covers/config";
+import { pageTurnStyle } from "@/lib/motion/page-turn";
 import { LaunchStillScene } from "./launch-still";
 import { useCoverSwipe } from "./use-cover-swipe";
 
@@ -51,6 +52,7 @@ export function HomeBook({
         activeIndex={0}
         nextHref={bookNeighbour("/dashboard", 1)}
         onCloseBook={() => setCover("closing")}
+        turn={pageTurnStyle("home")}
       >
         {children}
       </SwipeTabPages>
