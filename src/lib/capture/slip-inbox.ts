@@ -10,7 +10,8 @@ import { z } from "zod";
 
 import type { CaptureConfidence, SlipInboxStatus } from "@/types/database";
 import { ACCOUNT_HINTS } from "./keywords";
-import { accountNumberMatches, visibleDigits, type ReceiptExtraction } from "./receipt-normalize";
+import { classifySlipMovement } from "./own-money";
+import { accountsMatchingMask, visibleDigits, type ReceiptExtraction } from "./receipt-normalize";
 import { normalizeAlias } from "./transfer";
 import {
   accountForMerchant,
@@ -65,8 +66,8 @@ export const MAX_ACTIVE_CAPTURE_TOKENS = 5;
 // reading a slip into an inbox row
 // ---------------------------------------------------------------------------
 
-/** Which reader produced a slip_inbox row (migration 0047). 2 = also reads the memo and the paying account. */
-export const SLIP_READ_VERSION = 2;
+/** Which reader produced a slip_inbox row. 2 = memo + paying account. 3 = sender/receiver names, banks and both account masks. */
+export const SLIP_READ_VERSION = 3;
 
 /**
  * A database without migration 0047's columns yet: Postgres 42703
@@ -80,8 +81,12 @@ export function isMissingSlipColumn(error: { code?: string } | null | undefined)
 
 export interface SlipSuggestion {
   accountId: string | null;
+  /** The user's other account, when the slip moves money into it. */
+  toAccountId: string | null;
   categoryId: string | null;
   confidence: CaptureConfidence;
+  /** True when this slip is the user's own money moving, not spending. */
+  ownMoney: boolean;
 }
 
 /** A remembered name for one of the user's accounts (account_aliases, 0041). */
@@ -142,10 +147,7 @@ export function samePayer(a: SlipPayer | null, b: SlipPayer | null): boolean {
  * Two accounts that both fit → no match (the user picks).
  */
 export function accountForPayerNumber(payerAccount: string | null, accounts: CaptureAccount[]): string | null {
-  if (!payerAccount) return null;
-  const hits = accounts.filter(
-    (a) => !a.is_archived && a.account_number && accountNumberMatches(payerAccount, a.account_number)
-  );
+  const hits = accountsMatchingMask(payerAccount, accounts);
   return hits.length === 1 ? hits[0].id : null;
 }
 
@@ -222,16 +224,33 @@ export function defaultSlipAccountId(accounts: CaptureAccount[]): string | null 
  * one everyday account at the paying bank — several there means no guess
  * (the user picks) — else the shop's set account, else an everyday account
  * (defaultSlipAccountId) when the slip names no bank we know. Category:
- * learned preferences → keywords (the memo counts: "ชาเขียว" → food) →
- * "Other". A blind "Other" guess never stays "high".
+ * a wallet top-up or a transfer to the user themselves → the own-money
+ * category, confidently; otherwise learned preferences → keywords (the memo
+ * counts: "ชาเขียว" → food) → "Other". A blind "Other" guess never stays "high".
  */
 export function suggestSlipFields(
   extraction: ReceiptExtraction,
-  ctx: ParseContext & { accountAliases?: SlipAccountAlias[] }
+  ctx: ParseContext & { accountAliases?: SlipAccountAlias[]; ownerName?: string | null }
 ): SlipSuggestion {
   const merchant = extraction.merchant;
   const text = [extraction.note, merchant].filter(Boolean).join(" ");
-  const category = suggestCategory(text, merchant, "expense", ctx);
+  const movement = classifySlipMovement(
+    {
+      merchant,
+      note: extraction.note,
+      senderName: extraction.senderName,
+      payerAccount: extraction.payerAccount,
+      receiverAccount: extraction.receiverAccount,
+      receiverBank: extraction.receiverBank,
+      amountCents: extraction.amountCents,
+    },
+    ctx.accounts,
+    ctx.categories,
+    ctx.ownerName ?? null
+  );
+  const category = movement.ownMoney && movement.categoryId
+    ? { categoryId: movement.categoryId, source: "keyword" as const }
+    : suggestCategory(text, merchant, "expense", ctx);
   const remembered = accountForPayer(
     slipPayer(extraction.paymentMethod, extraction.payerAccount),
     ctx.accountAliases ?? [],
@@ -246,8 +265,15 @@ export function suggestSlipFields(
     shop ??
     (bank === "none" ? defaultSlipAccountId(ctx.accounts) : null);
   let confidence = extraction.confidence;
-  if (confidence === "high" && category.source === "fallback") confidence = "medium";
-  return { accountId, categoryId: category.categoryId, confidence };
+  if (movement.ownMoney && extraction.amountCents !== null) confidence = "high";
+  else if (confidence === "high" && category.source === "fallback") confidence = "medium";
+  return {
+    accountId,
+    toAccountId: movement.toAccountId,
+    categoryId: category.categoryId,
+    confidence,
+    ownMoney: movement.ownMoney,
+  };
 }
 
 /**
@@ -309,6 +335,8 @@ export const slipConfirmSchema = z.object({
   /** The slip's memo, as the user left it — saved as the transaction's description. */
   note: z.string().trim().max(200).nullable().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** Set when the slip already knows the account the money moved into. */
+  toAccountId: z.string().uuid().nullable().optional(),
 });
 
 export type SlipConfirmInput = z.input<typeof slipConfirmSchema>;

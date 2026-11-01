@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { formatMoney, formatMoneyFromDecimal, parseMoneyToCents } from "@/lib/financial/money";
 import { ACCOUNT_TYPE_EMOJI, formatFriendlyDate } from "@/lib/transaction-ui";
 import { CategoryIcon } from "@/components/shared/category-icon";
+import { categoriesForExpensePicker } from "@/lib/capture/own-money";
 import { canSaveDraft, memoryNeedsConfirmation, type CaptureDraft } from "@/lib/capture/draft";
 import { CategoryPicker } from "@/features/transactions/components/category-picker";
 import { AccountPicker } from "@/features/transactions/components/account-picker";
@@ -82,7 +83,10 @@ export function TransactionPreview({
   }
 
   const relevantCategories = useMemo(
-    () => categories.filter((c) => c.type === draft.type || c.type === "both"),
+    () =>
+      draft.type === "income"
+        ? categories.filter((c) => c.type === "income" || c.type === "both")
+        : categoriesForExpensePicker(categories),
     [categories, draft.type]
   );
   const category = categories.find((c) => c.id === draft.categoryId) ?? null;

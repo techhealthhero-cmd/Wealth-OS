@@ -152,7 +152,7 @@ export function CaptureReviewCard({ draft, accounts, categories, largeText, comp
               onChange={e => onChange({ categoryId: e.target.value || null, categorySource: "learned", categoryConfirmedByUser: !!e.target.value })}
               className="min-h-11 min-w-0 max-w-[120px] appearance-none bg-transparent text-base">
               <option value="">เลือกหมวด</option>
-              {categories.filter(c => (c.type === draft.type || c.type === "both")).map(c => <option key={c.id} value={c.id}>{locale === "th" ? c.name_th : c.name_en}</option>)}
+              {categories.filter(c => c.type === draft.type || c.type === "both" || (draft.type === "expense" && c.type === "transfer")).map(c => <option key={c.id} value={c.id}>{locale === "th" ? c.name_th : c.name_en}</option>)}
             </select>
             {!unsure && <ConfidenceBadge confidence={draft.confidence} />}
             <Pencil className="pointer-events-none size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />

@@ -17,6 +17,7 @@ import {
 } from "@/features/transactions/queries";
 import { trackEvent } from "@/lib/analytics";
 import { learnMerchantCategory } from "@/features/capture/learning";
+import { isOwnMoneyCategory } from "@/lib/capture/own-money";
 import { getDisplayAccounts } from "@/features/accounts/queries";
 import { getCategories } from "@/features/categories/queries";
 
@@ -97,6 +98,17 @@ function readClientRequestId(formData: FormData): string | null {
  * retried attempt (same key) hits the unique constraint and is treated as
  * an already-successful save, never a second row.
  */
+/** The own-money category is a transfer, whichever type the form posted. */
+async function transactionTypeForCategory(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  type: string,
+  categoryId: string | null
+): Promise<string> {
+  if (!categoryId || type === "income" || type === "refund") return type;
+  const { data } = await supabase.from("categories").select("type, name_en, icon").eq("id", categoryId).maybeSingle();
+  return isOwnMoneyCategory(data) ? "transfer" : type;
+}
+
 export async function createTransaction(
   _prev: ActionResult | undefined,
   formData: FormData
@@ -132,6 +144,7 @@ export async function createTransaction(
 
   const basePayload = {
     ...parsed.data,
+    type: await transactionTypeForCategory(supabase, parsed.data.type, parsed.data.category_id ?? null),
     description: parsed.data.description || null,
     merchant: parsed.data.merchant || null,
     notes: parsed.data.notes || null,
@@ -190,6 +203,7 @@ export async function updateTransaction(
     .from("transactions")
     .update({
       ...parsed.data,
+      type: await transactionTypeForCategory(supabase, parsed.data.type, parsed.data.category_id ?? null),
       description: parsed.data.description || null,
       merchant: parsed.data.merchant || null,
       notes: parsed.data.notes || null,

@@ -8,6 +8,7 @@ import { createTransaction, updateTransaction } from "@/features/transactions/ac
 import { formatMoney, parseMoneyToCents } from "@/lib/financial/money";
 import { toLocalDateString } from "@/lib/date";
 import { transactionTypeVisual } from "@/lib/transaction-ui";
+import { categoriesForExpensePicker, isOwnMoneyCategory } from "@/lib/capture/own-money";
 import { useTranslation } from "@/i18n/client";
 import type { Account, Category, Transaction, TransactionType } from "@/types/database";
 import { Button } from "@/components/ui/button";
@@ -164,7 +165,9 @@ function TransactionFormFields({
   const { close: closeMinimizable } = useMinimizableFormActions();
 
   const isCreating = !transaction;
-  const [type, setType] = useState<TransactionType>(transaction?.type ?? defaultType);
+  const [type, setType] = useState<TransactionType>(
+    transaction?.type === "transfer" && transaction.account_id ? "expense" : (transaction?.type ?? defaultType)
+  );
   const [amount, setAmount] = useState(
     transaction?.amount ? String(transaction.amount) : prefill?.amount ? String(prefill.amount) : ""
   );
@@ -213,8 +216,10 @@ function TransactionFormFields({
 
     const cents = safeAmountCents(amount);
     const formatted = formatMoney(cents);
-    const toastText =
-      type === "income"
+    const savedCategory = categories.find((c) => c.id === categoryId);
+    const toastText = isOwnMoneyCategory(savedCategory)
+      ? `${t("transactions.savedTransfer")} ${formatted}`
+      : type === "income"
         ? `${t("transactions.savedIncome")} ${formatted}`
         : `${t("transactions.savedExpense")} ${formatted}`;
     toast.success(toastText, { icon: <SuccessBadge /> });
@@ -223,11 +228,13 @@ function TransactionFormFields({
   }, [state]);
 
   const relevantCategories = useMemo(() => {
-    const categoryType = type === "income" || type === "refund" ? "income" : "expense";
-    return categories.filter((c) => c.type === categoryType || c.type === "both");
+    if (type === "income" || type === "refund") return categories.filter((c) => c.type === "income" || c.type === "both");
+    return categoriesForExpensePicker(categories);
   }, [categories, type]);
 
-  const visual = transactionTypeVisual(type);
+  const ownMoney = isOwnMoneyCategory(categories.find((c) => c.id === categoryId) ?? null);
+  const shownType: TransactionType = ownMoney ? "transfer" : type;
+  const visual = transactionTypeVisual(shownType);
   const amountCents = safeAmountCents(amount);
   const canSubmit = amountCents > 0 && Boolean(accountId) && accounts.length > 0 && !isPending;
 
@@ -240,7 +247,11 @@ function TransactionFormFields({
       ? t("transactions.merchantIncomePlaceholder")
       : t("transactions.merchantExpensePlaceholder");
 
-  const saveLabelPrefix = type === "income" ? t("transactions.saveIncome") : t("transactions.saveExpense");
+  const saveLabelPrefix = shownType === "income"
+    ? t("transactions.saveIncome")
+    : shownType === "transfer"
+      ? t("transactions.savedTransfer")
+      : t("transactions.saveExpense");
   const saveLabel = amountCents > 0 ? `${saveLabelPrefix} ${formatMoney(amountCents)}` : saveLabelPrefix;
 
   // Reported: creating a new transaction showed the full EDITABLE_TYPES
@@ -270,7 +281,7 @@ function TransactionFormFields({
         className={`inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium ${visual.colorClass}`}
       >
         <span aria-hidden="true">{visual.emoji}</span>
-        {t(`transactions.types.${type}`)}
+        {t(`transactions.types.${shownType}`)}
       </span>
       <p className="font-heading text-base leading-tight font-medium">
         {transaction ? t("transactions.editTransaction") : t(`transactions.add${type === "income" ? "Income" : "Expense"}`)}

@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- OWN-MONEY-TRANSFERS — Owner: Grok Bot; PR → staging. Wallet top-ups and self-transfers are type `transfer` and stay out of expense/income/home-year/budget. Both masked accounts post from → to. Migration `0051_own_money_transfers.sql` is in the PR and is NOT applied (staging only; do not touch production). Next: owner applies 0051 on staging Supabase.
+
 - HOME-STYLE-C — Owner: Grok Bot; IN PR → staging. Home below the gold card is notebook style C. Duplicate อื่นๆ rows merge into one. Gold card, removed blocks, ~20px bottom gap, and fade turns stay. No schema, RLS, auth, billing, or formula changes. Slip-inbox chip files were not touched.
 
 - CATEGORY-CHIPS-OPEN — Owner: Grok Bot; IN PR → staging. Category chip pickers (slip inbox, quick capture, edit transaction, recurring) show every category as soon as they open. The ดูทั้งหมด / แสดงน้อยลง toggle is gone. Chips are compact (28px sticker, ~30px row) so 14 expense chips fit at 390px. No Home files. No schema, RLS, auth, billing, or formula changes.

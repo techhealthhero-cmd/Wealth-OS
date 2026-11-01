@@ -63,7 +63,7 @@ export type TransactionImportRowStatus =
   | "skipped"
   | "rolled_back";
 
-export type CategoryType = "income" | "expense" | "both";
+export type CategoryType = "income" | "expense" | "both" | "transfer";
 
 export type IncomeSourceType =
   | "salary"
@@ -366,6 +366,8 @@ export interface Database {
           purpose?: string | null;
           /** The account number, digits only (staging 0050 / production 0049). Absent before it. */
           account_number?: string | null;
+          /** Printed mask when the full number isn't known yet (migration 0051). */
+          account_number_mask?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1322,6 +1324,14 @@ export interface Database {
           note: string | null;
           /** Paying account mask ("xxxxx8710x"). */
           payer_account: string | null;
+          /** Sender's name as printed (migration 0051). */
+          sender_name?: string | null;
+          sender_bank?: string | null;
+          /** Recipient account mask, same shape as payer_account (migration 0051). */
+          receiver_account?: string | null;
+          receiver_bank?: string | null;
+          /** The user's account the money moved into, when it matched (migration 0051). */
+          to_account_id?: string | null;
           /** Reader version (1 = before the memo was read). */
           read_version: number;
           account_id: string | null;
