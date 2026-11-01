@@ -10,8 +10,12 @@ Last updated: 2026-11-02
 
 ## Slip inbox: reads the memo + remembers the paying account — 2026-11-02
 
-**Code merged; migration `0047_slip_note_and_payer.sql` written, NOT yet
-applied to production** (the user runs `supabase db push --linked`).
+**Code merged and deployed; migration `0047_slip_note_and_payer.sql`
+APPLIED to production 2026-11-02** (the user ran `supabase db push
+--linked`; dry-run showed only 0047). Verified read-only afterwards: the
+three new columns answer an anonymous select with 200 `[]` (RLS), and a
+count-only check shows the 20 waiting slips all at `read_version = 1`
+(none at 2 yet) — so the next Shortcut run re-reads them for their memo.
 Prompted by the user's first real batch: 20 K PLUS slips arrived, every one
 defaulted to "เงินกันจน (ฉุกเฉิน) 10" (first account) and none kept the
 slip's "บันทึกช่วยจำ".
