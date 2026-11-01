@@ -38,6 +38,8 @@ export interface CaptureAccount {
   purpose?: string | null;
   /** The account number, digits only — matched against bank slips. */
   account_number?: string | null;
+  /** Printed mask, when the full number isn't known yet (migration 0051). */
+  account_number_mask?: string | null;
 }
 
 export interface CaptureCategory {

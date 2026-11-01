@@ -16,7 +16,8 @@ import { CategoryPicker } from "@/features/transactions/components/category-pick
 import { formatMoneyFromDecimal, parseMoneyToCents } from "@/lib/financial/money";
 import { formatFriendlyDate } from "@/lib/transaction-ui";
 import { isUndecidedCategory } from "@/lib/capture/inbox";
-import { confirmSlip, dismissSlip, restoreSlip } from "@/features/slip-inbox/actions";
+import { confirmSlip, dismissSlip, restoreSlip, saveSlipReceiverAccount } from "@/features/slip-inbox/actions";
+import { isOwnMoneyCategory, isWalletTopUp, transferRouteLabel } from "@/lib/capture/own-money";
 import type { PendingSlip } from "@/features/slip-inbox/queries";
 import { useSlipBatchUpload } from "./use-slip-batch-upload";
 
@@ -62,12 +63,21 @@ function SlipItem({
   const [date, setDate] = useState(slip.slip_date ?? today);
   const [merchant, setMerchant] = useState(slip.merchant ?? "");
   const [note, setNote] = useState(slip.note ?? "");
+  const [savedTo, setSavedTo] = useState<{ id: string; name: string } | null>(null);
 
-  const expenseCategories = useMemo(() => categories.filter((c) => c.type === "expense" || c.type === "both"), [categories]);
+  const expenseCategories = useMemo(
+    () => categories.filter((c) => c.type === "expense" || c.type === "both" || c.type === "transfer"),
+    [categories]
+  );
   const category = categories.find((c) => c.id === categoryId) ?? null;
   const decided = Boolean(categoryId) && (categoryPicked || !isUndecidedCategory(categoryId, categories));
   const amountCents = centsFromInput(amountText);
   const account = accounts.find((a) => a.id === accountId) ?? null;
+  const toAccountId = savedTo?.id ?? slip.to_account_id ?? null;
+  const toAccount = accounts.find((a) => a.id === toAccountId) ?? null;
+  const toName = savedTo?.name || toAccount?.name || null;
+  const ownMoney = isOwnMoneyCategory(category);
+  const canSaveReceiver = ownMoney && Boolean(slip.receiver_account) && !toAccountId && !isWalletTopUp(merchant, note);
   const canConfirm = decided && amountCents !== null && Boolean(account) && /^\d{4}-\d{2}-\d{2}$/.test(date);
   const label = merchant.trim() || t("slipInbox.unknownMerchant");
   const friendlyDate = formatFriendlyDate(date, locale, { today: t("capture.today"), yesterday: t("capture.yesterday") });
@@ -87,10 +97,14 @@ function SlipItem({
         merchant: merchant.trim() || null,
         note: note.trim() || null,
         date,
+        toAccountId: ownMoney ? toAccountId : null,
       });
       if (res.success) {
         onDone(slip.id);
-        toast.success(t("slipInbox.confirmed").replace("{account}", account?.name ?? ""), {
+        const saved = res.transfer === "ledger" && toName
+          ? t("slipInbox.confirmedTransfer").replace("{from}", account?.name ?? "").replace("{to}", toName)
+          : t("slipInbox.confirmed").replace("{account}", account?.name ?? "");
+        toast.success(saved, {
           description: res.repointed
             ? t("slipInbox.repointed").replace("{count}", String(res.repointed)).replace("{account}", account?.name ?? "")
             : undefined,
@@ -125,8 +139,23 @@ function SlipItem({
               </p>
             ) : null}
             <p className={cn("truncate text-[11px]", account ? "text-muted-foreground" : "font-medium text-amber-800 dark:text-amber-300")}>
-              {t("slipInbox.account")}: {account?.name ?? t("slipInbox.pickAccount")}
+              {toName && account ? transferRouteLabel(account.name, toName) : `${t("slipInbox.account")}: ${account?.name ?? t("slipInbox.pickAccount")}`}
             </p>
+            {canSaveReceiver ? (
+              <button
+                type="button"
+                className="mt-1 text-left text-[11px] font-medium text-primary underline"
+                onClick={() => {
+                  startTransition(async () => {
+                    const saved = await saveSlipReceiverAccount(slip.id);
+                    if (saved.success && saved.accountId) setSavedTo({ id: saved.accountId, name: saved.name ?? t("slipInbox.accountSaved") });
+                    else toast.error(saved.error ?? t("slipInbox.saveFailed"));
+                  });
+                }}
+              >
+                {t("slipInbox.saveAccount")}
+              </button>
+            ) : null}
           </div>
           <button
             type="button"

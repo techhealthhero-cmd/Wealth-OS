@@ -55,7 +55,7 @@ vi.mock("@/lib/observability", () => ({ captureError: vi.fn() }));
 
 const { __setProviderForTesting } = await import("@/features/ai/lib/provider");
 const { ingestSlipImage } = await import("@/features/slip-inbox/ingest");
-const { confirmSlip, createCaptureToken, dismissSlip, revokeCaptureToken, uploadSlipImage } = await import(
+const { confirmSlip, createCaptureToken, dismissSlip, revokeCaptureToken, saveSlipReceiverAccount, uploadSlipImage } = await import(
   "@/features/slip-inbox/actions"
 );
 const route = await import("@/app/api/capture/slips/route");
@@ -181,14 +181,15 @@ describe("slip suggestions (pure)", () => {
   });
 
   it("picks the paying bank from the slip and the learned category", () => {
-    expect(suggestSlipFields(slip({}), ctx)).toEqual({ accountId: KBANK, categoryId: FOOD, confidence: "high" });
+    expect(suggestSlipFields(slip({}), ctx)).toMatchObject({ accountId: KBANK, categoryId: FOOD, confidence: "high", ownMoney: false });
   });
 
   it("falls back to an everyday account (bank before cash), and a blind 'Other' never stays high", () => {
-    expect(suggestSlipFields(slip({ merchant: "Somchai Jaidee", paymentMethod: null }), ctx)).toEqual({
+    expect(suggestSlipFields(slip({ merchant: "Somchai Jaidee", paymentMethod: null }), ctx)).toMatchObject({
       accountId: KBANK,
       categoryId: OTHER,
       confidence: "medium",
+      ownMoney: false,
     });
   });
 
@@ -289,8 +290,12 @@ describe("slip suggestions (pure)", () => {
     expect(accountNumberMatches("xxxxx8710x", "123-4-58710-1")).toBe(true);
     expect(accountNumberMatches("xxxxx8710x", "1234567890")).toBe(false);
     expect(accountNumberMatches("xxxxx8710x", "1238710456")).toBe(false); // right digits, wrong place
-    // An older row with just the digits: contained anywhere.
-    expect(accountNumberMatches("8710", "1234587101")).toBe(true);
+    // K PLUS hides the last digit, so a number that merely ends in 8710 is not this account.
+    expect(accountNumberMatches("xxxxx8710x", "0000008710")).toBe(false);
+    expect(accountNumberMatches("xxxxx8710x", "0000087109")).toBe(true);
+    // Digits only (no wildcard): the offset is unknown, so they have to sit at the end — not anywhere.
+    expect(accountNumberMatches("8710", "1234587101")).toBe(false);
+    expect(accountNumberMatches("8710", "0000008710")).toBe(true);
   });
 
   it("status: not a slip, already recorded, or waiting", () => {
@@ -415,7 +420,7 @@ describe("ingestSlipImage", () => {
       payer_account: "xxxxx8710x",
       account_id: "d1",
       category_id: FOOD,
-      read_version: 2,
+      read_version: 3,
     });
   });
 
@@ -435,7 +440,7 @@ describe("ingestSlipImage", () => {
     const result = await ingestSlipImage(db as never, { userId: USER_A, image: image(21), origin: "shortcut", today: TODAY });
     expect(result).toEqual({ status: "queued", slipId: "old-1" });
     expect(db.rows("slip_inbox")).toHaveLength(1);
-    expect(db.rows("slip_inbox")[0]).toMatchObject({ id: "old-1", note: "ข้าวมันไก่", read_version: 2, origin: "shortcut" });
+    expect(db.rows("slip_inbox")[0]).toMatchObject({ id: "old-1", note: "ข้าวมันไก่", read_version: 3, origin: "shortcut" });
 
     // Once re-read, never again.
     await ingestSlipImage(db as never, { userId: USER_A, image: image(21), origin: "shortcut", today: TODAY });
@@ -681,6 +686,100 @@ describe("confirm / dismiss", () => {
 
     form.set("account_number", "12-ab");
     expect((await updateAccount(CASH, undefined, form)).error).toBeTruthy();
+  });
+
+  it("a wallet top-up is a confident transfer, not an expense", async () => {
+    const own = "22222222-2222-4222-8222-aaaaaaaaaaaa";
+    db.tables.categories.push({
+      id: own, user_id: null, name_th: "โอนตัวเอง/เติมกระเป๋า", name_en: "Own transfer", type: "transfer", icon: "wallet-topup", is_system: true,
+    });
+    modelReply = slipJson({
+      amount: 400,
+      merchant: "พร้อมเพย์ อี-วอลเล็ต / G-Wallet",
+      note: "เติมเป๋าตัง",
+      reference: "TOP-1",
+      confidence: "medium",
+    });
+    const slip = await queue(71);
+    expect(slip).toMatchObject({ category_id: own, confidence: "high" });
+    expect(await confirmSlip(input(slip, { amountCents: 40000, categoryId: own, merchant: "พร้อมเพย์ อี-วอลเล็ต / G-Wallet", note: "เติมเป๋าตัง" }))).toMatchObject({ success: true, transfer: "own" });
+    expect(db.rows("transactions")[0]).toMatchObject({ type: "transfer", account_id: KBANK, category_id: own, amount: "400.00" });
+  });
+
+  it("both masked accounts become one transfer that debits one side and credits the other", async () => {
+    const own = "22222222-2222-4222-8222-bbbbbbbbbbbb";
+    const dest = "11111111-1111-4111-8111-444444444444";
+    db.tables.categories.push({
+      id: own, user_id: null, name_th: "โอนตัวเอง/เติมกระเป๋า", name_en: "Own transfer", type: "transfer", icon: "wallet-topup", is_system: true,
+    });
+    db.tables.accounts.push({
+      id: dest, user_id: USER_A, name: "บัญชีหลัก", account_type: "bank", institution: "กสิกร", is_archived: false, account_number: "1234587101",
+    });
+    const from = db.tables.accounts.find((a) => a.id === KBANK);
+    if (from) from.account_number = "1234575139";
+    modelReply = slipJson({
+      amount: 500,
+      merchant: "นาย พุฒิพงศ์ บำรุงรักษ์",
+      sender_name: "นาย พุฒิพงศ์ บ",
+      sender_bank: "ธ.กสิกรไทย",
+      receiver_bank: "ธ.กสิกรไทย",
+      payer_account: "xxx-x-x7513-x",
+      receiver_account: "xxx-x-x8710-x",
+      note: "โอนไปบัญชีหลัก",
+      reference: "SELF-1",
+      payment_method: "K PLUS",
+    });
+    const slip = await queue(72);
+    expect(slip).toMatchObject({ account_id: KBANK, to_account_id: dest, category_id: own, confidence: "high" });
+    const res = await confirmSlip(input(slip, {
+      amountCents: 50000,
+      accountId: KBANK,
+      categoryId: own,
+      merchant: "นาย พุฒิพงศ์ บำรุงรักษ์",
+      note: "โอนไปบัญชีหลัก",
+      toAccountId: dest,
+    }));
+    expect(res).toMatchObject({ success: true, transfer: "ledger" });
+    expect(db.rows("transactions")[0]).toMatchObject({
+      type: "transfer",
+      account_id: null,
+      from_account_id: KBANK,
+      to_account_id: dest,
+      category_id: null,
+      amount: "500.00",
+    });
+  });
+
+  it("offers a saved account for a self-transfer whose receiver number isn't stored yet", async () => {
+    const own = "22222222-2222-4222-8222-cccccccccccc";
+    db.tables.categories.push({
+      id: own, user_id: null, name_th: "โอนตัวเอง/เติมกระเป๋า", name_en: "Own transfer", type: "transfer", icon: "wallet-topup", is_system: true,
+    });
+    db.tables.profiles[0].display_name = "พุฒิพงศ์ บำรุงรักษ์";
+    const from = db.tables.accounts.find((a) => a.id === KBANK);
+    if (from) from.account_number = "1234575139";
+    modelReply = slipJson({
+      amount: 1000,
+      merchant: "นาย พุฒิพงศ์ บำรุงรักษ์",
+      sender_name: "นาย พุฒิพงศ์ บำรุงรักษ์",
+      receiver_bank: "ธ.กสิกรไทย",
+      payer_account: "xxx-x-x7513-x",
+      receiver_account: "xxx-x-x8710-x",
+      note: "โอนไปบัญชีหลัก",
+      reference: "SELF-2",
+    });
+    const slip = await queue(73);
+    expect(slip.account_id).toBe(KBANK);
+    expect(slip.to_account_id ?? null).toBeNull();
+    expect(slip.category_id).toBe(own);
+    const saved = await saveSlipReceiverAccount(slip.id as string);
+    expect(saved.success).toBe(true);
+    expect(saved.name).toBe("ธ.กสิกรไทย 8710");
+    expect(slip.to_account_id).toBe(saved.accountId);
+    expect(db.rows("accounts").find((a) => a.id === saved.accountId)).toMatchObject({
+      account_number_mask: "xxxxx8710x",
+      institution: "ธ.กสิกรไทย",
+    });
   });
 
   it("bulk upload goes through the same pipeline for the signed-in user", async () => {

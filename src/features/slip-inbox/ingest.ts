@@ -112,7 +112,10 @@ async function findSeenSlip(db: Db, userId: string, imageSha: string): Promise<S
 async function loadAccounts(db: Db, userId: string) {
   const query = (columns: string) =>
     db.from("accounts").select(columns).eq("user_id", userId).eq("is_archived", false);
-  const withDigits = await query("id, name, account_type, institution, is_archived, account_number");
+  const withMask = await query("id, name, account_type, institution, is_archived, account_number, account_number_mask");
+  const withDigits = isMissingSlipColumn(withMask.error)
+    ? await query("id, name, account_type, institution, is_archived, account_number")
+    : withMask;
   const result = isMissingSlipColumn(withDigits.error)
     ? await query("id, name, account_type, institution, is_archived")
     : withDigits;
@@ -133,7 +136,15 @@ async function writeSlipRow(db: Db, userId: string, row: Record<string, unknown>
     first = await write(row);
   }
   if (!isMissingSlipColumn(first.error)) return first;
-  const legacy = { ...row };
+  // 0051's columns, dropped on a database that doesn't have them yet.
+  // The memo and the paying account (0049) stay.
+  const withoutMovement = { ...row };
+  for (const column of ["sender_name", "sender_bank", "receiver_account", "receiver_bank", "to_account_id"]) {
+    delete withoutMovement[column];
+  }
+  const second = await write(withoutMovement);
+  if (!isMissingSlipColumn(second.error)) return second;
+  const legacy = { ...withoutMovement };
   for (const column of ["note", "payer_account", "read_version"]) delete legacy[column];
   return write(legacy);
 }
@@ -170,7 +181,7 @@ export async function ingestSlipImage(db: Db, input: SlipIngestInput): Promise<S
     }
     const x = result.extraction;
 
-    const [accounts, categories, categoryPrefs, accountPrefs, aliases, byReference] = await Promise.all([
+    const [accounts, categories, categoryPrefs, accountPrefs, aliases, byReference, profile] = await Promise.all([
       loadAccounts(db, userId),
       db
         .from("categories")
@@ -189,9 +200,11 @@ export async function ingestSlipImage(db: Db, input: SlipIngestInput): Promise<S
       x.reference
         ? db.from("transactions").select("id").eq("user_id", userId).eq("reference", x.reference).limit(1)
         : Promise.resolve({ data: [] as { id: string }[] }),
+      db.from("profiles").select("display_name").eq("user_id", userId).maybeSingle(),
     ]);
 
     const status = slipStatusFor(x, Boolean(byReference.data?.[0]));
+    const ownerName = (profile.data?.display_name as string | null | undefined) ?? null;
     const suggestion = suggestSlipFields(x, {
       accounts: accounts.data ?? [],
       categories: categories.data ?? [],
@@ -199,6 +212,7 @@ export async function ingestSlipImage(db: Db, input: SlipIngestInput): Promise<S
       merchantAccounts: accountPrefs.error ? [] : (accountPrefs.data ?? []),
       accountAliases: aliases.error ? [] : (aliases.data ?? []),
       today: input.today,
+      ownerName,
     });
 
     let possibleDuplicateOf: string | null = null;
@@ -236,9 +250,14 @@ export async function ingestSlipImage(db: Db, input: SlipIngestInput): Promise<S
       payment_method: keep ? x.paymentMethod : null,
       note: keep ? x.note : null,
       payer_account: keep ? x.payerAccount : null,
+      sender_name: keep ? x.senderName : null,
+      sender_bank: keep ? x.senderBank : null,
+      receiver_account: keep ? x.receiverAccount : null,
+      receiver_bank: keep ? x.receiverBank : null,
       // Kept on duplicates too: it's what makes a resend recognisable.
       reference: status === "not_slip" ? null : x.reference,
       account_id: keep ? suggestion.accountId : null,
+      to_account_id: keep ? suggestion.toAccountId : null,
       category_id: keep ? suggestion.categoryId : null,
       confidence: keep ? suggestion.confidence : "low",
       possible_duplicate_of: possibleDuplicateOf,

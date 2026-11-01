@@ -87,13 +87,33 @@ async function pointWaitingSlipsAt(
   const ids = (data as { id: string; payer_account: string | null }[])
     .filter((s) => s.payer_account && accountNumberMatches(s.payer_account, accountNumber))
     .map((s) => s.id);
-  if (ids.length === 0) return;
-  await supabase
+  if (ids.length > 0) {
+    await supabase
+      .from("slip_inbox")
+      .update({ account_id: accountId })
+      .eq("user_id", userId)
+      .eq("status", "pending")
+      .in("id", ids);
+  }
+  // The same number on the receiving side of a self-transfer.
+  const receiver = await supabase
     .from("slip_inbox")
-    .update({ account_id: accountId })
+    .select("id, receiver_account, to_account_id")
     .eq("user_id", userId)
-    .eq("status", "pending")
-    .in("id", ids);
+    .eq("status", "pending");
+  if (!receiver.error && receiver.data) {
+    const toIds = (receiver.data as { id: string; receiver_account: string | null; to_account_id: string | null }[])
+      .filter((s) => !s.to_account_id && s.receiver_account && accountNumberMatches(s.receiver_account, accountNumber))
+      .map((s) => s.id);
+    if (toIds.length > 0) {
+      await supabase
+        .from("slip_inbox")
+        .update({ to_account_id: accountId })
+        .eq("user_id", userId)
+        .eq("status", "pending")
+        .in("id", toIds);
+    }
+  }
   revalidatePath("/money/transactions");
 }
 

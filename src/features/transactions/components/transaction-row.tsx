@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useConfirmDialog } from "@/components/shared/confirm-dialog";
 import { CategoryIcon } from "@/components/shared/category-icon";
-import { categoryArt } from "@/lib/transaction-ui";
+import { categoryArt, transactionAmountTone } from "@/lib/transaction-ui";
+import { transferRouteLabel } from "@/lib/capture/own-money";
 
 const loadTransactionForm = () => import("./transaction-form");
 const loadTransferForm = () => import("./transfer-form");
@@ -66,8 +67,6 @@ const TYPE_ICON_BG_CLASS: Record<TransactionType, string> = {
   investment_allocation: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400",
 };
 
-const CREDIT_TYPES: TransactionType[] = ["income", "refund"];
-
 interface TransactionRowProps {
   transaction: TransactionWithRelations;
   accounts: Account[];
@@ -99,12 +98,12 @@ export function TransactionRow({
   const [detailsOpen, setDetailsOpen] = useState(defaultDetailsOpen);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const Icon = TYPE_ICONS[transaction.type];
-  const isCredit = CREDIT_TYPES.includes(transaction.type);
-  const isTransfer = transaction.type === "transfer";
+  const tone = transactionAmountTone(transaction.type);
+  const ledgerTransfer = transaction.type === "transfer" && Boolean(transaction.from_account_id && transaction.to_account_id);
   const hasNotes = Boolean(transaction.notes?.trim());
 
-  const accountLabel = isTransfer
-    ? `${transaction.from_account?.name ?? "?"} → ${transaction.to_account?.name ?? "?"}`
+  const accountLabel = ledgerTransfer
+    ? transferRouteLabel(transaction.from_account?.name ?? "?", transaction.to_account?.name ?? "?")
     : transaction.account?.name ?? "—";
 
   const categoryName = transaction.category
@@ -123,7 +122,7 @@ export function TransactionRow({
     <>
       {/* A row whose category has a hand-drawn sticker shows the sticker
           (2026-10-14); transfers and uncategorized rows keep the type arrow. */}
-      {transaction.type !== "transfer" && categoryArt(transaction.category?.icon ?? null) ? (
+      {!ledgerTransfer && categoryArt(transaction.category?.icon ?? null) ? (
         <CategoryIcon icon={transaction.category?.icon} className="size-10" />
       ) : (
         <div
@@ -168,8 +167,15 @@ export function TransactionRow({
         )}
 
         <div className="flex shrink-0 items-center gap-2">
-          <p className={isCredit ? "font-semibold text-emerald-600 dark:text-emerald-400" : "font-semibold"}>
-            {isCredit ? "+" : isTransfer ? "" : "-"}
+          <p
+            data-amount-tone={tone}
+            className={cn(
+              "font-semibold tabular-nums",
+              tone === "in" && "text-emerald-600 dark:text-emerald-400",
+              tone === "neutral" && "text-foreground"
+            )}
+          >
+            {tone === "in" ? "+" : tone === "out" ? "-" : ""}
             {formatMoneyFromDecimal(transaction.amount, transaction.currency_code)}
           </p>
           {hasNotes ? (
@@ -191,7 +197,7 @@ export function TransactionRow({
             />
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onPointerDown={() => void (isTransfer ? loadTransferForm() : loadTransactionForm())}
+                onPointerDown={() => void (ledgerTransfer ? loadTransferForm() : loadTransactionForm())}
                 onClick={() => {
                   setEditorMounted(true);
                   setEditOpen(true);
@@ -224,7 +230,7 @@ export function TransactionRow({
       ) : null}
 
       {editorMounted ? (
-        isTransfer ? (
+        ledgerTransfer ? (
           <TransferForm
             accounts={accounts}
             transfer={transaction}
@@ -234,7 +240,9 @@ export function TransactionRow({
           />
         ) : (
           <TransactionForm
-            defaultType={transaction.type as Exclude<TransactionType, "transfer">}
+            defaultType={
+              transaction.type === "transfer" ? "expense" : (transaction.type as Exclude<TransactionType, "transfer">)
+            }
             accounts={accounts}
             categories={categories}
             transaction={transaction}

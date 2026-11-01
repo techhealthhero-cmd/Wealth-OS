@@ -15,6 +15,14 @@ export interface ReceiptExtraction {
   note: string | null;
   /** The paying account as printed, masked digits as "x" ("xxx-x-x8710-x" → "xxxxx8710x"). */
   payerAccount: string | null;
+  /** Sender's name as printed ("นาย พุฒิพงศ์ บ"). */
+  senderName: string | null;
+  /** Sender's bank as printed ("ธ.กสิกรไทย"). */
+  senderBank: string | null;
+  /** Receiver's bank as printed. The receiver's name stays in `merchant`. */
+  receiverBank: string | null;
+  /** Receiver account mask, same shape as `payerAccount`. */
+  receiverAccount: string | null;
   confidence: CaptureConfidence;
 }
 
@@ -28,6 +36,10 @@ export const EMPTY_EXTRACTION: ReceiptExtraction = {
   reference: null,
   note: null,
   payerAccount: null,
+  senderName: null,
+  senderBank: null,
+  receiverBank: null,
+  receiverAccount: null,
   confidence: "low",
 };
 
@@ -52,18 +64,81 @@ export function visibleDigits(mask: string): string {
   return (mask.match(/\d+/g) ?? []).reduce((best, run) => (run.length > best.length ? run : best), "");
 }
 
+function maskPattern(mask: string): string {
+  return mask.toLowerCase().replace(/[^0-9x]/g, "");
+}
+
 /**
- * Does a slip's mask fit this account number? Same length → every visible
- * digit in its exact position. Different length (a bank that prints fewer
- * x's, or a row from before the full account number) → the visible digits
- * appear in the number.
+ * Does a slip's mask fit this account number?
+ *
+ * The visible digits are not a suffix and not "somewhere in the number".
+ * K PLUS prints `xxx-x-x7513-x`: a 10-digit account whose 6th–9th digits
+ * show and whose last digit is hidden. Align the mask to the end of the
+ * saved number (same offset-from-end) and compare only the visible
+ * positions. A mask with no wildcards — an older row that stored just
+ * "8710" — has no known offset, so those digits have to sit at the end of
+ * the number, not anywhere inside it.
  */
 export function accountNumberMatches(mask: string, accountNumber: string): boolean {
+  const pattern = maskPattern(mask);
   const digits = accountNumber.replace(/\D/g, "");
-  if (!digits) return false;
-  if (mask.length === digits.length) return [...mask].every((c, i) => c === "x" || c === digits[i]);
-  const run = visibleDigits(mask);
-  return run.length >= 3 && digits.includes(run);
+  const visibleCount = (pattern.match(/\d/g) ?? []).length;
+  if (!digits || visibleCount < 3) return false;
+
+  if (!pattern.includes("x")) return digits.length >= pattern.length && digits.endsWith(pattern);
+
+  if (pattern.length > digits.length && /\d/.test(pattern.slice(0, pattern.length - digits.length))) return false;
+  const overlap = Math.min(pattern.length, digits.length);
+  const patternTail = pattern.slice(-overlap);
+  const digitTail = digits.slice(-overlap);
+  let compared = 0;
+  for (let i = 0; i < overlap; i++) {
+    if (patternTail[i] === "x") continue;
+    if (patternTail[i] !== digitTail[i]) return false;
+    compared += 1;
+  }
+  return compared >= 3;
+}
+
+/**
+ * Two printed masks describe the same account when every position both of
+ * them show agrees, aligned from the end. Used after "บันทึกบัญชีนี้" stored
+ * the mask itself because the full number isn't known yet.
+ */
+export function masksCompatible(a: string, b: string): boolean {
+  const left = maskPattern(a);
+  const right = maskPattern(b);
+  if (!left || !right) return false;
+  const overlap = Math.min(left.length, right.length);
+  if (left.length > overlap && /\d/.test(left.slice(0, left.length - overlap))) return false;
+  if (right.length > overlap && /\d/.test(right.slice(0, right.length - overlap))) return false;
+  const leftTail = left.slice(-overlap);
+  const rightTail = right.slice(-overlap);
+  let compared = 0;
+  for (let i = 0; i < overlap; i++) {
+    if (leftTail[i] === "x" || rightTail[i] === "x") continue;
+    if (leftTail[i] !== rightTail[i]) return false;
+    compared += 1;
+  }
+  return compared >= 3;
+}
+
+export interface MaskedAccount {
+  id: string;
+  is_archived?: boolean;
+  account_number?: string | null;
+  account_number_mask?: string | null;
+}
+
+/** Accounts whose saved number or saved mask fits this printed mask. Archived accounts never count. */
+export function accountsMatchingMask<T extends MaskedAccount>(mask: string | null, accounts: readonly T[]): T[] {
+  if (!mask) return [];
+  return accounts.filter(
+    (account) =>
+      !account.is_archived &&
+      ((account.account_number && accountNumberMatches(mask, account.account_number)) ||
+        (account.account_number_mask && masksCompatible(mask, account.account_number_mask)))
+  );
 }
 
 function firstJsonObject(text: string): unknown {
@@ -182,6 +257,10 @@ export function normalizeReceiptModelOutput(rawText: string, today: string): Rec
     reference: cleanString(d.reference, 80),
     note: cleanString(d.note, 200),
     payerAccount: payerAccountMask(d.payer_account),
+    senderName: cleanString(d.sender_name, 120),
+    senderBank: cleanString(d.sender_bank, 80),
+    receiverBank: cleanString(d.receiver_bank, 80),
+    receiverAccount: payerAccountMask(d.receiver_account),
     confidence,
   };
 }

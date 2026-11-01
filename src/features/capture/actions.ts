@@ -26,6 +26,7 @@ import {
   type CaptureSaveInput,
   type DuplicateCheckInput,
 } from "@/lib/validation/capture";
+import { isOwnMoneyCategory } from "@/lib/capture/own-money";
 import { getReceiptParser } from "./lib/receipt-parser";
 import { learnMerchantCategory } from "./learning";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
@@ -217,9 +218,18 @@ export async function saveCapturedTransaction(input: CaptureSaveInput): Promise<
   if (!user) return { error: dict.common.pleaseLogin };
 
   const reviewStatus = d.confidence === "high" || d.categoryConfirmedByUser ? "confirmed" : "needs_review";
+  let type: "income" | "expense" | "transfer" = d.type;
+  if (d.categoryId) {
+    const { data: category } = await supabase
+      .from("categories")
+      .select("type, name_en, icon")
+      .eq("id", d.categoryId)
+      .maybeSingle();
+    if (isOwnMoneyCategory(category)) type = "transfer";
+  }
   const base = {
     user_id: user.id,
-    type: d.type,
+    type,
     account_id: d.accountId,
     category_id: d.categoryId,
     amount: centsToDecimalString(d.amountCents),
@@ -280,12 +290,12 @@ export async function saveCapturedTransaction(input: CaptureSaveInput): Promise<
 
   // Learn only from categories that weren't a blind fallback, or that the
   // user explicitly chose.
-  if (reviewStatus === "confirmed") {
+  if (reviewStatus === "confirmed" && type !== "transfer") {
     await learnMerchantCategory(user.id, d.merchant || d.description, d.categoryId);
   }
 
   const recurringSuggestion =
-    !d.recurring && d.type === "expense" ? await findRecurringSuggestion(user.id, d.merchant || d.description) : null;
+    !d.recurring && type === "expense" ? await findRecurringSuggestion(user.id, d.merchant || d.description) : null;
 
   revalidateMoney();
   return { success: true, inserted: true, transactionId, recurringSuggestion, ...recurringResult };

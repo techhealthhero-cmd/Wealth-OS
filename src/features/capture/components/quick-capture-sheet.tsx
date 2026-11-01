@@ -35,6 +35,7 @@ import { mergeAIParse, needsAIAssist, recapItemsNeedingAI, type AIParseFields } 
 import { isMultiItemRecap, parseRecap, recapTotals } from "@/lib/capture/recap";
 import { applyCaptureDate } from "@/lib/capture/capture-date";
 import type { ReceiptExtraction } from "@/lib/capture/receipt-normalize";
+import { classifySlipMovement } from "@/lib/capture/own-money";
 import type { TransactionPrefill } from "@/features/transactions/components/transaction-form";
 import { createTransfer, deleteTransaction } from "@/features/transactions/actions";
 import { getAccountAliases, saveAccountAlias, type AccountAlias } from "@/features/accounts/actions";
@@ -545,7 +546,27 @@ export function QuickCaptureSheet({
     const merchant = extraction?.merchant ?? fallback?.merchant ?? fallback?.description ?? null;
     // The slip's memo ("บันทึกช่วยจำ: ชาเขียว") counts toward the category too.
     const scannedText = [extraction?.note, extraction?.merchant].filter(Boolean).join(" ");
-    const scannedCategory = scannedText ? suggestCategory(scannedText, extraction?.merchant ?? null, "expense", ctx) : null;
+    const movement = extraction
+      ? classifySlipMovement(
+          {
+            merchant: extraction.merchant,
+            note: extraction.note,
+            senderName: extraction.senderName,
+            payerAccount: extraction.payerAccount,
+            receiverAccount: extraction.receiverAccount,
+            receiverBank: extraction.receiverBank,
+            amountCents: extraction.amountCents,
+          },
+          accounts,
+          ctx.categories,
+          null
+        )
+      : null;
+    const scannedCategory = movement?.ownMoney && movement.categoryId
+      ? { categoryId: movement.categoryId, source: "keyword" as const }
+      : scannedText
+        ? suggestCategory(scannedText, extraction?.merchant ?? null, "expense", ctx)
+        : null;
     const category =
       scannedCategory && scannedCategory.source !== "fallback"
         ? scannedCategory
@@ -555,8 +576,9 @@ export function QuickCaptureSheet({
     const account = extraction?.paymentMethod ? matchAccount(extraction.paymentMethod, accounts) : null;
     const amountCents = extraction?.amountCents ?? fallback?.amountCents ?? null;
     let confidence = extraction?.confidence ?? "low";
+    if (movement?.ownMoney && (extraction?.amountCents ?? fallback?.amountCents) !== null) confidence = "high";
     // Never "high" if the category was a blind guess.
-    if (confidence === "high" && category.source === "fallback") confidence = "medium";
+    else if (confidence === "high" && category.source === "fallback") confidence = "medium";
     return {
       type: "expense",
       amountCents,

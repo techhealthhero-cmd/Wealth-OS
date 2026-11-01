@@ -30,6 +30,7 @@ export const CATEGORY_ICON_EMOJI: Record<string, string> = {
   "rotate-ccw": "↩️",
   "gift-received": "💝",
   tools: "🛠️",
+  "wallet-topup": "👛",
 };
 
 export function categoryEmoji(icon: string | null): string {
@@ -66,6 +67,7 @@ const CATEGORY_ART = new Set([
   "gift",
   "tools",
   "more-horizontal",
+  "wallet-topup",
 ]);
 
 /** The sticker's URL for a category icon key, or null when it has none. */
@@ -138,6 +140,13 @@ export const TRANSACTION_TYPE_VISUAL: Record<"expense" | "income" | "transfer", 
   income: { emoji: "🟢", colorClass: "text-emerald-600 dark:text-emerald-400" },
   transfer: { emoji: "🔵", colorClass: "text-sky-600 dark:text-sky-400" },
 };
+
+/** How a row's amount reads: money in is green, spending keeps the minus, a transfer is plain. */
+export function transactionAmountTone(type: TransactionType): "in" | "out" | "neutral" {
+  if (type === "income" || type === "refund") return "in";
+  if (type === "expense" || type === "debt_payment") return "out";
+  return "neutral";
+}
 
 /** Non-transfer, non-income/expense types (refund, debt_payment, ...) fall back to a neutral look. */
 export function transactionTypeVisual(type: TransactionType): TransactionTypeVisual {

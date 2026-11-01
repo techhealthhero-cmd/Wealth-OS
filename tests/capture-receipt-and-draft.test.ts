@@ -21,6 +21,10 @@ describe("normalizeReceiptModelOutput", () => {
       reference: "015272123456",
       note: null,
       payerAccount: null,
+      senderName: null,
+      senderBank: null,
+      receiverBank: null,
+      receiverAccount: null,
       confidence: "high",
     });
   });

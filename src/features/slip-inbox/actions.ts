@@ -23,6 +23,9 @@ import {
   type SlipConfirmInput,
 } from "@/lib/capture/slip-inbox";
 import { saveCapturedTransaction } from "@/features/capture/actions";
+import { centsToDecimalString } from "@/lib/financial/money";
+import { isOwnMoneyCategory } from "@/lib/capture/own-money";
+import { accountsMatchingMask, masksCompatible, visibleDigits } from "@/lib/capture/receipt-normalize";
 import type { AIImageMediaType } from "@/features/ai/types";
 import type { CaptureConfidence } from "@/types/database";
 import { ingestSlipImage, type SlipIngestStatus } from "./ingest";
@@ -210,7 +213,7 @@ async function rememberSlipPayer(
  */
 export async function confirmSlip(
   input: SlipConfirmInput
-): Promise<{ success?: boolean; error?: string; repointed?: number }> {
+): Promise<{ success?: boolean; error?: string; repointed?: number; transfer?: "ledger" | "own" }> {
   const { dict } = await context();
   const parsed = slipConfirmSchema.safeParse(input);
   if (!parsed.success) return { error: dict.common.invalidInput };
@@ -225,7 +228,8 @@ export async function confirmSlip(
 
   const slipQuery = (columns: string) =>
     supabase.from("slip_inbox").select(columns).eq("id", d.slipId).eq("user_id", user.id).maybeSingle();
-  let found = await slipQuery("id, status, reference, confidence, payment_method, account_id, payer_account");
+  let found = await slipQuery("id, status, reference, confidence, payment_method, account_id, payer_account, to_account_id");
+  if (isMissingSlipColumn(found.error)) found = await slipQuery("id, status, reference, confidence, payment_method, account_id, payer_account");
   if (isMissingSlipColumn(found.error)) found = await slipQuery("id, status, reference, confidence, payment_method, account_id");
   const slip = found.data as unknown as {
     id: string;
@@ -235,26 +239,47 @@ export async function confirmSlip(
     payment_method: string | null;
     account_id: string | null;
     payer_account?: string | null;
+    to_account_id?: string | null;
   } | null;
   if (!slip) return { error: dict.slipInbox.notFound };
   if (slip.status === "confirmed") return { success: true };
   if (slip.status !== "pending") return { error: dict.slipInbox.notFound };
 
-  const saved = await saveCapturedTransaction({
-    clientRequestId: slip.id,
-    type: "expense",
-    amountCents: d.amountCents,
-    accountId: d.accountId,
-    categoryId: d.categoryId,
-    merchant: d.merchant || null,
-    description: d.note || null,
-    date: d.date,
-    source: "receipt",
-    confidence: slip.confidence as CaptureConfidence,
-    reference: slip.reference,
-    // The user looked at this slip and accepted (or chose) its category.
-    categoryConfirmedByUser: true,
-  });
+  const { data: category } = await supabase
+    .from("categories")
+    .select("id, type, name_en, icon")
+    .eq("id", d.categoryId)
+    .maybeSingle();
+  const ownMoney = isOwnMoneyCategory(category);
+  const toAccountId = ownMoney ? (d.toAccountId ?? slip.to_account_id ?? null) : null;
+  const ledger = Boolean(ownMoney && toAccountId && toAccountId !== d.accountId);
+
+  const saved = ledger
+    ? await insertLedgerTransfer(supabase, user.id, {
+        clientRequestId: slip.id,
+        fromAccountId: d.accountId,
+        toAccountId: toAccountId as string,
+        amountCents: d.amountCents,
+        date: d.date,
+        merchant: d.merchant || null,
+        description: d.note || null,
+        reference: slip.reference,
+      })
+    : await saveCapturedTransaction({
+        clientRequestId: slip.id,
+        type: "expense",
+        amountCents: d.amountCents,
+        accountId: d.accountId,
+        categoryId: d.categoryId,
+        merchant: d.merchant || null,
+        description: d.note || null,
+        date: d.date,
+        source: "receipt",
+        confidence: slip.confidence as CaptureConfidence,
+        reference: slip.reference,
+        // The user looked at this slip and accepted (or chose) its category.
+        categoryConfirmedByUser: true,
+      });
   if (!saved.success) return { error: saved.error ?? dict.slipInbox.saveFailed };
 
   const { error } = await supabase
@@ -270,7 +295,166 @@ export async function confirmSlip(
   const chose = slip.account_id !== d.accountId;
   const repointed = chose ? await rememberSlipPayer(supabase, user.id, slip, d.accountId) : 0;
   revalidateSlips();
-  return repointed > 0 ? { success: true, repointed } : { success: true };
+  const transfer = ownMoney ? (ledger ? ("ledger" as const) : ("own" as const)) : undefined;
+  if (repointed > 0) return transfer ? { success: true, repointed, transfer } : { success: true, repointed };
+  return transfer ? { success: true, transfer } : { success: true };
+}
+
+const PG_UNIQUE_VIOLATION = "23505";
+
+/** A two-account transfer. Balances move (from down, to up); it is not income or spending. */
+async function insertLedgerTransfer(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  input: {
+    clientRequestId: string;
+    fromAccountId: string;
+    toAccountId: string;
+    amountCents: number;
+    date: string;
+    merchant: string | null;
+    description: string | null;
+    reference: string | null;
+  }
+): Promise<{ success?: boolean; error?: string; transactionId?: string }> {
+  const [{ data: fromAcc }, { data: toAcc }] = await Promise.all([
+    supabase.from("accounts").select("id, currency_code").eq("id", input.fromAccountId).eq("user_id", userId).maybeSingle(),
+    supabase.from("accounts").select("id, currency_code").eq("id", input.toAccountId).eq("user_id", userId).maybeSingle(),
+  ]);
+  if (!fromAcc || !toAcc) return { error: "account" };
+  const fromCurrency = (fromAcc.currency_code as string | null) || "THB";
+  const toCurrency = (toAcc.currency_code as string | null) || "THB";
+  if (fromCurrency !== toCurrency) return { error: "currency" };
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .insert({
+      user_id: userId,
+      type: "transfer",
+      account_id: null,
+      from_account_id: input.fromAccountId,
+      to_account_id: input.toAccountId,
+      category_id: null,
+      amount: centsToDecimalString(input.amountCents),
+      currency_code: fromCurrency,
+      transaction_date: input.date,
+      description: input.description,
+      merchant: input.merchant,
+      source: "receipt",
+      client_request_id: input.clientRequestId,
+      reference: input.reference,
+      review_status: "confirmed",
+      ai_confidence: "high",
+    })
+    .select("id")
+    .single();
+  if (error?.code === PG_UNIQUE_VIOLATION) {
+    const { data: existing } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("client_request_id", input.clientRequestId)
+      .maybeSingle();
+    return existing?.id ? { success: true, transactionId: existing.id as string } : { error: "duplicate" };
+  }
+  if (error || !data?.id) return { error: error?.message ?? "insert" };
+  return { success: true, transactionId: data.id as string };
+}
+
+/**
+ * One tap on a self-transfer whose destination account isn't saved yet.
+ * Remembers the bank and the printed mask, then points this slip (and any
+ * other waiting slip with the same mask) at the new account.
+ */
+export async function saveSlipReceiverAccount(
+  slipId: string
+): Promise<{ success?: boolean; error?: string; accountId?: string; name?: string }> {
+  const { dict } = await context();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: dict.common.pleaseLogin };
+
+  const { data: slip } = await supabase
+    .from("slip_inbox")
+    .select("id, status, receiver_bank, receiver_account, to_account_id")
+    .eq("id", slipId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const row = slip as {
+    id: string;
+    status: string;
+    receiver_bank: string | null;
+    receiver_account: string | null;
+    to_account_id: string | null;
+  } | null;
+  if (!row || row.status !== "pending") return { error: dict.slipInbox.notFound };
+  if (row.to_account_id) {
+    const { data: existingAccount } = await supabase.from("accounts").select("name").eq("id", row.to_account_id).eq("user_id", user.id).maybeSingle();
+    return { success: true, accountId: row.to_account_id, name: (existingAccount?.name as string | undefined) ?? "" };
+  }
+  const mask = row.receiver_account;
+  if (!mask) return { error: dict.common.invalidInput };
+
+  const { data: owned } = await supabase
+    .from("accounts")
+    .select("id, name, is_archived, account_number, account_number_mask")
+    .eq("user_id", user.id);
+  const hits = accountsMatchingMask(mask, (owned ?? []) as { id: string; name: string; is_archived?: boolean; account_number?: string | null; account_number_mask?: string | null }[]);
+  let accountId = hits.length === 1 ? hits[0].id : null;
+  let name = hits.length === 1 ? hits[0].name : "";
+
+  if (!accountId) {
+    const bank = row.receiver_bank?.trim() || "บัญชี";
+    const digits = visibleDigits(mask);
+    name = `${bank} ${digits}`.trim().slice(0, 80);
+    const { count } = await supabase.from("accounts").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+    const inserted = await supabase
+      .from("accounts")
+      .insert({
+        user_id: user.id,
+        name,
+        account_type: "bank",
+        institution: row.receiver_bank,
+        currency_code: "THB",
+        opening_balance: 0,
+        include_in_net_worth: true,
+        account_number_mask: mask,
+        sort_order: count ?? 0,
+      })
+      .select("id")
+      .single();
+    if (inserted.error || !inserted.data?.id) {
+      return {
+        error: inserted.error
+          ? friendlyDbError(inserted.error, "saveSlipReceiverAccount", dict.slipInbox.saveFailed)
+          : dict.slipInbox.saveFailed,
+      };
+    }
+    accountId = inserted.data.id as string;
+  }
+
+  await supabase
+    .from("slip_inbox")
+    .update({ to_account_id: accountId })
+    .eq("id", row.id)
+    .eq("user_id", user.id)
+    .eq("status", "pending");
+  const { data: waiting } = await supabase
+    .from("slip_inbox")
+    .select("id, receiver_account")
+    .eq("user_id", user.id)
+    .eq("status", "pending");
+  const ids = ((waiting ?? []) as { id: string; receiver_account: string | null }[])
+    .filter((item) => item.receiver_account && masksCompatible(item.receiver_account, mask))
+    .map((item) => item.id);
+  if (ids.length > 0) {
+    await supabase.from("slip_inbox").update({ to_account_id: accountId }).eq("user_id", user.id).eq("status", "pending").in("id", ids);
+  }
+  revalidateSlips();
+  revalidatePath("/money/accounts");
+  return { success: true, accountId, name };
 }
 
 /** "Not this one": hidden for good (and never re-read if the Shortcut sends it again). */
