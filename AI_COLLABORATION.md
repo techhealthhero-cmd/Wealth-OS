@@ -135,7 +135,9 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
-- PAGE-CURL-HOME-ONLY — Owner: Grok Bot; READY FOR HANDOFF. Paper curl stays only when swiping forward from Home. Notebook close (ปิดสมุด) and cover open are unchanged. Money, Plan, Earn, their tabs, settings, and the month calendar no longer curl; a swipe or tab still changes page with a 160ms fade. Month moves with ‹ ›. No schema, RLS, auth, billing, or formula changes. Branch `cursor/disable-page-curl-989d`, base `staging`. Checks: typecheck, lint, vitest 2487, next build, WebKit 390×844 passed.
+- PAGE-TURN-FADE-EVERYWHERE — Owner: Grok Bot; READY FOR HANDOFF. Home → Money no longer curls. Notebook close and cover open stay. Every page turn fades over 160ms. Branch `cursor/home-no-curl-989d`, base `staging`. Local checks: typecheck, lint, vitest 2487, next build, WebKit 390×844. No schema, RLS, auth, billing, or formula changes.
+
+- PAGE-CURL-HOME-ONLY — Owner: Grok Bot; DONE (superseded). Merged to staging as #67 (`dc48a6d`). Home forward curl was then removed by the correction above.
 
 - HOME-REMOVE-SHORTCUTS-INCOME — Owner: Grok Bot; IN PR → staging. Owner asked to remove the Home shortcut row (ออกใบแจ้งหนี้, บันทึกรายรับ, กันภาษี, สแกนสลิป), the รอเงินเข้า and โหลภาษี cards, and the รายได้แยกตามแหล่ง block. Compact NetWorthHero and HomeYearSection stay. Slip scan stays in the capture / voice flow. No schema, RLS, auth, billing, or formula changes. Next: owner 390px check on device.
 
@@ -251,6 +253,12 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-11-01 — Grok Bot → owner (PAGE-TURN-FADE-EVERYWHERE)
+
+- Owner correction after #67: a forward swipe from Home to Money no longer curls. `pageTurnStyle("home")` and `pageTurnStyle("section")` are both `"fade"`.
+- Swipe back on Home still closes the notebook. Opening the cover is unchanged.
+- Checks: typecheck, lint, vitest 169 files / 2487 tests, next build, Playwright WebKit 390×844 (Home→การเงิน no curl; notebook close still animates). Disposable staging user deleted after the check. No production or `main` changes.
 
 ### 2026-11-01 — Grok Bot → owner (PAGE-CURL-HOME-ONLY)
 

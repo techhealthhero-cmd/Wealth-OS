@@ -81,7 +81,7 @@ async function swipeJournal(page: Page, direction: "next" | "prev") {
   expect(turned).toBe("ok");
 }
 
-test("page curl stays on Home; other routes and tabs do not curl", async ({ page }, testInfo) => {
+test("every page turn fades, including Home to Money; notebook close still animates", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "iphone-390", "One 390×844 pass is enough");
   test.skip(testInfo.project.use.browserName !== "webkit", "This check is the WebKit pass");
   test.setTimeout(180_000);
@@ -131,7 +131,8 @@ test("page curl stays on Home; other routes and tabs do not curl", async ({ page
     await page.waitForURL(/\/dashboard/, { timeout: 20_000 });
     await watchCurl(page);
     await expect(page.locator(".nb-open")).toHaveCount(0);
-    await expect(page.locator("[data-page-turn='curl']")).toBeVisible();
+    await expect(page.locator("[data-page-turn='fade']")).toBeVisible();
+    await expect(page.locator("[data-page-turn='curl']")).toHaveCount(0);
 
     const primary = page.getByRole("navigation", { name: "Primary" });
     await expectNoCurl(page, /\/money\/transactions/, () => primary.getByRole("link", { name: "การเงิน" }).click());
@@ -176,18 +177,22 @@ test("page curl stays on Home; other routes and tabs do not curl", async ({ page
     await expect(page.locator("[data-page-turn='curl']")).toHaveCount(0);
 
     await expectNoCurl(page, /\/dashboard/, () => primary.getByRole("link", { name: "หน้าแรก" }).click());
-    await expect(page.locator("[data-page-turn='curl']")).toBeVisible();
+    await expect(page.locator("[data-page-turn='fade']")).toBeVisible();
 
     await resetCurl(page);
     await swipeJournal(page, "next");
-    await expect.poll(() => curlSeen(page), { timeout: 3_000 }).toBe(true);
-    await expect(page.locator(".page-curl-sheet").first()).toBeVisible();
+    await page.waitForURL(/\/money\/transactions/, { waitUntil: "commit", timeout: 20_000 });
+    await page.waitForTimeout(450);
+    expect(await curlSeen(page), "swiping from Home to Money curled the page").toBe(false);
+    await expect(page.locator(".page-curl-sheet")).toHaveCount(0);
 
     await page.goto("/dashboard");
     await watchCurl(page);
-    await expect(page.locator("[data-page-turn='curl']")).toBeVisible();
+    await expect(page.locator("[data-page-turn='fade']")).toBeVisible();
+    await resetCurl(page);
     await swipeJournal(page, "prev");
     await expect(page.locator('.nb-open[data-direction="close"]')).toBeVisible({ timeout: 5_000 });
+    expect(await curlSeen(page), "closing the notebook built a page-curl sheet").toBe(false);
   } finally {
     await page.goto("about:blank").catch(() => {});
     if (userId && admin) await admin.auth.admin.deleteUser(userId);

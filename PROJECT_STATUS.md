@@ -8,11 +8,11 @@ explicitly non-authoritative and defer to this file).
 
 Last updated: 2026-11-01
 
-## Page curl limited to Home — 2026-11-01
+## No page-curl, including Home — 2026-11-01
 
-- The paper-curl page turn stays on Home only (`pageTurnStyle("home")` in `HomeBook`). Swiping Home forward still curls into Money. Swiping back on Home still closes the notebook (`NotebookOpening direction="close"`); opening the cover is unchanged.
-- Money, Plan, Earn, their inner tabs (including รายการ / บัญชี / นำเข้า CSV), swipes across those sections, and settings do not build a curl sheet. A swipe or tab tap still changes page and the new page fades in over 160ms. Bottom-nav taps stay instant.
-- The month calendar was already the full month with ‹ › buttons. The unused "พลิกมุมกระดาษ" / "Turn the corner" strings are removed, and the help page no longer tells people to flip every page.
+- Owner correction after #67: swiping Home forward to Money does not curl. `pageTurnStyle` is `"fade"` for Home and for every section. A swipe or tab tap still changes the page, then the new sheet fades in over 160ms.
+- The only motion kept is the notebook cover: swipe back on Home still closes it (`NotebookOpening direction="close"`), and opening the cover is unchanged.
+- Money, Plan, Earn, their inner tabs, settings, and the month calendar stay curl-free. Month navigation stays on the ‹ › buttons.
 - No schema, RLS, auth, billing, or money-formula changes.
 
 ## Finance → รายการ Variant B — 2026-10-26

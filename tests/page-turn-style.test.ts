@@ -5,8 +5,8 @@ import th from "@/i18n/locales/th.json";
 import { pageTurnStyle } from "@/lib/motion/page-turn";
 
 describe("page turn style", () => {
-  it("keeps the paper curl on Home and fades every other section", () => {
-    expect(pageTurnStyle("home")).toBe("curl");
+  it("fades every page turn, including Home", () => {
+    expect(pageTurnStyle("home")).toBe("fade");
     expect(pageTurnStyle("section")).toBe("fade");
   });
 
@@ -20,16 +20,18 @@ describe("page turn style", () => {
     expect(JSON.stringify(en.transactions.week)).not.toContain("fold back");
   });
 
-  it("describes Home curl and notebook close without a curl on the other sections", () => {
+  it("says every page including Home fades, and Home swipe-back still closes the notebook", () => {
     const thItem = th.help.sections.find((section) => section.id === "money")?.items.find((item) => item.emoji === "📖");
     const enItem = en.help.sections.find((section) => section.id === "money")?.items.find((item) => item.emoji === "📖");
-    expect(thItem?.description).toContain("หน้าแรก");
+    expect(thItem?.description).toContain("ปัดจากหน้าแรกไปการเงิน");
     expect(thItem?.description).toContain("ปิดปกสมุด");
-    expect(thItem?.description).not.toContain("พลิกมุมกระดาษ");
     expect(thItem?.description).toContain("ไม่พลิกกระดาษ");
-    expect(enItem?.description).toContain("Home still turns like paper");
+    expect(thItem?.description).not.toContain("พลิกมุมกระดาษ");
+    expect(thItem?.description).not.toContain("หน้าแรกยังพลิกกระดาษ");
+    expect(enItem?.description).toContain("including a swipe from Home to Money");
     expect(enItem?.description).toContain("closes the cover");
     expect(enItem?.description).toContain("no paper curl");
+    expect(enItem?.description).not.toContain("Home still turns like paper");
     expect(enItem?.description).not.toContain("Turn the corner");
   });
 });
