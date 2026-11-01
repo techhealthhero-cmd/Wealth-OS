@@ -184,10 +184,13 @@ function SlipItem({
               name={`__slip_category_${slip.id}`}
               categories={expenseCategories}
               value={categoryId}
+              // Tapping the already-selected chip (the guessed "อื่นๆ") sends
+              // null (deselect) — here it means "yes, that one".
               onValueChange={(id) => {
                 setPicking(false);
-                if (id) {
-                  setCategoryId(id);
+                const chosen = id ?? categoryId;
+                if (chosen) {
+                  setCategoryId(chosen);
                   setCategoryPicked(true);
                 }
               }}
