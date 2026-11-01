@@ -31,7 +31,7 @@ export default async function IncomeRankGuidePage() {
   const guide = dict.incomeRankGuide;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 pb-28">
+    <div className="mx-auto max-w-2xl space-y-5 md:pb-28">
       <Button nativeButton={false} render={<Link href="/profile" />} variant="ghost" className="-ml-2">
         <ArrowLeft aria-hidden="true" />
         {guide.backToSettings}

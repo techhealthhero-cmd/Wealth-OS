@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
  */
 export default function DashboardLoading() {
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
+    <div className="mx-auto w-full max-w-6xl space-y-4 md:space-y-6 md:pb-8">
       <Skeleton className="h-8 w-44 md:block hidden" />
 
       {/* Net Worth hero */}

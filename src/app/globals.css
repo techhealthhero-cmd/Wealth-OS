@@ -907,10 +907,10 @@ html[data-page-turning] .skeleton-shimmer {
   box-shadow: none;
 }
 
-/* Leave room for the floating shortcut and bottom navigation on phones. */
+/* Leave room for the bottom navigation (bar + raised mic) on phones. */
 @media (width < 48rem) {
   .journal-page :is(input, textarea, select, [contenteditable], [role="combobox"]) {
-    scroll-margin-bottom: calc(11rem + env(safe-area-inset-bottom));
+    scroll-margin-bottom: calc(7rem + env(safe-area-inset-bottom));
     scroll-margin-top: 5rem;
   }
 }

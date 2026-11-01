@@ -18,7 +18,7 @@ export default async function CoverSettingsPage() {
   const dict = getDictionary(await getLocale(profile.preferred_language));
 
   return (
-    <div className="mx-auto max-w-lg space-y-5 pb-28">
+    <div className="mx-auto max-w-lg space-y-5 md:pb-28">
       <header className="space-y-1">
         <Link
           href="/profile"

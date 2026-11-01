@@ -9,7 +9,7 @@ export default async function PlanLayout({ children }: { children: React.ReactNo
   const dict = getDictionary(locale);
 
   return (
-    <div className="space-y-4 pb-28">
+    <div className="space-y-4 md:pb-28">
       <div>
         <h1 className="text-2xl font-semibold">
           {/* Highlighter stroke behind the page title (Journal). */}

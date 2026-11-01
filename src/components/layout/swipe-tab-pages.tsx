@@ -915,7 +915,7 @@ export function SwipeTabPages({
   // own swipe-to-delete gesture, and the empty space below it wasn't part of
   // this element at all — so there was nowhere left to swipe. The minimum
   // height stretches the swipe area down to roughly the bottom nav (header +
-  // title + tab strip ≈ 16rem above, the layout's pb-28 ≈ 7rem below, plus
+  // title + tab strip ≈ 16rem above, the layout's 7rem nav reserve below, plus
   // ~2rem slack) without making a short page scroll.
   return (
     <div ref={wrapperRef} data-turn-page="" data-page-turn={turn} className="min-h-[calc(100dvh-25rem)]">

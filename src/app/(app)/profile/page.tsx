@@ -46,7 +46,7 @@ export default async function ProfilePage() {
   const cover = resolveCoverPreferences(profile);
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 pb-28">
+    <div className="mx-auto max-w-lg space-y-4 md:pb-28">
       {/* STEP 13: a compact Billing summary lives here, linking to the full
           /billing page for management — kept as a summary + link rather
           than duplicating BillingStatusCard's full detail on this page. */}

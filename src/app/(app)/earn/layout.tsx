@@ -9,7 +9,7 @@ export default async function EarnLayout({ children }: { children: React.ReactNo
   const dict = getDictionary(locale);
 
   return (
-    <div className="space-y-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-8">
+    <div className="space-y-4 md:pb-8">
       <div>
         <h1 className="text-2xl font-semibold">
           {/* Highlighter stroke behind the page title (Journal). */}
