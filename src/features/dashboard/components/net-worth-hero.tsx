@@ -34,6 +34,7 @@ interface NetWorthHeroData {
   /** Change vs a year-start or in-year snapshot. Null when nothing earlier exists. */
   yearDelta: { scope: "year" | "since"; monthLabel: string; change: NetWorthChange } | null;
   currencyCode: string;
+  displayName: string | null;
 }
 
 /**
@@ -105,6 +106,7 @@ async function loadNetWorthHeroData(): Promise<NetWorthHeroData | null> {
       today,
       yearDelta,
       currencyCode: profile?.currency_code ?? "THB",
+      displayName: profile?.display_name?.trim() || null,
     };
   } catch (error) {
     captureError(error, { route: "dashboard.NetWorthHero", operation: "load_net_worth_hero_data" });
@@ -146,7 +148,7 @@ export async function NetWorthHero({
     return <InlineLoadError message={dict.common.somethingWentWrong} />;
   }
 
-  const { dict, locale, breakdown, change, hasHistory, chartData, monthLabels, today, yearDelta, currencyCode } = data;
+  const { dict, locale, breakdown, change, hasHistory, chartData, monthLabels, today, yearDelta, currencyCode, displayName } = data;
 
   if (variant === "compact") {
     return (
@@ -164,6 +166,7 @@ export async function NetWorthHero({
             : null
         }
         currencyCode={currencyCode}
+        displayName={displayName}
       />
     );
   }

@@ -250,22 +250,49 @@ describe("compact net worth card", () => {
     viewAssetsAndLiabilities: th.netWorth.viewAssetsAndLiabilities,
   };
 
-  it("shows this year's change and this month's spend", () => {
+  it("shows this year's change and this month's spend on the gold card", () => {
     const html = renderToStaticMarkup(
       createElement(NetWorthCompactCard, {
         labels,
         netWorthCents: 24_890_000,
         currencyCode: "THB",
+        displayName: "Dom",
         delta: { scope: "year", monthLabel: "ธ.ค.", change: { changeCents: 3_240_000, changePercent: 15 } },
         monthSpend: { monthLabel: "ตุลาคม", cents: 1_842_000 },
       }),
     );
     expect(html).toContain("มูลค่าสุทธิ");
-    expect(html).toContain("รายละเอียด");
+    expect(html).toContain("WEALTH OS");
+    expect(html).toContain("DOM");
     expect(html).toContain("+");
     expect(html).toContain("ปีนี้");
     expect(html).toContain("ตุลาคมใช้ไป");
     expect(html).toContain(formatMoney(24_890_000, "THB", "th-TH", 0));
     expect(html).toContain('href="/money/net-worth"');
+    expect(html).toContain("whitespace-nowrap");
+    expect(html).not.toContain("text-[#f6d3b8]");
+    expect(html).not.toContain("text-[#7fd6b2]");
+  });
+
+  it("keeps a negative balance dark green, on one line, with smaller satang", () => {
+    const html = renderToStaticMarkup(
+      createElement(NetWorthCompactCard, {
+        labels,
+        netWorthCents: -25_432_635,
+        currencyCode: "THB",
+        displayName: "Dom",
+        delta: { scope: "since", monthLabel: "ก.ย.", change: { changeCents: -26_932_635, changePercent: null } },
+        monthSpend: null,
+      }),
+    );
+    expect(html).toContain("-฿254,326");
+    expect(html).toContain(".35");
+    expect(html).toContain("text-[0.6em]");
+    expect(html).toContain("min(40px");
+    expect(html).toContain("whitespace-nowrap");
+    expect(html).toContain("text-[#1f3a2c]");
+    expect(html).toContain("ลดลง");
+    expect(html).not.toContain("text-[#f6d3b8]");
+    expect(html).not.toContain("#b4574a");
   });
 });
