@@ -150,6 +150,41 @@ const SET_ASIDE_NAME = /ฉุกเฉิน|สำรอง|ออม|เก�
 /** Account types a slip is most likely paid from, best first. */
 const SLIP_ACCOUNT_TYPE_ORDER = ["bank", "e_wallet", "cash", "credit_card", "other"];
 
+/** An account money is paid from day to day — not savings/investment, not named as set aside. */
+function isEverydayAccount(a: CaptureAccount): boolean {
+  return !a.is_archived && SLIP_ACCOUNT_TYPE_ORDER.includes(a.account_type) && !SET_ASIDE_NAME.test(a.name);
+}
+
+/**
+ * The account a slip's bank/app points at — only when exactly ONE everyday
+ * account is at that bank. Several ("jar" accounts all at กสิกร: เงินกันจน,
+ * เพิ่มสกิล, Subscription…) means the slip can't say which: `ambiguous`, and
+ * the user picks once (then it's remembered). `none`: no account at that
+ * bank, or the slip names no bank we know.
+ */
+export function accountForSlipBank(
+  paymentMethod: string | null,
+  accounts: CaptureAccount[]
+): { accountId: string } | "ambiguous" | "none" {
+  if (!paymentMethod) return "none";
+  const method = normalizeText(paymentMethod).toLowerCase();
+  const hint = ACCOUNT_HINTS.find((h) => h.phrases.some((p) => method.includes(p)));
+  if (!hint) {
+    const named = matchAccount(paymentMethod, accounts);
+    const account = named ? accounts.find((a) => a.id === named.accountId) : undefined;
+    return account && isEverydayAccount(account) ? { accountId: account.id } : "none";
+  }
+  const atBank = accounts.filter((a) => {
+    if (a.is_archived) return false;
+    if (hint.type && a.account_type === hint.type) return true;
+    const haystack = `${a.name} ${a.institution ?? ""}`.toLowerCase();
+    return (hint.aliases ?? []).some((alias) => haystack.includes(alias.toLowerCase()));
+  });
+  if (atBank.length === 0) return "none";
+  const everyday = atBank.filter(isEverydayAccount);
+  return everyday.length === 1 ? { accountId: everyday[0].id } : "ambiguous";
+}
+
 /**
  * When nothing on the slip says which account paid: an everyday account
  * (bank, then e-wallet, then cash…), never savings/investment and never one
@@ -157,9 +192,7 @@ const SLIP_ACCOUNT_TYPE_ORDER = ["bank", "e_wallet", "cash", "credit_card", "oth
  * none — the user picks, rather than money silently leaving their emergency fund.
  */
 export function defaultSlipAccountId(accounts: CaptureAccount[]): string | null {
-  const everyday = accounts.filter(
-    (a) => !a.is_archived && SLIP_ACCOUNT_TYPE_ORDER.includes(a.account_type) && !SET_ASIDE_NAME.test(a.name)
-  );
+  const everyday = accounts.filter(isEverydayAccount);
   for (const type of SLIP_ACCOUNT_TYPE_ORDER) {
     const hit = everyday.find((a) => a.account_type === type);
     if (hit) return hit.id;
@@ -169,9 +202,10 @@ export function defaultSlipAccountId(accounts: CaptureAccount[]): string | null 
 
 /**
  * Account and category for a read slip. Account: the account remembered for
- * this payer (learned when the user confirmed an earlier slip), else the
- * paying bank/app matched against account names, else the shop's set
- * account, else an everyday account (defaultSlipAccountId). Category:
+ * this payer (learned when the user picked one on an earlier slip), else the
+ * one everyday account at the paying bank — several there means no guess
+ * (the user picks) — else the shop's set account, else an everyday account
+ * (defaultSlipAccountId) when the slip names no bank we know. Category:
  * learned preferences → keywords (the memo counts: "ชาเขียว" → food) →
  * "Other". A blind "Other" guess never stays "high".
  */
@@ -182,11 +216,18 @@ export function suggestSlipFields(
   const merchant = extraction.merchant;
   const text = [extraction.note, merchant].filter(Boolean).join(" ");
   const category = suggestCategory(text, merchant, "expense", ctx);
+  const remembered = accountForPayer(
+    slipPayer(extraction.paymentMethod, extraction.payerAccount),
+    ctx.accountAliases ?? [],
+    ctx.accounts
+  );
+  const bank = accountForSlipBank(extraction.paymentMethod, ctx.accounts);
+  const shop = merchant ? accountForMerchant(merchant, merchant, ctx.merchantAccounts ?? [], ctx.accounts) : null;
   const accountId =
-    accountForPayer(slipPayer(extraction.paymentMethod, extraction.payerAccount), ctx.accountAliases ?? [], ctx.accounts) ??
-    (extraction.paymentMethod ? matchAccount(extraction.paymentMethod, ctx.accounts)?.accountId : null) ??
-    (merchant ? accountForMerchant(merchant, merchant, ctx.merchantAccounts ?? [], ctx.accounts) : null) ??
-    defaultSlipAccountId(ctx.accounts);
+    remembered ??
+    (typeof bank === "object" ? bank.accountId : null) ??
+    shop ??
+    (bank === "none" ? defaultSlipAccountId(ctx.accounts) : null);
   let confidence = extraction.confidence;
   if (confidence === "high" && category.source === "fallback") confidence = "medium";
   return { accountId, categoryId: category.categoryId, confidence };

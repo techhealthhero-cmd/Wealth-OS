@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FakeDb, type Row } from "./mocks/fake-db";
 import {
   CAPTURE_TOKEN_PREFIX,
+  accountForSlipBank,
   captureTokenHint,
   defaultSlipAccountId,
   findPossibleDuplicate,
@@ -195,6 +196,30 @@ describe("slip suggestions (pure)", () => {
     expect(defaultSlipAccountId([emergency, savings])).toBeNull();
     const none = suggestSlipFields(slip({ paymentMethod: "K PLUS" }), { ...ctx, accounts: [emergency, savings] });
     expect(none.accountId).toBeNull();
+  });
+
+  it("several 'jar' accounts at the paying bank: no guess — the user picks (found live)", () => {
+    const jar = (id: string, name: string, account_type: "bank" | "cash" = "bank") => ({
+      id,
+      name,
+      account_type,
+      institution: "กสิกร",
+      is_archived: false,
+    });
+    const accounts = [
+      jar("cash", "Cash", "cash"),
+      jar("grow", "เงินพาโต (ลงทุน) 10"),
+      jar("emer", "เงินกันจน (ฉุกเฉิน) 10"),
+      jar("skill", "เพิ่มสกิล/รายได้ 10"),
+      jar("subs", "Subscription รายเดือน"),
+    ];
+    expect(accountForSlipBank("KBank", accounts)).toBe("ambiguous");
+    expect(suggestSlipFields(slip({ paymentMethod: "KBank", payerAccount: "8710" }), { ...ctx, accounts }).accountId).toBeNull();
+    // Only one everyday account at the bank (the rest set aside) → that one.
+    expect(accountForSlipBank("K PLUS", [jar("cash", "Cash", "cash"), jar("emer", "เงินกันจน (ฉุกเฉิน) 10")])).toEqual({ accountId: "cash" });
+    // Once the user picked, it's remembered.
+    const remembered = { ...ctx, accounts, accountAliases: [{ alias_normalized: "kbank 8710", account_id: "cash" }] };
+    expect(suggestSlipFields(slip({ paymentMethod: "KBank", payerAccount: "8710" }), remembered).accountId).toBe("cash");
   });
 
   it("uses the slip's memo to pick the category", () => {
@@ -578,6 +603,17 @@ describe("confirm / dismiss", () => {
     // The next slip from that account is pre-filled.
     modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R4" });
     expect((await queue(34)).account_id).toBe(CASH);
+  });
+
+  it("✓ on the pre-filled account teaches nothing — only a real pick is remembered", async () => {
+    modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R1" });
+    const first = await queue(41);
+    modelReply = slipJson({ payer_account: "xxx-x-x8710-x", reference: "R2" });
+    const second = await queue(42);
+    expect(first.account_id).toBe(KBANK);
+    expect(await confirmSlip(input(first, { accountId: KBANK }))).toEqual({ success: true });
+    expect(db.rows("account_aliases")).toHaveLength(0);
+    expect(second.account_id).toBe(KBANK);
   });
 
   it("bulk upload goes through the same pipeline for the signed-in user", async () => {

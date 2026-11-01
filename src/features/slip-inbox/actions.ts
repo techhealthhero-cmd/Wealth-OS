@@ -225,14 +225,15 @@ export async function confirmSlip(
 
   const slipQuery = (columns: string) =>
     supabase.from("slip_inbox").select(columns).eq("id", d.slipId).eq("user_id", user.id).maybeSingle();
-  let found = await slipQuery("id, status, reference, confidence, payment_method, payer_account");
-  if (isMissingSlipColumn(found.error)) found = await slipQuery("id, status, reference, confidence, payment_method");
+  let found = await slipQuery("id, status, reference, confidence, payment_method, account_id, payer_account");
+  if (isMissingSlipColumn(found.error)) found = await slipQuery("id, status, reference, confidence, payment_method, account_id");
   const slip = found.data as unknown as {
     id: string;
     status: string;
     reference: string | null;
     confidence: string;
     payment_method: string | null;
+    account_id: string | null;
     payer_account?: string | null;
   } | null;
   if (!slip) return { error: dict.slipInbox.notFound };
@@ -263,7 +264,11 @@ export async function confirmSlip(
     .eq("user_id", user.id);
   // The transaction exists either way; a retry finds it via its idempotency key.
   if (error) return { error: friendlyDbError(error, "confirmSlip", dict.slipInbox.saveFailed) };
-  const repointed = await rememberSlipPayer(supabase, user.id, slip, d.accountId);
+  // Learn only from a real choice: the user picked an account the slip
+  // didn't already suggest. Tapping ✓ on a pre-filled guess teaches nothing
+  // (found live: accepting a wrong guess taught "KBank 8710 = emergency fund").
+  const chose = slip.account_id !== d.accountId;
+  const repointed = chose ? await rememberSlipPayer(supabase, user.id, slip, d.accountId) : 0;
   revalidateSlips();
   return repointed > 0 ? { success: true, repointed } : { success: true };
 }
