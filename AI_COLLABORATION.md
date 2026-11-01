@@ -135,6 +135,8 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 
 ## Active Work
 
+- CATEGORY-CHIPS-OPEN — Owner: Grok Bot; IN PR → staging. Category chip pickers (slip inbox, quick capture, edit transaction, recurring) show every category as soon as they open. The ดูทั้งหมด / แสดงน้อยลง toggle is gone. Chips are compact (28px sticker, ~30px row) so 14 expense chips fit at 390px. No Home files. No schema, RLS, auth, billing, or formula changes.
+
 - FINANCE-TAB-SCROLL — Owner: Grok Bot; READY FOR HANDOFF. Money › รายการ keeps the month hero and daily calendar above both ทั้งหมด and รอตรวจ, holds window scroll across the switch, and gives the list a 50vh floor. WebKit 390×844: sub-tab bar viewport y stayed 520.17 (scrollY 254) across both tabs, delta 0. Branch off staging. No schema, RLS, auth, billing, or formula changes.
 
 - HOME-GOLD-CARD — Owner: Grok Bot; IN PR → staging. Home net worth is the approved champagne-gold bank card (silver chip, WEALTH OS, display name, dark-green figure with smaller satang, muted change line). A dark-green card peeks behind it. The whole card still opens /money/net-worth. Negative stays dark green and the figure shrinks to one line. ภาพรวมรายปี and หมวดรายจ่าย·เทียบปี stay, restyled as quiet paper (hairline, gold selected year). Shortcuts, tax/awaiting cards, and income-by-source stay removed. Bottom-gap reserve and Home fade (no curl) untouched. No schema, RLS, auth, billing, or formula changes.
@@ -261,6 +263,12 @@ Codex เป็นเจ้าภาพดูแลการใช้ token แ�
 - Empty State ของ Notifications และ Forecast ยังไม่มีผล visual QA จากสถานะจริง
 
 ## Handoff Log
+
+### 2026-11-01 — Grok Bot → owner (CATEGORY-CHIPS-OPEN)
+
+- `CategoryPicker` lists every category as soon as it opens. Slip inbox (? หมวดหมู่), quick capture, the add/edit transaction sheet, the daily inbox, and recurring all share that picker, so the ดูทั้งหมด / แสดงน้อยลง chip is gone from each of them. Chips use a 28px sticker and tighter padding; the 14 expense chips are 246px tall at 390px with no horizontal overflow.
+- WebKit 390×844: slip inbox รอตรวจ shows all 14 chips with the next slip still on screen; choosing ช้อปปิ้ง closes the picker and keeps the choice. The expense sheet shows all 14, selecting ประกัน keeps the check, and บันทึกรายจ่าย stays visible. Disposable staging user on `cqmgogmnfsamywocdinr` deleted after the check.
+- Checks: typecheck, lint, Vitest 172 files / 2538 tests, next build. No Home files. No schema, RLS, auth, billing, or formula changes.
 
 ### 2026-11-01 — Grok Bot → owner (FINANCE-TAB-SCROLL)
 
