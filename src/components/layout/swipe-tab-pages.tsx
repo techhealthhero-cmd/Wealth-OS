@@ -17,6 +17,7 @@ import {
   turnedCornerPosition,
   type Point,
 } from "@/lib/motion/page-curl";
+import type { PageTurnStyle } from "@/lib/motion/page-turn";
 
 // Same commit distance / axis dead-zone the old app-wide tab swipe used.
 const SWIPE_THRESHOLD_PX = 60;
@@ -140,6 +141,26 @@ const flightRef: { current: Flight | null } = { current: null };
  */
 const pageSnapshots = new Map<string, HTMLElement>();
 const MAX_SNAPSHOTS = 10;
+// Section pages (Money / Plan / Earn) arm this before navigating so the
+// incoming sheet can fade in. Home's curl never reads it.
+let fadeArmed = false;
+
+function armPageFade() {
+  fadeArmed = true;
+}
+
+function takePageFade(): boolean {
+  const armed = fadeArmed;
+  fadeArmed = false;
+  return armed;
+}
+
+function playPageFade(el: HTMLElement | null) {
+  if (!el || prefersReducedMotion()) return;
+  el.classList.remove("page-turn-fade");
+  void el.offsetWidth;
+  el.classList.add("page-turn-fade");
+}
 
 function pathOf(href: string): string {
   return new URL(href, window.location.origin).pathname;
@@ -388,11 +409,12 @@ function runCurl(
 /**
  * Wraps a section's page content (Money / Plan / Earn) so a horizontal
  * swipe moves to the next/previous tab — requested 2026-10-08 — with a
- * paper page-turn. Forward: grab the page and its corner curls up under
- * your finger, folding along a slanted line, then turns over past the
- * spine, revealing the next page. Back: the previous page curls back in
- * from the spine and lands on top. Tapping a tab (SegmentedTabs calls
- * `beginFlip`) plays the same turn.
+ * paper page-turn when `turn` is "curl" (Home only). Forward: grab the
+ * page and its corner curls up under your finger, folding along a slanted
+ * line, then turns over past the spine, revealing the next page. Back: the
+ * previous page curls back in from the spine and lands on top. Tapping a
+ * tab used to call the same turn; section pages now pass `turn="fade"` and
+ * switch with a short fade instead — no curl sheet.
  */
 export function SwipeTabPages({
   hrefs,
@@ -402,6 +424,7 @@ export function SwipeTabPages({
   prevHref = null,
   nextHref = null,
   onCloseBook,
+  turn = "fade",
 }: {
   hrefs: string[];
   activeIndex: number;
@@ -413,6 +436,8 @@ export function SwipeTabPages({
   nextHref?: string | null;
   /** First page of the book (Home): swiping back closes the cover instead. */
   onCloseBook?: () => void;
+  /** "curl" is Home's page turn. Every other journal page uses "fade". */
+  turn?: PageTurnStyle;
 }) {
   const router = useRouter();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -423,10 +448,12 @@ export function SwipeTabPages({
   const activeIndexRef = useRef(activeIndex);
   const hrefsRef = useRef(hrefs);
   const edgesRef = useRef({ prevHref, nextHref, onCloseBook });
+  const turnRef = useRef(turn);
   useEffect(() => {
     activeIndexRef.current = activeIndex;
     hrefsRef.current = hrefs;
     edgesRef.current = { prevHref, nextHref, onCloseBook };
+    turnRef.current = turn;
   });
 
   function showLive() {
@@ -502,7 +529,12 @@ export function SwipeTabPages({
   }
 
   function start(dir: PageFlipDirection, curlFromDrag: Curl | null, crossing = false) {
+    if (turnRef.current !== "curl") {
+      dropDragCurl();
+      return;
+    }
     endFlight();
+    fadeArmed = false;
     const el = wrapperRef.current;
     if (!el || prefersReducedMotion()) {
       // Keep session history even when the user opts out of the turn animation.
@@ -532,7 +564,23 @@ export function SwipeTabPages({
     else holdForBack(curl, preview, crossing);
   }
 
-  useImperativeHandle(handleRef, () => ({ beginFlip: (dir) => start(dir, null) }));
+  useImperativeHandle(handleRef, () => ({
+    beginFlip: (dir) => {
+      if (turnRef.current === "curl") start(dir, null);
+      else armPageFade();
+    },
+  }));
+
+  // Section pages fade the new sheet in. A curl that started on Home and
+  // crosses into this section keeps owning the arrival — don't fade over it.
+  useLayoutEffect(() => {
+    if (turn === "curl" || flightRef.current) {
+      fadeArmed = false;
+      return;
+    }
+    if (!takePageFade()) return;
+    playPageFade(wrapperRef.current);
+  }, [activeIndex, turn]);
 
   // Route arrival can be a loading fallback; keep the paper until content is ready.
   useLayoutEffect(() => {
@@ -678,7 +726,8 @@ export function SwipeTabPages({
      * the previous page's back in from the spine; a dead end does nothing.
      */
     function follow() {
-      if (prefersReducedMotion() || flightRef.current) return;
+      // Section pages keep the swipe, but the finger never lifts a corner.
+      if (turnRef.current !== "curl" || prefersReducedMotion() || flightRef.current) return;
       if (dx > 0 && canGo(dx)) {
         if (dragCurlRef.current) {
           dragCurlRef.current.root.remove();
@@ -833,7 +882,12 @@ export function SwipeTabPages({
       }
       const href = Math.abs(dx) >= SWIPE_THRESHOLD_PX ? targetHref(dx) : null;
       if (href) {
-        start(dx < 0 ? 1 : -1, dragCurlRef.current, !hrefsRef.current.includes(href));
+        if (turnRef.current === "curl") start(dx < 0 ? 1 : -1, dragCurlRef.current, !hrefsRef.current.includes(href));
+        else {
+          dropDragCurl();
+          if (!flightRef.current) boundary.style.opacity = "";
+          armPageFade();
+        }
         router.push(href);
         return;
       }
@@ -866,7 +920,7 @@ export function SwipeTabPages({
   // title + tab strip ≈ 16rem above, the layout's pb-28 ≈ 7rem below, plus
   // ~2rem slack) without making a short page scroll.
   return (
-    <div ref={wrapperRef} data-turn-page="" className="min-h-[calc(100dvh-25rem)]">
+    <div ref={wrapperRef} data-turn-page="" data-page-turn={turn} className="min-h-[calc(100dvh-25rem)]">
       {children}
     </div>
   );

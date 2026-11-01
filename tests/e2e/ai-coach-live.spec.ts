@@ -103,7 +103,7 @@ test("AI Coach: two-turn chat streams, saves, and logs chat usage", async ({ pag
     // info popover. Keep this in the same mobile/dark-mode visual pass.
     expect((await admin.from("assets").insert({ user_id: userId, name: "ทองคำ", asset_type: "gold", value: 42000 })).error).toBeNull();
     await page.goto("/money/assets");
-    // Cross-section navigation intentionally keeps its page curl for 650ms.
+    // Give the route a moment to replace its loading skeleton.
     await page.waitForTimeout(700);
     await page.getByRole("button", { name: "สินทรัพย์คืออะไร" }).click();
     const explainArt = page.locator('img[src*="explain.webp"]');

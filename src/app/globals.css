@@ -881,6 +881,19 @@ html[data-page-turning] .skeleton-shimmer {
   animation-play-state: paused;
 }
 
+/* Section pages (Money / Plan / Earn and their tabs) change with a short
+   fade. Home still curls; this class is never a paper sheet. */
+@keyframes page-turn-fade {
+  from { opacity: 0.42; }
+  to { opacity: 1; }
+}
+[data-page-turn="fade"].page-turn-fade {
+  animation: page-turn-fade 160ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-page-turn="fade"].page-turn-fade { animation: none; }
+}
+
 /* The caret indicates focus on the full-page writing field. */
 .voice-paper-area,
 .voice-paper-field {

@@ -6,7 +6,14 @@ what's built, verified, and known-limited right now. See `CLAUDE.md`'s
 docs (in particular: `GRAPHICS_PLAN.md`'s own ✅/🟡/⬜ status markers are
 explicitly non-authoritative and defer to this file).
 
-Last updated: 2026-10-26
+Last updated: 2026-11-01
+
+## Page curl limited to Home — 2026-11-01
+
+- The paper-curl page turn stays on Home only (`pageTurnStyle("home")` in `HomeBook`). Swiping Home forward still curls into Money. Swiping back on Home still closes the notebook (`NotebookOpening direction="close"`); opening the cover is unchanged.
+- Money, Plan, Earn, their inner tabs (including รายการ / บัญชี / นำเข้า CSV), swipes across those sections, and settings do not build a curl sheet. A swipe or tab tap still changes page and the new page fades in over 160ms. Bottom-nav taps stay instant.
+- The month calendar was already the full month with ‹ › buttons. The unused "พลิกมุมกระดาษ" / "Turn the corner" strings are removed, and the help page no longer tells people to flip every page.
+- No schema, RLS, auth, billing, or money-formula changes.
 
 ## Finance → รายการ Variant B — 2026-10-26
 
