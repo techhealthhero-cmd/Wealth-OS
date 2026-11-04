@@ -137,8 +137,14 @@ function rememberPage(el: HTMLElement) {
   if (!main) return;
   const r = main.getBoundingClientRect();
   const key = window.location.pathname;
+  // Filling the sheet, so the bottom nav's copy can sit on its bottom edge.
+  const page = document.createElement("div");
+  Object.assign(page.style, { position: "absolute", inset: "0" } satisfies Partial<CSSStyleDeclaration>);
+  page.append(placedClone(main, r.left, r.top));
+  const nav = navClone(r.left);
+  if (nav) page.append(nav);
   pageSnapshots.delete(key);
-  pageSnapshots.set(key, placedClone(main, r.left, r.top));
+  pageSnapshots.set(key, page);
   if (pageSnapshots.size > MAX_SNAPSHOTS) pageSnapshots.delete(pageSnapshots.keys().next().value!);
 }
 
@@ -195,12 +201,38 @@ function placedClone(node: HTMLElement, left: number, top: number): HTMLElement 
 }
 
 /**
+ * A copy of the bottom nav laid on a sheet's bottom edge (2026-11-05: the
+ * owner wanted the nav to turn with the page, like it's printed on it). The
+ * live nav is fixed to the screen bottom and so is every sheet's bottom, so
+ * `bottom: 0` places it right whatever the scroll. Null where the bar
+ * isn't shown (desktop).
+ */
+function navClone(sheetLeft: number): HTMLElement | null {
+  const nav = document.querySelector<HTMLElement>("[data-bottom-nav]");
+  if (!nav) return null;
+  const r = nav.getBoundingClientRect();
+  if (r.width < 1 || r.height < 1) return null;
+  const clone = nav.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+  clone.removeAttribute("data-bottom-nav");
+  Object.assign(clone.style, {
+    position: "absolute",
+    left: `${r.left - sheetLeft}px`,
+    right: "auto",
+    top: "auto",
+    bottom: "0",
+    width: `${r.width}px`,
+  } satisfies Partial<CSSStyleDeclaration>);
+  return clone;
+}
+
+/**
  * Snapshots the screen into a curlable sheet. The whole page turns from
  * just under the app header (2026-10-14, mockup "Page Turn Height" option
  * A, after option B — turning the header too — didn't look right): a
  * section's title + tab strip turn with the content, so every page — Home
- * or a tabbed section — turns from the same edge. The header and the bottom
- * nav stay put. Outside the app shell (no `main`), it falls back to just
+ * or a tabbed section — turns from the same edge. The header stays put; the
+ * bottom nav turns with the page (2026-11-05, see navClone). Outside the app shell (no `main`), it falls back to just
  * `el`'s visible part.
  */
 function makeCurl(
@@ -231,7 +263,8 @@ function makeCurl(
     width: `${w}px`,
     height: `${h}px`,
     overflow: "hidden",
-    zIndex: "20",
+    // Above the bottom nav (z-30): the nav turns with the page, its copy on the sheet.
+    zIndex: "31",
     pointerEvents: "none",
   } satisfies Partial<CSSStyleDeclaration>);
 
@@ -251,8 +284,11 @@ function makeCurl(
   // `face`: by default this page as it is now; a saved snapshot of another
   // page (the previous one, while dragging back); or "blank" when we have
   // none — then only its back ever shows, so its face needs no content.
-  if (face === undefined) frontInner.append(placedClone(main ?? el, rect.left, top));
-  else if (face !== "blank") frontInner.append(face.cloneNode(true));
+  if (face === undefined) {
+    frontInner.append(placedClone(main ?? el, rect.left, top));
+    const nav = navClone(rect.left);
+    if (nav) frontInner.append(nav);
+  } else if (face !== "blank") frontInner.append(face.cloneNode(true));
   frontWrap.append(frontInner);
 
   // The flap: the paper's back (plain ruled paper, a shade warmer), with a
@@ -283,6 +319,11 @@ function makeCurl(
     underLayer = box({ width: `${w}px`, height: `${h}px`, background: "var(--background)" });
     underLayer.classList.add("journal-page", "page-curl-sheet");
     if (beneath !== "blank") underLayer.append(beneath.cloneNode(true));
+    else {
+      // Plain paper still has the nav: the sheet now covers the live one.
+      const nav = navClone(rect.left);
+      if (nav) underLayer.append(nav);
+    }
     root.append(underLayer);
   }
   root.append(cast, frontWrap, flapWrap, dim);
@@ -457,7 +498,7 @@ export function SwipeTabPages({
   /** Back: keep the current page as a flat sheet until the previous page renders, which then curls in on top. */
   function holdForBack(under: Curl, preview: Curl | null, crossing: boolean) {
     // The lifted back must stay above the flat copy of the current page.
-    if (preview) preview.root.style.zIndex = "21";
+    if (preview) preview.root.style.zIndex = "32";
     flightRef.current = {
       dir: -1,
       curl: null,
@@ -527,7 +568,7 @@ export function SwipeTabPages({
     // rest of the turn's time — no jump back to the spine.
     const from = flight.preview ? flight.preview.p : turned;
     const remaining = Math.min(Math.max((incoming.c.x - from.x) / (incoming.c.x - turned.x), 0.4), 1);
-    if (flight.preview) incoming.root.style.zIndex = "21";
+    if (flight.preview) incoming.root.style.zIndex = "32";
     applyCurl(incoming, from);
     flight.preview?.root.remove();
     flight.preview = null;

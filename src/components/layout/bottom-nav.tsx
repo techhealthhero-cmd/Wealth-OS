@@ -84,7 +84,8 @@ export function BottomNav() {
   return (
     // Floating pill inset from the screen edges; every page reserves bottom
     // clearance for it (`pb-24` / `pb-[calc(6rem+...)]`).
-    <div className="fixed inset-x-0 bottom-0 z-30 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden">
+    // `data-bottom-nav`: page turns copy this bar onto the turning sheet (SwipeTabPages).
+    <div data-bottom-nav="" className="fixed inset-x-0 bottom-0 z-30 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden">
       {/* Progressive "frosted glass" fade behind the pill, confined to the
           nav wrapper's own box so it never blurs page cards above it. */}
       <div
