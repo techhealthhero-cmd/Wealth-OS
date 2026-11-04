@@ -5,8 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowDownRight, ArrowUpLeft, ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { MonthGrid } from "@/lib/financial/week-strip";
+import { formatMoney } from "@/lib/financial/money";
 import { useTranslation } from "@/i18n/client";
 import { cn } from "@/lib/utils";
+
+export type WallCalendarSummary = {
+  incomeCents: number;
+  expenseCents: number;
+  budget: { percentUsed: number; remainingCents: number } | null;
+};
 
 const ROW_H = 56;
 const STORAGE_KEY = "wos.wallCalendarWeeks";
@@ -27,18 +34,25 @@ const CURL_LIFT = 22;
  * the redder, the more spent. Tapping a day filters the list to it (from =
  * to = that date), tapping it again clears it; ‹ › move a month (?month=).
  * How far it is open is remembered per device.
+ *
+ * 2026-11-05 (mockup E "แบบ A ตอนพับเหลือสัปดาห์"): the month summary —
+ * income, spending, what's left, and the budget bar — moved inside the
+ * card under the title, the rings came off, and tapping the corner opens
+ * the whole month at once (dragging still stops at any week).
  */
 export function WallCalendar({
   grid,
   prevMonth,
   nextMonth,
   selectedDate,
+  summary,
 }: {
   grid: MonthGrid;
   prevMonth: string;
   /** null when this is already the current month. */
   nextMonth: string | null;
   selectedDate: string | null;
+  summary: WallCalendarSummary;
 }) {
   const { t, locale } = useTranslation();
   const router = useRouter();
@@ -137,8 +151,8 @@ export function WallCalendar({
     paperRef.current?.classList.remove("wall-dragging");
     lift(0);
     if (!d.moved) {
-      // A tap turns one more week; at the whole month it folds back to one.
-      commit(shown >= rows ? 1 : shown + 1);
+      // A tap opens the whole month; at the whole month it folds back to one.
+      commit(shown >= rows ? 1 : rows);
       return;
     }
     const h = parseFloat(rowsRef.current?.style.height ?? "0");
@@ -189,6 +203,9 @@ export function WallCalendar({
     return cents > 0 ? `+${formatted}` : cents < 0 ? `-${formatted}` : formatted;
   };
   const tone = (cents: number) => (cents > 0 ? "wall-pos" : cents < 0 ? "wall-neg" : "");
+  const money = (cents: number) => formatMoney(cents, "THB", undefined, 0);
+  const left = summary.incomeCents - summary.expenseCents;
+  const used = summary.budget ? Math.max(0, Math.round(summary.budget.percentUsed)) : 0;
 
   const isCurrentMonth = nextMonth === null;
   const title = label(`${grid.month}-01`, { month: "long", year: "numeric" });
@@ -203,37 +220,69 @@ export function WallCalendar({
     >
       <div ref={paperRef} className="wall-paper">
         <div className="wall-card">
-          <div className="wall-rings" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-          <div className="flex items-center gap-1 px-1.5 pb-1">
-            <span className="text-[16px] font-bold">{title}</span>
-            <span className="wall-muted ml-auto text-[12px] tabular-nums">
-              {isCurrentMonth ? t("transactions.week.monthNet") : t("transactions.week.wholeMonthNet")}{" "}
-              <b className={cn("font-semibold", tone(grid.netCents))}>{net(grid.netCents)}</b>
-            </span>
+          <div className="flex items-center gap-1 px-1.5 pb-3">
+            <h2 className="font-heading text-[20px] leading-tight font-bold">{title}</h2>
             <button
               type="button"
               onClick={() => moveMonth(prevMonth)}
               aria-label={t("transactions.week.previous")}
-              className="wall-muted flex size-7 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+              className="ml-auto flex size-9 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10"
             >
-              <ChevronLeft className="size-4" aria-hidden="true" />
+              <ChevronLeft className="size-5" aria-hidden="true" />
             </button>
             <button
               type="button"
               onClick={() => moveMonth(nextMonth)}
               disabled={nextMonth === null}
               aria-label={t("transactions.week.next")}
-              className="wall-muted flex size-7 items-center justify-center rounded-full hover:bg-black/5 disabled:opacity-30 dark:hover:bg-white/10"
+              className="flex size-9 items-center justify-center rounded-full hover:bg-black/5 disabled:opacity-30 dark:hover:bg-white/10"
             >
-              <ChevronRight className="size-4" aria-hidden="true" />
+              <ChevronRight className="size-5" aria-hidden="true" />
             </button>
           </div>
-          <div className="wall-muted grid grid-cols-7 pb-0.5 text-center text-[11px]" aria-hidden="true">
+
+          {/* The month at a glance, inside the card (mockup E). */}
+          <dl className="wall-panel grid grid-cols-3 text-center">
+            <div>
+              <dt className="wall-muted text-[12.5px]">{t("transactions.month.income")}</dt>
+              <dd className="wall-pos text-[19px] font-bold tabular-nums">+{money(summary.incomeCents)}</dd>
+            </div>
+            <div className="wall-panel-sep">
+              <dt className="wall-muted text-[12.5px]">{t("transactions.month.expense")}</dt>
+              <dd className="wall-neg text-[19px] font-bold tabular-nums">−{money(summary.expenseCents)}</dd>
+            </div>
+            <div className="wall-panel-sep">
+              <dt className="wall-muted text-[12.5px]">{t("transactions.month.left")}</dt>
+              <dd className="text-[19px] font-bold tabular-nums">{left < 0 ? `−${money(-left)}` : money(left)}</dd>
+            </div>
+          </dl>
+          {summary.budget ? (
+            <div className="space-y-1.5 px-1.5 pt-3">
+              <div
+                className="wall-budget"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.min(used, 100)}
+                aria-label={t("transactions.month.budgetUsed").replace("{percent}", String(used))}
+              >
+                <div
+                  className={cn("wall-budget-fill", used > 100 && "wall-budget-over")}
+                  style={{ width: `${Math.min(used, 100)}%` }}
+                />
+              </div>
+              <div className="wall-muted flex justify-between text-[12.5px] tabular-nums">
+                <span>{t("transactions.month.budgetUsed").replace("{percent}", String(used))}</span>
+                <span>
+                  {summary.budget.remainingCents >= 0
+                    ? t("transactions.month.budgetLeft").replace("{amount}", money(summary.budget.remainingCents))
+                    : t("transactions.month.budgetOver").replace("{amount}", money(-summary.budget.remainingCents))}
+                </span>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="wall-muted grid grid-cols-7 pt-3 pb-1 text-center text-[12px]" aria-hidden="true">
             {grid.weeks[0].map((day) => (
               <span key={day.date} className={cn(day.index >= 5 && "wall-weekend")}>
                 {label(day.date, { weekday: "narrow" })}
@@ -307,8 +356,8 @@ export function WallCalendar({
             </div>
           </div>
 
-          <p className="wall-muted wall-hint text-[11.5px] tabular-nums">
-            {full ? t("transactions.week.curlFold") : t("transactions.week.curlHint")} · {open}/{rows}
+          <p className="wall-muted wall-hint text-[12.5px]">
+            {full ? t("transactions.week.curlFold") : t("transactions.week.curlHint")}
           </p>
         </div>
 
@@ -325,7 +374,7 @@ export function WallCalendar({
           onPointerCancel={onPointerEnd}
           // Taps arrive through the pointer handlers; this is Enter/Space.
           onClick={(e) => {
-            if (e.detail === 0) commit(full ? 1 : open + 1);
+            if (e.detail === 0) commit(full ? 1 : rows);
           }}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown" || e.key === "ArrowRight") {

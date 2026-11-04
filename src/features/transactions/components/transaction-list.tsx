@@ -97,19 +97,25 @@ export async function TransactionList({
     timeZone: "UTC",
   }).format(new Date(`${monthFrom}T00:00:00Z`));
   const m = dict.transactions.month;
+  const monthSummary = {
+    incomeCents: calculateIncome(monthTransactions),
+    expenseCents: calculateExpenses(monthTransactions),
+    budget: budget ? { percentUsed: budget.overall.percentUsed, remainingCents: budget.overall.remainingCents } : null,
+  };
 
   return (
     <div className="space-y-4">
-      <MonthSummary
-        title={monthTitle}
-        // The calendar below names the month; the pending tab has no calendar,
-        // so the summary names its own month there.
-        showTitle={tab === "pending"}
-        incomeCents={calculateIncome(monthTransactions)}
-        expenseCents={calculateExpenses(monthTransactions)}
-        budget={budget ? { percentUsed: budget.overall.percentUsed, remainingCents: budget.overall.remainingCents } : null}
-        labels={{ income: m.income, expense: m.expense, left: m.left, budgetUsed: m.budgetUsed, budgetLeft: m.budgetLeft, budgetOver: m.budgetOver }}
-      />
+      {tab === "pending" ? (
+        // The pending tab has no calendar, so the summary stands on its own
+        // card there; on "all" it lives inside the wall calendar (mockup E).
+        <MonthSummary
+          title={monthTitle}
+          incomeCents={monthSummary.incomeCents}
+          expenseCents={monthSummary.expenseCents}
+          budget={monthSummary.budget}
+          labels={{ income: m.income, expense: m.expense, left: m.left, budgetUsed: m.budgetUsed, budgetLeft: m.budgetLeft, budgetOver: m.budgetOver }}
+        />
+      ) : null}
 
       <ListTabs active={tab} pendingCount={pendingItems.length + (slips?.length ?? 0)} />
 
@@ -140,6 +146,7 @@ export async function TransactionList({
         prevMonth={addMonthsIso(calendarMonth, -1)}
         nextMonth={calendarMonth < thisMonth ? addMonthsIso(calendarMonth, 1) : null}
         selectedDate={selectedDate}
+        summary={monthSummary}
       />
 
       {transactions.length === 0 && selectedDate && isDefaultView ? (

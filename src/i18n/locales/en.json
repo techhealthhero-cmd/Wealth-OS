@@ -574,7 +574,7 @@
   "transactions": {
     "moreActions": "More (export)",
     "month": {"income":"In","expense":"Out","left":"Left","budgetUsed":"Budget used {percent}%","budgetLeft":"{amount} left","budgetOver":"{amount} over"},
-    "week": {"label":"Monthly calendar — tap a day to see only that day","previous":"Previous month","next":"Next month","hasPending":"has items to review","monthNet":"Net this month","wholeMonthNet":"Month net","curlHint":"Turn the corner down to see earlier weeks, up to the whole month","curlFold":"Tap the corner to fold back to one week","heatSpend":"Darker = more spent","heatIncome":"Money came in"},
+    "week": {"label":"Monthly calendar — tap a day to see only that day","previous":"Previous month","next":"Next month","hasPending":"has items to review","monthNet":"Net this month","wholeMonthNet":"Month net","curlHint":"Tap the corner to open the whole month","curlFold":"Tap the corner to fold back to one week","heatSpend":"Darker = more spent","heatIncome":"Money came in"},
     "tabs": {"all":"All","pending":"To review"},
     "pendingEmpty": "Nothing to review ✓",
     "dayEmpty": "No transactions on this day",

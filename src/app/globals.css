@@ -654,20 +654,41 @@
   --curl: 52px;
   position: relative;
   z-index: 1;
-  margin-top: 9px;
   filter: drop-shadow(0 6px 10px rgba(80, 60, 30, 0.16)) drop-shadow(0 1px 0 rgba(80, 60, 30, 0.08));
   transition: --curl 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .dark .wall-paper { filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.55)); }
 .wall-card {
   position: relative;
-  padding: 16px 8px 6px;
+  padding: 18px 12px 6px;
   border: 1px solid var(--wall-edge);
-  border-radius: 14px;
+  border-radius: 24px;
   background: var(--wall-card);
-  /* Starts above the box so the rings aren't clipped. */
-  clip-path: polygon(0 -20px, 100% -20px, 100% calc(100% - var(--curl)), calc(100% - var(--curl)) 100%, 0 100%);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--curl)), calc(100% - var(--curl)) 100%, 0 100%);
 }
+/* The month summary inside the card (mockup E, 2026-11-05). */
+.wall-panel {
+  padding: 12px 4px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--wall-edge) 45%, var(--wall-card));
+}
+.wall-panel > div { display: flex; flex-direction: column; gap: 2px; }
+.wall-panel-sep { border-left: 1px dashed color-mix(in srgb, var(--wall-muted) 45%, transparent); }
+.wall-budget {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--wall-edge) 60%, var(--wall-card));
+}
+/* Never narrower than its own height: 0% still shows a dot. */
+.wall-budget-fill {
+  min-width: 6px;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--wall-sel);
+  transition: width 0.4s ease;
+}
+.wall-budget-over { background: var(--wall-neg); }
 .wall-hint {
   display: flex;
   align-items: center;
@@ -724,21 +745,6 @@
     var(--wall-edge) 50%
   );
 }
-.wall-rings {
-  position: absolute;
-  top: -9px;
-  inset-inline: 0;
-  display: flex;
-  justify-content: space-around;
-  padding-inline: 40px;
-  pointer-events: none;
-}
-.wall-rings i {
-  width: 8px;
-  height: 18px;
-  border-radius: 4px;
-  background: linear-gradient(to right, var(--wall-ring), color-mix(in srgb, var(--wall-ring) 40%, white), var(--wall-ring));
-}
 .wall-rows {
   overflow: hidden;
   transition: height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -748,15 +754,18 @@
 .wall-dragging .wall-rows,
 .wall-dragging .wall-inner { transition: none; }
 .wall-row-current {
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--wall-sel) 7%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--wall-edge) 45%, var(--wall-card));
 }
 .wall-day { color: var(--wall-ink); }
 .wall-day:focus-visible { outline: 2px solid var(--wall-sel); outline-offset: -2px; }
 .wall-day-out .wall-n,
 .wall-day-out .wall-v { opacity: 0.35; }
 .wall-day-future .wall-n { color: var(--wall-muted); font-weight: 500; }
-.wall-day-today { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--wall-sel) 60%, transparent); }
+.wall-day-today {
+  background: var(--wall-card);
+  box-shadow: inset 0 0 0 2px var(--wall-sel);
+}
 .wall-day-selected { background: var(--wall-sel); }
 .wall-day-selected .wall-n,
 .wall-day-selected .wall-v { color: var(--wall-sel-ink) !important; opacity: 1; }
