@@ -21,7 +21,6 @@ const AXIS_LOCK_PX = 10;
 // the owner's request (2026-10-09) so the turn reads clearly.
 const TURN_MS = 650;
 const SETTLE_MS = 280;
-const BOTTOM_NAV_CLEARANCE_PX = 96;
 // A forward turn waits here (paused) if the next page hasn't rendered yet,
 // so it never turns over onto a blank page. With the ease-out curve, 8% of
 // the time is ~22% of the turn.
@@ -328,9 +327,13 @@ function makeCurl(
   }
   root.append(cast, frontWrap, flapWrap, dim);
   document.body.appendChild(root);
-  // The bottom corner sits just above the bottom nav (which covers the
-  // screen's last ~96px), so the grabbed corner is never hidden behind it.
-  const c = { x: w, y: cornerAtBottom ? Math.max(h - BOTTOM_NAV_CLEARANCE_PX, h * 0.6) : 0 };
+  // The bottom corner is the sheet's real corner (2026-11-05): the sheet now
+  // lies over the bottom nav and carries its copy, so the fold runs through
+  // the nav too and it visibly turns over with the paper. (It used to sit
+  // ~96px up, clear of a nav that covered the sheet — which left the copied
+  // nav and the live one lined up seamlessly below the flap, so the nav
+  // looked like it stayed put.)
+  const c = { x: w, y: cornerAtBottom ? h : 0 };
   const curl: Curl = {
     root,
     frontWrap,
